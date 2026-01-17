@@ -11,7 +11,7 @@ public class ItemCotacao {
     private Long id;
 
     private String nomeProduto; // Vem da Coluna A do Excel
-    
+
     public String getNomeProduto() {
         return nomeProduto;
     }
@@ -37,6 +37,19 @@ public class ItemCotacao {
     }
 
     private Integer quantidade; // Vem da Coluna C
-    
+
     private Double ultimoPreco; // Vem da Coluna D
+
+    @ManyToOne // Muitos itens pertencem a uma cotação
+    @JoinColumn(name = "cotacao_id")
+    
+    private Cotacao cotacao;
+
+    public Cotacao getCotacao() {
+        return cotacao;
+    }
+
+    public void setCotacao(Cotacao cotacao) {
+        this.cotacao = cotacao;
+    }
 }
