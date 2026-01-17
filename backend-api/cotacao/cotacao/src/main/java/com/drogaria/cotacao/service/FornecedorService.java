@@ -25,10 +25,11 @@ public class FornecedorService {
     private FornecedorRepository fornecedorRepository;
 
     // Método para cadastrar um fornecedor (teste)
-    public Fornecedor criarFornecedor(String nome, String email) {
+    public Fornecedor criarFornecedor(String nome, String email, String telefone) {
         Fornecedor f = new Fornecedor();
         f.setNome(nome);
         f.setEmail(email);
+        f.setTelefone(telefone);
         return fornecedorRepository.save(f);
     }
 
@@ -40,17 +41,17 @@ public class FornecedorService {
 
             // Verifica se os dados existem e se o preço não veio vazio
             if (item != null && fornecedor != null && dto.getPreco() != null && !dto.getPreco().isEmpty()) {
-                
+
                 PrecoCotacao novoPreco = new PrecoCotacao();
                 novoPreco.setItem(item);
                 novoPreco.setFornecedor(fornecedor);
                 try {
                     // 1. Remove "R$" e espaços
                     String precoLimpo = dto.getPreco().replace("R$", "").replace(" ", "");
-                    
+
                     // 2. Troca vírgula por ponto
                     precoLimpo = precoLimpo.replace(",", ".");
-                    
+
                     // 3. Converte para Double
                     double valorFinal = Double.parseDouble(precoLimpo);
                     novoPreco.setPrecoOfertado(valorFinal);
@@ -60,5 +61,10 @@ public class FornecedorService {
                 }
             }
         }
+    }
+
+    public Fornecedor buscarPorId(Long id) {
+        return fornecedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado"));
     }
 }
