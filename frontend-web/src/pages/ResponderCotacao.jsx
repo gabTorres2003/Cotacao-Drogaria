@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import axios from 'axios';
+import api from '../services/api';
 import { Save, CheckCircle } from 'lucide-react';
 
 export default function ResponderCotacao() {
@@ -19,7 +19,7 @@ export default function ResponderCotacao() {
 
   const carregarItens = async () => {
     try {
-      const response = await axios.get(`http://localhost:8080/api/comparativo/${idCotacao}`);
+      const response = await api.get(`/api/comparativo/${idCotacao}`);
       setItens(response.data);
       setLoading(false);
     } catch (error) {

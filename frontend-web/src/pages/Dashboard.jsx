@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import axios from 'axios'
+import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import { Upload, FileDown, MessageCircle, Eye, Search } from 'lucide-react'
@@ -17,7 +17,7 @@ export default function Dashboard() {
   const carregarCotacoes = async () => {
     try {
       // Chama o endpoint
-      const response = await axios.get('http://localhost:8080/api/cotacao')
+      const response = await api.get('/api/cotacao')
       setCotacoes(response.data)
 
       // Calcula resumo simples
@@ -34,15 +34,14 @@ export default function Dashboard() {
   const gerarLinkZap = async (idCotacao) => {
     const idFornecedorTeste = 1
     try {
-      const response = await axios.get(
-        `http://localhost:8080/api/fornecedor/gerar-link-whatsapp`,
-        {
-          params: { idFornecedor: idFornecedorTeste, idCotacao },
-        },
-      )
+      const response = await api.get('/api/fornecedor/gerar-link-whatsapp', {
+        params: { idFornecedor: idFornecedorTeste, idCotacao },
+      })
       window.open(response.data, '_blank')
     } catch (error) {
-      alert('Erro ao gerar Zap: ' + error.response?.data || 'Erro desconhecido')
+      alert(
+        'Erro ao gerar Zap: ' + (error.response?.data || 'Erro desconhecido'),
+      )
     }
   }
 
