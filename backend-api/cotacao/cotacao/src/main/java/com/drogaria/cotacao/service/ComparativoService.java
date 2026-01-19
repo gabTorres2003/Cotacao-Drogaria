@@ -36,6 +36,7 @@ public class ComparativoService {
         // 3. Para cada item, vamos ver quem deu preço
         for (ItemCotacao item : itens) {
             ItemComparativoDTO linha = new ItemComparativoDTO();
+            linha.setIdItem(item.getId());
             linha.setNomeProduto(item.getNomeProduto());
             linha.setQuantidade(item.getQuantidade());
 

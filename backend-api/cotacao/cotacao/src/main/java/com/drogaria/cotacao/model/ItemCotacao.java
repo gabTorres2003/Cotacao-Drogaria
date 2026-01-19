@@ -52,4 +52,9 @@ public class ItemCotacao {
     public void setCotacao(Cotacao cotacao) {
         this.cotacao = cotacao;
     }
+
+    public Long getId() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getId'");
+    }
 }

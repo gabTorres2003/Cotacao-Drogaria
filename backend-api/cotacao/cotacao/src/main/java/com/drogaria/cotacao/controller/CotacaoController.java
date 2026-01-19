@@ -28,6 +28,11 @@ public class CotacaoController {
     @Autowired
     private CotacaoRepository cotacaoRepository;
 
+    @GetMapping
+    public ResponseEntity<List<Cotacao>> listarCotacoes() {
+        return ResponseEntity.ok(cotacaoRepository.findAll());
+    }
+
     @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<String> importarPlanilha(@RequestParam("file") MultipartFile file) {
         try {

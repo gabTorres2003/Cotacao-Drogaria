@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class ItemComparativoDTO {
+    private Long idItem;
     private String nomeProduto;
     private Integer quantidade;
     
@@ -26,6 +27,9 @@ public class ItemComparativoDTO {
     
     public String getFornecedorVencedor() { return fornecedorVencedor; }
     public void setFornecedorVencedor(String fornecedorVencedor) { this.fornecedorVencedor = fornecedorVencedor; }
+
+    public Long getIdItem() { return idItem; }
+    public void setIdItem(Long idItem) { this.idItem = idItem; }
     
     public Map<String, Double> getPrecosPorFornecedor() { return precosPorFornecedor; }
     public void setPrecosPorFornecedor(Map<String, Double> precosPorFornecedor) { this.precosPorFornecedor = precosPorFornecedor; }
