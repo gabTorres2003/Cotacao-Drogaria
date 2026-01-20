@@ -3,6 +3,7 @@ package com.drogaria.cotacao.controller;
 import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.service.FornecedorService;
+import com.drogaria.cotacao.repository.FornecedorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -20,6 +21,9 @@ public class FornecedorController {
 
     @Autowired
     private FornecedorService fornecedorService;
+
+    @Autowired 
+    private FornecedorRepository fornecedorRepository;
 
     // criar fornecedores de teste
     @PostMapping("/criar")
@@ -79,5 +83,10 @@ public class FornecedorController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Erro: " + e.getMessage());
         }
+    }
+
+    @GetMapping
+    public ResponseEntity<List<Fornecedor>> listarTodos() {
+        return ResponseEntity.ok(fornecedorRepository.findAll());
     }
 }

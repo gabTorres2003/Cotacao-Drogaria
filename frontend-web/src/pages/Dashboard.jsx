@@ -3,11 +3,13 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import { Upload, FileDown, MessageCircle, Eye, Search } from 'lucide-react'
+import EnviarLinkModal from '../components/EnviarLinkModal'
 
 export default function Dashboard() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
   const [resumo, setResumo] = useState({ total: 0, abertas: 0 })
+  const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null);
 
   // Busca dados ao carregar a página
   useEffect(() => {
@@ -156,8 +158,8 @@ export default function Dashboard() {
                     </button>
                     <button
                       className="btn-icon"
-                      title="Enviar no Zap"
-                      onClick={() => gerarLinkZap(c.id)}
+                      title="Enviar por WhatsApp"
+                      onClick={() => setCotacaoParaEnviar(c.id)}
                     >
                       <MessageCircle size={18} />
                     </button>
@@ -174,6 +176,12 @@ export default function Dashboard() {
           <UploadModal
             onClose={() => setModalAberto(false)}
             onSuccess={carregarCotacoes}
+          />
+        )}
+        {cotacaoParaEnviar && (
+          <EnviarLinkModal
+            idCotacao={cotacaoParaEnviar}
+            onClose={() => setCotacaoParaEnviar(null)}
           />
         )}
       </main>
