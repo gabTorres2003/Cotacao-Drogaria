@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api'; 
 import { X, Send, User } from 'lucide-react';
-import './EnviarLinkModal.css'; 
 
 export default function EnviarLinkModal({ idCotacao, onClose }) {
   const [fornecedores, setFornecedores] = useState([]);
