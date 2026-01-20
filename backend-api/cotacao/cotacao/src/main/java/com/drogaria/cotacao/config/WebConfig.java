@@ -9,9 +9,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addCorsMappings(CorsRegistry registry) {
-        registry.addMapping("/**") // Aplica a todas as rotas
-                .allowedOrigins("*") // LIBERA GERAL Netlify, Localhost, etc
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") // Libera todos os métodos
-                .allowedHeaders("*"); // Libera todos os cabeçalhos
+        registry.addMapping("/**")
+                .allowedOrigins("*")
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*");
     }
 }

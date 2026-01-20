@@ -18,17 +18,17 @@ export default function Dashboard() {
 
   const carregarCotacoes = async () => {
     try {
-      // Chama o endpoint
       const response = await api.get('/api/cotacao')
-      setCotacoes(response.data)
 
-      // Calcula resumo simples
-      setResumo({
-        total: response.data.length,
-        abertas: response.data.filter((c) => c.status === 'ABERTA').length,
-      })
+      if (Array.isArray(response.data)) {
+        setCotacoes(response.data)
+      } else {
+        console.error('ERRO: A API não retornou uma lista!', response.data)
+        setCotacoes([])
+      }
     } catch (error) {
-      console.error('Erro ao buscar cotações', error)
+      console.error('Erro ao carregar cotações:', error)
+      setCotacoes([])
     }
   }
 
