@@ -11,7 +11,7 @@ public class ItemCotacao {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private String nomeProduto; // Vem da Coluna A do Excel
+    private String nomeProduto;
 
     public String getNomeProduto() {
         return nomeProduto;
@@ -37,11 +37,11 @@ public class ItemCotacao {
         this.ultimoPreco = ultimoPreco;
     }
 
-    private Integer quantidade; // Vem da Coluna C
+    private Integer quantidade; 
 
-    private Double ultimoPreco; // Vem da Coluna D
+    private Double ultimoPreco;
 
-    @ManyToOne // Muitos itens pertencem a uma cotação
+    @ManyToOne
     @JoinColumn(name = "cotacao_id")
     @JsonIgnore
     
@@ -56,6 +56,6 @@ public class ItemCotacao {
     }
 
     public Long getId() {
-        throw new UnsupportedOperationException("Unimplemented method 'getId'");
+        return id;
     }
 }
