@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "tb_precos_cotacao")
@@ -17,8 +18,8 @@ public class PrecoCotacao {
     @ManyToOne
     @JoinColumn(name = "fornecedor_id")
     private Fornecedor fornecedor; // Quem ofertou
-
     private Double precoOfertado; // O valor 
+    private LocalDateTime dataResposta;
 
     // Getters e Setters
     public Long getId() { return id; }
@@ -32,4 +33,7 @@ public class PrecoCotacao {
     
     public Double getPrecoOfertado() { return precoOfertado; }
     public void setPrecoOfertado(Double precoOfertado) { this.precoOfertado = precoOfertado; }
+
+    public LocalDateTime getDataResposta() { return dataResposta; }
+    public void setDataResposta(LocalDateTime dataResposta) { this.dataResposta = dataResposta; }
 }

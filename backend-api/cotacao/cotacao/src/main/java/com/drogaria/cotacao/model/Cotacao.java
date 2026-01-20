@@ -16,6 +16,9 @@ public class Cotacao {
 
     private String status;
     private String descricao; 
+    @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL)
+    private List<ItemCotacao> itens;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
     
@@ -26,4 +29,7 @@ public class Cotacao {
     
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
+
+    public List<ItemCotacao> getItens() { return itens; }
+    public void setItens(List<ItemCotacao> itens) { this.itens = itens; }
 }
