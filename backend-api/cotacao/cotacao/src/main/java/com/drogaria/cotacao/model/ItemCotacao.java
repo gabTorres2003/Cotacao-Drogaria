@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
 @Table(name = "tb_itens_cotacao")
@@ -42,6 +43,7 @@ public class ItemCotacao {
 
     @ManyToOne // Muitos itens pertencem a uma cotação
     @JoinColumn(name = "cotacao_id")
+    @JsonIgnore
     
     private Cotacao cotacao;
 

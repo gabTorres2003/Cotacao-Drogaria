@@ -63,4 +63,9 @@ public class CotacaoController {
             return ResponseEntity.internalServerError().body("Erro: " + e.getMessage());
         }
     }
+
+    @GetMapping("/ping")
+    public String ping() {
+        return "Pong!";
+    }
 }
