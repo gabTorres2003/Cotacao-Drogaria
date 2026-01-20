@@ -9,7 +9,7 @@ export default function Dashboard() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
   const [resumo, setResumo] = useState({ total: 0, abertas: 0 })
-  const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null);
+  const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
 
   // Busca dados ao carregar a página
   useEffect(() => {
