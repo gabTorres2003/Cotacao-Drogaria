@@ -3,6 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ResponderCotacao from './pages/ResponderCotacao';
+import CotacaoDetalhes from './pages/CotacaoDetalhes';
 import './App.css';
 
 const RotaPrivada = ({ children }) => {
@@ -27,7 +28,17 @@ function App() {
           } 
         />
 
-        {/* 3. TELA DO FORNECEDOR */}
+        {/* 3. DETALHES DA COTAÇÃO */}
+        <Route 
+          path="/cotacao/:id" 
+          element={
+            <RotaPrivada>
+              <CotacaoDetalhes />
+            </RotaPrivada>
+          } 
+        />
+
+        {/* 4. TELA DO FORNECEDOR */}
         <Route path="/responder-cotacao/:idCotacao" element={<ResponderCotacao />} />
 
         {/* rota desconhecida joga pro Login */}

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
@@ -10,6 +11,7 @@ export default function Dashboard() {
   const [modalAberto, setModalAberto] = useState(false)
   const [resumo, setResumo] = useState({ total: 0, abertas: 0 })
   const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
+  const navigate = useNavigate()
 
   // Busca dados ao carregar a página
   useEffect(() => {
@@ -22,6 +24,10 @@ export default function Dashboard() {
 
       if (Array.isArray(response.data)) {
         setCotacoes(response.data)
+        setResumo({
+            total: response.data.length,
+            abertas: response.data.filter(c => c.status === 'ABERTA').length
+        })
       } else {
         console.error('ERRO: A API não retornou uma lista!', response.data)
         setCotacoes([])
@@ -52,21 +58,11 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="main-content">
-        <header
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            marginBottom: '30px',
-          }}
-        >
+        <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
           <h1>Painel de Cotações</h1>
           <button
             className="menu-item"
-            style={{
-              background: '#2563eb',
-              color: 'white',
-              justifyContent: 'center',
-            }}
+            style={{ background: '#2563eb', color: 'white', justifyContent: 'center' }}
             onClick={() => setModalAberto(true)}
           >
             <Upload size={18} /> Nova Cotação
@@ -80,50 +76,22 @@ export default function Dashboard() {
             <div className="stat-label">Cotações Totais</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#eab308' }}>
-              {resumo.abertas}
-            </div>
+            <div className="stat-value" style={{ color: '#eab308' }}>{resumo.abertas}</div>
             <div className="stat-label">Em Aberto</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>
-              0
-            </div>
+            <div className="stat-value" style={{ color: '#16a34a' }}>0</div>
             <div className="stat-label">Finalizadas</div>
           </div>
         </div>
 
         {/* Tabela de Cotações */}
         <div className="table-container">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3>Histórico Recente</h3>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                background: '#f9fafb',
-                padding: '5px 10px',
-                borderRadius: '5px',
-                border: '1px solid #eee',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f9fafb', padding: '5px 10px', borderRadius: '5px', border: '1px solid #eee' }}>
               <Search size={16} color="#999" />
-              <input
-                type="text"
-                placeholder="Buscar..."
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                }}
-              />
+              <input type="text" placeholder="Buscar..." style={{ border: 'none', background: 'transparent', outline: 'none' }} />
             </div>
           </div>
 
@@ -153,9 +121,14 @@ export default function Dashboard() {
                     </span>
                   </td>
                   <td>
-                    <button className="btn-icon" title="Ver Detalhes">
+                    <button 
+                        className="btn-icon" 
+                        title="Ver Detalhes"
+                        onClick={() => navigate(`/cotacao/${c.id}`)} 
+                    >
                       <Eye size={18} />
                     </button>
+
                     <button
                       className="btn-icon"
                       title="Enviar por WhatsApp"
@@ -172,6 +145,7 @@ export default function Dashboard() {
             </tbody>
           </table>
         </div>
+
         {modalAberto && (
           <UploadModal
             onClose={() => setModalAberto(false)}
