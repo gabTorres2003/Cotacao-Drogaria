@@ -5,6 +5,7 @@ import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import { Upload, FileDown, MessageCircle, Eye, Search } from 'lucide-react'
 import EnviarLinkModal from '../components/EnviarLinkModal'
+import autoTable from 'jspdf-autotable'
 
 export default function Dashboard() {
   const [cotacoes, setCotacoes] = useState([])
@@ -50,6 +51,59 @@ export default function Dashboard() {
       alert(
         'Erro ao gerar Zap: ' + (error.response?.data || 'Erro desconhecido'),
       )
+    }
+  }
+
+  const baixarRelatorioGeral = async (idCotacao) => {
+    try {
+      const doc = new jsPDF();
+
+      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`);
+      const itens = response.data;
+
+      if (!itens || itens.length === 0) {
+        alert('Essa cotação ainda não tem itens processados.');
+        return;
+      }
+
+      doc.setFontSize(18);
+      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20);
+      doc.setFontSize(12);
+      doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30);
+
+      const linhas = itens.map(item => {
+        const vencedor = item.fornecedorVencedor || 'Sem Oferta';
+        const preco = item.menorPrecoEncontrado || 0;
+        const total = preco * item.quantidade;
+
+        return [
+          item.nomeProduto,
+          item.quantidade,
+          vencedor,
+          preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        ];
+      });
+
+      const totalGeral = itens.reduce((acc, item) => {
+        const preco = item.menorPrecoEncontrado || 0;
+        return acc + (preco * item.quantidade);
+      }, 0);
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
+        body: linhas,
+        foot: [['', '', '', 'TOTAL GERAL', totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]],
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] }
+      });
+
+      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`);
+
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      alert('Erro ao gerar o relatório. Verifique se a cotação tem respostas.');
     }
   }
 
