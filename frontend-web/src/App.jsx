@@ -5,14 +5,27 @@ import ResponderCotacao from './pages/ResponderCotacao';
 import './App.css';
 
 function App() {
+
+  const isAuthenticated = localStorage.getItem('usuarioLogado');
+
   return (
     <BrowserRouter>
       <Routes>
-        {/* Rota Raiz: Mostra o Dashboard */}
-        <Route path="/" element={<Dashboard />} />
+        <Route path="/" element={<Login />} />
         
-        {/* Rota do Fornecedor: Mostra a tela de responder */}
-        <Route path="/responder" element={<ResponderCotacao />} />
+        {/* Rotas Privadas (Dashboard) */}
+        <Route 
+          path="/dashboard" 
+          element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />} 
+        />
+        <Route 
+          path="/cotacao/:id" 
+          element={isAuthenticated ? <CotacaoDetalhes /> : <Navigate to="/" />} 
+        />
+
+        {/* --- 2. ROTA PÚBLICA DO FORNECEDOR --- */}
+        <Route path="/responder-cotacao/:idCotacao" element={<ResponderCotacao />} />
+        
       </Routes>
     </BrowserRouter>
   );
