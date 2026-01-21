@@ -1,7 +1,9 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.repository.FornecedorRepository;
+import com.drogaria.cotacao.service.FornecedorService; 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +17,9 @@ public class FornecedorController {
     @Autowired
     private FornecedorRepository fornecedorRepository;
 
+    @Autowired
+    private FornecedorService fornecedorService; 
+
     private final String SITE_URL = "https://cotacaotorresfarma.netlify.app"; 
 
     @GetMapping
@@ -25,6 +30,17 @@ public class FornecedorController {
     @PostMapping
     public ResponseEntity<Fornecedor> criar(@RequestBody Fornecedor fornecedor) {
         return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
+    }
+
+    @PostMapping("/salvar-respostas")
+    public ResponseEntity<String> salvarRespostas(@RequestBody List<SalvarPrecoDTO> respostas) {
+        try {
+            fornecedorService.salvarRespostasFornecedor(respostas);
+            return ResponseEntity.ok("Respostas salvas com sucesso!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Erro ao salvar: " + e.getMessage());
+        }
     }
 
     @GetMapping("/gerar-link-whatsapp")
@@ -42,7 +58,6 @@ public class FornecedorController {
         String linkResposta = SITE_URL + "/responder-cotacao/" + idCotacao + "?f=" + idFornecedor;
 
         String texto = "Olá " + fornecedor.getNome() + ", segue o link para cotação: " + linkResposta;
-        
         String linkWhatsapp = "https://api.whatsapp.com/send?phone=" + telefoneLimpo + "&text=" + texto;
 
         return ResponseEntity.ok(linkWhatsapp);
@@ -53,7 +68,6 @@ public class FornecedorController {
         if (!numeros.startsWith("55")) {
             numeros = "55" + numeros;
         }
-        
         return numeros;
     }
 }
