@@ -1,31 +1,37 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import React from 'react';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
-import ResponderCotacao from './pages/ResponderCotacao'; 
+import ResponderCotacao from './pages/ResponderCotacao';
 import './App.css';
 
+const RotaPrivada = ({ children }) => {
+  const isLogado = localStorage.getItem('usuarioLogado');
+  return isLogado ? children : <Navigate to="/" />;
+};
+
 function App() {
-
-  const isAuthenticated = localStorage.getItem('usuarioLogado');
-
   return (
     <BrowserRouter>
       <Routes>
+        {/* 1. TELA DE LOGIN  */}
         <Route path="/" element={<Login />} />
-        
-        {/* Rotas Privadas (Dashboard) */}
+
+        {/* 2. DASHBOARD  */}
         <Route 
           path="/dashboard" 
-          element={isAuthenticated ? <Dashboard /> : <Navigate to="/" />} 
-        />
-        <Route 
-          path="/cotacao/:id" 
-          element={isAuthenticated ? <CotacaoDetalhes /> : <Navigate to="/" />} 
+          element={
+            <RotaPrivada>
+              <Dashboard />
+            </RotaPrivada>
+          } 
         />
 
-        {/* --- 2. ROTA PÚBLICA DO FORNECEDOR --- */}
+        {/* 3. TELA DO FORNECEDOR */}
         <Route path="/responder-cotacao/:idCotacao" element={<ResponderCotacao />} />
-        
+
+        {/* rota desconhecida joga pro Login */}
+        <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
   );
