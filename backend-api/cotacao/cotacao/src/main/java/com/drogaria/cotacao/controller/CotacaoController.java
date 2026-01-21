@@ -8,6 +8,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import java.util.Map;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -60,5 +61,18 @@ public class CotacaoController {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Erro ao processar arquivo: " + e.getMessage());
         }
+    }
+
+    @PutMapping("/{id}/status")
+    public ResponseEntity<String> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String novoStatus = payload.get("status");
+        
+        return cotacaoRepository.findById(id)
+                .map(cotacao -> {
+                    cotacao.setStatus(novoStatus);
+                    cotacaoRepository.save(cotacao);
+                    return ResponseEntity.ok("Status atualizado para " + novoStatus);
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
