@@ -5,6 +5,7 @@ import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import { Upload, FileDown, MessageCircle, Eye, Search } from 'lucide-react'
 import EnviarLinkModal from '../components/EnviarLinkModal'
+import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 export default function Dashboard() {
