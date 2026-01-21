@@ -1,82 +1,77 @@
 package com.drogaria.cotacao.service.excel;
 
 import com.drogaria.cotacao.model.ItemCotacao;
-import org.apache.poi.ss.usermodel.*; 
+import org.apache.poi.ss.usermodel.*;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
 @Service
 public class ExcelReaderService {
 
-    public List<ItemCotacao> lerArquivoDeFaltas(MultipartFile arquivo) throws IOException {
-        List<ItemCotacao> listaDeItens = new ArrayList<>();
+    public List<ItemCotacao> read(MultipartFile file) {
+        List<ItemCotacao> itens = new ArrayList<>();
 
-        try (InputStream inputStream = arquivo.getInputStream();
-             Workbook workbook = WorkbookFactory.create(inputStream)) {
-
-            // Pega a primeira aba
+        try (Workbook workbook = new XSSFWorkbook(file.getInputStream())) {
             Sheet sheet = workbook.getSheetAt(0);
-            int totalLinhas = sheet.getPhysicalNumberOfRows(); // Conta linhas que têm dados físicos
-            System.out.println("Aba selecionada: " + sheet.getSheetName());
-            System.out.println("Linhas com dados físicos: " + totalLinhas);
 
-            for (Row row : sheet) {
-                int numeroLinha = row.getRowNum(); // Índice da linha 
-
-                // Se a linha for menor que 4, pula (Cabeçalho)
-                if (numeroLinha < 4) { 
-                    System.out.println("Pulando cabeçalho linha " + (numeroLinha+1));
-                    continue; 
-                }
-
-                // Extração dos dados
-                String nomeProduto = getCellValue(row, 0); // Coluna A
-                String qtdStr = getCellValue(row, 2);      // Coluna C
-                String precoStr = getCellValue(row, 3);    // Coluna D
-
-                // Se não tem nome, ignora
-                if (nomeProduto.trim().isEmpty()) continue;
-
-                System.out.println("Processando linha " + (numeroLinha+1) + ": " + nomeProduto);
+            for (int i = 1; i <= sheet.getLastRowNum(); i++) {
+                Row row = sheet.getRow(i);
+                if (row == null) continue;
 
                 ItemCotacao item = new ItemCotacao();
-                item.setNomeProduto(nomeProduto);
+
+                item.setNomeProduto(getCellValue(row.getCell(0)));
 
                 try {
-                    // Tratamento numérico robusto
-                    if (!qtdStr.isEmpty()) {
-                        double valorQtd = Double.parseDouble(qtdStr.replace(",", ".")); // Troca vírgula por ponto
-                        item.setQuantidade((int) valorQtd);
-                    }
-                    if (!precoStr.isEmpty()) {
-                         // Remove R$ ou espaços
-                         String precoLimpo = precoStr.replace("R$", "").replace(" ", "").replace(",", ".");
-                         item.setUltimoPreco(Double.parseDouble(precoLimpo));
-                    }
-                    listaDeItens.add(item);
-                } catch (NumberFormatException e) {
-                    System.out.println("Erro ao converter valores na linha " + (numeroLinha+1));
+                    double qtd = row.getCell(2).getNumericCellValue();
+                    item.setQuantidade((int) qtd);
+                } catch (Exception e) {
+                    String qtdStr = getCellValue(row.getCell(2)).replaceAll("\\D", "");
+                    item.setQuantidade(qtdStr.isEmpty() ? 0 : Integer.parseInt(qtdStr));
                 }
+
+                item.setUltimoPreco(lerPreco(row.getCell(3)));
+
+                itens.add(item);
             }
+
+        } catch (IOException e) {
+            throw new RuntimeException("Falha ao ler arquivo Excel: " + e.getMessage());
         }
-        return listaDeItens;
+
+        return itens;
     }
 
-    private String getCellValue(Row row, int index) {
-        Cell cell = row.getCell(index, Row.MissingCellPolicy.CREATE_NULL_AS_BLANK);
-        switch (cell.getCellType()) {
-            case STRING: return cell.getStringCellValue();
-            case NUMERIC: return String.valueOf(cell.getNumericCellValue());
-            case FORMULA: 
-                // Se for fórmula, tenta pegar o resultado numérico ou string
-                try { return String.valueOf(cell.getNumericCellValue()); }
-                catch (Exception e) { return cell.getStringCellValue(); }
-            default: return "";
+    private String getCellValue(Cell cell) {
+        if (cell == null) return "";
+        if (cell.getCellType() == CellType.STRING) return cell.getStringCellValue();
+        if (cell.getCellType() == CellType.NUMERIC) return String.valueOf(cell.getNumericCellValue());
+        return "";
+    }
+
+    private Double lerPreco(Cell cell) {
+        if (cell == null) return 0.0;
+
+        if (cell.getCellType() == CellType.NUMERIC) {
+            return cell.getNumericCellValue();
+        }
+
+        String texto = cell.getStringCellValue(); 
+        if (texto == null || texto.isEmpty()) return 0.0;
+
+        String limpo = texto.replace("R$", "").replace(" ", "").trim();
+        limpo = limpo.replace(".", "");
+        limpo = limpo.replace(",", ".");
+
+        try {
+            return Double.parseDouble(limpo);
+        } catch (NumberFormatException e) {
+            return 0.0;
         }
     }
 }

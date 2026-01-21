@@ -2,15 +2,12 @@ package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
+import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
-
-import com.drogaria.cotacao.repository.CotacaoRepository;
-import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -20,52 +17,48 @@ import java.util.List;
 public class CotacaoController {
 
     @Autowired
-    private ExcelReaderService excelReaderService;
-
-    @Autowired
-    private ItemCotacaoRepository repository;
-
-    @Autowired
     private CotacaoRepository cotacaoRepository;
 
+    @Autowired
+    private ExcelReaderService excelService;
+
     @GetMapping
-    public ResponseEntity<List<Cotacao>> listarCotacoes() {
+    public ResponseEntity<List<Cotacao>> listarTodas() {
         return ResponseEntity.ok(cotacaoRepository.findAll());
     }
 
-    @PostMapping(value = "/importar", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<String> importarPlanilha(@RequestParam("file") MultipartFile file) {
+    @GetMapping("/{id}")
+    public ResponseEntity<Cotacao> buscarPorId(@PathVariable Long id) {
+        return cotacaoRepository.findById(id)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/upload")
+    public ResponseEntity<String> uploadArquivo(@RequestParam("file") MultipartFile file) {
         try {
-            if (file.isEmpty()) return ResponseEntity.badRequest().body("Arquivo vazio.");
+            List<ItemCotacao> itens = excelService.read(file);
 
-            // 1. Cria a Cotação pai
+            if (itens.isEmpty()) {
+                return ResponseEntity.badRequest().body("O arquivo Excel está vazio ou ilegível.");
+            }
+
             Cotacao novaCotacao = new Cotacao();
-            novaCotacao.setStatus("ABERTA");
             novaCotacao.setDescricao("Importação em " + LocalDateTime.now());
-            
-            // Salva a cotação primeiro para gerar o ID
-            cotacaoRepository.save(novaCotacao); 
+            novaCotacao.setStatus("ABERTA");
+            novaCotacao.setDataCriacao(LocalDateTime.now());
 
-            // 2. Lê os itens do Excel
-            List<ItemCotacao> itens = excelReaderService.lerArquivoDeFaltas(file);
-
-            // 3. Vincula cada item à cotação criada
             for (ItemCotacao item : itens) {
                 item.setCotacao(novaCotacao);
             }
-            
-            // 4. Salva os itens vinculados
-            repository.saveAll(itens);
+            novaCotacao.setItens(itens);
+            cotacaoRepository.save(novaCotacao);
 
-            return ResponseEntity.ok("Sucesso! Cotação #" + novaCotacao.getId() + " criada com " + itens.size() + " itens.");
+            return ResponseEntity.ok("Cotação criada com sucesso! Itens importados: " + itens.size());
+
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Erro: " + e.getMessage());
+            return ResponseEntity.internalServerError().body("Erro ao processar arquivo: " + e.getMessage());
         }
-    }
-
-    @GetMapping("/ping")
-    public String ping() {
-        return "Pong!";
     }
 }

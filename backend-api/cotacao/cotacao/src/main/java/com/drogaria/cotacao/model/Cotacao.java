@@ -23,6 +23,7 @@ public class Cotacao {
     public void setId(Long id) { this.id = id; }
     
     public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
     
     public String getStatus() { return status; }
     public void setStatus(String status) { this.status = status; }
