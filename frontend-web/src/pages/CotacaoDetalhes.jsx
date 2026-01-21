@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { MessageCircle, FileText, ArrowRightLeft, ShoppingCart, BarChart2, CheckCircle, Clock } from 'lucide-react';
 import jsPDF from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -69,24 +69,27 @@ export default function CotacaoDetalhes() {
     doc.text(`Cotação Referência: #${id}`, 14, 30);
     doc.text(`Data: ${new Date().toLocaleDateString()}`, 14, 36);
 
-    // Dados da Tabela
-    const tabelaDados = itens.map(item => [
-      item.nomeProduto,
-      item.quantidade,
-      fMoney(item.precosPorFornecedor[nomeFornecedor]),
-      fMoney(item.precosPorFornecedor[nomeFornecedor] * item.quantidade)
-    ]);
+    // Prepara os dados para a tabela
+    const tabelaDados = itens.map(item => {
+      const precoUnitario = item.precosPorFornecedor[nomeFornecedor];
+      const totalItem = precoUnitario * item.quantidade;
+      return [
+        item.nomeProduto,
+        item.quantidade,
+        fMoney(precoUnitario),
+        fMoney(totalItem)
+      ];
+    });
 
-    // Total
+    // Calcula o Total Geral
     const total = itens.reduce((acc, item) => acc + (item.precosPorFornecedor[nomeFornecedor] * item.quantidade), 0);
-
-    doc.autoTable({
+    autoTable(doc, {
       startY: 45,
       head: [['Produto', 'Qtd', 'Unitário', 'Total']],
       body: tabelaDados,
       foot: [['', '', 'TOTAL PEDIDO', fMoney(total)]],
       theme: 'grid',
-      headStyles: { fillColor: [37, 99, 235] } 
+      headStyles: { fillColor: [37, 99, 235] }
     });
 
     doc.save(`Pedido_${nomeFornecedor}_Cotacao${id}.pdf`);
