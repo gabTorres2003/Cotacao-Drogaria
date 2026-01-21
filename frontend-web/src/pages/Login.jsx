@@ -64,7 +64,7 @@ export default function Login() {
   return (
     <div style={styles.container}>
       <form style={styles.card} onSubmit={handleLogin}>
-        <h2 style={styles.title}>🔐 Acesso Restrito</h2>
+        <h2 style={styles.title}>📦 Cotação Drogaria Torres 📊</h2>
         <input 
           type="email" 
           placeholder="E-mail" 

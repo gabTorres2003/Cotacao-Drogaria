@@ -15,9 +15,14 @@ public class ComparativoController {
     @Autowired
     private ComparativoService comparativoService;
 
-    @GetMapping("/{idCotacao}")
+    @GetMapping("/listar-itens/{idCotacao}")
+    public ResponseEntity<List<ItemComparativoDTO>> listarItens(@PathVariable Long idCotacao) {
+        List<ItemComparativoDTO> itens = comparativoService.listarItensParaCotacao(idCotacao);
+        return ResponseEntity.ok(itens);
+    }
+    @GetMapping("/relatorio/{idCotacao}")
     public ResponseEntity<List<ItemComparativoDTO>> gerarRelatorio(@PathVariable Long idCotacao) {
-        List<ItemComparativoDTO> resultado = comparativoService.compararPrecos(idCotacao);
-        return ResponseEntity.ok(resultado);
+        List<ItemComparativoDTO> relatorio = comparativoService.compararPrecos(idCotacao);
+        return ResponseEntity.ok(relatorio);
     }
 }
