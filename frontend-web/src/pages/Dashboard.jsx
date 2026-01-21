@@ -190,7 +190,11 @@ export default function Dashboard() {
                     >
                       <MessageCircle size={18} />
                     </button>
-                    <button className="btn-icon" title="Baixar Pedido">
+                    <button 
+                        className="btn-icon" 
+                        title="Baixar Relatório Geral"
+                        onClick={() => baixarRelatorioGeral(c.id)}
+                    >
                       <FileDown size={18} />
                     </button>
                   </td>
