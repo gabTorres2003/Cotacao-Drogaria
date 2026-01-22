@@ -1,7 +1,17 @@
 import axios from 'axios';
 
+const API_URL = import.meta.env.VITE_API_URL || 'https://cotacao-drogaria.onrender.com';
+
 const api = axios.create({
-  baseURL: 'https://cotacao-drogaria.onrender.com', 
+  baseURL: API_URL,
+});
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+  return config;
 });
 
 export default api;
