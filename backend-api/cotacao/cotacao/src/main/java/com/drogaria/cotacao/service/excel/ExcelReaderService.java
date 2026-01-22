@@ -23,7 +23,7 @@ public class ExcelReaderService {
             try {
                 return readCsv(file);
             } catch (Exception csvEx) {
-                throw new RuntimeException("Não foi possível ler o arquivo nem como Excel nem como CSV. Verifique o formato.");
+                throw new RuntimeException("Não foi possível ler o arquivo. Verifique o formato.");
             }
         }
     }

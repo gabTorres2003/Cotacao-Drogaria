@@ -6,6 +6,8 @@ const api = axios.create({
   baseURL: API_URL,
 });
 
+console.log('🔌 A API está conectando em:', API_URL);
+
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem('token');
   if (token) {
