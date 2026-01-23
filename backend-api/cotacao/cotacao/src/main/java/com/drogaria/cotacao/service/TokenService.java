@@ -18,8 +18,13 @@ public class TokenService {
             return JWT.require(algorithm)
                     .build()
                     .verify(token)
-                    .getSubject(); 
+                    .getSubject();
         } catch (JWTVerificationException exception) {
+            // --- DEBUG ---
+            System.out.println("🚨 ERRO DE VALIDAÇÃO DO TOKEN 🚨");
+            System.out.println("Token recebido: " + token);
+            System.out.println("Erro exato: " + exception.getMessage());
+            // ----------------------------------------
             return "";
         }
     }
