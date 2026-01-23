@@ -1,21 +1,31 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../services/api'; 
+import { Lock, User } from 'lucide-react';
+import '../App.css';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
+  const [login, setLogin] = useState(''); 
   const [senha, setSenha] = useState('');
+  const [erro, setErro] = useState('');
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
     e.preventDefault();
+    setErro('');
 
-    // Teste sem validação prévia
-    if (email && senha) {
-      localStorage.setItem('usuarioLogado', 'true'); 
-      navigate('/dashboard'); 
-    } else {
-      alert('Preencha email e senha!');
+    try {
+      // Chama o backend
+      const response = await api.post('/auth/login', { login, senha });
+      
+      // Salva o token
+      localStorage.setItem('token', response.data.token);
+      
+      // Redireciona
+      navigate('/dashboard');
+    } catch (error) {
+      setErro('Usuário ou senha incorretos.');
+      console.error(error);
     }
   };
 
