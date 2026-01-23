@@ -39,7 +39,7 @@ export default function Login() {
       <div className="login-card">
         <div className="login-header">
           <h2>Drogaria Torres</h2>
-          <p>Acesso Supabase</p>
+          <p>Login no Painel de Cotações</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
