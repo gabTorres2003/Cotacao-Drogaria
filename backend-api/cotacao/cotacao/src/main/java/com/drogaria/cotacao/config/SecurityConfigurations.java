@@ -30,36 +30,29 @@ public class SecurityConfigurations {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
+        System.out.println("🚨🚨 CARREGANDO CONFIGURAÇÕES DE SEGURANÇA PERSONALIZADAS 🚨🚨");
         return httpSecurity
-                .cors(Customizer.withDefaults()) // 1. Ativa CORS
-                .csrf(csrf -> csrf.disable())    // 2. Desativa CSRF (Isso resolvia o erro 405!)
+                .cors(Customizer.withDefaults()) 
+                .csrf(csrf -> csrf.disable())    
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
-                        // Libera o "pré-voo" do navegador
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         
-                        // Rotas Públicas (Login, Registro e IMPORTAÇÃO)
                         .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/fornecedor/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/**").permitAll()
                         
-                        // --- AQUI ESTÁ A CORREÇÃO PRINCIPAL ---
-                        // Liberamos explicitamente o POST de importação para teste ou autenticado
-                        // Se quiser público: .permitAll(). Se quiser logado: .authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll() 
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").authenticated()
                         
-                        // Todo o resto exige login
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
 
-    // Configuração de CORS Centralizada
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        // Libera seu Front no Netlify e o Localhost
         configuration.setAllowedOrigins(Arrays.asList("https://cotacaotorresfarma.netlify.app", "http://localhost:5173"));
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
         configuration.setAllowedHeaders(List.of("*"));
