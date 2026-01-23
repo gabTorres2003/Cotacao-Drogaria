@@ -30,20 +30,13 @@ public class SecurityConfigurations {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
-        System.out.println("🚨🚨 CARREGANDO CONFIGURAÇÕES DE SEGURANÇA PERSONALIZADAS 🚨🚨");
         return httpSecurity
-                .cors(Customizer.withDefaults()) 
-                .csrf(csrf -> csrf.disable())    
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        
-                        .requestMatchers(HttpMethod.POST, "/auth/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/fornecedor/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/fornecedor/**").permitAll()
-                        
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").authenticated()
-                        
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll() 
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(securityFilter, UsernamePasswordAuthenticationFilter.class)

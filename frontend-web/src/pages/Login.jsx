@@ -1,11 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { supabase } from '../services/supabase'; 
 import { Lock, User } from 'lucide-react';
 import '../App.css';
 
 export default function Login() {
-  const [login, setLogin] = useState(''); 
+  const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,13 +17,18 @@ export default function Login() {
     setLoading(true);
 
     try {
-      const response = await api.post('/auth/login', { login, senha });
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: email,
+        password: senha,
+      });
+
+      if (error) throw error;
+      localStorage.setItem('token', data.session.access_token);
       
-      localStorage.setItem('token', response.data.token);
       navigate('/dashboard');
     } catch (error) {
       console.error(error);
-      setErro('Usuário ou senha incorretos.');
+      setErro('Erro ao entrar: ' + error.message);
     } finally {
       setLoading(false);
     }
@@ -34,17 +39,17 @@ export default function Login() {
       <div className="login-card">
         <div className="login-header">
           <h2>Drogaria Torres</h2>
-          <p>Sistema de Cotação</p>
+          <p>Acesso Supabase</p>
         </div>
 
         <form onSubmit={handleLogin} className="login-form">
           <div className="input-group">
             <User size={20} color="#666" />
             <input 
-              type="text" 
-              placeholder="Usuário" 
-              value={login}
-              onChange={(e) => setLogin(e.target.value)}
+              type="email" 
+              placeholder="Email" 
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
