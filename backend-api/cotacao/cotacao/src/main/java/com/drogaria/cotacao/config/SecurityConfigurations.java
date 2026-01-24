@@ -22,16 +22,20 @@ public class SecurityConfigurations {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                .cors(Customizer.withDefaults()) 
-                .csrf(csrf -> csrf.disable())    
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .cors(Customizer.withDefaults())
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                )
                 .authorizeHttpRequests(authorize -> authorize
-                        // Rotas Públicas
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll() 
+                        // ROTAS PÚBLICAS
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/upload").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cotacao").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
+                        // DEMAIS ROTAS
                         .anyRequest().authenticated()
                 )
-                // Configura validação automática de JWT via Supabase
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }
@@ -39,8 +43,11 @@ public class SecurityConfigurations {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(Arrays.asList("https://cotacaotorresfarma.netlify.app", "http://localhost:5173"));
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"));
+        configuration.setAllowedOrigins(List.of(
+                "https://cotacaotorresfarma.netlify.app",
+                "http://localhost:5173"
+        ));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 

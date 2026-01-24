@@ -37,11 +37,15 @@ public class CotacaoController {
 
     @PostMapping("/upload")
     public ResponseEntity<String> uploadArquivo(@RequestParam("file") MultipartFile file) {
+        if (file.isEmpty()) {
+            return ResponseEntity.badRequest().body("Arquivo não enviado.");
+        }
+
         try {
             List<ItemCotacao> itens = excelService.read(file);
 
-            if (itens.isEmpty()) {
-                return ResponseEntity.badRequest().body("O arquivo Excel está vazio ou ilegível.");
+            if (itens == null || itens.isEmpty()) {
+                return ResponseEntity.badRequest().body("Arquivo sem itens válidos.");
             }
 
             Cotacao novaCotacao = new Cotacao();
@@ -49,24 +53,25 @@ public class CotacaoController {
             novaCotacao.setStatus("ABERTA");
             novaCotacao.setDataCriacao(LocalDateTime.now());
 
-            for (ItemCotacao item : itens) {
-                item.setCotacao(novaCotacao);
-            }
+            itens.forEach(item -> item.setCotacao(novaCotacao));
             novaCotacao.setItens(itens);
+
             cotacaoRepository.save(novaCotacao);
 
-            return ResponseEntity.ok("Cotação criada com sucesso! Itens importados: " + itens.size());
+            return ResponseEntity.ok(
+                    "Cotação criada com sucesso! Itens importados: " + itens.size());
 
         } catch (Exception e) {
             e.printStackTrace();
-            return ResponseEntity.internalServerError().body("Erro ao processar arquivo: " + e.getMessage());
+            return ResponseEntity.internalServerError()
+                    .body("Erro ao processar arquivo.");
         }
     }
 
     @PutMapping("/{id}/status")
     public ResponseEntity<String> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String novoStatus = payload.get("status");
-        
+
         return cotacaoRepository.findById(id)
                 .map(cotacao -> {
                     cotacao.setStatus(novoStatus);
