@@ -192,3 +192,16 @@ td { padding: 15px 10px; border-bottom: 1px solid #eee; }
   background-color: #94a3b8;
   cursor: wait;
 }
+
+.status-PENDENTE {
+  background-color: #ffedd5;
+  color: #c2410c;
+  border: 1px solid #fed7aa;
+}
+
+.btn-enviado {
+  background-color: #dcfce7 !important;
+  color: #166534 !important;
+  border: 1px solid #bbf7d0 !important;
+  cursor: default !important;
+}

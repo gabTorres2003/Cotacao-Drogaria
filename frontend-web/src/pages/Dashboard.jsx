@@ -11,11 +11,10 @@ import autoTable from 'jspdf-autotable'
 export default function Dashboard() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
-  const [resumo, setResumo] = useState({ total: 0, abertas: 0 })
+  const [resumo, setResumo] = useState({ total: 0, abertas: 0, pendentes: 0, finalizadas: 0 })
   const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
   const navigate = useNavigate()
 
-  // Busca dados ao carregar a página
   useEffect(() => {
     carregarCotacoes()
   }, [])
@@ -27,8 +26,10 @@ export default function Dashboard() {
       if (Array.isArray(response.data)) {
         setCotacoes(response.data)
         setResumo({
-            total: response.data.length,
-            abertas: response.data.filter(c => c.status === 'ABERTA').length
+          total: response.data.length,
+          abertas: response.data.filter((c) => c.status === 'ABERTA').length,
+          pendentes: response.data.filter((c) => c.status === 'PENDENTE').length,
+          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
         })
       } else {
         console.error('ERRO: A API não retornou uma lista!', response.data)
@@ -40,71 +41,63 @@ export default function Dashboard() {
     }
   }
 
-  // Funções de Ação
-  const gerarLinkZap = async (idCotacao) => {
-    const idFornecedorTeste = 1
-    try {
-      const response = await api.get('/api/fornecedor/gerar-link-whatsapp', {
-        params: { idFornecedor: idFornecedorTeste, idCotacao },
-      })
-      window.open(response.data, '_blank')
-    } catch (error) {
-      alert(
-        'Erro ao gerar Zap: ' + (error.response?.data || 'Erro desconhecido'),
-      )
-    }
-  }
-
   const baixarRelatorioGeral = async (idCotacao) => {
     try {
-      const doc = new jsPDF();
-
-      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`);
-      const itens = response.data;
+      const doc = new jsPDF()
+      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`)
+      const itens = response.data
 
       if (!itens || itens.length === 0) {
-        alert('Essa cotação ainda não tem itens processados.');
-        return;
+        alert('Essa cotação ainda não tem itens processados.')
+        return
       }
 
-      doc.setFontSize(18);
-      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20);
-      doc.setFontSize(12);
-      doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30);
+      doc.setFontSize(18)
+      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20)
+      doc.setFontSize(12)
+      doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
 
-      const linhas = itens.map(item => {
-        const vencedor = item.fornecedorVencedor || 'Sem Oferta';
-        const preco = item.menorPrecoEncontrado || 0;
-        const total = preco * item.quantidade;
+      const linhas = itens.map((item) => {
+        const vencedor = item.fornecedorVencedor || 'Sem Oferta'
+        const preco = item.menorPrecoEncontrado || 0
+        const total = preco * item.quantidade
 
         return [
           item.nomeProduto,
           item.quantidade,
           vencedor,
           preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
-        ];
-      });
+          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        ]
+      })
 
       const totalGeral = itens.reduce((acc, item) => {
-        const preco = item.menorPrecoEncontrado || 0;
-        return acc + (preco * item.quantidade);
-      }, 0);
+        const preco = item.menorPrecoEncontrado || 0
+        return acc + preco * item.quantidade
+      }, 0)
 
       autoTable(doc, {
         startY: 40,
         head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
         body: linhas,
-        foot: [['', '', '', 'TOTAL GERAL', totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]],
+        foot: [
+          [
+            '', '', '',
+            'TOTAL GERAL',
+            totalGeral.toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }),
+          ],
+        ],
         theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] }
-      });
+        headStyles: { fillColor: [22, 163, 74] },
+      })
 
-      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`);
-
+      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`)
     } catch (error) {
-      console.error('Erro ao gerar PDF:', error);
-      alert('Erro ao gerar o relatório. Verifique se a cotação tem respostas.');
+      console.error('Erro ao gerar PDF:', error)
+      alert('Erro ao gerar o relatório. Verifique se a cotação tem respostas.')
     }
   }
 
@@ -113,40 +106,81 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '30px' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            marginBottom: '30px',
+          }}
+        >
           <h1>Painel de Cotações</h1>
           <button
             className="menu-item"
-            style={{ background: '#2563eb', color: 'white', justifyContent: 'center' }}
+            style={{
+              background: '#2563eb',
+              color: 'white',
+              justifyContent: 'center',
+            }}
             onClick={() => setModalAberto(true)}
           >
             <Upload size={18} /> Nova Cotação
           </button>
         </header>
 
-        {/* Cards de Resumo */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
             <div className="stat-label">Cotações Totais</div>
           </div>
+          
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#eab308' }}>{resumo.abertas}</div>
-            <div className="stat-label">Em Aberto</div>
+            <div className="stat-value" style={{ color: '#eab308' }}>
+              {resumo.abertas} <small style={{fontSize: '0.5em', color: '#999'}}>Abertas</small>
+            </div>
+             <div className="stat-label">
+                {resumo.pendentes > 0 ? `+ ${resumo.pendentes} Pendentes` : 'Aguardando envio'}
+             </div>
           </div>
+
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>0</div>
+            <div className="stat-value" style={{ color: '#16a34a' }}>
+              {resumo.finalizadas}
+            </div>
             <div className="stat-label">Finalizadas</div>
           </div>
         </div>
 
         {/* Tabela de Cotações */}
         <div className="table-container">
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+            }}
+          >
             <h3>Histórico Recente</h3>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f9fafb', padding: '5px 10px', borderRadius: '5px', border: '1px solid #eee' }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '10px',
+                background: '#f9fafb',
+                padding: '5px 10px',
+                borderRadius: '5px',
+                border: '1px solid #eee',
+              }}
+            >
               <Search size={16} color="#999" />
-              <input type="text" placeholder="Buscar..." style={{ border: 'none', background: 'transparent', outline: 'none' }} />
+              <input
+                type="text"
+                placeholder="Buscar..."
+                style={{
+                  border: 'none',
+                  background: 'transparent',
+                  outline: 'none',
+                }}
+              />
             </div>
           </div>
 
@@ -172,14 +206,16 @@ export default function Dashboard() {
                   </td>
                   <td>
                     <span className={`status-badge status-${c.status}`}>
-                      {c.status}
+                      {c.status === 'ABERTA' ? 'Aberta' : 
+                       c.status === 'PENDENTE' ? 'Pendente' : 
+                       c.status === 'FINALIZADA' ? 'Finalizada' : c.status}
                     </span>
                   </td>
                   <td>
-                    <button 
-                        className="btn-icon" 
-                        title="Ver Detalhes"
-                        onClick={() => navigate(`/cotacao/${c.id}`)} 
+                    <button
+                      className="btn-icon"
+                      title="Ver Detalhes"
+                      onClick={() => navigate(`/cotacao/${c.id}`)}
                     >
                       <Eye size={18} />
                     </button>
@@ -191,10 +227,11 @@ export default function Dashboard() {
                     >
                       <MessageCircle size={18} />
                     </button>
-                    <button 
-                        className="btn-icon" 
-                        title="Baixar Relatório Geral"
-                        onClick={() => baixarRelatorioGeral(c.id)}
+                    
+                    <button
+                      className="btn-icon"
+                      title="Baixar Relatório Geral"
+                      onClick={() => baixarRelatorioGeral(c.id)}
                     >
                       <FileDown size={18} />
                     </button>
@@ -211,10 +248,14 @@ export default function Dashboard() {
             onSuccess={carregarCotacoes}
           />
         )}
+        
         {cotacaoParaEnviar && (
           <EnviarLinkModal
             idCotacao={cotacaoParaEnviar}
             onClose={() => setCotacaoParaEnviar(null)}
+            onStatusUpdate={() => {
+              carregarCotacoes() 
+            }}
           />
         )}
       </main>
