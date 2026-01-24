@@ -3,7 +3,7 @@ package com.drogaria.cotacao.controller;
 import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.repository.FornecedorRepository;
-import com.drogaria.cotacao.service.FornecedorService; 
+import com.drogaria.cotacao.service.FornecedorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -18,9 +18,9 @@ public class FornecedorController {
     private FornecedorRepository fornecedorRepository;
 
     @Autowired
-    private FornecedorService fornecedorService; 
+    private FornecedorService fornecedorService;
 
-    private final String SITE_URL = "https://cotacaotorresfarma.netlify.app"; 
+    private final String SITE_URL = "https://cotacaotorresfarma.netlify.app";
 
     @GetMapping
     public ResponseEntity<List<Fornecedor>> listarTodos() {
@@ -46,8 +46,7 @@ public class FornecedorController {
     @GetMapping("/gerar-link-whatsapp")
     public ResponseEntity<String> gerarLinkWhatsapp(
             @RequestParam Long idFornecedor,
-            @RequestParam Long idCotacao
-    ) {
+            @RequestParam Long idCotacao) {
         Fornecedor fornecedor = fornecedorRepository.findById(idFornecedor)
                 .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado"));
 
@@ -69,5 +68,16 @@ public class FornecedorController {
             numeros = "55" + numeros;
         }
         return numeros;
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<Fornecedor> atualizar(@PathVariable Long id, @RequestBody Fornecedor dados) {
+        return fornecedorRepository.findById(id)
+                .map(fornecedor -> {
+                    fornecedor.setNome(dados.getNome());
+                    fornecedor.setTelefone(dados.getTelefone());
+                    return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
+                })
+                .orElse(ResponseEntity.notFound().build());
     }
 }
