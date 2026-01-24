@@ -4,6 +4,7 @@ import Login from './pages/Login';
 import Dashboard from './pages/Dashboard';
 import ResponderCotacao from './pages/ResponderCotacao';
 import CotacaoDetalhes from './pages/CotacaoDetalhes';
+import Fornecedores from './pages/Fornecedores';
 import './App.css';
 
 const RotaPrivada = ({ children }) => {

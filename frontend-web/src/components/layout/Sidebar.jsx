@@ -14,6 +14,9 @@ export default function Sidebar() {
         <div className="menu-item">
           <FileSpreadsheet size={20} /> Relatórios
         </div>
+        <Link to="/fornecedores" className={isActive('/fornecedores')} style={{textDecoration: 'none'}}>
+          <Users size={20} /> Fornecedores
+        </Link>
         <div className="menu-item">
           <Settings size={20} /> Configurações
         </div>
