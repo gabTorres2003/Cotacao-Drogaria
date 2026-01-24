@@ -1,6 +1,11 @@
-import { LayoutDashboard, FileSpreadsheet, Settings, Pill } from 'lucide-react';
+import { LayoutDashboard, Users, FileSpreadsheet, Settings, Pill } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
 
 export default function Sidebar() {
+  const location = useLocation();
+
+  const isActive = (path) => location.pathname === path ? 'menu-item active' : 'menu-item';
+
   return (
     <aside className="sidebar">
       <div className="brand">
@@ -8,15 +13,17 @@ export default function Sidebar() {
       </div>
       
       <nav>
-        <div className="menu-item active">
+        <Link to="/dashboard" className={isActive('/dashboard')} style={{textDecoration: 'none'}}>
           <LayoutDashboard size={20} /> Dashboard
-        </div>
-        <div className="menu-item">
-          <FileSpreadsheet size={20} /> Relatórios
-        </div>
+        </Link>
+        
         <Link to="/fornecedores" className={isActive('/fornecedores')} style={{textDecoration: 'none'}}>
           <Users size={20} /> Fornecedores
         </Link>
+
+        <div className="menu-item">
+          <FileSpreadsheet size={20} /> Relatórios
+        </div>
         <div className="menu-item">
           <Settings size={20} /> Configurações
         </div>
