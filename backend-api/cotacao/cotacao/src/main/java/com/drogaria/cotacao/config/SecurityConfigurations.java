@@ -30,7 +30,7 @@ public class SecurityConfigurations {
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         // ROTAS PÚBLICAS
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/upload").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
                         // DEMAIS ROTAS

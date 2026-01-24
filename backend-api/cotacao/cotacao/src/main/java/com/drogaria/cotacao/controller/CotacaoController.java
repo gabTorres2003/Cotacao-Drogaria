@@ -35,7 +35,7 @@ public class CotacaoController {
                 .orElse(ResponseEntity.notFound().build());
     }
 
-    @PostMapping("/upload")
+    @PostMapping("/importar")
     public ResponseEntity<String> uploadArquivo(@RequestParam("file") MultipartFile file) {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Arquivo não enviado.");
