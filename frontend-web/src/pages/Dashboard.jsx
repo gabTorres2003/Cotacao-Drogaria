@@ -11,7 +11,12 @@ import autoTable from 'jspdf-autotable'
 export default function Dashboard() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
-  const [resumo, setResumo] = useState({ total: 0, abertas: 0, pendentes: 0, finalizadas: 0 })
+  const [resumo, setResumo] = useState({ 
+    total: 0, 
+    abertas: 0, 
+    pendentes: 0, 
+    finalizadas: 0 
+  })
   const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
   const navigate = useNavigate()
 
@@ -25,6 +30,7 @@ export default function Dashboard() {
 
       if (Array.isArray(response.data)) {
         setCotacoes(response.data)
+        
         setResumo({
           total: response.data.length,
           abertas: response.data.filter((c) => c.status === 'ABERTA').length,
@@ -32,7 +38,6 @@ export default function Dashboard() {
           finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
         })
       } else {
-        console.error('ERRO: A API não retornou uma lista!', response.data)
         setCotacoes([])
       }
     } catch (error) {
@@ -97,7 +102,7 @@ export default function Dashboard() {
       doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar o relatório. Verifique se a cotação tem respostas.')
+      alert('Erro ao gerar o relatório.')
     }
   }
 
@@ -128,20 +133,30 @@ export default function Dashboard() {
         </header>
 
         <div className="stats-grid">
+          
+          {/* 1. TOTAL */}
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
-            <div className="stat-label">Cotações Totais</div>
+            <div className="stat-label">Total</div>
           </div>
           
+          {/* 2. ABERTAS (Azul ou Cinza Escuro) */}
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#eab308' }}>
-              {resumo.abertas} <small style={{fontSize: '0.5em', color: '#999'}}>Abertas</small>
+            <div className="stat-value" style={{ color: '#2563eb' }}>
+              {resumo.abertas}
             </div>
-             <div className="stat-label">
-                {resumo.pendentes > 0 ? `+ ${resumo.pendentes} Pendentes` : 'Aguardando envio'}
-             </div>
+            <div className="stat-label">Em Aberto</div>
           </div>
 
+          {/* 3. PENDENTES (Laranja) */}
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#f97316' }}>
+              {resumo.pendentes}
+            </div>
+            <div className="stat-label">Aguard. Resposta</div>
+          </div>
+
+          {/* 4. FINALIZADAS (Verde) */}
           <div className="stat-card">
             <div className="stat-value" style={{ color: '#16a34a' }}>
               {resumo.finalizadas}
@@ -150,36 +165,15 @@ export default function Dashboard() {
           </div>
         </div>
 
-        {/* Tabela de Cotações */}
         <div className="table-container">
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}
-          >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <h3>Histórico Recente</h3>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '10px',
-                background: '#f9fafb',
-                padding: '5px 10px',
-                borderRadius: '5px',
-                border: '1px solid #eee',
-              }}
-            >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', background: '#f9fafb', padding: '5px 10px', borderRadius: '5px', border: '1px solid #eee' }}>
               <Search size={16} color="#999" />
               <input
                 type="text"
                 placeholder="Buscar..."
-                style={{
-                  border: 'none',
-                  background: 'transparent',
-                  outline: 'none',
-                }}
+                style={{ border: 'none', background: 'transparent', outline: 'none' }}
               />
             </div>
           </div>
@@ -205,6 +199,7 @@ export default function Dashboard() {
                     </small>
                   </td>
                   <td>
+                    {/* Badge colorido automático via CSS */}
                     <span className={`status-badge status-${c.status}`}>
                       {c.status === 'ABERTA' ? 'Aberta' : 
                        c.status === 'PENDENTE' ? 'Pendente' : 
@@ -212,27 +207,13 @@ export default function Dashboard() {
                     </span>
                   </td>
                   <td>
-                    <button
-                      className="btn-icon"
-                      title="Ver Detalhes"
-                      onClick={() => navigate(`/cotacao/${c.id}`)}
-                    >
+                    <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/cotacao/${c.id}`)}>
                       <Eye size={18} />
                     </button>
-
-                    <button
-                      className="btn-icon"
-                      title="Enviar por WhatsApp"
-                      onClick={() => setCotacaoParaEnviar(c.id)}
-                    >
+                    <button className="btn-icon" title="Enviar por WhatsApp" onClick={() => setCotacaoParaEnviar(c.id)}>
                       <MessageCircle size={18} />
                     </button>
-                    
-                    <button
-                      className="btn-icon"
-                      title="Baixar Relatório Geral"
-                      onClick={() => baixarRelatorioGeral(c.id)}
-                    >
+                    <button className="btn-icon" title="Baixar Relatório Geral" onClick={() => baixarRelatorioGeral(c.id)}>
                       <FileDown size={18} />
                     </button>
                   </td>
@@ -242,20 +223,13 @@ export default function Dashboard() {
           </table>
         </div>
 
-        {modalAberto && (
-          <UploadModal
-            onClose={() => setModalAberto(false)}
-            onSuccess={carregarCotacoes}
-          />
-        )}
+        {modalAberto && <UploadModal onClose={() => setModalAberto(false)} onSuccess={carregarCotacoes} />}
         
         {cotacaoParaEnviar && (
           <EnviarLinkModal
             idCotacao={cotacaoParaEnviar}
             onClose={() => setCotacaoParaEnviar(null)}
-            onStatusUpdate={() => {
-              carregarCotacoes() 
-            }}
+            onStatusUpdate={carregarCotacoes}
           />
         )}
       </main>
