@@ -16,10 +16,8 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
-        {/* 1. TELA DE LOGIN  */}
         <Route path="/" element={<Login />} />
 
-        {/* 2. DASHBOARD  */}
         <Route 
           path="/dashboard" 
           element={
@@ -28,8 +26,16 @@ function App() {
             </RotaPrivada>
           } 
         />
+        
+        <Route 
+          path="/fornecedores" 
+          element={
+            <RotaPrivada>
+              <Fornecedores />
+            </RotaPrivada>
+          } 
+        />
 
-        {/* 3. DETALHES DA COTAÇÃO */}
         <Route 
           path="/cotacao/:id" 
           element={
@@ -39,10 +45,7 @@ function App() {
           } 
         />
 
-        {/* 4. TELA DO FORNECEDOR */}
         <Route path="/responder-cotacao/:idCotacao" element={<ResponderCotacao />} />
-
-        {/* rota desconhecida joga pro Login */}
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
