@@ -159,23 +159,53 @@ function RelatorioRanking() {
 function RelatorioHistorico() {
   const [busca, setBusca] = useState('');
   
+  // DADOS SIMULADOS (Mock)
+  // Cenário:
+  // 1. Dipirona: Compramos bem (pagamos o menor preço).
+  // 2. Losartana: Pagamos R$ 0,50 a mais que a melhor oferta (talvez o mais barato não tivesse estoque).
+  // 3. Torsilax: Pagamos R$ 1,00 a mais.
   const dados = [
-    { data: '25/01/2026', produto: 'Dipirona 500mg', preco: 2.50, fornecedor: 'Santa Cruz' },
-    { data: '10/01/2026', produto: 'Dipirona 500mg', preco: 2.45, fornecedor: 'Panpharma' },
-    { data: '20/12/2025', produto: 'Dipirona 500mg', preco: 2.30, fornecedor: 'Profarma' },
-    { data: '25/01/2026', produto: 'Torsilax 30cp', preco: 12.90, fornecedor: 'Genérica' },
+    { 
+      data: '25/01/2026', 
+      produto: 'Dipirona 500mg', 
+      precoPago: 2.50, 
+      menorCotado: 2.50, 
+      fornecedor: 'Santa Cruz' 
+    },
+    { 
+      data: '25/01/2026', 
+      produto: 'Losartana Potássica 50mg', 
+      precoPago: 4.50, 
+      menorCotado: 4.00, 
+      fornecedor: 'Panpharma' 
+    },
+    { 
+      data: '20/12/2025', 
+      produto: 'Torsilax 30cp', 
+      precoPago: 13.90, 
+      menorCotado: 12.90, 
+      fornecedor: 'Genérica' 
+    },
+    { 
+      data: '15/12/2025', 
+      produto: 'Omeprazol 20mg', 
+      precoPago: 5.00, 
+      menorCotado: 5.00, 
+      fornecedor: 'Profarma' 
+    },
   ];
 
   const filtrados = dados.filter(d => d.produto.toLowerCase().includes(busca.toLowerCase()));
 
   return (
     <div>
+      {/* Filtro */}
       <div style={{display: 'flex', gap: '15px', marginBottom: '20px'}}>
         <div style={{flex: 1, display: 'flex', alignItems: 'center', gap: '10px', background: 'white', padding: '10px', borderRadius: '8px', border: '1px solid #d1d5db'}}>
           <Search size={18} color="#9ca3af" />
           <input 
             type="text" 
-            placeholder="Pesquisar produto (ex: Dipirona)..." 
+            placeholder="Pesquisar produto no histórico..." 
             style={{border: 'none', outline: 'none', width: '100%', fontSize: '15px'}}
             value={busca}
             onChange={e => setBusca(e.target.value)}
@@ -187,36 +217,63 @@ function RelatorioHistorico() {
         <table>
           <thead>
             <tr>
-              <th>Data da Cotação</th>
+              <th>Data</th>
               <th>Produto</th>
-              <th>Preço Pago</th>
-              <th>Fornecedor</th>
-              <th>Variação</th>
+              <th>Fornecedor Escolhido</th>
+              <th style={{textAlign: 'right'}}>Preço Pago</th>
+              <th style={{textAlign: 'right'}}>Melhor Oferta</th>
+              <th style={{textAlign: 'center'}}>Status da Compra</th>
             </tr>
           </thead>
           <tbody>
             {filtrados.length === 0 ? (
-               <tr><td colSpan="5" style={{textAlign: 'center', padding: '20px', color: '#888'}}>Digite o nome de um produto para ver o histórico.</td></tr>
+               <tr><td colSpan="6" style={{textAlign: 'center', padding: '20px', color: '#888'}}>Nenhum registro encontrado.</td></tr>
             ) : (
-              filtrados.map((d, i) => (
-                <tr key={i}>
-                  <td style={{display: 'flex', alignItems: 'center', gap: '5px', color: '#666'}}>
-                    <Calendar size={14} /> {d.data}
-                  </td>
-                  <td style={{fontWeight: '600'}}>{d.produto}</td>
-                  <td>R$ {d.preco.toFixed(2).replace('.', ',')}</td>
-                  <td>{d.fornecedor}</td>
-                  <td>
-                    {i > 0 ? (
-                      <span style={{color: d.preco > dados[i-1].preco ? '#dc2626' : '#16a34a', fontSize: '13px', fontWeight: 'bold'}}>
-                        {d.preco > dados[i-1].preco ? '▲ Subiu' : '▼ Caiu'}
-                      </span>
-                    ) : (
-                      <span style={{color: '#6b7280', fontSize: '12px'}}>-</span>
-                    )}
-                  </td>
-                </tr>
-              ))
+              filtrados.map((d, i) => {
+                // Cálculo da diferença
+                const diferenca = d.precoPago - d.menorCotado;
+                const pagouMaisCaro = diferenca > 0.001; 
+
+                return (
+                  <tr key={i}>
+                    <td style={{color: '#6b7280', fontSize: '14px'}}>
+                      {d.data}
+                    </td>
+                    <td style={{fontWeight: '600', color: '#374151'}}>{d.produto}</td>
+                    <td style={{color: '#4b5563'}}>{d.fornecedor}</td>
+                    
+                    {/* Preço Pago */}
+                    <td style={{textAlign: 'right', fontWeight: 'bold'}}>
+                      R$ {d.precoPago.toFixed(2).replace('.', ',')}
+                    </td>
+                    
+                    {/* Melhor Oferta (Menor Cotado) */}
+                    <td style={{textAlign: 'right', color: '#6b7280'}}>
+                      R$ {d.menorCotado.toFixed(2).replace('.', ',')}
+                    </td>
+
+                    {/* Status / Diferença */}
+                    <td style={{textAlign: 'center'}}>
+                      {pagouMaisCaro ? (
+                        <span style={{
+                          backgroundColor: '#fee2e2', color: '#991b1b', 
+                          padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold',
+                          display: 'inline-flex', alignItems: 'center', gap: '4px'
+                        }}>
+                          Perda: R$ {diferenca.toFixed(2).replace('.', ',')}
+                        </span>
+                      ) : (
+                        <span style={{
+                          backgroundColor: '#dcfce7', color: '#166534', 
+                          padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold'
+                        }}>
+                          ★ Melhor Preço
+                        </span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
             )}
           </tbody>
         </table>

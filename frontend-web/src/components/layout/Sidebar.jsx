@@ -45,9 +45,6 @@ export default function Sidebar() {
         </Link>
 
         <div className="menu-item">
-          <FileSpreadsheet size={20} /> Relatórios
-        </div>
-        <div className="menu-item">
           <Settings size={20} /> Configurações
         </div>
       </nav>
