@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://cotacao-drogaria.onrender.com',
+  baseURL: 'https://tray-element-earthquake-newman.trycloudflare.com',
 });
 
 api.interceptors.request.use((config) => {
