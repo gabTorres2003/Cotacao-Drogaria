@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://tray-element-earthquake-newman.trycloudflare.com',
+  baseURL: 'https://basics-arlington-morning-actions.trycloudflare.com', 
 });
 
 api.interceptors.request.use((config) => {
