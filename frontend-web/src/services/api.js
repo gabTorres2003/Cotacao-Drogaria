@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: 'https://basics-arlington-morning-actions.trycloudflare.com', 
+  baseURL: 'https://api.drogariatorresfarma.com.br', 
 });
 
 api.interceptors.request.use((config) => {
