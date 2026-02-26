@@ -29,14 +29,18 @@ public class SecurityConfigurations {
                 )
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        // --- LIBERAÇÃO DO SWAGGER ---
+                        .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
+                        
                         // ROTAS PÚBLICAS
                         .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
+                        
                         // --- ROTAS DO FORNECEDOR  ---
                         .requestMatchers(HttpMethod.GET, "/api/comparativo/listar-itens/**").permitAll()
-                        // Permite salvar a resposta do fornecedor
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/salvar-respostas").permitAll()
+                        
                         // DEMAIS ROTAS
                         .anyRequest().authenticated()
                 )
