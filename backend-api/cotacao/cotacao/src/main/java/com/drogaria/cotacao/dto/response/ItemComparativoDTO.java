@@ -7,6 +7,8 @@ public class ItemComparativoDTO {
     private Long idItem;
     private String nomeProduto;
     private Integer quantidade;
+    private Double ultimoPrecoComprado;
+    private String dataUltimaCompra;
     
     // Quem ganhou?
     private Double menorPrecoEncontrado;
@@ -33,4 +35,9 @@ public class ItemComparativoDTO {
     
     public Map<String, Double> getPrecosPorFornecedor() { return precosPorFornecedor; }
     public void setPrecosPorFornecedor(Map<String, Double> precosPorFornecedor) { this.precosPorFornecedor = precosPorFornecedor; }
+    public Double getUltimoPrecoComprado() { return ultimoPrecoComprado; }
+    public void setUltimoPrecoComprado(Double ultimoPrecoComprado) { this.ultimoPrecoComprado = ultimoPrecoComprado; }
+
+    public String getDataUltimaCompra() { return dataUltimaCompra; }
+    public void setDataUltimaCompra(String dataUltimaCompra) { this.dataUltimaCompra = dataUltimaCompra; }
 }
