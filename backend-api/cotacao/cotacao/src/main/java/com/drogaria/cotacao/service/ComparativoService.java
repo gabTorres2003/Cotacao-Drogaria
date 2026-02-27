@@ -16,6 +16,7 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -46,18 +47,21 @@ public class ComparativoService {
 
             List<PrecoCotacao> ofertas = precoRepository.findByItem(item);
 
+            for (PrecoCotacao oferta : ofertas) {
+                if (oferta.getFornecedor() != null) {
+                    linha.getPrecosPorFornecedor().put(oferta.getFornecedor().getNome(), oferta.getPrecoOfertado());
+                }
+            }
+
             double menorPreco = Double.MAX_VALUE;
             String nomeVencedor = "Sem ofertas";
 
-            for (PrecoCotacao oferta : ofertas) {
-                // Adiciona ao mapa para exibir na tabela
-                if (oferta.getFornecedor() != null) {
-                    linha.getPrecosPorFornecedor().put(oferta.getFornecedor().getNome(), oferta.getPrecoOfertado());
-
-                    if (oferta.getPrecoOfertado() < menorPreco) {
-                        menorPreco = oferta.getPrecoOfertado();
-                        nomeVencedor = oferta.getFornecedor().getNome();
-                    }
+            for (Map.Entry<String, Double> entry : linha.getPrecosPorFornecedor().entrySet()) {
+                double precoAtual = entry.getValue();
+                
+                if (precoAtual > 0 && precoAtual < menorPreco) {
+                    menorPreco = precoAtual;
+                    nomeVencedor = entry.getKey();
                 }
             }
 
