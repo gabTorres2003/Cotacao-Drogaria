@@ -14,6 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,8 @@ public class ComparativoService {
                 .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
 
         List<ItemCotacao> itens = itemRepository.findByCotacao(cotacao);
+
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
 
         for (ItemCotacao item : itens) {
             ItemComparativoDTO linha = new ItemComparativoDTO();
@@ -68,6 +71,21 @@ public class ComparativoService {
             if (menorPreco != Double.MAX_VALUE) {
                 linha.setMenorPrecoEncontrado(menorPreco);
                 linha.setFornecedorVencedor(nomeVencedor);
+            }
+
+            List<PrecoCotacao> historico = precoRepository.findHistoricoPorProduto(item.getNomeProduto());
+            
+            for (PrecoCotacao precoAntigo : historico) {
+                if (!precoAntigo.getItem().getCotacao().getId().equals(idCotacao)) {
+                    linha.setUltimoPrecoComprado(precoAntigo.getPrecoOfertado());
+                    
+                    if (precoAntigo.getDataResposta() != null) {
+                        linha.setDataUltimaCompra(precoAntigo.getDataResposta().format(formatter));
+                    } else {
+                        linha.setDataUltimaCompra("Data indisponível");
+                    }
+                    break; 
+                }
             }
 
             relatorio.add(linha);

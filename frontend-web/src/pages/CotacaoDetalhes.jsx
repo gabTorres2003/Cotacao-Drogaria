@@ -38,7 +38,7 @@ export default function CotacaoDetalhes() {
         if (item.precosPorFornecedor) {
           Object.keys(item.precosPorFornecedor).forEach(n => nomes.add(n));
         }
-        if (item.fornecedorVencedor) {
+        if (item.fornecedorVencedor && item.fornecedorVencedor !== "Sem ofertas") {
           decisaoInicial[item.idItem] = item.fornecedorVencedor;
         }
       });
@@ -144,7 +144,9 @@ export default function CotacaoDetalhes() {
     relatorio.forEach(item => {
       const fornecedorEscolhido = decisaoCompra[item.idItem];
       if (fornecedorEscolhido && item.precosPorFornecedor[fornecedorEscolhido]) {
-        pedidosAgrupados[fornecedorEscolhido].push(item);
+        if (item.precosPorFornecedor[fornecedorEscolhido] > 0) {
+            pedidosAgrupados[fornecedorEscolhido].push(item);
+        }
       }
     });
 
@@ -188,13 +190,14 @@ export default function CotacaoDetalhes() {
                             onChange={(e) => trocarFornecedor(item.idItem, e.target.value)}
                             disabled={jaEnviado} 
                         >
-                            {fornecedores.map(fOpcao => (
-                                item.precosPorFornecedor[fOpcao] ? (
+                            {fornecedores.map(fOpcao => {
+                                const precoOpcao = item.precosPorFornecedor[fOpcao];
+                                return (precoOpcao && precoOpcao > 0) ? (
                                     <option key={fOpcao} value={fOpcao}>
-                                        {fOpcao} ({fMoney(item.precosPorFornecedor[fOpcao])})
+                                        {fOpcao} ({fMoney(precoOpcao)})
                                     </option>
                                 ) : null
-                            ))}
+                            })}
                         </select>
                     </div>
                   </div>
@@ -237,24 +240,49 @@ export default function CotacaoDetalhes() {
           <tr>
             <th style={styles.th}>Produto</th>
             <th style={styles.th}>Qtd</th>
-            {fornecedores.map(f => <th key={f} style={{...styles.th, backgroundColor:'#f9fafb'}}>{f}</th>)}
-            <th style={{...styles.th, color:'#059669'}}>Melhor Preço</th>
+            {fornecedores.map(f => <th key={f} style={{...styles.th, backgroundColor:'#f9fafb', textAlign: 'center'}}>{f}</th>)}
+            <th style={{...styles.th, color:'#4f46e5', textAlign: 'right'}}>Última Compra</th>
           </tr>
         </thead>
         <tbody>
           {relatorio.map(item => (
             <tr key={item.idItem}>
-              <td style={styles.td}>{item.nomeProduto}</td>
-              <td style={styles.td}>{item.quantidade}</td>
+              <td style={styles.td}>
+                <strong>{item.nomeProduto}</strong>
+              </td>
+              <td style={styles.td}>{item.quantidade} un</td>
               {fornecedores.map(f => {
+                const precoFornecedor = item.precosPorFornecedor[f];
                 const isWinner = f === item.fornecedorVencedor;
+                const emFalta = precoFornecedor === -1; 
+
                 return (
-                  <td key={f} style={{...styles.td, fontWeight: isWinner?'bold':'normal', color: isWinner?'#059669':'#374151', backgroundColor: isWinner?'#ecfdf5':'transparent'}}>
-                    {fMoney(item.precosPorFornecedor[f])}
+                  <td key={f} style={{
+                    ...styles.td, 
+                    fontWeight: isWinner ? 'bold' : 'normal', 
+                    color: isWinner ? '#059669' : emFalta ? '#dc2626' : '#374151', 
+                    backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
+                    textAlign: 'center'
+                  }}>
+                    {emFalta ? 'Em falta' : (precoFornecedor ? fMoney(precoFornecedor) : '-')}
                   </td>
                 )
               })}
-              <td style={{...styles.td, fontWeight:'bold', color:'#059669'}}>{fMoney(item.menorPrecoEncontrado)}</td>
+              
+              {/* COLUNA ÚLTIMA COMPRA */}
+              <td style={{...styles.td, textAlign: 'right'}}>
+                {item.ultimoPrecoComprado ? (
+                   <span style={{ fontSize: '13px', color: '#374151', fontWeight: '500' }}>
+                     {fMoney(item.ultimoPrecoComprado)}
+                     <br/>
+                     <small style={{ color: '#9ca3af', fontWeight: 'normal' }}>
+                       {item.dataUltimaCompra}
+                     </small>
+                   </span>
+                ) : (
+                   <span style={{ fontSize: '12px', color: '#cbd5e1' }}>Sem histórico</span>
+                )}
+              </td>
             </tr>
           ))}
         </tbody>
@@ -287,7 +315,7 @@ export default function CotacaoDetalhes() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Cotação #{id}</h1>
-        <button style={styles.btnVoltar} onClick={() => navigate('/dashboard')}>Voltar</button>
+        <button style={styles.btnVoltar} onClick={() => navigate('/dashboard')}>Voltar ao Painel</button>
       </div>
 
       <div style={styles.toggleContainer}>
@@ -299,7 +327,7 @@ export default function CotacaoDetalhes() {
         </button>
       </div>
 
-      {loading ? <p>Carregando...</p> : (modoVisualizacao === 'tabela' ? <RenderTabela /> : <RenderPedidos />)}
+      {loading ? <p>Carregando dados da cotação...</p> : (modoVisualizacao === 'tabela' ? <RenderTabela /> : <RenderPedidos />)}
     </div>
   );
 }
