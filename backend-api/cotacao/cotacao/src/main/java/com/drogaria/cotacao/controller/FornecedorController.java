@@ -7,6 +7,7 @@ import com.drogaria.cotacao.service.FornecedorService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import java.util.Optional;
 
 import java.util.List;
 
@@ -79,5 +80,15 @@ public class FornecedorController {
                     return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
                 })
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Fornecedor credenciais) {
+        Optional<Fornecedor> fornecedor = fornecedorRepository.findByEmailAndSenha(credenciais.getEmail(), credenciais.getSenha());
+        
+        if (fornecedor.isPresent()) {
+            return ResponseEntity.ok(fornecedor.get());
+        }
+        return ResponseEntity.status(401).body("E-mail ou senha inválidos");
     }
 }
