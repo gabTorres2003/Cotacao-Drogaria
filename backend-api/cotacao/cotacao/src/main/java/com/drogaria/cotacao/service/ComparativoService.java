@@ -98,7 +98,8 @@ public class ComparativoService {
             preco.setItem(item);
             preco.setFornecedor(fornecedor);
             preco.setPrecoOfertado(dto.getPreco());
-            preco.setDataResposta(LocalDateTime.now()); // Registra 
+            preco.setDataResposta(LocalDateTime.now()); 
+            preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
             
             // Salva no banco
             precoRepository.save(preco);
