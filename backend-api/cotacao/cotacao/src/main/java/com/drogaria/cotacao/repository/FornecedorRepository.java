@@ -2,7 +2,9 @@ package com.drogaria.cotacao.repository;
 import com.drogaria.cotacao.model.Fornecedor;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
+import java.util.Optional;
 
 @Repository
 public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
+    Optional<Fornecedor> findByEmailAndSenha(String email, String senha);
 }

@@ -38,6 +38,7 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
                         
                         // --- ROTAS DO FORNECEDOR  ---
+                        .requestMatchers(HttpMethod.POST, "/api/fornecedor/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comparativo/listar-itens/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/salvar-respostas").permitAll()
                         

@@ -42,8 +42,8 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     }
 
     try {
-      const link = `${window.location.origin}/responder-cotacao/${idCotacao}?f=${fornecedor.id}`;
-      const mensagem = `Olá ${fornecedor.nome}, segue o link para cotação da Drogaria Torres: ${link}`;
+      const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
+      const mensagem = `Olá ${fornecedor.nome}, segue o link para a cotação da Drogaria Torres Farma: ${link} \n\n🔒 *Acesse utilizando seu E-mail e Senha cadastrados.`;
       const urlEncode = encodeURIComponent(mensagem);
       const whatsappUrl = `https://wa.me/55${fornecedor.telefone}?text=${urlEncode}`;
 
