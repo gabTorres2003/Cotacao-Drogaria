@@ -17,9 +17,10 @@ public class PrecoCotacao {
 
     @ManyToOne
     @JoinColumn(name = "fornecedor_id")
-    private Fornecedor fornecedor; // Quem ofertou
-    private Double precoOfertado; // O valor 
+    private Fornecedor fornecedor;
+    private Double precoOfertado; 
     private LocalDateTime dataResposta;
+    private Integer quantidadeDisponivel;
 
     // Getters e Setters
     public Long getId() { return id; }
@@ -36,4 +37,7 @@ public class PrecoCotacao {
 
     public LocalDateTime getDataResposta() { return dataResposta; }
     public void setDataResposta(LocalDateTime dataResposta) { this.dataResposta = dataResposta; }
+
+    public Integer getQuantidadeDisponivel() { return quantidadeDisponivel; }
+    public void setQuantidadeDisponivel(Integer quantidadeDisponivel) { this.quantidadeDisponivel = quantidadeDisponivel; }
 }
