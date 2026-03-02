@@ -23,6 +23,7 @@ public class FornecedorController {
 
     @PostMapping
     public ResponseEntity<Fornecedor> criar(@RequestBody Fornecedor fornecedor) {
+        System.out.println("Criação registrada - Email: " + fornecedor.getEmail() + " | Senha: " + fornecedor.getSenha()); //Log de teste
         return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
     }
 

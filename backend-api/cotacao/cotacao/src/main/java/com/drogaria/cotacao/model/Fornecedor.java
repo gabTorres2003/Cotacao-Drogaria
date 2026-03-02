@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonProperty;
 
 @Entity
 @Table(name = "tb_fornecedores")
@@ -11,9 +12,13 @@ public class Fornecedor {
     private Long id;
 
     private String nome;
-    private String email;
-    private String senha;
     private String telefone;
+
+    @JsonProperty("email")
+    private String email;
+    
+    @JsonProperty("senha")
+    private String senha;
 
     // Getters e Setters
     public Long getId() { return id; }
