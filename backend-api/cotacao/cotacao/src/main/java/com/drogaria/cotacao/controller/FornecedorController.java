@@ -77,8 +77,6 @@ public class FornecedorController {
                 .map(fornecedor -> {
                     fornecedor.setNome(dados.getNome());
                     fornecedor.setTelefone(dados.getTelefone());
-                    fornecedor.setEmail(dados.getEmail());
-                    fornecedor.setSenha(dados.getSenha());
                     return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
                 })
                 .orElse(ResponseEntity.notFound().build());
