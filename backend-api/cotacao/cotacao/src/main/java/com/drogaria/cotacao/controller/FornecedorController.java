@@ -1,7 +1,10 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.repository.FornecedorRepository;
+import com.drogaria.cotacao.service.FornecedorService;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -15,6 +18,9 @@ public class FornecedorController {
 
     @Autowired
     private FornecedorRepository fornecedorRepository;
+
+    @Autowired
+    private FornecedorService fornecedorService;
 
     @GetMapping
     public List<Fornecedor> listar() {
@@ -47,4 +53,16 @@ public class FornecedorController {
         }
         return ResponseEntity.status(401).body("E-mail ou senha inválidos");
     }
+
+    @PostMapping("/salvar-respostas")
+    public ResponseEntity<String> salvarRespostas(@RequestBody List<SalvarPrecoDTO> respostas) {
+        try {
+            fornecedorService.salvarRespostasFornecedor(respostas);
+            return ResponseEntity.ok("Respostas salvas com sucesso!");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Erro ao salvar: " + e.getMessage());
+        }
+    }
+
 }
