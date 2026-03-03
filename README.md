@@ -62,17 +62,17 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 | Histórico de Preços |
 | :---: | 
 | ![Histórico de Preços](frontend-web/public/assets/historico-preco.PNG) |
-| | *Histórico de preços dos produtos e comparação com a compra atual* |
+| *Histórico de preços dos produtos e comparação com a compra atual* |
 
 | Envio do Link do Whatsapp | 
 | :---: | 
 | ![WhatsApp](frontend-web/public/assets/envio-links.PNG) |
-| | *Geração de link para Lista de Transmissão* |
+| *Geração de link para Lista de Transmissão* |
 
 | Cadastro Fornecedor | Painel Fornecedores |
 | :---: | :---: |
 | ![Cadastro Fornecedor](frontend-web/public/assets/editar-fornecedor.PNG) | ![Painel Fornecedores](frontend-web/public/assets/painel-fornecedores.PNG) |
-| | *Cadastro dos fornecedores* | *Painel dos fornecedores cadastrados e contatos* |
+| *Cadastro dos fornecedores* | *Painel dos fornecedores cadastrados e contatos* |
 
 
 ### Visão do Fornecedor
