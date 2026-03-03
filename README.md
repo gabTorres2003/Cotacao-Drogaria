@@ -43,7 +43,7 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 
 ## 📸 Demonstração do Sistema
 
-### Visão do Farmacêutico (Administrador)
+### Visão do Comprador (Administrador)
 | Login | Dashboard |
 | :---: | :---: |
 | ![Login](frontend-web/public/assets/tela-login.PNG) | ![Dashboard](frontend-web/public/assets/dashboard.PNG) |
@@ -54,20 +54,20 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 | ![Comparativo](frontend-web/public/assets/detalhes.PNG) | ![Gerar Pedido](frontend-web/public/assets/gerar-pedido.PNG) |
 | *Análise inteligente das melhores ofertas* | *Gerador de pedidos dos produtos com os melhores preços* |
 
-| Relatórios Estratégicos | 
-| :---: | :---: |
+| Relatório Ranking | Relatório de Ruptura | Histórico de Preços
+| :---: | :---: | :---: |
 | ![Relatório Ranking](frontend-web/public/assets/ranking-comp.PNG) | ![Relatório de Ruptura](frontend-web/public/assets/ruptura.PNG) | ![Histórico de Preços](frontend-web/public/assets/historico-preco.PNG) |
-| *Rupturas, Ranking e Histórico de Preços* |
+| *Ranking de melhores fornecedores* | *Relatório de alerta dos produtos com mais registros de falta* | *Histórico de preços dos produtos e comparação com a compra atual* |
 
 | Envio do Link do Whatsapp | 
-| :---: | :---: |
+| :---: | 
 | ![WhatsApp](frontend-web/public/assets/envio-links.PNG) |
 | | *Geração de link para Lista de Transmissão* |
 
-| Painel Fornecedores | 
+| Cadastro Fornecedor | Painel Fornecedores |
 | :---: | :---: |
-| ![Cadastro Fornecedor](frontend-web/public/assets/) | ![Painel Fornecedores](frontend-web/public/assets/painel-fornecedores.PNG) |
-| | *Painel de informações dos fornecedores* |
+| ![Cadastro Fornecedor](frontend-web/public/assets/editar-fornecedor.PNG) | ![Painel Fornecedores](frontend-web/public/assets/painel-fornecedores.PNG) |
+| | *Cadastro dos fornecedores* | *Painel dos fornecedores cadastrados e contatos* |
 
 
 ### Visão do Fornecedor
