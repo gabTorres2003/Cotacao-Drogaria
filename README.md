@@ -59,6 +59,11 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 | ![Relatório Ranking](frontend-web/public/assets/ranking-comp.PNG) | ![Relatório de Ruptura](frontend-web/public/assets/ruptura.PNG) | ![Histórico de Preços](frontend-web/public/assets/historico-preco.PNG) |
 | *Ranking de melhores fornecedores* | *Relatório de alerta dos produtos com mais registros de falta* | *Histórico de preços dos produtos e comparação com a compra atual* |
 
+| Histórico de Preços |
+| :---: | 
+| ![Histórico de Preços](frontend-web/public/assets/historico-preco.PNG) |
+| | *Histórico de preços dos produtos e comparação com a compra atual* |
+
 | Envio do Link do Whatsapp | 
 | :---: | 
 | ![WhatsApp](frontend-web/public/assets/envio-links.PNG) |
