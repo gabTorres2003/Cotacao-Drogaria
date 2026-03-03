@@ -55,7 +55,7 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 | *Análise inteligente das melhores ofertas* | *Gerador de pedidos dos produtos com os melhores preços* |
 
 | Relatório Ranking | Relatório de Ruptura | 
-| :---: | :---: | :---: |
+| :---: | :---: | 
 | ![Relatório Ranking](frontend-web/public/assets/ranking-comp.PNG) | ![Relatório de Ruptura](frontend-web/public/assets/ruptura.PNG) |
 | *Ranking de melhores fornecedores* | *Relatório de alerta dos produtos com mais registros de falta* |
 
