@@ -54,10 +54,10 @@ Um sistema completo (Web App) desenvolvido para automatizar, organizar e otimiza
 | ![Comparativo](frontend-web/public/assets/detalhes.PNG) | ![Gerar Pedido](frontend-web/public/assets/gerar-pedido.PNG) |
 | *Análise inteligente das melhores ofertas* | *Gerador de pedidos dos produtos com os melhores preços* |
 
-| Relatório Ranking | Relatório de Ruptura | Histórico de Preços
+| Relatório Ranking | Relatório de Ruptura | 
 | :---: | :---: | :---: |
-| ![Relatório Ranking](frontend-web/public/assets/ranking-comp.PNG) | ![Relatório de Ruptura](frontend-web/public/assets/ruptura.PNG) | ![Histórico de Preços](frontend-web/public/assets/historico-preco.PNG) |
-| *Ranking de melhores fornecedores* | *Relatório de alerta dos produtos com mais registros de falta* | *Histórico de preços dos produtos e comparação com a compra atual* |
+| ![Relatório Ranking](frontend-web/public/assets/ranking-comp.PNG) | ![Relatório de Ruptura](frontend-web/public/assets/ruptura.PNG) |
+| *Ranking de melhores fornecedores* | *Relatório de alerta dos produtos com mais registros de falta* |
 
 | Histórico de Preços |
 | :---: | 
