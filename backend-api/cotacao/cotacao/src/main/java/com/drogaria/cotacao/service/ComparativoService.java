@@ -39,8 +39,26 @@ public class ComparativoService {
                 .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
 
         List<ItemCotacao> itens = itemRepository.findByCotacao(cotacao);
+        
+        if (itens.isEmpty()) {
+            return relatorio;
+        }
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+
+        List<PrecoCotacao> todasOfertas = precoRepository.findByItemIn(itens);
+        
+        Map<Long, List<PrecoCotacao>> ofertasPorItem = todasOfertas.stream()
+                .collect(Collectors.groupingBy(preco -> preco.getItem().getId()));
+
+        List<String> nomesProdutos = itens.stream()
+                .map(ItemCotacao::getNomeProduto)
+                .distinct()
+                .collect(Collectors.toList());
+                
+        List<PrecoCotacao> todoHistorico = precoRepository.findHistoricoEmLote(nomesProdutos);
+        Map<String, List<PrecoCotacao>> historicoPorProduto = todoHistorico.stream()
+                .collect(Collectors.groupingBy(preco -> preco.getItem().getNomeProduto()));
 
         for (ItemCotacao item : itens) {
             ItemComparativoDTO linha = new ItemComparativoDTO();
@@ -48,7 +66,7 @@ public class ComparativoService {
             linha.setNomeProduto(item.getNomeProduto());
             linha.setQuantidade(item.getQuantidade());
 
-            List<PrecoCotacao> ofertas = precoRepository.findByItem(item);
+            List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
             for (PrecoCotacao oferta : ofertas) {
                 if (oferta.getFornecedor() != null) {
@@ -61,7 +79,6 @@ public class ComparativoService {
 
             for (Map.Entry<String, Double> entry : linha.getPrecosPorFornecedor().entrySet()) {
                 double precoAtual = entry.getValue();
-                
                 if (precoAtual > 0 && precoAtual < menorPreco) {
                     menorPreco = precoAtual;
                     nomeVencedor = entry.getKey();
@@ -73,7 +90,7 @@ public class ComparativoService {
                 linha.setFornecedorVencedor(nomeVencedor);
             }
 
-            List<PrecoCotacao> historico = precoRepository.findHistoricoPorProduto(item.getNomeProduto());
+            List<PrecoCotacao> historico = historicoPorProduto.getOrDefault(item.getNomeProduto(), new ArrayList<>());
             
             for (PrecoCotacao precoAntigo : historico) {
                 if (!precoAntigo.getItem().getCotacao().getId().equals(idCotacao)) {
