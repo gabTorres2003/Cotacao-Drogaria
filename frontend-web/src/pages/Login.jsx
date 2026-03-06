@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import { supabase } from '../services/supabase';
-import '../App.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -29,67 +28,74 @@ export default function Login() {
   };
 
   return (
-    <div className="login-container">
-      <div className="login-box">
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f3f4f6' }}>
+      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
         
-        <h2>Drogaria Torres Farma</h2>
-        <p>Acesso Restrito</p>
+        <h2 style={{ textAlign: 'center', marginBottom: '25px', color: '#1f2937' }}>
+          Drogaria Torres Farma
+        </h2>
         
-        <form onSubmit={handleLogin}>
+        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           
-          {/* CAMPO DE E-MAIL */}
-          <div className="input-group">
-            <Mail className="input-icon" size={20} />
+          {/* CAMPO DE E-MAIL CORRIGIDO */}
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
+            <Mail size={18} color="#9ca3af" />
             <input 
-              id="email"         
-              name="email"       
+              id="email"
+              name="email"
               autoComplete="email"
               type="email" 
               placeholder="Seu e-mail" 
               required
               value={email} 
               onChange={e => setEmail(e.target.value)}
+              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
           </div>
 
-          {/* CAMPO DE SENHA */}
-          <div className="input-group" style={{ position: 'relative' }}>
-            <Lock className="input-icon" size={20} />
+          {/* CAMPO DE SENHA CORRIGIDO */}
+          <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
+            <Lock size={18} color="#9ca3af" />
             <input 
-              id="senha"                      
-              name="senha"                    
-              autoComplete="current-password" 
+              id="senha"
+              name="senha"
+              autoComplete="current-password"
               type={mostrarSenha ? "text" : "password"} 
               placeholder="Sua senha" 
               required
               value={senha} 
               onChange={e => setSenha(e.target.value)}
-              style={{ paddingRight: '45px' }}
+              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
             
             <button 
               type="button" 
               onClick={() => setMostrarSenha(!mostrarSenha)} 
-              style={{ 
-                position: 'absolute', 
-                right: '12px', 
-                top: '50%', 
-                transform: 'translateY(-50%)', 
-                background: 'none', 
-                border: 'none', 
-                cursor: 'pointer', 
-                color: '#9ca3af',
-                display: 'flex',
-                alignItems: 'center',
-                padding: '0'
-              }}
+              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px' }}
               title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
             >
-              {mostrarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+              {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
             </button>
           </div>
-          {erro && <div className="error-message">{erro}</div>}
-          <button type="submit" className="btn-primary" disabled={loading}>
+
+          {/* MENSAGEM DE ERRO */}
+          {erro && (
+            <span style={{ color: '#dc2626', fontSize: '14px', textAlign: 'center', backgroundColor: '#fee2e2', padding: '8px', borderRadius: '6px' }}>
+              {erro}
+            </span>
+          )}
+
+          {/* BOTÃO ENTRAR */}
+          <button 
+            type="submit" 
+            disabled={loading}
+            style={{ 
+              width: '100%', padding: '14px', backgroundColor: '#2563eb', color: 'white', 
+              border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px',
+              cursor: loading ? 'not-allowed' : 'pointer', marginTop: '10px',
+              opacity: loading ? 0.7 : 1
+            }}
+          >
             {loading ? 'Autenticando...' : 'Entrar no Sistema'}
           </button>
         </form>
