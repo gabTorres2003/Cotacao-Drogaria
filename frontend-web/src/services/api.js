@@ -16,4 +16,20 @@ api.interceptors.request.use((config) => {
   return config;
 });
 
+api.interceptors.response.use(
+  (response) => {
+    return response;
+  },
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn("Sessão expirada. Redirecionando para o login...");
+      localStorage.clear();
+      sessionStorage.clear();
+      window.location.href = '/'; 
+    }
+    
+    return Promise.reject(error);
+  }
+);
+
 export default api;
