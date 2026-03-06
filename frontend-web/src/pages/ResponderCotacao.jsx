@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, Mail } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 
 export default function ResponderCotacao() {
   const { idCotacao } = useParams();
@@ -14,6 +14,7 @@ export default function ResponderCotacao() {
   
   const [credenciais, setCredenciais] = useState({ email: '', senha: '' });
   const [erroLogin, setErroLogin] = useState('');
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   // Estados da Cotação
   const [itens, setItens] = useState([]);
@@ -174,10 +175,19 @@ export default function ResponderCotacao() {
           <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
             <Lock size={18} color="#9ca3af" />
             <input 
-              type="password" placeholder="Sua Senha" required
+              type={mostrarSenha ? "text" : "password"}
+              placeholder="Sua Senha" required
               style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
               value={credenciais.senha} onChange={e => setCredenciais({...credenciais, senha: e.target.value})}
             />
+            <button 
+              type="button" 
+              onClick={() => setMostrarSenha(!mostrarSenha)} 
+              style={{background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px'}}
+              title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+            >
+              {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
+            </button>
           </div>
 
           {erroLogin && <span style={{color: '#dc2626', fontSize: '13px'}}>{erroLogin}</span>}

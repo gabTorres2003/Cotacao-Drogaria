@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../services/supabase'; 
-import { Lock, User } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
 import '../App.css';
 
 export default function Login() {
@@ -10,6 +10,7 @@ export default function Login() {
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const [mostrarSenha, setMostrarSenha] = useState(false);
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -54,15 +55,24 @@ export default function Login() {
             />
           </div>
 
-          <div className="input-group">
-            <Lock size={20} color="#666" />
+          <div className="input-group" style={{ position: 'relative', display: 'flex', alignItems: 'center' }}>
+            <Lock size={18} color="#9ca3af" style={{ position: 'absolute', left: '10px' }} />
+            
             <input 
-              type="password" 
-              placeholder="Senha" 
-              value={senha}
-              onChange={(e) => setSenha(e.target.value)}
+              type={mostrarSenha ? "text" : "password"} 
+              placeholder="Sua senha" 
               required
+              value={senha} 
+              onChange={e => setSenha(e.target.value)}
+              style={{ width: '100%', padding: '12px 40px', borderRadius: '8px', border: '1px solid #d1d5db' }}
             />
+            <button 
+              type="button" 
+              onClick={() => setMostrarSenha(!mostrarSenha)} 
+              style={{ position: 'absolute', right: '10px', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', color: '#9ca3af' }}
+            >
+              {mostrarSenha ? <EyeOff size={20} /> : <Eye size={20} />}
+            </button>
           </div>
 
           {erro && <p className="error-msg">{erro}</p>}
