@@ -6,6 +6,7 @@ import ResponderCotacao from './pages/ResponderCotacao'
 import CotacaoDetalhes from './pages/CotacaoDetalhes'
 import Fornecedores from './pages/Fornecedores'
 import Relatorios from './pages/Relatorios'
+import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
 const RotaPrivada = ({ children }) => {
@@ -16,6 +17,8 @@ const RotaPrivada = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
+    {/* Componente monitorando as atividades do usuário de forma global */}
+      <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />
 
