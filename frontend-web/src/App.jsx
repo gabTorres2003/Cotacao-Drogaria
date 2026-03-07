@@ -9,7 +9,7 @@ import Relatorios from './pages/Relatorios'
 import './App.css'
 
 const RotaPrivada = ({ children }) => {
-  const isLogado = localStorage.getItem('usuarioLogado')
+  const isLogado = localStorage.getItem('token')
   return isLogado ? children : <Navigate to="/" />
 }
 
