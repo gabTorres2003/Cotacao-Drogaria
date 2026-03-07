@@ -19,12 +19,6 @@ export default function Login() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
       if (error) throw error;
-<<<<<<< Updated upstream
-=======
-      localStorage.setItem('token', data.session.access_token);
-      localStorage.setItem('usuarioLogado', 'true');
-      
->>>>>>> Stashed changes
       navigate('/dashboard');
     } catch (error) {
       setErro('E-mail ou senha inválidos.');
