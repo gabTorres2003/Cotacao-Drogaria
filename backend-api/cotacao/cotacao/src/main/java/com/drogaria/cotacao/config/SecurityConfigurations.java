@@ -52,17 +52,20 @@ public class SecurityConfigurations {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of(
-                "https://cotacaotorresfarma.netlify.app",
-                "http://localhost:5173",                 
-                "https://tray-element-earthquake-newman.trycloudflare.com" 
-        ));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         
-        configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "X-Requested-With", "Accept", "Origin", "Access-Control-Request-Method", "Access-Control-Request-Headers"));
+        // Mantém as origens seguras
+        configuration.setAllowedOrigins(Arrays.asList(
+                "https://cotacaotorresfarma.netlify.app",
+                "http://localhost:5173"
+        ));
+        
+        // Libera os métodos HTTP
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
+        
+        // O PULO DO GATO: Libera qualquer cabeçalho que o frontend tentar enviar
+        configuration.setAllowedHeaders(Arrays.asList("*"));
         
         configuration.setAllowCredentials(true);
-        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
