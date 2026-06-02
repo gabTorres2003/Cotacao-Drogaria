@@ -13,17 +13,27 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setErro('');
-    setLoading(true);
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: senha });
-      if (error) throw error;
-      navigate('/dashboard');
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password: senha,
+      })
+      
+      if (error) throw error
+      const token = data?.session?.access_token
+
+      if (token) {
+        localStorage.setItem('token', token)
+      }
+
+      navigate('/dashboard')
     } catch (error) {
-      setErro('E-mail ou senha inválidos.');
+      setErro('E-mail ou senha inválidos.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
   };
 
