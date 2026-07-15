@@ -22,7 +22,6 @@ public class DnaDatabaseConfig {
     @Value("${dna.datasource.driver-class-name}")
     private String dbDriver;
 
-    @Bean(name = "dnaDataSource")
     public DataSource dnaDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl(dbUrl);
