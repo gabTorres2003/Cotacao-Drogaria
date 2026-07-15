@@ -3,6 +3,7 @@ package com.drogaria.cotacao.controller;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
+import com.drogaria.cotacao.service.IntegracaoDNAService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -19,6 +20,9 @@ public class CotacaoController {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
+
+    @Autowired
+    private IntegracaoDNAService integracaoDNAService;
 
     @Autowired
     private ExcelReaderService excelService;
@@ -65,6 +69,33 @@ public class CotacaoController {
             e.printStackTrace();
             return ResponseEntity.internalServerError()
                     .body("Erro ao processar arquivo.");
+        }
+    }
+
+    @PostMapping("/importar-dna")
+    public ResponseEntity<String> importarDiretoDoDna() {
+        try {
+            List<ItemCotacao> itens = integracaoDNAService.buscarFaltasDiretoDoBanco();
+
+            if (itens == null || itens.isEmpty()) {
+                return ResponseEntity.badRequest().body("Nenhuma falta encontrada no sistema PDV.");
+            }
+
+            Cotacao novaCotacao = new Cotacao();
+            novaCotacao.setDescricao("Importação Direta via Banco de Dados em " + LocalDateTime.now());
+            novaCotacao.setStatus("ABERTA");
+            novaCotacao.setDataCriacao(LocalDateTime.now());
+            itens.forEach(item -> item.setCotacao(novaCotacao));
+            novaCotacao.setItens(itens);
+            cotacaoRepository.save(novaCotacao);
+
+            return ResponseEntity.ok(
+                    "Cotação gerada com sucesso! " + itens.size() + " itens importados diretamente do banco.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError()
+                    .body("Erro ao conectar e importar dados do sistema: " + e.getMessage());
         }
     }
 

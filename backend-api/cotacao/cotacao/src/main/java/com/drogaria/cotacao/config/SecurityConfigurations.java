@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.config;
 
 import org.springframework.context.annotation.Bean;
+import org.springframework.web.filter.CorsFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
@@ -22,7 +23,7 @@ public class SecurityConfigurations {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                .cors(Customizer.withDefaults())
+                .cors(cors -> cors.disable())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -33,7 +34,7 @@ public class SecurityConfigurations {
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         
                         // ROTAS PÚBLICAS
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
                         
@@ -50,25 +51,23 @@ public class SecurityConfigurations {
     }
 
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsFilter corsFilter() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Mantém as origens seguras
-        configuration.setAllowedOrigins(Arrays.asList(
+        configuration.setAllowedOrigins(List.of(
                 "https://cotacaotorresfarma.netlify.app",
-                "http://localhost:5173"
+                "http://localhost:5173",                 
+                "https://tray-element-earthquake-newman.trycloudflare.com" 
         ));
         
-        // Libera os métodos HTTP
-        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
-        
-        // O PULO DO GATO: Libera qualquer cabeçalho que o frontend tentar enviar
-        configuration.setAllowedHeaders(Arrays.asList("*"));
-        
+        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
+        configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        return source;
+        
+        return new CorsFilter(source);
     }
 }
