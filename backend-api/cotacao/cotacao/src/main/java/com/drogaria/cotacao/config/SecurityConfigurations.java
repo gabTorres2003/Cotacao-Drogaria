@@ -1,7 +1,6 @@
 package com.drogaria.cotacao.config;
 
 import org.springframework.context.annotation.Bean;
-import org.springframework.web.filter.CorsFilter;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
@@ -13,7 +12,6 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
-import java.util.Arrays;
 import java.util.List;
 
 @Configuration
@@ -23,7 +21,8 @@ public class SecurityConfigurations {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                .cors(cors -> cors.disable())
+                // 1. ATIVAR O CORS (Remove o cors.disable())
+                .cors(Customizer.withDefaults()) 
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
@@ -51,16 +50,16 @@ public class SecurityConfigurations {
     }
 
     @Bean
-    public CorsFilter corsFilter() {
+    public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
         configuration.setAllowedOrigins(List.of(
                 "https://cotacaotorresfarma.netlify.app",
-                "http://localhost:5173",                 
+                "http://localhost:5173",                
                 "https://tray-element-earthquake-newman.trycloudflare.com" 
         ));
         
-        configuration.setAllowedMethods(List.of("*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         configuration.setExposedHeaders(List.of("Authorization", "Content-Type"));
@@ -68,6 +67,6 @@ public class SecurityConfigurations {
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
         
-        return new CorsFilter(source);
+        return source;
     }
 }
