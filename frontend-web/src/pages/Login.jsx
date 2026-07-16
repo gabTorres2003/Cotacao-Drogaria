@@ -29,7 +29,7 @@ export default function Login() {
         localStorage.setItem('token', token)
       }
 
-      navigate('/dashboard')
+      navigate('/cotacoes')
     } catch (error) {
       setErro('E-mail ou senha inválidos.')
     } finally {
