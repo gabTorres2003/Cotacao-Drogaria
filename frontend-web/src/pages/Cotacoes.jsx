@@ -10,6 +10,7 @@ import {
   Eye,
   Search,
   Filter,
+  Trash2,
   ArrowUpDown,
 } from 'lucide-react'
 import EnviarLinkModal from '../components/EnviarLinkModal'
