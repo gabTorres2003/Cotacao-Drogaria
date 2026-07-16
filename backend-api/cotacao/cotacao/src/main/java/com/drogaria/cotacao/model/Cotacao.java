@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.model;
 
 import jakarta.persistence.*;
+import com.fasterxml.jackson.annotation.JsonIgnore; 
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -16,6 +17,8 @@ public class Cotacao {
 
     private String status;
     private String descricao; 
+    
+    @JsonIgnore 
     @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL)
     private List<ItemCotacao> itens;
 
