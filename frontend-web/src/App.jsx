@@ -1,7 +1,7 @@
 import React from 'react'
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
 import Login from './pages/Login'
-import Dashboard from './pages/Dashboard'
+import Cotacoes from './pages/Cotacoes'
 import ResponderCotacao from './pages/ResponderCotacao'
 import CotacaoDetalhes from './pages/CotacaoDetalhes'
 import Fornecedores from './pages/Fornecedores'
@@ -17,16 +17,15 @@ const RotaPrivada = ({ children }) => {
 function App() {
   return (
     <BrowserRouter>
-    {/* Componente monitorando as atividades do usuário de forma global */}
       <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />
 
         <Route
-          path="/dashboard"
+          path="/cotacoes"
           element={
             <RotaPrivada>
-              <Dashboard />
+              <Cotacoes />
             </RotaPrivada>
           }
         />
