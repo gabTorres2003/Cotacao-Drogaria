@@ -34,7 +34,6 @@ public class ItemCotacao {
     @JsonIgnore
     private Cotacao cotacao;
 
-    // Getters and Setters originais
     public Long getId() { return id; }
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
@@ -45,7 +44,6 @@ public class ItemCotacao {
     public Cotacao getCotacao() { return cotacao; }
     public void setCotacao(Cotacao cotacao) { this.cotacao = cotacao; }
 
-    // Getters and Setters dos novos campos
     public Double getEstoque() { return estoque; }
     public void setEstoque(Double estoque) { this.estoque = estoque; }
     public String getGrupo() { return grupo; }

@@ -3,25 +3,33 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
-import { Upload, FileDown, MessageCircle, Eye, Search, Filter, ArrowUpDown } from 'lucide-react'
+import {
+  Upload,
+  FileDown,
+  MessageCircle,
+  Eye,
+  Search,
+  Filter,
+  ArrowUpDown,
+} from 'lucide-react'
 import EnviarLinkModal from '../components/EnviarLinkModal'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
-export default function Dashboard() {
+export default function Cotacoes() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
-  
+
   // ESTADOS DE FILTRO
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [ordemData, setOrdemData] = useState('RECENTES') // 'RECENTES' ou 'ANTIGAS'
 
-  const [resumo, setResumo] = useState({ 
-    total: 0, 
-    abertas: 0, 
-    pendentes: 0, 
-    finalizadas: 0 
+  const [resumo, setResumo] = useState({
+    total: 0,
+    abertas: 0,
+    pendentes: 0,
+    finalizadas: 0,
   })
   const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
   const navigate = useNavigate()
@@ -36,12 +44,14 @@ export default function Dashboard() {
 
       if (Array.isArray(response.data)) {
         setCotacoes(response.data)
-        
+
         setResumo({
           total: response.data.length,
           abertas: response.data.filter((c) => c.status === 'ABERTA').length,
-          pendentes: response.data.filter((c) => c.status === 'PENDENTE').length,
-          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
+          pendentes: response.data.filter((c) => c.status === 'PENDENTE')
+            .length,
+          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA')
+            .length,
         })
       } else {
         setCotacoes([])
@@ -54,10 +64,10 @@ export default function Dashboard() {
 
   const cotacoesFiltradas = cotacoes
     .filter((c) => {
-      // 1. Filtro de Texto 
+      // 1. Filtro de Texto
       const textoBusca = busca.toLowerCase()
-      const matchTexto = 
-        c.descricao?.toLowerCase().includes(textoBusca) || 
+      const matchTexto =
+        c.descricao?.toLowerCase().includes(textoBusca) ||
         c.id.toString().includes(textoBusca)
 
       // 2. Filtro de Status
@@ -74,12 +84,23 @@ export default function Dashboard() {
 
   // FORMATADOR DE DATA (DD/MM/AA)
   const formatarDataBR = (dataIso) => {
-    if (!dataIso) return '--/--/--';
+    if (!dataIso) return '--/--/--'
     return new Date(dataIso).toLocaleDateString('pt-BR', {
       day: '2-digit',
       month: '2-digit',
-      year: '2-digit'
-    });
+      year: '2-digit',
+    })
+  }
+
+  const deletarCotacao = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir esta cotação?')) {
+      try {
+        await api.delete(`/api/cotacao/${id}`)
+        carregarCotacoes()
+      } catch (error) {
+        alert('Erro ao excluir cotação.')
+      }
+    }
   }
 
   const baixarRelatorioGeral = async (idCotacao) => {
@@ -122,7 +143,16 @@ export default function Dashboard() {
         head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
         body: linhas,
         foot: [
-          [ '', '', '', 'TOTAL GERAL', totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })],
+          [
+            '',
+            '',
+            '',
+            'TOTAL GERAL',
+            totalGeral.toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }),
+          ],
         ],
         theme: 'striped',
         headStyles: { fillColor: [22, 163, 74] },
@@ -140,13 +170,27 @@ export default function Dashboard() {
       <Sidebar />
 
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <header
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '30px',
+          }}
+        >
           <div>
-            <h1 style={{fontSize: '24px', marginBottom: '5px'}}>Painel de Cotações</h1>
-            <p style={{color: '#6b7280'}}>Gerencie suas compras e fornecedores</p>
+            <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>
+              Painel de Cotações
+            </h1>
+            <p style={{ color: '#6b7280' }}>
+              Gerencie suas compras e fornecedores
+            </p>
           </div>
-          
-          <button className="btn-new-cotacao" onClick={() => setModalAberto(true)}>
+
+          <button
+            className="btn-new-cotacao"
+            onClick={() => setModalAberto(true)}
+          >
             <Upload size={20} /> Nova Cotação
           </button>
         </header>
@@ -158,15 +202,21 @@ export default function Dashboard() {
             <div className="stat-label">Total</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#2563eb' }}>{resumo.abertas}</div>
+            <div className="stat-value" style={{ color: '#2563eb' }}>
+              {resumo.abertas}
+            </div>
             <div className="stat-label">Em Aberto</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.pendentes}</div>
+            <div className="stat-value" style={{ color: '#f97316' }}>
+              {resumo.pendentes}
+            </div>
             <div className="stat-label">Aguard. Resposta</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>{resumo.finalizadas}</div>
+            <div className="stat-value" style={{ color: '#16a34a' }}>
+              {resumo.finalizadas}
+            </div>
             <div className="stat-label">Finalizadas</div>
           </div>
         </div>
@@ -174,17 +224,17 @@ export default function Dashboard() {
         <div className="filters-bar">
           <div className="search-input-container">
             <Search size={18} color="#9ca3af" />
-            <input 
-              type="text" 
-              placeholder="Buscar por ID ou Descrição..." 
+            <input
+              type="text"
+              placeholder="Buscar por ID ou Descrição..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
           </div>
 
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <Filter size={18} color="#6b7280" />
-            <select 
+            <select
               className="filter-select"
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
@@ -196,9 +246,9 @@ export default function Dashboard() {
             </select>
           </div>
 
-          <div style={{display: 'flex', alignItems: 'center', gap: '10px'}}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
             <ArrowUpDown size={18} color="#6b7280" />
-            <select 
+            <select
               className="filter-select"
               value={ordemData}
               onChange={(e) => setOrdemData(e.target.value)}
@@ -213,9 +263,9 @@ export default function Dashboard() {
           <table>
             <thead>
               <tr>
-                <th style={{width: '80px'}}>ID</th>
+                <th style={{ width: '80px' }}>ID</th>
                 <th>Descrição</th>
-                <th style={{width: '120px'}}>Data</th>
+                <th style={{ width: '120px' }}>Data</th>
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
@@ -223,44 +273,84 @@ export default function Dashboard() {
             <tbody>
               {cotacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{textAlign: 'center', padding: '30px', color: '#6b7280'}}>
+                  <td
+                    colSpan="5"
+                    style={{
+                      textAlign: 'center',
+                      padding: '30px',
+                      color: '#6b7280',
+                    }}
+                  >
                     Nenhuma cotação encontrada com os filtros atuais.
                   </td>
                 </tr>
               ) : (
                 cotacoesFiltradas.map((c) => (
                   <tr key={c.id}>
-                    <td><span style={{fontWeight: 'bold', color: '#374151'}}>#{c.id}</span></td>
                     <td>
-                      <span style={{fontWeight: '500', color: '#111827', fontSize: '15px'}}>
+                      <span style={{ fontWeight: 'bold', color: '#374151' }}>
+                        #{c.id}
+                      </span>
+                    </td>
+                    <td>
+                      <span
+                        style={{
+                          fontWeight: '500',
+                          color: '#111827',
+                          fontSize: '15px',
+                        }}
+                      >
                         {c.descricao || 'Cotação Sem Nome'}
                       </span>
                     </td>
-                    
+
                     {/* DATA PADRÃO BRASILEIRO */}
                     <td>
-                      <span style={{color: '#6b7280', fontSize: '14px'}}>
+                      <span style={{ color: '#6b7280', fontSize: '14px' }}>
                         {formatarDataBR(c.dataCriacao)}
                       </span>
                     </td>
 
                     <td>
                       <span className={`status-badge status-${c.status}`}>
-                        {c.status === 'ABERTA' ? 'Aberta' : 
-                         c.status === 'PENDENTE' ? 'Pendente' : 
-                         c.status === 'FINALIZADA' ? 'Finalizada' : c.status}
+                        {c.status === 'ABERTA'
+                          ? 'Aberta'
+                          : c.status === 'PENDENTE'
+                            ? 'Pendente'
+                            : c.status === 'FINALIZADA'
+                              ? 'Finalizada'
+                              : c.status}
                       </span>
                     </td>
                     <td>
-                      <div style={{display: 'flex', gap: '8px'}}>
-                        <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/cotacao/${c.id}`)}>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          className="btn-icon"
+                          title="Ver Detalhes"
+                          onClick={() => navigate(`/cotacao/${c.id}`)}
+                        >
                           <Eye size={18} />
                         </button>
-                        <button className="btn-icon" title="Enviar por WhatsApp" onClick={() => setCotacaoParaEnviar(c.id)}>
+                        <button
+                          className="btn-icon"
+                          title="Enviar por WhatsApp"
+                          onClick={() => setCotacaoParaEnviar(c.id)}
+                        >
                           <MessageCircle size={18} />
                         </button>
-                        <button className="btn-icon" title="Baixar Relatório" onClick={() => baixarRelatorioGeral(c.id)}>
+                        <button
+                          className="btn-icon"
+                          title="Baixar Relatório"
+                          onClick={() => baixarRelatorioGeral(c.id)}
+                        >
                           <FileDown size={18} />
+                        </button>
+                        <button
+                          className="btn-icon"
+                          title="Excluir Cotação"
+                          onClick={() => deletarCotacao(c.id)}
+                        >
+                          <Trash2 size={18} color="#ef4444" />
                         </button>
                       </div>
                     </td>
@@ -271,8 +361,13 @@ export default function Dashboard() {
           </table>
         </div>
 
-        {modalAberto && <UploadModal onClose={() => setModalAberto(false)} onSuccess={carregarCotacoes} />}
-        
+        {modalAberto && (
+          <UploadModal
+            onClose={() => setModalAberto(false)}
+            onSuccess={carregarCotacoes}
+          />
+        )}
+
         {cotacaoParaEnviar && (
           <EnviarLinkModal
             idCotacao={cotacaoParaEnviar}

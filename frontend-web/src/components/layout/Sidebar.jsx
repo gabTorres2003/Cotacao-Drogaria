@@ -21,11 +21,11 @@ export default function Sidebar() {
 
       <nav>
         <Link
-          to="/dashboard"
-          className={isActive('/dashboard')}
+          to="/cotacao"
+          className={isActive('/cotacao')}
           style={{ textDecoration: 'none' }}
         >
-          <LayoutDashboard size={20} /> Dashboard
+          <LayoutDashboard size={20} /> Cotação
         </Link>
 
         <Link

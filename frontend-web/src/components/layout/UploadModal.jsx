@@ -1,84 +1,66 @@
-import { useState } from 'react'
-import api from '../../services/api'
-import { X, UploadCloud } from 'lucide-react'
+import { useState } from 'react';
+import api from '../../services/api';
+import { X } from 'lucide-react';
+
+const GRUPOS_DISPONIVEIS = [
+  "Alimentos", "Etico", "Gen Antibi", "Generico", "Generico 2", "Liberados", "Oficinais", "Perfumaria"
+];
 
 export default function UploadModal({ onClose, onSuccess }) {
-  const [arquivo, setArquivo] = useState(null)
-  const [loading, setLoading] = useState(false)
-  const [erro, setErro] = useState('')
+  const [gruposSelecionados, setGruposSelecionados] = useState([]);
+  const [loading, setLoading] = useState(false);
 
-  const handleEnviar = async () => {
-    if (!arquivo) {
-      setErro('Selecione um arquivo primeiro!')
-      return
+  const toggleGrupo = (grupo) => {
+    setGruposSelecionados(prev => 
+      prev.includes(grupo) ? prev.filter(g => g !== grupo) : [...prev, grupo]
+    );
+  };
+
+  const handleImportarDNA = async () => {
+    if (gruposSelecionados.length === 0) {
+      alert('Selecione pelo menos um grupo!'); return;
     }
-
-    setLoading(true)
-    setErro('')
-
-    const formData = new FormData()
-    formData.append('file', arquivo)
-
+    setLoading(true);
     try {
-      const response = await api.post('/api/cotacao/importar', formData, {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
-      })
-
-      alert('Cotação importada com sucesso!')
-      onSuccess() // Avisa o Dashboard para recarregar a lista
-      onClose() // Fecha o modal
+      await api.post('/api/cotacao/importar-dna', gruposSelecionados);
+      alert('Cotação criada com sucesso!');
+      onSuccess();
+      onClose();
     } catch (error) {
-      console.error(error)
-      setErro('Erro ao importar: ' + (error.response?.data || error.message))
+      alert('Erro ao importar do DNA.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <div className="modal-overlay">
       <div className="modal-content">
         <div className="modal-header">
-          <h3>Nova Cotação</h3>
-          <button onClick={onClose} className="btn-icon">
-            <X size={20} />
-          </button>
+          <h3>Importar Faltas do DNA</h3>
+          <button onClick={onClose} className="btn-icon"><X size={20} /></button>
         </div>
-
         <div className="modal-body">
-          <p>Selecione a planilha do ERP (.xlsx) para iniciar.</p>
-
-          <div className="upload-area">
-            <UploadCloud size={40} color="#2563eb" />
-            <input
-              type="file"
-              accept=".xlsx, .xls, .csv"
-              onChange={(e) => setArquivo(e.target.files[0])}
-              style={{ marginTop: '10px' }}
-            />
-            {arquivo && (
-              <span className="file-name">Arquivo: {arquivo.name}</span>
-            )}
+          <p>Selecione os grupos que deseja incluir nesta cotação:</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginTop: '15px' }}>
+            {GRUPOS_DISPONIVEIS.map(grupo => (
+              <label key={grupo} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <input 
+                  type="checkbox" 
+                  checked={gruposSelecionados.includes(grupo)}
+                  onChange={() => toggleGrupo(grupo)}
+                />
+                {grupo}
+              </label>
+            ))}
           </div>
-
-          {erro && <div className="error-msg">{erro}</div>}
         </div>
-
         <div className="modal-footer">
-          <button onClick={onClose} className="btn-secondary">
-            Cancelar
-          </button>
-          <button
-            onClick={handleEnviar}
-            disabled={loading}
-            className="btn-primary"
-          >
-            {loading ? 'Processando...' : 'Importar Cotação'}
+          <button onClick={handleImportarDNA} disabled={loading} className="btn-primary">
+            {loading ? 'Sincronizando...' : 'Gerar Cotação'}
           </button>
         </div>
       </div>
     </div>
-  )
+  );
 }

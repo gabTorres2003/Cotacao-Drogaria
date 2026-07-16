@@ -3,7 +3,8 @@ package com.drogaria.cotacao.controller;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
-import com.drogaria.cotacao.service.IntegracaoDNAService;
+import com.drogaria.cotacao.repository.ItemCotacaoRepository;
+import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -20,9 +21,12 @@ public class CotacaoController {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
+    
+    @Autowired
+    private ItemCotacaoRepository itemCotacaoRepository;
 
     @Autowired
-    private IntegracaoDNAService integracaoDNAService;
+    private CotacaoService cotacaoService;
 
     @Autowired
     private ExcelReaderService excelService;
@@ -44,71 +48,60 @@ public class CotacaoController {
         if (file.isEmpty()) {
             return ResponseEntity.badRequest().body("Arquivo não enviado.");
         }
-
         try {
             List<ItemCotacao> itens = excelService.read(file);
-
-            if (itens == null || itens.isEmpty()) {
-                return ResponseEntity.badRequest().body("Arquivo sem itens válidos.");
-            }
+            if (itens == null || itens.isEmpty()) return ResponseEntity.badRequest().body("Arquivo sem itens válidos.");
 
             Cotacao novaCotacao = new Cotacao();
             novaCotacao.setDescricao("Importação em " + LocalDateTime.now());
             novaCotacao.setStatus("ABERTA");
             novaCotacao.setDataCriacao(LocalDateTime.now());
-
             itens.forEach(item -> item.setCotacao(novaCotacao));
             novaCotacao.setItens(itens);
-
             cotacaoRepository.save(novaCotacao);
 
-            return ResponseEntity.ok(
-                    "Cotação criada com sucesso! Itens importados: " + itens.size());
-
+            return ResponseEntity.ok("Cotação criada com sucesso! Itens importados: " + itens.size());
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body("Erro ao processar arquivo.");
+            return ResponseEntity.internalServerError().body("Erro ao processar arquivo.");
         }
     }
 
     @PostMapping("/importar-dna")
-    public ResponseEntity<String> importarDiretoDoDna() {
+    public ResponseEntity<String> importarDiretoDoDna(@RequestBody List<String> grupos) {
         try {
-            List<ItemCotacao> itens = integracaoDNAService.buscarFaltasDiretoDoBanco();
-
-            if (itens == null || itens.isEmpty()) {
-                return ResponseEntity.badRequest().body("Nenhuma falta encontrada no sistema PDV.");
-            }
-
-            Cotacao novaCotacao = new Cotacao();
-            novaCotacao.setDescricao("Importação Direta via Banco de Dados em " + LocalDateTime.now());
-            novaCotacao.setStatus("ABERTA");
-            novaCotacao.setDataCriacao(LocalDateTime.now());
-            itens.forEach(item -> item.setCotacao(novaCotacao));
-            novaCotacao.setItens(itens);
-            cotacaoRepository.save(novaCotacao);
-
-            return ResponseEntity.ok(
-                    "Cotação gerada com sucesso! " + itens.size() + " itens importados diretamente do banco.");
-
+            Cotacao cotacao = cotacaoService.criarCotacaoDNA(grupos);
+            return ResponseEntity.ok("Cotação gerada com sucesso! " + cotacao.getItens().size() + " itens importados.");
         } catch (Exception e) {
-            e.printStackTrace();
-            return ResponseEntity.internalServerError()
-                    .body("Erro ao conectar e importar dados do sistema: " + e.getMessage());
+            return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
 
     @PutMapping("/{id}/status")
     public ResponseEntity<String> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String novoStatus = payload.get("status");
-
         return cotacaoRepository.findById(id)
                 .map(cotacao -> {
                     cotacao.setStatus(novoStatus);
                     cotacaoRepository.save(cotacao);
                     return ResponseEntity.ok("Status atualizado para " + novoStatus);
-                })
-                .orElse(ResponseEntity.notFound().build());
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/item/{idItem}")
+    public ResponseEntity<ItemCotacao> atualizarItem(@PathVariable Long idItem, @RequestBody ItemCotacao dados) {
+        return itemCotacaoRepository.findById(idItem).map(item -> {
+            item.setNomeProduto(dados.getNomeProduto());
+            item.setQuantidade(dados.getQuantidade());
+            return ResponseEntity.ok(itemCotacaoRepository.save(item));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @DeleteMapping("/item/{idItem}")
+    public ResponseEntity<Void> removerItem(@PathVariable Long idItem) {
+        if(itemCotacaoRepository.existsById(idItem)) {
+            itemCotacaoRepository.deleteById(idItem);
+            return ResponseEntity.noContent().build();
+        }
+        return ResponseEntity.notFound().build();
     }
 }
