@@ -5,7 +5,6 @@ import com.drogaria.cotacao.dto.response.UsuarioResponseDTO;
 import com.drogaria.cotacao.model.Usuario;
 import com.drogaria.cotacao.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -16,7 +15,6 @@ import java.util.stream.Collectors;
 public class UsuarioService {
 
     private final UsuarioRepository repository;
-    private final PasswordEncoder passwordEncoder;
 
     public List<UsuarioResponseDTO> listarTodos() {
         return repository.findAll().stream().map(this::toResponseDTO).collect(Collectors.toList());
@@ -26,11 +24,32 @@ public class UsuarioService {
         Usuario usuario = new Usuario();
         usuario.setUsername(dto.getUsername());
         usuario.setNome(dto.getNome());
-        usuario.setPin(passwordEncoder.encode(dto.getPin())); 
+        usuario.setPin(dto.getPin()); 
         usuario.setAtivo(true);
         
-        Usuario salvo = repository.save(usuario);
-        return toResponseDTO(salvo);
+        return toResponseDTO(repository.save(usuario));
+    }
+
+    public UsuarioResponseDTO atualizarUsuario(Long id, UsuarioRequestDTO dto) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+
+        usuario.setUsername(dto.getUsername());
+        usuario.setNome(dto.getNome());
+        
+        if (dto.getPin() != null && !dto.getPin().isBlank()) {
+            usuario.setPin(dto.getPin());
+        }
+
+        return toResponseDTO(repository.save(usuario));
+    }
+
+    public void alterarStatus(Long id) {
+        Usuario usuario = repository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        
+        usuario.setAtivo(!usuario.isAtivo());
+        repository.save(usuario);
     }
 
     private UsuarioResponseDTO toResponseDTO(Usuario usuario) {

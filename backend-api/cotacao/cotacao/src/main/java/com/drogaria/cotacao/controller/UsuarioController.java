@@ -27,4 +27,15 @@ public class UsuarioController {
     public ResponseEntity<UsuarioResponseDTO> criar(@RequestBody @Valid UsuarioRequestDTO dto) {
         return ResponseEntity.ok(service.criarUsuario(dto));
     }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<UsuarioResponseDTO> atualizar(@PathVariable Long id, @RequestBody @Valid UsuarioRequestDTO dto) {
+        return ResponseEntity.ok(service.atualizarUsuario(id, dto));
+    }
+
+    @PatchMapping("/{id}/status")
+    public ResponseEntity<Void> alterarStatus(@PathVariable Long id) {
+        service.alterarStatus(id);
+        return ResponseEntity.noContent().build();
+    }
 }

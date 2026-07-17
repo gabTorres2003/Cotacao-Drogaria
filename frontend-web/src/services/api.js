@@ -1,15 +1,14 @@
 import axios from 'axios';
-import { supabase } from './supabase';
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080'
 });
 
-api.interceptors.request.use(async (config) => {
-  const { data: { session } } = await supabase.auth.getSession();
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('token');
   
-  if (session?.access_token) {
-    config.headers.Authorization = `Bearer ${session.access_token}`;
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
 }, (error) => {
@@ -17,14 +16,11 @@ api.interceptors.request.use(async (config) => {
 });
 
 api.interceptors.response.use(
-  (response) => {
-    return response;
-  },
+  (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn("Sessão expirada. Redirecionando para o login...");
-      localStorage.clear();
-      sessionStorage.clear();
+      console.warn("Sessão expirada ou acesso negado. Redirecionando...");
+      localStorage.removeItem('token');
       window.location.href = '/'; 
     }
     return Promise.reject(error);

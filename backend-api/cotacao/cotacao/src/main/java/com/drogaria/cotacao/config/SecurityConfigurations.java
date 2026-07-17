@@ -9,7 +9,7 @@ import org.springframework.security.config.annotation.authentication.configurati
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.NoOpPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.web.cors.CorsConfiguration;
@@ -27,26 +27,19 @@ public class SecurityConfigurations {
         return httpSecurity
                 .cors(Customizer.withDefaults()) 
                 .csrf(csrf -> csrf.disable())
-                .sessionManagement(session ->
-                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)
-                )
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
                         
-                        // ROTAS PÚBLICAS
-                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // <--- ROTA NOVA LIBERADA AQUI
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/cotacao").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/api/cotacao/**").permitAll()
-                        
-                        // ROTAS DO FORNECEDOR
+                        // ROTAS PÚBLICAS REAIS
+                        .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comparativo/listar-itens/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/salvar-respostas").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/cotacao", "/api/cotacao/**").permitAll()
                         
-                        // DEMAIS ROTAS
                         .anyRequest().authenticated()
                 )
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
@@ -55,7 +48,7 @@ public class SecurityConfigurations {
 
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return NoOpPasswordEncoder.getInstance();
     }
 
     @Bean
@@ -66,13 +59,7 @@ public class SecurityConfigurations {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        
-        configuration.setAllowedOrigins(List.of(
-                "https://cotacaotorresfarma.netlify.app",
-                "http://localhost:5173",                
-                "https://tray-element-earthquake-newman.trycloudflare.com" 
-        ));
-        
+        configuration.setAllowedOrigins(List.of("https://cotacaotorresfarma.netlify.app", "http://localhost:5173"));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
@@ -80,7 +67,6 @@ public class SecurityConfigurations {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
-        
         return source;
     }
 }
