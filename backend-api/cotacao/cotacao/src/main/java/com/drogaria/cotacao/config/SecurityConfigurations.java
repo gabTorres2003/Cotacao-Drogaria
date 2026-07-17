@@ -44,6 +44,7 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comparativo/listar-itens/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/salvar-respostas").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/usuarios").permitAll()
                         
                         // DEMAIS ROTAS
                         .anyRequest().authenticated()
