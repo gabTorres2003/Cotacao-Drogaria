@@ -1,7 +1,7 @@
-// AuthController.java
 package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.request.LoginRequestDTO;
+import com.drogaria.cotacao.service.TokenService;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -14,15 +14,18 @@ import org.springframework.web.bind.annotation.*;
 public class AuthController {
 
     private final AuthenticationManager authenticationManager;
-
-    public AuthController(AuthenticationManager authenticationManager) {
+    private final TokenService tokenService;
+    public AuthController(AuthenticationManager authenticationManager, TokenService tokenService) {
         this.authenticationManager = authenticationManager;
+        this.tokenService = tokenService;
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody @Valid LoginRequestDTO dto) {
+    public ResponseEntity<String> login(@RequestBody @Valid LoginRequestDTO dto) {
         var authToken = new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPin());
         var authentication = authenticationManager.authenticate(authToken);
-        return ResponseEntity.ok("token_jwt_gerado_aqui"); 
+        String token = tokenService.gerarToken(authentication.getName());
+        
+        return ResponseEntity.ok(token); 
     }
 }
