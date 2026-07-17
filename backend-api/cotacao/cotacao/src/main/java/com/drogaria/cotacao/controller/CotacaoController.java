@@ -72,7 +72,8 @@ public class CotacaoController {
             Cotacao cotacao = cotacaoService.criarCotacaoDNA(grupos);
             return ResponseEntity.ok("Cotação gerada com sucesso! " + cotacao.getItens().size() + " itens importados.");
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            e.printStackTrace(); 
+            return ResponseEntity.badRequest().body("Erro interno na importação: " + e.getMessage());
         }
     }
 
