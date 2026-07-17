@@ -49,7 +49,13 @@ public class IntegracaoDNAService {
         }
 
         return todosItens.stream()
-                .filter(item -> item.getGrupo() != null && gruposSelecionados.contains(item.getGrupo().trim()))
+                .filter(item -> {
+                    if (item.getGrupo() == null) return false;
+                    
+                    String grupoBancoDna = item.getGrupo().trim();
+                    return gruposSelecionados.stream()
+                            .anyMatch(grupoSel -> grupoSel.equalsIgnoreCase(grupoBancoDna));
+                })
                 .collect(Collectors.toList());
     }
 }

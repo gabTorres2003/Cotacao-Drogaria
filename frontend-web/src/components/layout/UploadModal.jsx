@@ -27,7 +27,7 @@ export default function UploadModal({ onClose, onSuccess }) {
       onSuccess();
       onClose();
     } catch (error) {
-      alert('Erro ao importar do DNA.');
+      alert('Erro: ' + (error.response?.data || 'Falha de conexão com o banco DNA.'));
     } finally {
       setLoading(false);
     }
