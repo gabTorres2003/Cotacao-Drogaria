@@ -6,5 +6,5 @@ import java.util.Optional;
 
 @Repository
 public interface FornecedorRepository extends JpaRepository<Fornecedor, Long> {
-    Optional<Fornecedor> findByEmailAndSenha(String email, String senha);
+    Optional<Fornecedor> findByLoginAndSenha(String login, String senha);
 }

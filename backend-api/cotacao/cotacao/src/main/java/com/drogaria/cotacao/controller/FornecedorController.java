@@ -10,6 +10,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @RestController
@@ -29,7 +30,7 @@ public class FornecedorController {
 
     @PostMapping
     public ResponseEntity<Fornecedor> criar(@RequestBody Fornecedor fornecedor) {
-        System.out.println("Criação registrada - Email: " + fornecedor.getEmail() + " | Senha: " + fornecedor.getSenha()); //Log de teste
+        fornecedor.setPrimeiroAcesso(true); // Garante que será tratado como 1º acesso
         return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
     }
 
@@ -38,7 +39,9 @@ public class FornecedorController {
         return fornecedorRepository.findById(id)
                 .map(fornecedor -> {
                     fornecedor.setNome(dados.getNome());
+                    fornecedor.setLogin(dados.getLogin());
                     fornecedor.setTelefone(dados.getTelefone());
+                    fornecedor.setEmail(dados.getEmail());
                     return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
                 })
                 .orElse(ResponseEntity.notFound().build());
@@ -46,12 +49,31 @@ public class FornecedorController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Fornecedor credenciais) {
-        Optional<Fornecedor> fornecedor = fornecedorRepository.findByEmailAndSenha(credenciais.getEmail(), credenciais.getSenha());
+        // Busca agora usando Login + Senha(PIN)
+        Optional<Fornecedor> fornecedor = fornecedorRepository.findByLoginAndSenha(credenciais.getLogin(), credenciais.getSenha());
         
         if (fornecedor.isPresent()) {
             return ResponseEntity.ok(fornecedor.get());
         }
-        return ResponseEntity.status(401).body("E-mail ou senha inválidos");
+        return ResponseEntity.status(401).body("Login ou PIN inválidos");
+    }
+
+    @PutMapping("/{id}/reset-senha")
+    public ResponseEntity<Fornecedor> resetSenha(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        return fornecedorRepository.findById(id).map(f -> {
+            f.setSenha(payload.get("novaSenha"));
+            f.setPrimeiroAcesso(true); // Força a troca no próximo acesso do fornecedor
+            return ResponseEntity.ok(fornecedorRepository.save(f));
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
+    @PutMapping("/{id}/primeiro-acesso")
+    public ResponseEntity<Fornecedor> concluirPrimeiroAcesso(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        return fornecedorRepository.findById(id).map(f -> {
+            f.setSenha(payload.get("novaSenha"));
+            f.setPrimeiroAcesso(false); // Libera o acesso definitivo
+            return ResponseEntity.ok(fornecedorRepository.save(f));
+        }).orElse(ResponseEntity.notFound().build());
     }
 
     @PostMapping("/salvar-respostas")
@@ -60,9 +82,7 @@ public class FornecedorController {
             fornecedorService.salvarRespostasFornecedor(respostas);
             return ResponseEntity.ok("Respostas salvas com sucesso!");
         } catch (Exception e) {
-            e.printStackTrace();
             return ResponseEntity.internalServerError().body("Erro ao salvar: " + e.getMessage());
         }
     }
-
 }

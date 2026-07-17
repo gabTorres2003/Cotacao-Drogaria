@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
-import { UserPlus, Phone, Trash2, Search, User, Pencil } from 'lucide-react';
+import { UserPlus, Phone, Trash2, Search, User, Pencil, KeyRound } from 'lucide-react';
 
 export default function Fornecedores() {
   const [fornecedores, setFornecedores] = useState([]);
   const [modalAberto, setModalAberto] = useState(false);
-  const [form, setForm] = useState({ id: null, nome: '', telefone: '', email: '', senha: '' });
+  const [form, setForm] = useState({ id: null, nome: '', telefone: '', login: '', email: '', senha: '' });
   
   const [busca, setBusca] = useState('');
 
@@ -23,28 +23,51 @@ export default function Fornecedores() {
     }
   };
 
-  // Prepara o modal para CRIAR
   const abrirModalCriacao = () => {
-    setForm({ id: null, nome: '', telefone: '', email: '', senha: '' }); 
+    setForm({ id: null, nome: '', telefone: '', login: '', email: '', senha: '' }); 
     setModalAberto(true);
   };
 
-  // Prepara o modal para EDITAR
   const abrirModalEdicao = (fornecedor) => {
     setForm({ 
       id: fornecedor.id, 
       nome: fornecedor.nome, 
       telefone: fornecedor.telefone || '',
+      login: fornecedor.login || '',
       email: fornecedor.email || '',
-      senha: fornecedor.senha || ''
+      senha: '' // Senha não entra na edição
     });
     setModalAberto(true);
   };
 
+  const handleResetSenha = async (id, nome) => {
+    const novoPin = window.prompt(`Defina um novo PIN (4 a 6 dígitos) de primeiro acesso para o fornecedor: ${nome}`);
+    
+    if (novoPin === null) return; // Cancelou
+    
+    if (!/^\d{4,6}$/.test(novoPin)) {
+      alert("O PIN deve conter apenas números, entre 4 e 6 dígitos.");
+      return;
+    }
+
+    try {
+      await api.put(`/api/fornecedor/${id}/reset-senha`, { novaSenha: novoPin });
+      alert("Senha resetada com sucesso! O fornecedor precisará trocá-la no próximo acesso.");
+      carregarFornecedores();
+    } catch (error) {
+      alert("Erro ao resetar senha.");
+    }
+  };
+
   const handleSalvar = async (e) => {
     e.preventDefault();
-    if (!form.nome || !form.telefone || !form.email || !form.senha) {
+    if (!form.nome || !form.telefone || !form.login || (!form.id && !form.senha)) {
       alert("Preencha todos os campos obrigatórios!");
+      return;
+    }
+
+    if (!form.id && !/^\d{4,6}$/.test(form.senha)) {
+      alert("O PIN deve ter entre 4 e 6 números.");
       return;
     }
 
@@ -53,16 +76,15 @@ export default function Fornecedores() {
       const payload = { 
         nome: form.nome, 
         telefone: telefoneLimpo,
+        login: form.login,
         email: form.email,
         senha: form.senha
       };
 
       if (form.id) {
-        // --- MODO EDIÇÃO (PUT) ---
         await api.put(`/api/fornecedor/${form.id}`, payload);
         alert("Fornecedor atualizado com sucesso!");
       } else {
-        // --- MODO CRIAÇÃO (POST) ---
         await api.post('/api/fornecedor', payload);
         alert("Fornecedor cadastrado com sucesso!");
       }
@@ -74,11 +96,10 @@ export default function Fornecedores() {
     }
   };
 
-  // Filtro de busca visual
   const filtrados = fornecedores.filter(f => 
     f.nome.toLowerCase().includes(busca.toLowerCase()) ||
     (f.telefone && f.telefone.includes(busca)) ||
-    (f.email && f.email.toLowerCase().includes(busca.toLowerCase()))
+    (f.login && f.login.toLowerCase().includes(busca.toLowerCase()))
   );
 
   return (
@@ -96,28 +117,26 @@ export default function Fornecedores() {
           </button>
         </header>
 
-        {/* Barra de Busca */}
         <div className="filters-bar">
           <div className="search-input-container">
             <Search size={18} color="#9ca3af" />
             <input 
               type="text" 
-              placeholder="Buscar fornecedor por nome, email ou telefone..." 
+              placeholder="Buscar fornecedor por nome, login ou telefone..." 
               value={busca}
               onChange={e => setBusca(e.target.value)}
             />
           </div>
         </div>
 
-        {/* Lista de Fornecedores */}
         <div className="table-container">
           <table>
             <thead>
               <tr>
                 <th style={{width: '60px'}}>ID</th>
-                <th>Nome / E-mail</th>
+                <th>Nome / Login</th>
                 <th>Telefone (WhatsApp)</th>
-                <th style={{width: '100px'}}>Ações</th>
+                <th style={{width: '120px'}}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -134,7 +153,7 @@ export default function Fornecedores() {
                         </div>
                         <div>
                           <div style={{fontWeight: '600', color: '#374151'}}>{f.nome}</div>
-                          <div style={{fontSize: '12px', color: '#6b7280'}}>{f.email || 'Sem e-mail'}</div>
+                          <div style={{fontSize: '12px', color: '#6b7280'}}>Login: {f.login}</div>
                         </div>
                       </div>
                     </td>
@@ -146,7 +165,6 @@ export default function Fornecedores() {
                     </td>
                     <td>
                       <div style={{display: 'flex', gap: '8px'}}>
-                        {/* BOTÃO EDITAR */}
                         <button 
                           className="btn-icon" 
                           style={{color: '#2563eb', background: '#eff6ff'}} 
@@ -156,7 +174,15 @@ export default function Fornecedores() {
                           <Pencil size={18} />
                         </button>
 
-                        {/* BOTÃO EXCLUIR */}
+                        <button 
+                          className="btn-icon" 
+                          style={{color: '#d97706', background: '#fef3c7'}} 
+                          title="Resetar Senha"
+                          onClick={() => handleResetSenha(f.id, f.nome)}
+                        >
+                          <KeyRound size={18} />
+                        </button>
+
                         <button 
                           className="btn-icon" 
                           style={{color: '#ef4444', background: '#fef2f2', opacity: 0.5, cursor: 'not-allowed'}} 
@@ -174,7 +200,6 @@ export default function Fornecedores() {
         </div>
       </main>
 
-      {/* (Criação e Edição) */}
       {modalAberto && (
         <div style={styles.overlay}>
           <div style={styles.modal}>
@@ -184,7 +209,7 @@ export default function Fornecedores() {
             
             <form onSubmit={handleSalvar} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
               <div>
-                <label style={styles.label}>Nome da Empresa / Vendedor</label>
+                <label style={styles.label}>Nome da Empresa / Vendedor *</label>
                 <input 
                   type="text" style={styles.input} required
                   value={form.nome} onChange={e => setForm({...form, nome: e.target.value})}
@@ -193,7 +218,7 @@ export default function Fornecedores() {
               </div>
 
               <div>
-                <label style={styles.label}>WhatsApp (com DDD)</label>
+                <label style={styles.label}>WhatsApp (com DDD) *</label>
                 <input 
                   type="tel" style={styles.input} required
                   value={form.telefone} onChange={e => setForm({...form, telefone: e.target.value})}
@@ -201,24 +226,36 @@ export default function Fornecedores() {
                 />
               </div>
 
-              {/* LOGIN */}
               <div style={{borderTop: '1px solid #eee', paddingTop: '15px'}}>
-                <label style={styles.label}>E-mail de Acesso (Login)</label>
+                <label style={styles.label}>Login de Acesso *</label>
                 <input 
-                  type="email" style={styles.input} required
+                  type="text" style={styles.input} required
+                  value={form.login} onChange={e => setForm({...form, login: e.target.value})}
+                  placeholder="nomedovendedor"
+                />
+              </div>
+
+              {/* O e-mail não é mais obrigatório */}
+              <div>
+                <label style={styles.label}>E-mail (Opcional)</label>
+                <input 
+                  type="email" style={styles.input}
                   value={form.email} onChange={e => setForm({...form, email: e.target.value})}
                   placeholder="vendedor@distribuidora.com"
                 />
               </div>
 
-              <div>
-                <label style={styles.label}>Senha de Acesso</label>
-                <input 
-                  type="text" style={styles.input} required
-                  value={form.senha} onChange={e => setForm({...form, senha: e.target.value})}
-                  placeholder="Defina uma senha simples"
-                />
-              </div>
+              {/* Só exibe o cadastro de senha se for criação. Edição usa o reset. */}
+              {!form.id && (
+                <div>
+                  <label style={styles.label}>PIN de Acesso (4 a 6 dígitos) *</label>
+                  <input 
+                    type="text" style={styles.input} required
+                    value={form.senha} onChange={e => setForm({...form, senha: e.target.value})}
+                    placeholder="Ex: 1234"
+                  />
+                </div>
+              )}
 
               <div style={{display: 'flex', gap: '10px', marginTop: '10px'}}>
                 <button type="button" onClick={() => setModalAberto(false)} style={styles.btnCancel}>Cancelar</button>

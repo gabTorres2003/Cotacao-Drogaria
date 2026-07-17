@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function ResponderCotacao() {
   const { idCotacao } = useParams();
   
-  // Controle de Login via Session Storage
   const [fornecedorLogado, setFornecedorLogado] = useState(() => {
     const salvo = sessionStorage.getItem(`fornecedor_cotacao_${idCotacao}`);
     return salvo ? JSON.parse(salvo) : null;
   });
   
-  const [credenciais, setCredenciais] = useState({ email: '', senha: '' });
+  const [credenciais, setCredenciais] = useState({ login: '', senha: '' });
   const [erroLogin, setErroLogin] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
+
+  // Estados para Troca Obrigatória de PIN
+  const [novoPin, setNovoPin] = useState('');
+  const [confirmaPin, setConfirmaPin] = useState('');
 
   // Estados da Cotação
   const [itens, setItens] = useState([]);
@@ -24,14 +27,13 @@ export default function ResponderCotacao() {
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
 
-  // Carrega os itens se o fornecedor estiver logado com sucesso
   useEffect(() => {
-    if (fornecedorLogado) {
+    // Só carrega a cotação se ele estiver logado E não estiver no status de primeiro acesso
+    if (fornecedorLogado && !fornecedorLogado.primeiroAcesso) {
       carregarItens();
     }
   }, [fornecedorLogado]);
 
-  // Função para logar o fornecedor
   const handleLogin = async (e) => {
     e.preventDefault();
     setErroLogin('');
@@ -43,7 +45,38 @@ export default function ResponderCotacao() {
       setFornecedorLogado(fornecedor);
       sessionStorage.setItem(`fornecedor_cotacao_${idCotacao}`, JSON.stringify(fornecedor));
     } catch (error) {
-      setErroLogin('E-mail ou senha incorretos. Verifique com a farmácia.');
+      // Captura de erro para exibir mensagem de offline do servidor
+      if (!error.response || error.code === 'ERR_NETWORK') {
+        setErroLogin('horário de funcionamento - 07:30 às 22:00 (Seg à Sáb) e 08:00 às 14:00 (Domingo)');
+      } else {
+        setErroLogin('Login ou PIN incorretos. Verifique com a farmácia.');
+      }
+    }
+  };
+
+  const handlePrimeiroAcesso = async (e) => {
+    e.preventDefault();
+    setErroLogin('');
+
+    if (novoPin !== confirmaPin) {
+      setErroLogin('Os PINs não coincidem.');
+      return;
+    }
+    if (!/^\d{4,6}$/.test(novoPin)) {
+      setErroLogin('O novo PIN deve ter entre 4 e 6 números.');
+      return;
+    }
+
+    try {
+      const response = await api.put(`/api/fornecedor/${fornecedorLogado.id}/primeiro-acesso`, {
+        novaSenha: novoPin
+      });
+      
+      const fornecedorAtualizado = response.data;
+      setFornecedorLogado(fornecedorAtualizado);
+      sessionStorage.setItem(`fornecedor_cotacao_${idCotacao}`, JSON.stringify(fornecedorAtualizado));
+    } catch (error) {
+      setErroLogin('Erro ao atualizar senha. Tente novamente.');
     }
   };
 
@@ -71,10 +104,7 @@ export default function ResponderCotacao() {
     if (isNaN(valor) || valor < 0) valor = 0;
     if (valor > qtdMaxima) valor = qtdMaxima;
 
-    setQuantidades(prev => ({
-      ...prev,
-      [idItem]: valor
-    }));
+    setQuantidades(prev => ({ ...prev, [idItem]: valor }));
   };
 
   const toggleEmFalta = (idItem) => {
@@ -130,7 +160,6 @@ export default function ResponderCotacao() {
       await api.post('/api/fornecedor/salvar-respostas', payload);
 
       setEnviado(true);
-      // Limpar a sessão para não usar o link duas vezes 
       sessionStorage.removeItem(`fornecedor_cotacao_${idCotacao}`);
     } catch (error) {
       console.error('Erro ao enviar:', error);
@@ -155,7 +184,7 @@ export default function ResponderCotacao() {
     loginBox: { maxWidth: '400px', margin: '100px auto', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }
   };
 
-  // --- TELA DE LOGIN ---
+  // --- TELA DE LOGIN INICIAL ---
   if (!fornecedorLogado && !enviado) {
     return (
       <div style={styles.loginBox}>
@@ -164,11 +193,11 @@ export default function ResponderCotacao() {
         
         <form onSubmit={handleLogin} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
           <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
-            <Mail size={18} color="#9ca3af" />
+            <User size={18} color="#9ca3af" />
             <input 
-              type="email" placeholder="Seu E-mail" required
+              type="text" placeholder="Seu Login" required
               style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
-              value={credenciais.email} onChange={e => setCredenciais({...credenciais, email: e.target.value})}
+              value={credenciais.login} onChange={e => setCredenciais({...credenciais, login: e.target.value})}
             />
           </div>
           
@@ -176,7 +205,7 @@ export default function ResponderCotacao() {
             <Lock size={18} color="#9ca3af" />
             <input 
               type={mostrarSenha ? "text" : "password"}
-              placeholder="Sua Senha" required
+              placeholder="PIN (4 a 6 dígitos)" required
               style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
               value={credenciais.senha} onChange={e => setCredenciais({...credenciais, senha: e.target.value})}
             />
@@ -184,7 +213,6 @@ export default function ResponderCotacao() {
               type="button" 
               onClick={() => setMostrarSenha(!mostrarSenha)} 
               style={{background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px'}}
-              title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
             >
               {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
             </button>
@@ -193,6 +221,44 @@ export default function ResponderCotacao() {
           {erroLogin && <span style={{color: '#dc2626', fontSize: '13px'}}>{erroLogin}</span>}
 
           <button type="submit" style={{...styles.button, marginTop: '10px'}}>Acessar Cotação</button>
+        </form>
+      </div>
+    );
+  }
+
+  // --- TELA DE PRIMEIRO ACESSO (TROCA OBRIGATÓRIA DE SENHA) ---
+  if (fornecedorLogado && fornecedorLogado.primeiroAcesso) {
+    return (
+      <div style={styles.loginBox}>
+        <h2 style={{color: '#1f2937', marginBottom: '10px'}}>Segurança</h2>
+        <p style={{color: '#6b7280', marginBottom: '25px', fontSize: '14px'}}>
+          Olá, {fornecedorLogado.nome}.<br/>Este é o seu primeiro acesso. Por favor, crie um novo PIN numérico de segurança para continuar.
+        </p>
+        
+        <form onSubmit={handlePrimeiroAcesso} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
+          <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
+            <Lock size={18} color="#9ca3af" />
+            <input 
+              type="password" placeholder="Novo PIN (4 a 6 dígitos)" required
+              style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
+              value={novoPin} onChange={e => setNovoPin(e.target.value)}
+            />
+          </div>
+          
+          <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
+            <Lock size={18} color="#9ca3af" />
+            <input 
+              type="password" placeholder="Confirme o novo PIN" required
+              style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
+              value={confirmaPin} onChange={e => setConfirmaPin(e.target.value)}
+            />
+          </div>
+
+          {erroLogin && <span style={{color: '#dc2626', fontSize: '13px'}}>{erroLogin}</span>}
+
+          <button type="submit" style={{...styles.button, marginTop: '10px', backgroundColor: '#059669'}}>
+            Salvar e Continuar
+          </button>
         </form>
       </div>
     );
@@ -239,13 +305,10 @@ export default function ResponderCotacao() {
 
                   <div style={styles.actionsArea}>
                     
-                    {/* Qtd Disponível */}
                     <div style={{...styles.inputGroup, opacity: isFalta ? 0.4 : 1}}>
                       <label style={styles.labelMini}>Qtd. Disponível</label>
                       <input 
-                        type="number"
-                        min="0"
-                        max={item.quantidade}
+                        type="number" min="0" max={item.quantidade}
                         style={{ ...styles.input, width: '80px', textAlign: 'center', backgroundColor: isFalta ? '#f3f4f6' : 'white' }}
                         value={qtdNaTela}
                         onChange={(e) => handleQtdChange(item.idItem, e.target.value, item.quantidade)}
@@ -253,13 +316,10 @@ export default function ResponderCotacao() {
                       />
                     </div>
 
-                    {/* Preço Unitário */}
                     <div style={{...styles.inputGroup, opacity: isFalta ? 0.4 : 1}}>
                       <label style={styles.labelMini}>Preço Unit. (R$)</label>
                       <input 
-                        type="number" 
-                        step="0.01"
-                        placeholder="0,00"
+                        type="number" step="0.01" placeholder="0,00"
                         style={{ ...styles.input, width: '90px', textAlign: 'right', backgroundColor: isFalta ? '#f3f4f6' : 'white' }}
                         value={precos[item.idItem] || ''}
                         onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
@@ -267,7 +327,6 @@ export default function ResponderCotacao() {
                       />
                     </div>
 
-                    {/* Botão Em Falta */}
                     <div style={styles.inputGroup}>
                        <label style={{...styles.labelMini, color: 'transparent'}}>Ação</label>
                        <button 
