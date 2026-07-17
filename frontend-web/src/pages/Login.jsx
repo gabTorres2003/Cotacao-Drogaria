@@ -1,117 +1,201 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { Lock, User, Eye, EyeOff } from 'lucide-react'
 
 export default function Login() {
-  const [username, setUsername] = useState('');
-  const [pin, setPin] = useState('');
-  const [erro, setErro] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-  
-  const navigate = useNavigate();
+  const [username, setUsername] = useState('')
+  const [pin, setPin] = useState('')
+  const [erro, setErro] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [mostrarSenha, setMostrarSenha] = useState(false)
+
+  const navigate = useNavigate()
 
   const handleLogin = async (e) => {
-    e.preventDefault();
-    setErro('');
-    setLoading(true);
+    e.preventDefault()
+    setErro('')
+    setLoading(true)
     try {
-      const response = await fetch('http://localhost:8080/auth/login', {
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080'
+      const response = await fetch(`${apiUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, pin })
-      });
+        body: JSON.stringify({ username, pin }),
+      })
 
       if (!response.ok) {
-        throw new Error('Credenciais inválidas');
+        throw new Error('Credenciais inválidas')
       }
 
-      const token = await response.text(); 
-      
+      const token = await response.text()
+
       if (token) {
-        localStorage.setItem('token', token);
-        navigate('/cotacoes');
+        localStorage.setItem('token', token)
+        navigate('/cotacoes')
       }
     } catch (error) {
-      setErro('Usuário ou PIN inválidos.');
+      setErro('Usuário ou PIN inválidos.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f3f4f6' }}>
-      <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-        
-        <h2 style={{ textAlign: 'center', marginBottom: '25px', color: '#1f2937' }}>
+    <div
+      style={{
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        height: '100vh',
+        backgroundColor: '#f3f4f6',
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: 'white',
+          padding: '40px',
+          borderRadius: '12px',
+          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: '400px',
+        }}
+      >
+        <h2
+          style={{
+            textAlign: 'center',
+            marginBottom: '25px',
+            color: '#1f2937',
+          }}
+        >
           Drogaria Torres Farma
         </h2>
-        
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-          
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
+
+        <form
+          onSubmit={handleLogin}
+          style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#f9fafb',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '0 10px',
+            }}
+          >
             <User size={18} color="#9ca3af" />
-            <input 
+            <input
               id="username"
               name="username"
               autoComplete="username"
-              type="text" 
-              placeholder="Nome de usuário (ex: gabriel)" 
+              type="text"
+              placeholder="Nome de usuário (ex: gabriel)"
               required
-              value={username} 
-              onChange={e => setUsername(e.target.value.toLowerCase())}
-              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
+              value={username}
+              onChange={(e) => setUsername(e.target.value.toLowerCase())}
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                padding: '12px',
+                outline: 'none',
+                fontSize: '15px',
+              }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              background: '#f9fafb',
+              border: '1px solid #d1d5db',
+              borderRadius: '8px',
+              padding: '0 10px',
+            }}
+          >
             <Lock size={18} color="#9ca3af" />
-            <input 
+            <input
               id="pin"
               name="pin"
               autoComplete="current-password"
-              type={mostrarSenha ? "text" : "password"} 
+              type={mostrarSenha ? 'text' : 'password'}
               inputMode="numeric"
               pattern="[0-9]*"
               maxLength={6}
-              placeholder="PIN de acesso (4 a 6 dígitos)" 
+              placeholder="PIN de acesso (4 a 6 dígitos)"
               required
-              value={pin} 
-              onChange={e => setPin(e.target.value.replace(/\D/g, ''))} // Permite apenas números
-              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px', letterSpacing: mostrarSenha ? 'normal' : '5px' }}
+              value={pin}
+              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))} // Permite apenas números
+              style={{
+                flex: 1,
+                border: 'none',
+                background: 'transparent',
+                padding: '12px',
+                outline: 'none',
+                fontSize: '15px',
+                letterSpacing: mostrarSenha ? 'normal' : '5px',
+              }}
             />
-            
-            <button 
-              type="button" 
-              onClick={() => setMostrarSenha(!mostrarSenha)} 
-              style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px' }}
-              title={mostrarSenha ? "Ocultar PIN" : "Ver PIN"}
+
+            <button
+              type="button"
+              onClick={() => setMostrarSenha(!mostrarSenha)}
+              style={{
+                background: 'none',
+                border: 'none',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                padding: '5px',
+              }}
+              title={mostrarSenha ? 'Ocultar PIN' : 'Ver PIN'}
             >
-              {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
+              {mostrarSenha ? (
+                <EyeOff size={18} color="#9ca3af" />
+              ) : (
+                <Eye size={18} color="#9ca3af" />
+              )}
             </button>
           </div>
 
           {erro && (
-            <span style={{ color: '#dc2626', fontSize: '14px', textAlign: 'center', backgroundColor: '#fee2e2', padding: '8px', borderRadius: '6px' }}>
+            <span
+              style={{
+                color: '#dc2626',
+                fontSize: '14px',
+                textAlign: 'center',
+                backgroundColor: '#fee2e2',
+                padding: '8px',
+                borderRadius: '6px',
+              }}
+            >
               {erro}
             </span>
           )}
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={loading || pin.length < 4}
-            style={{ 
-              width: '100%', padding: '14px', backgroundColor: '#2563eb', color: 'white', 
-              border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px',
-              cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer', marginTop: '10px',
-              opacity: loading || pin.length < 4 ? 0.7 : 1
+            style={{
+              width: '100%',
+              padding: '14px',
+              backgroundColor: '#2563eb',
+              color: 'white',
+              border: 'none',
+              borderRadius: '8px',
+              fontWeight: 'bold',
+              fontSize: '16px',
+              cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer',
+              marginTop: '10px',
+              opacity: loading || pin.length < 4 ? 0.7 : 1,
             }}
           >
             {loading ? 'Acessando...' : 'Entrar no Sistema'}
           </button>
         </form>
-        
       </div>
     </div>
-  );
+  )
 }
