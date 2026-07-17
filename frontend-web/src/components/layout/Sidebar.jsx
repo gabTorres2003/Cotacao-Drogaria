@@ -4,6 +4,7 @@ import {
   FileSpreadsheet,
   Settings,
   Pill,
+  UserCog
 } from 'lucide-react'
 import { Link, useLocation } from 'react-router-dom'
 
@@ -21,8 +22,8 @@ export default function Sidebar() {
 
       <nav>
         <Link
-          to="/cotacao"
-          className={isActive('/cotacao')}
+          to="/cotacoes"
+          className={isActive('/cotacoes')}
           style={{ textDecoration: 'none' }}
         >
           <LayoutDashboard size={20} /> Cotação
@@ -34,6 +35,14 @@ export default function Sidebar() {
           style={{ textDecoration: 'none' }}
         >
           <Users size={20} /> Fornecedores
+        </Link>
+
+        <Link
+          to="/usuarios"
+          className={isActive('/usuarios')}
+          style={{ textDecoration: 'none' }}
+        >
+          <UserCog size={20} /> Usuários
         </Link>
 
         <Link

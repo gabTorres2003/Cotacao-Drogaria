@@ -6,6 +6,7 @@ import ResponderCotacao from './pages/ResponderCotacao'
 import CotacaoDetalhes from './pages/CotacaoDetalhes'
 import Fornecedores from './pages/Fornecedores'
 import Relatorios from './pages/Relatorios'
+import Usuarios from './pages/Usuarios'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
@@ -20,6 +21,14 @@ function App() {
       <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route
+          path="/usuarios"
+          element={
+            <RotaPrivada>
+              <Usuarios />
+            </RotaPrivada>
+          }
+        />
 
         <Route
           path="/cotacoes"

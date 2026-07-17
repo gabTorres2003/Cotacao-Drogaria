@@ -1,11 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Lock, Mail, Eye, EyeOff } from 'lucide-react';
-import { supabase } from '../services/supabase';
+import { Lock, User, Eye, EyeOff } from 'lucide-react';
 
 export default function Login() {
-  const [email, setEmail] = useState('');
-  const [senha, setSenha] = useState('');
+  const [username, setUsername] = useState('');
+  const [pin, setPin] = useState('');
   const [erro, setErro] = useState('');
   const [loading, setLoading] = useState(false);
   const [mostrarSenha, setMostrarSenha] = useState(false);
@@ -13,27 +12,30 @@ export default function Login() {
   const navigate = useNavigate();
 
   const handleLogin = async (e) => {
-    e.preventDefault()
-    setErro('')
-    setLoading(true)
+    e.preventDefault();
+    setErro('');
+    setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password: senha,
-      })
-      
-      if (error) throw error
-      const token = data?.session?.access_token
+      const response = await fetch('http://localhost:8080/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username, pin })
+      });
 
-      if (token) {
-        localStorage.setItem('token', token)
+      if (!response.ok) {
+        throw new Error('Credenciais inválidas');
       }
 
-      navigate('/cotacoes')
+      const token = await response.text(); 
+      
+      if (token) {
+        localStorage.setItem('token', token);
+        navigate('/cotacoes');
+      }
     } catch (error) {
-      setErro('E-mail ou senha inválidos.')
+      setErro('Usuário ou PIN inválidos.');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   };
 
@@ -47,66 +49,65 @@ export default function Login() {
         
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           
-          {/* CAMPO DE E-MAIL CORRIGIDO */}
           <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
-            <Mail size={18} color="#9ca3af" />
+            <User size={18} color="#9ca3af" />
             <input 
-              id="email"
-              name="email"
-              autoComplete="email"
-              type="email" 
-              placeholder="Seu e-mail" 
+              id="username"
+              name="username"
+              autoComplete="username"
+              type="text" 
+              placeholder="Nome de usuário (ex: gabriel)" 
               required
-              value={email} 
-              onChange={e => setEmail(e.target.value)}
+              value={username} 
+              onChange={e => setUsername(e.target.value.toLowerCase())}
               style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
           </div>
 
-          {/* CAMPO DE SENHA CORRIGIDO */}
           <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
             <Lock size={18} color="#9ca3af" />
             <input 
-              id="senha"
-              name="senha"
+              id="pin"
+              name="pin"
               autoComplete="current-password"
               type={mostrarSenha ? "text" : "password"} 
-              placeholder="Sua senha" 
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={6}
+              placeholder="PIN de acesso (4 a 6 dígitos)" 
               required
-              value={senha} 
-              onChange={e => setSenha(e.target.value)}
-              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
+              value={pin} 
+              onChange={e => setPin(e.target.value.replace(/\D/g, ''))} // Permite apenas números
+              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px', letterSpacing: mostrarSenha ? 'normal' : '5px' }}
             />
             
             <button 
               type="button" 
               onClick={() => setMostrarSenha(!mostrarSenha)} 
               style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px' }}
-              title={mostrarSenha ? "Ocultar senha" : "Ver senha"}
+              title={mostrarSenha ? "Ocultar PIN" : "Ver PIN"}
             >
               {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
             </button>
           </div>
 
-          {/* MENSAGEM DE ERRO */}
           {erro && (
             <span style={{ color: '#dc2626', fontSize: '14px', textAlign: 'center', backgroundColor: '#fee2e2', padding: '8px', borderRadius: '6px' }}>
               {erro}
             </span>
           )}
 
-          {/* BOTÃO ENTRAR */}
           <button 
             type="submit" 
-            disabled={loading}
+            disabled={loading || pin.length < 4}
             style={{ 
               width: '100%', padding: '14px', backgroundColor: '#2563eb', color: 'white', 
               border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px',
-              cursor: loading ? 'not-allowed' : 'pointer', marginTop: '10px',
-              opacity: loading ? 0.7 : 1
+              cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer', marginTop: '10px',
+              opacity: loading || pin.length < 4 ? 0.7 : 1
             }}
           >
-            {loading ? 'Autenticando...' : 'Entrar no Sistema'}
+            {loading ? 'Acessando...' : 'Entrar no Sistema'}
           </button>
         </form>
         
