@@ -15,13 +15,18 @@ import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.ResultSet;
+import java.sql.Statement;
+
 @RestController
 @RequestMapping("/api/cotacao")
 public class CotacaoController {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
-    
+
     @Autowired
     private ItemCotacaoRepository itemCotacaoRepository;
 
@@ -50,7 +55,8 @@ public class CotacaoController {
         }
         try {
             List<ItemCotacao> itens = excelService.read(file);
-            if (itens == null || itens.isEmpty()) return ResponseEntity.badRequest().body("Arquivo sem itens válidos.");
+            if (itens == null || itens.isEmpty())
+                return ResponseEntity.badRequest().body("Arquivo sem itens válidos.");
 
             Cotacao novaCotacao = new Cotacao();
             novaCotacao.setDescricao("Importação em " + LocalDateTime.now());
@@ -72,7 +78,7 @@ public class CotacaoController {
             Cotacao cotacao = cotacaoService.criarCotacaoDNA(grupos);
             return ResponseEntity.ok("Cotação gerada com sucesso! " + cotacao.getItens().size() + " itens importados.");
         } catch (Exception e) {
-            e.printStackTrace(); 
+            e.printStackTrace();
             return ResponseEntity.badRequest().body("Erro interno na importação: " + e.getMessage());
         }
     }
@@ -99,10 +105,36 @@ public class CotacaoController {
 
     @DeleteMapping("/item/{idItem}")
     public ResponseEntity<Void> removerItem(@PathVariable Long idItem) {
-        if(itemCotacaoRepository.existsById(idItem)) {
+        if (itemCotacaoRepository.existsById(idItem)) {
             itemCotacaoRepository.deleteById(idItem);
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @GetMapping("/teste-firebird")
+    public ResponseEntity<String> testarConexaoFirebird() {
+
+        String url = "jdbc:firebirdsql://192.168.18.205:3050/C:/DNA/Pharmacy/Dados/COMERCIO.FDB?charSet=WIN1252";
+        String user = "SYSDBA";
+        String password = "masterkey";
+
+        try (Connection conn = DriverManager.getConnection(url, user, password)) {
+
+            try (Statement stmt = conn.createStatement();
+                    ResultSet rs = stmt.executeQuery("SELECT CURRENT_TIMESTAMP FROM RDB$DATABASE")) {
+
+                if (rs.next()) {
+                    String dataServidor = rs.getString(1);
+                    return ResponseEntity
+                            .ok("Sucesso! Conectado ao banco COMERCIO.FDB. Data no servidor: " + dataServidor);
+                }
+            }
+            return ResponseEntity.ok("Conectou, mas não conseguiu ler a data.");
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().body("Falha na conexão: " + e.getMessage());
+        }
     }
 }

@@ -1,10 +1,13 @@
 package com.drogaria.cotacao.config;
 
 import com.zaxxer.hikari.HikariDataSource;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+
 import javax.sql.DataSource;
 
 @Configuration
@@ -22,6 +25,7 @@ public class DnaDatabaseConfig {
     @Value("${dna.datasource.driver-class-name}")
     private String dbDriver;
 
+    @Bean(name = "dnaDataSource")
     public DataSource dnaDataSource() {
         HikariDataSource dataSource = new HikariDataSource();
         dataSource.setJdbcUrl(dbUrl);
@@ -34,7 +38,12 @@ public class DnaDatabaseConfig {
     }
 
     @Bean(name = "dnaJdbcTemplate")
-    public JdbcTemplate dnaJdbcTemplate(DataSource dnaDataSource) {
+    public JdbcTemplate dnaJdbcTemplate(@Qualifier("dnaDataSource") DataSource dnaDataSource) {
         return new JdbcTemplate(dnaDataSource);
+    }
+
+    @Bean(name = "dnaNamedJdbcTemplate")
+    public NamedParameterJdbcTemplate dnaNamedJdbcTemplate(@Qualifier("dnaDataSource") DataSource dnaDataSource) {
+        return new NamedParameterJdbcTemplate(dnaDataSource);
     }
 }
