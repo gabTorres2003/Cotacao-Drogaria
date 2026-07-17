@@ -30,7 +30,7 @@ public class FornecedorController {
 
     @PostMapping
     public ResponseEntity<Fornecedor> criar(@RequestBody Fornecedor fornecedor) {
-        fornecedor.setPrimeiroAcesso(true); // Garante que será tratado como 1º acesso
+        fornecedor.setPrimeiroAcesso(true);
         return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
     }
 
@@ -49,7 +49,6 @@ public class FornecedorController {
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Fornecedor credenciais) {
-        // Busca agora usando Login + Senha(PIN)
         Optional<Fornecedor> fornecedor = fornecedorRepository.findByLoginAndSenha(credenciais.getLogin(), credenciais.getSenha());
         
         if (fornecedor.isPresent()) {
@@ -62,7 +61,7 @@ public class FornecedorController {
     public ResponseEntity<Fornecedor> resetSenha(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         return fornecedorRepository.findById(id).map(f -> {
             f.setSenha(payload.get("novaSenha"));
-            f.setPrimeiroAcesso(true); // Força a troca no próximo acesso do fornecedor
+            f.setPrimeiroAcesso(true);
             return ResponseEntity.ok(fornecedorRepository.save(f));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -71,7 +70,7 @@ public class FornecedorController {
     public ResponseEntity<Fornecedor> concluirPrimeiroAcesso(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         return fornecedorRepository.findById(id).map(f -> {
             f.setSenha(payload.get("novaSenha"));
-            f.setPrimeiroAcesso(false); // Libera o acesso definitivo
+            f.setPrimeiroAcesso(false);
             return ResponseEntity.ok(fornecedorRepository.save(f));
         }).orElse(ResponseEntity.notFound().build());
     }
@@ -84,5 +83,22 @@ public class FornecedorController {
         } catch (Exception e) {
             return ResponseEntity.internalServerError().body("Erro ao salvar: " + e.getMessage());
         }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<?> deletar(@PathVariable Long id) {
+        try {
+            fornecedorService.deletarFornecedor(id);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body("Não é possível excluir o fornecedor pois ele possui histórico de respostas.");
+        }
+    }
+
+    @GetMapping("/{idFornecedor}/cotacao/{idCotacao}/respostas")
+    public ResponseEntity<List<SalvarPrecoDTO>> buscarRespostas(
+            @PathVariable Long idFornecedor,
+            @PathVariable Long idCotacao) {
+        return ResponseEntity.ok(fornecedorService.buscarRespostas(idCotacao, idFornecedor));
     }
 }

@@ -15,11 +15,9 @@ export default function ResponderCotacao() {
   const [erroLogin, setErroLogin] = useState('');
   const [mostrarSenha, setMostrarSenha] = useState(false);
 
-  // Estados para Troca Obrigatória de PIN
   const [novoPin, setNovoPin] = useState('');
   const [confirmaPin, setConfirmaPin] = useState('');
 
-  // Estados da Cotação
   const [itens, setItens] = useState([]);
   const [precos, setPrecos] = useState({});
   const [quantidades, setQuantidades] = useState({}); 
@@ -28,7 +26,6 @@ export default function ResponderCotacao() {
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    // Só carrega a cotação se ele estiver logado E não estiver no status de primeiro acesso
     if (fornecedorLogado && !fornecedorLogado.primeiroAcesso) {
       carregarItens();
     }
@@ -45,9 +42,8 @@ export default function ResponderCotacao() {
       setFornecedorLogado(fornecedor);
       sessionStorage.setItem(`fornecedor_cotacao_${idCotacao}`, JSON.stringify(fornecedor));
     } catch (error) {
-      // Captura de erro para exibir mensagem de offline do servidor
       if (!error.response || error.code === 'ERR_NETWORK') {
-        setErroLogin('horário de funcionamento - 07:30 às 22:00 (Seg à Sáb) e 08:00 às 14:00 (Domingo)');
+        setErroLogin('Horário de funcionamento - 07:30 às 22:00 (Seg à Sáb) e 08:00 às 14:00 (Domingo)');
       } else {
         setErroLogin('Login ou PIN incorretos. Verifique com a farmácia.');
       }
@@ -84,12 +80,46 @@ export default function ResponderCotacao() {
     setLoading(true);
     try {
       const response = await api.get(`/api/comparativo/listar-itens/${idCotacao}`);
-      setItens(Array.isArray(response.data) ? response.data : []);
+      const itensCarregados = Array.isArray(response.data) ? response.data : [];
+      setItens(itensCarregados);
+
+      if (itensCarregados.length > 0 && fornecedorLogado) {
+         await carregarRespostasAnteriores(fornecedorLogado.id);
+      }
     } catch (error) {
       console.error('Erro ao carregar itens:', error);
       alert('Erro ao carregar a cotação.');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const carregarRespostasAnteriores = async (idFornecedor) => {
+    try {
+      const res = await api.get(`/api/fornecedor/${idFornecedor}/cotacao/${idCotacao}/respostas`);
+      const respostas = res.data;
+      
+      if (respostas && respostas.length > 0) {
+        const novosPrecos = {};
+        const novasFaltas = {};
+        const novasQtds = {};
+        
+        respostas.forEach(r => {
+          if (r.preco === -1) {
+            novasFaltas[r.idItem] = true;
+            novasQtds[r.idItem] = 0;
+          } else {
+            novasPrecos[r.idItem] = r.preco;
+            novasQtds[r.idItem] = r.quantidadeDisponivel;
+          }
+        });
+        
+        setPrecos(novasPrecos);
+        setEmFalta(novasFaltas);
+        setQuantidades(novasQtds);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar respostas anteriores", error);
     }
   };
 
@@ -100,7 +130,6 @@ export default function ResponderCotacao() {
 
   const handleQtdChange = (idItem, valorStr, qtdMaxima) => {
     let valor = parseInt(valorStr, 10);
-    
     if (isNaN(valor) || valor < 0) valor = 0;
     if (valor > qtdMaxima) valor = qtdMaxima;
 
@@ -132,7 +161,7 @@ export default function ResponderCotacao() {
 
     try {
       const payload = itens
-        .filter(item => precos[item.idItem] || emFalta[item.idItem])
+        .filter(item => precos[item.idItem] !== undefined || emFalta[item.idItem])
         .map(item => {
           let precoFinal = 0;
           let qtdFinal = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade;
@@ -141,7 +170,9 @@ export default function ResponderCotacao() {
             precoFinal = -1; 
             qtdFinal = 0; 
           } else {
-            precoFinal = parseFloat(precos[item.idItem].replace(',', '.'));
+            // Garante o parse correto caso seja enviado com vírgula ou em branco
+            const precoStr = String(precos[item.idItem] || '0').replace(',', '.');
+            precoFinal = parseFloat(precoStr);
           }
 
           return {
@@ -184,7 +215,6 @@ export default function ResponderCotacao() {
     loginBox: { maxWidth: '400px', margin: '100px auto', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }
   };
 
-  // --- TELA DE LOGIN INICIAL ---
   if (!fornecedorLogado && !enviado) {
     return (
       <div style={styles.loginBox}>
@@ -226,7 +256,6 @@ export default function ResponderCotacao() {
     );
   }
 
-  // --- TELA DE PRIMEIRO ACESSO (TROCA OBRIGATÓRIA DE SENHA) ---
   if (fornecedorLogado && fornecedorLogado.primeiroAcesso) {
     return (
       <div style={styles.loginBox}>
@@ -264,7 +293,6 @@ export default function ResponderCotacao() {
     );
   }
 
-  // --- TELA DE SUCESSO ---
   if (enviado) {
     return (
       <div style={styles.successBox}>
@@ -275,7 +303,6 @@ export default function ResponderCotacao() {
     );
   }
 
-  // --- TELA DE PREENCHIMENTO DA COTAÇÃO ---
   return (
     <div style={styles.container}>
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
@@ -321,7 +348,7 @@ export default function ResponderCotacao() {
                       <input 
                         type="number" step="0.01" placeholder="0,00"
                         style={{ ...styles.input, width: '90px', textAlign: 'right', backgroundColor: isFalta ? '#f3f4f6' : 'white' }}
-                        value={precos[item.idItem] || ''}
+                        value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''}
                         onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
                         disabled={isFalta}
                       />

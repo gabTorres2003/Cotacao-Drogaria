@@ -35,7 +35,7 @@ export default function Fornecedores() {
       telefone: fornecedor.telefone || '',
       login: fornecedor.login || '',
       email: fornecedor.email || '',
-      senha: '' // Senha não entra na edição
+      senha: ''
     });
     setModalAberto(true);
   };
@@ -43,7 +43,7 @@ export default function Fornecedores() {
   const handleResetSenha = async (id, nome) => {
     const novoPin = window.prompt(`Defina um novo PIN (4 a 6 dígitos) de primeiro acesso para o fornecedor: ${nome}`);
     
-    if (novoPin === null) return; // Cancelou
+    if (novoPin === null) return;
     
     if (!/^\d{4,6}$/.test(novoPin)) {
       alert("O PIN deve conter apenas números, entre 4 e 6 dígitos.");
@@ -56,6 +56,18 @@ export default function Fornecedores() {
       carregarFornecedores();
     } catch (error) {
       alert("Erro ao resetar senha.");
+    }
+  };
+
+  const handleExcluir = async (id, nome) => {
+    if (window.confirm(`Tem certeza que deseja excluir o fornecedor ${nome}?`)) {
+      try {
+        await api.delete(`/api/fornecedor/${id}`);
+        alert('Fornecedor excluído com sucesso!');
+        carregarFornecedores();
+      } catch (error) {
+        alert(error.response?.data || 'Erro ao excluir fornecedor. Ele já pode estar vinculado a respostas de cotações passadas.');
+      }
     }
   };
 
@@ -183,10 +195,12 @@ export default function Fornecedores() {
                           <KeyRound size={18} />
                         </button>
 
+                        {/* BOTÃO EXCLUIR ATIVADO */}
                         <button 
                           className="btn-icon" 
-                          style={{color: '#ef4444', background: '#fef2f2', opacity: 0.5, cursor: 'not-allowed'}} 
-                          title="Excluir (Em breve)"
+                          style={{color: '#ef4444', background: '#fef2f2'}} 
+                          title="Excluir"
+                          onClick={() => handleExcluir(f.id, f.nome)}
                         >
                           <Trash2 size={18} />
                         </button>
@@ -235,7 +249,6 @@ export default function Fornecedores() {
                 />
               </div>
 
-              {/* O e-mail não é mais obrigatório */}
               <div>
                 <label style={styles.label}>E-mail (Opcional)</label>
                 <input 
@@ -245,7 +258,6 @@ export default function Fornecedores() {
                 />
               </div>
 
-              {/* Só exibe o cadastro de senha se for criação. Edição usa o reset. */}
               {!form.id && (
                 <div>
                   <label style={styles.label}>PIN de Acesso (4 a 6 dígitos) *</label>
