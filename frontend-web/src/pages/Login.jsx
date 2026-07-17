@@ -19,11 +19,15 @@ export default function Login() {
     
     try {
       const response = await api.post('/auth/login', { username, pin });
-      const token = response.data;
+      
+      let token = response.data;
+      if (typeof token === 'string') {
+        token = token.replace(/['"]+/g, ''); 
+      }
       
       if (token) {
         localStorage.setItem('token', token);
-        navigate('/cotacoes');
+        navigate('/cotacoes'); // Redireciona
       }
     } catch (error) {
       setErro('Usuário ou PIN inválidos.');

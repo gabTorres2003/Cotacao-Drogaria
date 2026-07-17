@@ -17,7 +17,7 @@ import java.nio.charset.StandardCharsets;
 @Configuration
 public class JwtConfig {
 
-    @Value("${api.security.token.secret}")
+    @Value("${api.security.token.secret:MinhaChaveSuperSecretaDaDrogariaTorresFarma2026!!}")
     private String secret;
 
     @Bean
