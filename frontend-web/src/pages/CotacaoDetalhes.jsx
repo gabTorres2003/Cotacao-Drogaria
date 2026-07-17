@@ -106,8 +106,15 @@ export default function CotacaoDetalhes() {
     setDecisaoCompra((prev) => ({ ...prev, [idItem]: novoFornecedor }))
   }
 
+  // Tratamento seguro para formatação de moeda e datas
   const fMoney = (v) =>
-    v ? v.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+    v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+    
+  const fData = (dataIso) => {
+    if (!dataIso) return '-';
+    return new Date(dataIso + 'T12:00:00').toLocaleDateString('pt-BR');
+  };
+
   const gerarPDF = (nomeFornecedor, itens) => {
     /* ... */
   }
@@ -194,21 +201,19 @@ export default function CotacaoDetalhes() {
                 )}
               </td>
 
-              {/* DADOS EXTRAS DO DNA */}
+              {/* DADOS EXTRAS DO DNA - Utilizando os nomes atualizados do DTO e o fData para as datas */}
               <td style={styles.td}>{item.estoque ?? '-'}</td>
               <td style={styles.td}>{item.vendidoNoMes ?? '-'}</td>
               <td style={styles.td}>{item.vendidoAposUltCompra ?? '-'}</td>
-              <td style={styles.td}>{item.dataUltimaCompra ?? '-'}</td>
+              <td style={styles.td}>{fData(item.ultCompraData)}</td>
               <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
-              <td style={styles.td}>{item.ultVendaData ?? '-'}</td>
+              <td style={styles.td}>{fData(item.ultVendaData)}</td>
 
-              {/* PREÇO ÚLTIMA COMPRA (PRECOCUSTO) */}
+              {/* PREÇO ÚLTIMA COMPRA (Referente ao PRECOCUSTO do DNA) */}
               <td
                 style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}
               >
-                {item.ultimoPrecoComprado
-                  ? fMoney(item.ultimoPrecoComprado)
-                  : '-'}
+                {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
               </td>
 
               {/* FORNECEDORES E PREÇOS */}

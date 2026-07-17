@@ -65,6 +65,16 @@ public class ComparativoService {
             linha.setIdItem(item.getId());
             linha.setNomeProduto(item.getNomeProduto());
             linha.setQuantidade(item.getQuantidade());
+            
+            // Novos campos mapeados do banco (DNA) para o DTO
+            linha.setEstoque(item.getEstoque());
+            linha.setGrupo(item.getGrupo());
+            linha.setVendidoNoMes(item.getVendidoNoMes());
+            linha.setUltCompraData(item.getUltCompraData());
+            linha.setUltCompraQtde(item.getUltCompraQtde());
+            linha.setUltVendaData(item.getUltVendaData());
+            linha.setVendidoAposUltCompra(item.getVendidoAposUltCompra());
+            linha.setUltimoPreco(item.getUltimoPreco());
 
             List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
@@ -125,14 +135,12 @@ public class ComparativoService {
 
     public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {
         for (SalvarPrecoDTO dto : precosDtos) {
-            // Busca o item e o fornecedor no banco
             ItemCotacao item = itemRepository.findById(dto.getIdItem())
                 .orElseThrow(() -> new RuntimeException("Item não encontrado: " + dto.getIdItem()));
                 
             Fornecedor fornecedor = fornecedorRepository.findById(dto.getIdFornecedor())
                 .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + dto.getIdFornecedor()));
 
-            // Cria o registro do preço
             PrecoCotacao preco = new PrecoCotacao();
             preco.setItem(item);
             preco.setFornecedor(fornecedor);
@@ -140,7 +148,6 @@ public class ComparativoService {
             preco.setDataResposta(LocalDateTime.now()); 
             preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
             
-            // Salva no banco
             precoRepository.save(preco);
         }
     }
