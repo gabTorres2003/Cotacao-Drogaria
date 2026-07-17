@@ -7,6 +7,8 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import javax.sql.DataSource;
 
@@ -32,8 +34,8 @@ public class DnaDatabaseConfig {
         dataSource.setUsername(dbUser);
         dataSource.setPassword(dbPassword);
         dataSource.setDriverClassName(dbDriver);
-        dataSource.setReadOnly(true); 
-        
+        dataSource.setReadOnly(true);
+
         return dataSource;
     }
 
@@ -45,5 +47,22 @@ public class DnaDatabaseConfig {
     @Bean(name = "dnaNamedJdbcTemplate")
     public NamedParameterJdbcTemplate dnaNamedJdbcTemplate(@Qualifier("dnaDataSource") DataSource dnaDataSource) {
         return new NamedParameterJdbcTemplate(dnaDataSource);
+    }
+
+    @Configuration
+    public class CorsConfig implements WebMvcConfigurer {
+
+        @Override
+        public void addCorsMappings(CorsRegistry registry) {
+            registry.addMapping("/**")
+                    .allowedOrigins(
+                            "https://cotacaotorresfarma.netlify.app",
+                            "http://localhost:5173", 
+                            "http://localhost:3000" 
+                    )
+                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH")
+                    .allowedHeaders("*") 
+                    .allowCredentials(true);
+        }
     }
 }
