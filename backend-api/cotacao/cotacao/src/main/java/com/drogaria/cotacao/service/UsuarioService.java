@@ -60,4 +60,13 @@ public class UsuarioService {
         dto.setAtivo(usuario.isAtivo());
         return dto;
     }
+
+    public void alterarPin(String username, String novoPin) {
+        Usuario usuario = repository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("Usuário não encontrado."));
+        
+        usuario.setPin(novoPin);
+        usuario.setPrimeiroAcesso(false);
+        repository.save(usuario);
+    }
 }

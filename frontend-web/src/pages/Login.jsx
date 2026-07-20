@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff } from 'lucide-react';
-import api from '../services/api'; 
+import api from '../services/api';
 
 export default function Login() {
   const [username, setUsername] = useState('');
@@ -20,14 +20,12 @@ export default function Login() {
     try {
       const response = await api.post('/auth/login', { username, pin });
       
-      let token = response.data;
-      if (typeof token === 'string') {
-        token = token.replace(/['"]+/g, ''); 
-      }
+      const { token, primeiroAcesso } = response.data;
       
       if (token) {
         localStorage.setItem('token', token);
-        navigate('/cotacoes'); // Redireciona
+        localStorage.setItem('primeiroAcesso', primeiroAcesso);
+        navigate('/cotacoes');
       }
     } catch (error) {
       setErro('Usuário ou PIN inválidos.');
@@ -39,7 +37,11 @@ export default function Login() {
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', backgroundColor: '#f3f4f6' }}>
       <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
-        <h2 style={{ textAlign: 'center', marginBottom: '25px', color: '#1f2937' }}>Drogaria Torres Farma</h2>
+        
+        {/* Título Corrigido */}
+        <h2 style={{ textAlign: 'center', marginBottom: '25px', color: '#1f2937', fontSize: '22px' }}>
+          Compras Drogaria Torres Farma
+        </h2>
         
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
@@ -58,7 +60,8 @@ export default function Login() {
               id="pin" name="pin" autoComplete="current-password" type={mostrarSenha ? "text" : "password"} 
               inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="PIN (4 a 6 dígitos)" 
               required value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
-              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px', letterSpacing: mostrarSenha ? 'normal' : '5px' }}
+              /* letterSpacing removido para consertar o visual do placeholder */
+              style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
             <button type="button" onClick={() => setMostrarSenha(!mostrarSenha)} style={{ background: 'none', border: 'none', cursor: 'pointer', display: 'flex', padding: '5px' }}>
               {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}

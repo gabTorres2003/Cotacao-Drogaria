@@ -37,4 +37,10 @@ public class UsuarioController {
         service.alterarStatus(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/alterar-pin")
+    public ResponseEntity<Void> alterarPin(@RequestBody java.util.Map<String, String> body, org.springframework.security.core.Authentication authentication) {
+        service.alterarPin(authentication.getName(), body.get("novoPin"));
+        return ResponseEntity.noContent().build();
+    }
 }
