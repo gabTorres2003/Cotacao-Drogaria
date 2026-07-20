@@ -312,7 +312,7 @@ export default function Fornecedores() {
 
                         {/* Botão de WhatsApp */}
                         <button
-                          onClick={() => handleCompartilharWhatsApp(fornecedor)}
+                          onClick={() => handleCompartilharWhatsApp(f)}
                           title="Enviar Acesso pelo WhatsApp"
                           style={{
                             background: 'none',
