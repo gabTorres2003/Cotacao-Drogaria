@@ -45,15 +45,18 @@ public class AuthController {
 
         boolean primeiroAcesso = false;
         String nome = "";
+        Long idUsuario = null; // Variável para armazenar o ID
 
         if (isAdmin) {
             Usuario u = usuarioRepository.findByUsername(authentication.getName()).orElseThrow();
             primeiroAcesso = u.isPrimeiroAcesso();
             nome = u.getNome();
+            idUsuario = u.getId(); // Captura ID do Admin
         } else {
             Fornecedor f = fornecedorRepository.findByLogin(authentication.getName()).orElseThrow();
             primeiroAcesso = (f.getSenha() == null || "0000".equals(f.getSenha())); 
             nome = f.getNome();
+            idUsuario = f.getId(); // Captura ID do Fornecedor
         }
         
         Map<String, Object> response = new HashMap<>();
@@ -61,6 +64,7 @@ public class AuthController {
         response.put("tipoUsuario", isAdmin ? "ADMIN" : "FORNECEDOR");
         response.put("primeiroAcesso", primeiroAcesso);
         response.put("nome", nome);
+        response.put("id", idUsuario);
         
         return ResponseEntity.ok(response); 
     }

@@ -11,7 +11,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/fornecedor")
@@ -45,16 +44,6 @@ public class FornecedorController {
                     return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
                 })
                 .orElse(ResponseEntity.notFound().build());
-    }
-
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Fornecedor credenciais) {
-        Optional<Fornecedor> fornecedor = fornecedorRepository.findByLoginAndSenha(credenciais.getLogin(), credenciais.getSenha());
-        
-        if (fornecedor.isPresent()) {
-            return ResponseEntity.ok(fornecedor.get());
-        }
-        return ResponseEntity.status(401).body("Login ou PIN inválidos");
     }
 
     @PutMapping("/{id}/reset-senha")

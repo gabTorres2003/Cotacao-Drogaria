@@ -19,15 +19,14 @@ export default function Login() {
     
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
-
-      // Única requisição. O Spring Boot se vira para descobrir quem é.
       const response = await api.post('/auth/login', { username, pin });
-      const { token, primeiroAcesso, tipoUsuario, nome } = response.data;
+      const { token, primeiroAcesso, tipoUsuario, nome, id } = response.data;
       
       localStorage.setItem('token', token);
       localStorage.setItem('tipoUsuario', tipoUsuario);
       localStorage.setItem('primeiroAcesso', primeiroAcesso);
       localStorage.setItem('nomeUsuario', nome);
+      localStorage.setItem('usuarioId', id); 
       
       if (tipoUsuario === 'ADMIN') {
         navigate('/cotacoes');

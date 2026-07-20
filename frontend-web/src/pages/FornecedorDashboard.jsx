@@ -11,11 +11,9 @@ export default function FornecedorDashboard() {
   const nomeFornecedor = localStorage.getItem('nomeFornecedor') || 'Fornecedor';
 
   useEffect(() => {
-    // Busca apenas as cotações designadas para este fornecedor específico
-    // OBS: Você precisará garantir que o backend tenha essa rota (/api/fornecedor/minhas-cotacoes)
     const fetchMinhasCotacoes = async () => {
       try {
-        const response = await api.get('/api/fornecedor/minhas-cotacoes');
+        const response = await api.get('/api/cotacao-fornecedor/minhas-cotacoes');
         setCotacoes(response.data);
       } catch (error) {
         console.error('Erro ao buscar cotações', error);
