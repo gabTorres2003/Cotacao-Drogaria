@@ -32,6 +32,21 @@ export default function FornecedorDashboard() {
     navigate('/');
   };
 
+  const formatarDataHora = (dataIso) => {
+    if (!dataIso) return 'Data não informada';
+    const data = new Date(dataIso);
+    if (isNaN(data.getTime())) return dataIso;
+    
+    return data.toLocaleDateString('pt-BR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+    }) + ' às ' + data.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
@@ -86,12 +101,14 @@ export default function FornecedorDashboard() {
               ) : (
                 cotacoes.map(vinculo => {
                   const idCotacao = vinculo.cotacao ? vinculo.cotacao.id : vinculo.id;
-                  const dataEnvio = vinculo.cotacao ? (vinculo.cotacao.dataCriacao || 'Data não informada') : (vinculo.dataEnvio || 'Data não informada');
+                  const dataEnvio = vinculo.cotacao ? (vinculo.cotacao.dataCriacao || vinculo.dataEnvio) : vinculo.dataEnvio;
                   
                   return (
                     <tr key={vinculo.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
                       <td style={{ padding: '16px 24px', fontWeight: '600', color: '#334155' }}>#{idCotacao}</td>
-                      <td style={{ padding: '16px 24px', color: '#64748b' }}>{dataEnvio}</td>
+                      <td style={{ padding: '16px 24px', color: '#64748b' }}>
+                        {formatarDataHora(dataEnvio)}
+                      </td>
                       <td style={{ padding: '16px 24px' }}>
                         <span style={{ padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', backgroundColor: '#fef3c7', color: '#b45309' }}>
                           Pendente
