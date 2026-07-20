@@ -87,12 +87,12 @@ export default function ResponderCotacao() {
             novasFaltas[r.idItem] = true;
             novasQtds[r.idItem] = 0;
           } else {
-            novasPrecos[r.idItem] = r.preco;
+            novosPrecos[r.idItem] = r.preco;
             novasQtds[r.idItem] = r.quantidadeDisponivel;
           }
         });
         
-        setPrecos(novasPrecos);
+        setPrecos(novosPrecos);
         setEmFalta(novasFaltas);
         setQuantidades(novasQtds);
       }

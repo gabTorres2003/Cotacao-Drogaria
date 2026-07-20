@@ -7,6 +7,7 @@ import CotacaoDetalhes from './pages/CotacaoDetalhes'
 import Fornecedores from './pages/Fornecedores'
 import Relatorios from './pages/Relatorios'
 import Usuarios from './pages/Usuarios'
+import FornecedorDashboard from './pages/FornecedorDashboard' 
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
@@ -31,8 +32,7 @@ function App() {
         <Route path="/fornecedores" element={<RotaPrivada><Fornecedores /></RotaPrivada>} />
         <Route path="/cotacao/:id" element={<RotaPrivada><CotacaoDetalhes /></RotaPrivada>} />
         <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
-
-        {/* Agora a tela de responder cotação também exige login */}
+        <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
         <Route
           path="/responder-cotacao/:idCotacao"
           element={
