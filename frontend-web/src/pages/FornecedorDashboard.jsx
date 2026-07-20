@@ -8,12 +8,15 @@ export default function FornecedorDashboard() {
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor';
+  const usuarioId = localStorage.getItem('usuarioId');
 
   useEffect(() => {
     const fetchMinhasCotacoes = async () => {
       try {
-        const response = await api.get('/api/cotacao-fornecedor/minhas-cotacoes');
-        setCotacoes(response.data);
+        if (usuarioId) {
+          const response = await api.get(`/api/cotacao-fornecedor/fornecedor/${usuarioId}`);
+          setCotacoes(response.data);
+        }
       } catch (error) {
         console.error('Erro ao buscar cotações', error);
       } finally {
@@ -22,7 +25,7 @@ export default function FornecedorDashboard() {
     };
 
     fetchMinhasCotacoes();
-  }, []);
+  }, [usuarioId]);
 
   const handleLogout = () => {
     localStorage.clear();
