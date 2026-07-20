@@ -6,6 +6,9 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   
+  // Resgata o nome de quem está logado no painel administrativo
+  const nomeUsuario = localStorage.getItem('nomeUsuario') || 'nossa equipe';
+  
   // Estado que guarda quem já recebeu o link
   const [enviados, setEnviados] = useState(() => {
     const salvos = localStorage.getItem(`link_enviado_cotacao_${idCotacao}`);
@@ -32,42 +35,50 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     }
   };
 
+  // Envia os IDs dos fornecedores para salvar a tabela relacional no backend
+  const vincularFornecedoresNoBackend = async (fornecedoresIds) => {
+    try {
+      await api.post(`/api/cotacao-fornecedor/vincular/${idCotacao}`, fornecedoresIds);
+      console.log("Vínculo salvo com sucesso no banco!");
+    } catch (error) {
+      console.error("Erro ao vincular fornecedores no banco", error);
+    }
+  };
+
   const atualizarStatusCotacao = async () => {
     try {
-      // Muda a cotação para PENDENTE (a aguardar respostas)
       await api.put(`/api/cotacao/${idCotacao}/status`, { status: 'PENDENTE' });
-      if (onStatusUpdate) onStatusUpdate(); // Atualiza os cards no Dashboard
+      if (onStatusUpdate) onStatusUpdate();
     } catch (error) {
       console.error("Erro ao atualizar status", error);
     }
   };
 
   // ENVIO INDIVIDUAL
-  const enviarZap = (fornecedor) => {
+  const enviarZap = async (fornecedor) => {
     if (!enviados.includes(fornecedor.id)) {
       setEnviados([...enviados, fornecedor.id]);
-      atualizarStatusCotacao();
+      await vincularFornecedoresNoBackend([fornecedor.id]); 
+      await atualizarStatusCotacao();
     }
 
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
-    const mensagem = `Olá ${fornecedor.nome}, segue o link para a cotação da Drogaria Torres Farma: ${link} \n\n🔒 *Aceda utilizando o seu E-mail e Senha cadastrados connosco.*`;
+    const mensagem = `Olá, ${fornecedor.nome}! \n\nJá liberamos a nossa nova cotação e aguardo a sua proposta. Por favor, acesse o link abaixo para preencher os valores:\n\n🔗 ${link}\n\n🔒 *Acesso rápido: utilize seu login e senha.*`;
     
-    // Com telefone: Vai direto para o contato
     const url = `https://api.whatsapp.com/send?phone=${fornecedor.telefone}&text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');
   };
 
   // ENVIO GERAL (LISTA DE TRANSMISSÃO)
-  const enviarParaLista = () => {
-    // Pega no ID de TODOS os fornecedores e marca como "Enviado"
+  const enviarParaLista = async () => {
     const todosIds = fornecedores.map(f => f.id);
     setEnviados(todosIds);
-    atualizarStatusCotacao();
+    await vincularFornecedoresNoBackend(todosIds);
+    await atualizarStatusCotacao();
 
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
-    const mensagem = `Olá prezados! Segue o link para a nova cotação da Drogaria Torres Farma: ${link} \n\n🔒 *Acessem utilizando o E-mail e Senha cadastrados com a gente.*`;
+    const mensagem = `Olá, parceiros! Aqui é ${nomeUsuario} da Drogaria Torres Farma.\n\nAcabamos de liberar uma nova cotação. Aguardamos as melhores propostas de vocês!\n\n🔗 Acesse o link para preencher: ${link}\n\n🔒 *Acesso rápido: utilizem o login e senha já cadastrados.*`;
     
-    // Sem telefone: O WhatsApp abre o ecrã para escolher os contatos ou Listas de Transmissão
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');
   };
@@ -86,8 +97,6 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     nomeFornecedor: { fontWeight: '600', color: '#374151', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' },
     telefone: { fontSize: '13px', color: '#6b7280', margin: 0 },
     btnSendItem: (jaEnviado) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 15px', backgroundColor: jaEnviado ? 'transparent' : '#2563eb', color: jaEnviado ? '#22c55e' : 'white', border: jaEnviado ? '1px solid #22c55e' : 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }),
-    
-    // Botão Lista de Transmissão
     btnListaGeral: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }
   };
 
