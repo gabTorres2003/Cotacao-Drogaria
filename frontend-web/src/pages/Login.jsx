@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Lock, User, Eye, EyeOff, Info } from 'lucide-react';
 import api from '../services/api';
 
@@ -11,6 +11,10 @@ export default function Login() {
   const [mostrarSenha, setMostrarSenha] = useState(false);
   
   const navigate = useNavigate();
+  const location = useLocation();
+  
+  // Captura a rota que o usuário tentou acessar antes de ser barrado (se houver)
+  const from = location.state?.from || null;
 
   const handleLogin = async (e) => {
     e.preventDefault();
@@ -28,10 +32,13 @@ export default function Login() {
       localStorage.setItem('nomeUsuario', nome);
       localStorage.setItem('usuarioId', id); 
       
-      if (tipoUsuario === 'ADMIN') {
+      // Lógica de Redirecionamento Unificada
+      if (from) {
+        navigate(from); // Volta para a cotação que ele clicou no link
+      } else if (tipoUsuario === 'ADMIN') {
         navigate('/cotacoes');
       } else {
-        navigate('/portal-fornecedor');
+        navigate('/portal-fornecedor'); // Ou rota padrão do fornecedor
       }
 
     } catch (error) {

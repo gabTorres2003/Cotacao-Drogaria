@@ -1,20 +1,18 @@
 import { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, User, Eye, EyeOff } from 'lucide-react';
+import { Lock } from 'lucide-react';
 
 export default function ResponderCotacao() {
   const { idCotacao } = useParams();
   
-  const [fornecedorLogado, setFornecedorLogado] = useState(() => {
-    const salvo = sessionStorage.getItem(`fornecedor_cotacao_${idCotacao}`);
-    return salvo ? JSON.parse(salvo) : null;
-  });
+  // Lê diretamente os dados salvos pelo Login Principal
+  const usuarioId = localStorage.getItem('usuarioId');
+  const nomeUsuario = localStorage.getItem('nomeUsuario');
   
-  const [credenciais, setCredenciais] = useState({ login: '', senha: '' });
+  const [isPrimeiroAcesso, setIsPrimeiroAcesso] = useState(localStorage.getItem('primeiroAcesso') === 'true');
   const [erroLogin, setErroLogin] = useState('');
-  const [mostrarSenha, setMostrarSenha] = useState(false);
-
+  
   const [novoPin, setNovoPin] = useState('');
   const [confirmaPin, setConfirmaPin] = useState('');
 
@@ -26,29 +24,10 @@ export default function ResponderCotacao() {
   const [enviado, setEnviado] = useState(false);
 
   useEffect(() => {
-    if (fornecedorLogado && !fornecedorLogado.primeiroAcesso) {
+    if (!isPrimeiroAcesso) {
       carregarItens();
     }
-  }, [fornecedorLogado]);
-
-  const handleLogin = async (e) => {
-    e.preventDefault();
-    setErroLogin('');
-    
-    try {
-      const response = await api.post('/api/fornecedor/login', credenciais);
-      const fornecedor = response.data;
-      
-      setFornecedorLogado(fornecedor);
-      sessionStorage.setItem(`fornecedor_cotacao_${idCotacao}`, JSON.stringify(fornecedor));
-    } catch (error) {
-      if (!error.response || error.code === 'ERR_NETWORK') {
-        setErroLogin('Horário de funcionamento - 07:30 às 22:00 (Seg à Sáb) e 08:00 às 14:00 (Domingo)');
-      } else {
-        setErroLogin('Login ou PIN incorretos. Verifique com a farmácia.');
-      }
-    }
-  };
+  }, [isPrimeiroAcesso]);
 
   const handlePrimeiroAcesso = async (e) => {
     e.preventDefault();
@@ -64,13 +43,12 @@ export default function ResponderCotacao() {
     }
 
     try {
-      const response = await api.put(`/api/fornecedor/${fornecedorLogado.id}/primeiro-acesso`, {
+      await api.put(`/api/fornecedor/${usuarioId}/primeiro-acesso`, {
         novaSenha: novoPin
       });
       
-      const fornecedorAtualizado = response.data;
-      setFornecedorLogado(fornecedorAtualizado);
-      sessionStorage.setItem(`fornecedor_cotacao_${idCotacao}`, JSON.stringify(fornecedorAtualizado));
+      localStorage.setItem('primeiroAcesso', 'false');
+      setIsPrimeiroAcesso(false);
     } catch (error) {
       setErroLogin('Erro ao atualizar senha. Tente novamente.');
     }
@@ -83,8 +61,8 @@ export default function ResponderCotacao() {
       const itensCarregados = Array.isArray(response.data) ? response.data : [];
       setItens(itensCarregados);
 
-      if (itensCarregados.length > 0 && fornecedorLogado) {
-         await carregarRespostasAnteriores(fornecedorLogado.id);
+      if (itensCarregados.length > 0 && usuarioId) {
+         await carregarRespostasAnteriores(usuarioId);
       }
     } catch (error) {
       console.error('Erro ao carregar itens:', error);
@@ -170,14 +148,13 @@ export default function ResponderCotacao() {
             precoFinal = -1; 
             qtdFinal = 0; 
           } else {
-            // Garante o parse correto caso seja enviado com vírgula ou em branco
             const precoStr = String(precos[item.idItem] || '0').replace(',', '.');
             precoFinal = parseFloat(precoStr);
           }
 
           return {
             idItem: item.idItem,
-            idFornecedor: fornecedorLogado.id,
+            idFornecedor: parseInt(usuarioId),
             preco: precoFinal,
             quantidadeDisponivel: qtdFinal 
           };
@@ -189,9 +166,7 @@ export default function ResponderCotacao() {
       }
 
       await api.post('/api/fornecedor/salvar-respostas', payload);
-
       setEnviado(true);
-      sessionStorage.removeItem(`fornecedor_cotacao_${idCotacao}`);
     } catch (error) {
       console.error('Erro ao enviar:', error);
       alert('Erro ao enviar cotação.');
@@ -215,53 +190,12 @@ export default function ResponderCotacao() {
     loginBox: { maxWidth: '400px', margin: '100px auto', backgroundColor: 'white', padding: '30px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', textAlign: 'center' }
   };
 
-  if (!fornecedorLogado && !enviado) {
-    return (
-      <div style={styles.loginBox}>
-        <h2 style={{color: '#1f2937', marginBottom: '10px'}}>Acesso Restrito</h2>
-        <p style={{color: '#6b7280', marginBottom: '25px', fontSize: '14px'}}>Cotação #{idCotacao} - Drogaria Torres</p>
-        
-        <form onSubmit={handleLogin} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
-          <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
-            <User size={18} color="#9ca3af" />
-            <input 
-              type="text" placeholder="Seu Login" required
-              style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
-              value={credenciais.login} onChange={e => setCredenciais({...credenciais, login: e.target.value})}
-            />
-          </div>
-          
-          <div style={{display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px'}}>
-            <Lock size={18} color="#9ca3af" />
-            <input 
-              type={mostrarSenha ? "text" : "password"}
-              placeholder="PIN (4 a 6 dígitos)" required
-              style={{flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none'}}
-              value={credenciais.senha} onChange={e => setCredenciais({...credenciais, senha: e.target.value})}
-            />
-            <button 
-              type="button" 
-              onClick={() => setMostrarSenha(!mostrarSenha)} 
-              style={{background: 'none', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', padding: '5px'}}
-            >
-              {mostrarSenha ? <EyeOff size={18} color="#9ca3af" /> : <Eye size={18} color="#9ca3af" />}
-            </button>
-          </div>
-
-          {erroLogin && <span style={{color: '#dc2626', fontSize: '13px'}}>{erroLogin}</span>}
-
-          <button type="submit" style={{...styles.button, marginTop: '10px'}}>Acessar Cotação</button>
-        </form>
-      </div>
-    );
-  }
-
-  if (fornecedorLogado && fornecedorLogado.primeiroAcesso) {
+  if (isPrimeiroAcesso) {
     return (
       <div style={styles.loginBox}>
         <h2 style={{color: '#1f2937', marginBottom: '10px'}}>Segurança</h2>
         <p style={{color: '#6b7280', marginBottom: '25px', fontSize: '14px'}}>
-          Olá, {fornecedorLogado.nome}.<br/>Este é o seu primeiro acesso. Por favor, crie um novo PIN numérico de segurança para continuar.
+          Olá, {nomeUsuario}.<br/>Este é o seu primeiro acesso. Por favor, crie um novo PIN numérico de segurança para continuar.
         </p>
         
         <form onSubmit={handlePrimeiroAcesso} style={{display: 'flex', flexDirection: 'column', gap: '15px'}}>
@@ -297,7 +231,7 @@ export default function ResponderCotacao() {
     return (
       <div style={styles.successBox}>
         <h2 style={{ marginBottom: '10px' }}>✅ Proposta Enviada!</h2>
-        <p>Obrigado, <strong>{fornecedorLogado?.nome}</strong>!</p>
+        <p>Obrigado, <strong>{nomeUsuario}</strong>!</p>
         <p>Sua proposta foi registrada com segurança no sistema.</p>
       </div>
     );
@@ -308,7 +242,7 @@ export default function ResponderCotacao() {
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
         <h1 style={{...styles.header, margin: 0}}>Cotação #{idCotacao}</h1>
         <div style={{background: '#dbeafe', color: '#1e40af', padding: '8px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold'}}>
-          Olá, {fornecedorLogado.nome}
+          Olá, {nomeUsuario}
         </div>
       </div>
       

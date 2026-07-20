@@ -1,5 +1,5 @@
 import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom'
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
 import Login from './pages/Login'
 import Cotacoes from './pages/Cotacoes'
 import ResponderCotacao from './pages/ResponderCotacao'
@@ -10,9 +10,13 @@ import Usuarios from './pages/Usuarios'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
+// Componente que protege as rotas e guarda a intenção de redirecionamento
 const RotaPrivada = ({ children }) => {
   const isLogado = localStorage.getItem('token')
-  return isLogado ? children : <Navigate to="/" />
+  const location = useLocation()
+  
+  // Se não estiver logado, manda para o Login, mas salva a rota atual no state
+  return isLogado ? children : <Navigate to="/" state={{ from: location.pathname }} replace />
 }
 
 function App() {
@@ -21,55 +25,23 @@ function App() {
       <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />
-        <Route
-          path="/usuarios"
-          element={
-            <RotaPrivada>
-              <Usuarios />
-            </RotaPrivada>
-          }
-        />
+        
+        <Route path="/usuarios" element={<RotaPrivada><Usuarios /></RotaPrivada>} />
+        <Route path="/cotacoes" element={<RotaPrivada><Cotacoes /></RotaPrivada>} />
+        <Route path="/fornecedores" element={<RotaPrivada><Fornecedores /></RotaPrivada>} />
+        <Route path="/cotacao/:id" element={<RotaPrivada><CotacaoDetalhes /></RotaPrivada>} />
+        <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
 
-        <Route
-          path="/cotacoes"
-          element={
-            <RotaPrivada>
-              <Cotacoes />
-            </RotaPrivada>
-          }
-        />
-
-        <Route
-          path="/fornecedores"
-          element={
-            <RotaPrivada>
-              <Fornecedores />
-            </RotaPrivada>
-          }
-        />
-
-        <Route
-          path="/cotacao/:id"
-          element={
-            <RotaPrivada>
-              <CotacaoDetalhes />
-            </RotaPrivada>
-          }
-        />
-
-        <Route
-          path="/relatorios"
-          element={
-            <RotaPrivada>
-              <Relatorios />
-            </RotaPrivada>
-          }
-        />
-
+        {/* Agora a tela de responder cotação também exige login */}
         <Route
           path="/responder-cotacao/:idCotacao"
-          element={<ResponderCotacao />}
+          element={
+            <RotaPrivada>
+              <ResponderCotacao />
+            </RotaPrivada>
+          }
         />
+        
         <Route path="*" element={<Navigate to="/" />} />
       </Routes>
     </BrowserRouter>
