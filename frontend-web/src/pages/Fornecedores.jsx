@@ -21,7 +21,7 @@ export default function Fornecedores() {
     telefone: '',
     login: '',
     email: '',
-    senha: '',
+    senha: '0000',
   })
 
   const [busca, setBusca] = useState('')
@@ -46,7 +46,7 @@ export default function Fornecedores() {
       telefone: '',
       login: '',
       email: '',
-      senha: '',
+      senha: '0000',
     })
     setModalAberto(true)
   }
@@ -116,8 +116,10 @@ export default function Fornecedores() {
     const telefoneFinal = numeroLimpo.startsWith('55')
       ? numeroLimpo
       : `55${numeroLimpo}`
+      
     const linkSistema = 'https://cotacaotorresfarma.netlify.app'
-    const mensagem = `Olá, somos da *Drogaria Torres Farma*! 💊\n\nSegue o seu acesso ao nosso novo Portal de Cotações:\n\n🌐 *Link:* ${linkSistema}\n👤 *Login:* ${fornecedor.login}\n🔑 *Senha:* (a senha inicial fornecida no momento do cadastro)\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
+    const mensagem = `Olá, *${fornecedor.nome}*!\n\nSegue o seu acesso ao nosso novo Portal de Cotações da Drogaria Torres Farma:\n\n*Link:* ${linkSistema}\n*Login:* ${fornecedor.login || 'Não informado'}\n*Senha:* 0000\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
+    
     const mensagemCodificada = encodeURIComponent(mensagem)
     const urlWhatsapp = `https://wa.me/${telefoneFinal}?text=${mensagemCodificada}`
 
