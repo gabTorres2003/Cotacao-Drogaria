@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { LayoutDashboard, Users, FileSpreadsheet, Settings, Pill, UserCog, LogOut, Lock } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import api from '../../services/api';
 
 export default function Sidebar() {
   const location = useLocation();
