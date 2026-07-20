@@ -52,7 +52,7 @@ public class AuthController {
             nome = u.getNome();
         } else {
             Fornecedor f = fornecedorRepository.findByLogin(authentication.getName()).orElseThrow();
-            primeiroAcesso = "0000".equals(f.getSenha()); // Se a senha for 0000, obriga a trocar
+            primeiroAcesso = (f.getSenha() == null || "0000".equals(f.getSenha())); 
             nome = f.getNome();
         }
         

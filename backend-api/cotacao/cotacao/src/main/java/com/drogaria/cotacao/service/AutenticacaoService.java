@@ -35,10 +35,16 @@ public class AutenticacaoService implements UserDetailsService {
         var fornecedorOpt = fornecedorRepository.findByLogin(username);
         if (fornecedorOpt.isPresent()) {
             var f = fornecedorOpt.get();
+            
+            // Garante que o Spring não quebre se a senha for nula no banco
+            String senhaSegura = (f.getSenha() != null && !f.getSenha().trim().isEmpty()) 
+                                 ? f.getSenha() 
+                                 : "SENHA_NULA_PROIBIDA";
+            
             return User.builder()
                     .username(f.getLogin())
-                    .password(f.getSenha())
-                    .authorities("ROLE_FORNECEDOR") // Define como FORNECEDOR
+                    .password(senhaSegura)
+                    .authorities("ROLE_FORNECEDOR") 
                     .build();
         }
 
