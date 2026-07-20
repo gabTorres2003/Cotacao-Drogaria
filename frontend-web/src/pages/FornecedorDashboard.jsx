@@ -7,7 +7,7 @@ export default function FornecedorDashboard() {
   const [cotacoes, setCotacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
-  
+  const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor';
   const nomeFornecedor = localStorage.getItem('nomeFornecedor') || 'Fornecedor';
 
   useEffect(() => {
@@ -44,7 +44,7 @@ export default function FornecedorDashboard() {
         
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px' }}>
           <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
-            Olá, <strong style={{ color: '#0f172a' }}>{nomeFornecedor}</strong>
+            Olá, <strong style={{ color: '#0f172a' }}>{nomeUsuario}</strong>
           </span>
           <button 
             onClick={handleLogout}
