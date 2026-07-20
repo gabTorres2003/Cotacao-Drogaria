@@ -20,16 +20,23 @@ export default function Login() {
     try {
       await new Promise(resolve => setTimeout(resolve, 800));
 
+      // Única requisição. O Spring Boot se vira para descobrir quem é.
       const response = await api.post('/auth/login', { username, pin });
-      const { token, primeiroAcesso } = response.data;
+      const { token, primeiroAcesso, tipoUsuario, nome } = response.data;
       
-      if (token) {
-        localStorage.setItem('token', token);
-        localStorage.setItem('primeiroAcesso', primeiroAcesso);
+      localStorage.setItem('token', token);
+      localStorage.setItem('tipoUsuario', tipoUsuario);
+      localStorage.setItem('primeiroAcesso', primeiroAcesso);
+      localStorage.setItem('nomeUsuario', nome);
+      
+      if (tipoUsuario === 'ADMIN') {
         navigate('/cotacoes');
+      } else {
+        navigate('/portal-fornecedor');
       }
+
     } catch (error) {
-      setErro('Usuário ou PIN inválidos. Verifique e tente novamente.');
+      setErro('Credenciais inválidas. Verifique seu login e senha e tente novamente.');
     } finally {
       setLoading(false);
     }
@@ -40,16 +47,16 @@ export default function Login() {
       <div style={{ backgroundColor: 'white', padding: '40px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)', width: '100%', maxWidth: '400px' }}>
         
         <h2 style={{ textAlign: 'center', marginBottom: '25px', color: '#1f2937', fontSize: '22px' }}>
-          Compras Drogaria Torres Farma
+          Portal de Cotações
         </h2>
         
         <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
             <User size={18} color="#9ca3af" />
             <input 
-              id="username" name="username" autoComplete="username" type="text" 
-              placeholder="Usuário (ex: gabriel)" required value={username} 
-              onChange={e => setUsername(e.target.value.toLowerCase())}
+              id="username" name="username" type="text" 
+              placeholder="Digite seu usuário ou login" required value={username} 
+              onChange={e => setUsername(e.target.value.toLowerCase().trim())}
               style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
           </div>
@@ -57,8 +64,8 @@ export default function Login() {
           <div style={{ display: 'flex', alignItems: 'center', background: '#f9fafb', border: '1px solid #d1d5db', borderRadius: '8px', padding: '0 10px' }}>
             <Lock size={18} color="#9ca3af" />
             <input 
-              id="pin" name="pin" autoComplete="current-password" type={mostrarSenha ? "text" : "password"} 
-              inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="PIN (4 a 6 dígitos)" 
+              id="pin" name="pin" type={mostrarSenha ? "text" : "password"} 
+              inputMode="numeric" pattern="[0-9]*" maxLength={6} placeholder="Senha de acesso" 
               required value={pin} onChange={e => setPin(e.target.value.replace(/\D/g, ''))}
               style={{ flex: 1, border: 'none', background: 'transparent', padding: '12px', outline: 'none', fontSize: '15px' }}
             />
@@ -73,16 +80,15 @@ export default function Login() {
             </span>
           )}
 
-          <button type="submit" disabled={loading || pin.length < 4} style={{ width: '100%', padding: '14px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer', marginTop: '5px', opacity: loading || pin.length < 4 ? 0.7 : 1 }}>
-            {loading ? 'Acessando...' : 'Entrar no Sistema'}
+          <button type="submit" disabled={loading || pin.length < 4} style={{ width: '100%', padding: '14px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '16px', cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer', marginTop: '5px', transition: '0.2s', opacity: loading || pin.length < 4 ? 0.7 : 1 }}>
+            {loading ? 'Autenticando...' : 'Acessar Portal'}
           </button>
         </form>
 
-        {/* RODAPÉ COM AVISO DE SUPORTE */}
         <div style={{ marginTop: '24px', paddingTop: '20px', borderTop: '1px solid #e5e7eb', display: 'flex', gap: '10px', alignItems: 'flex-start', color: '#64748b' }}>
           <Info size={20} style={{ flexShrink: 0, marginTop: '2px', color: '#94a3b8' }} />
           <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5' }}>
-            Em caso de dúvidas, bloqueio de acesso ou necessidade de troca de senha, entre em contato com o <strong>responsável pelo sistema</strong> da drogaria.
+            Problemas com o acesso? Entre em contato com a Drogaria Torres Farma pelo WhatsApp.
           </p>
         </div>
 
