@@ -1,14 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { LogOut, PackageSearch, FileText } from 'lucide-react';
-import api from '../services/api'; // Ajuste o caminho se necessário
+import api from '../services/api';
 
 export default function FornecedorDashboard() {
   const [cotacoes, setCotacoes] = useState([]);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor';
-  const nomeFornecedor = localStorage.getItem('nomeFornecedor') || 'Fornecedor';
 
   useEffect(() => {
     const fetchMinhasCotacoes = async () => {
@@ -33,7 +32,6 @@ export default function FornecedorDashboard() {
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column' }}>
       
-      {/* HEADER EXCLUSIVO DO FORNECEDOR */}
       <header style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <PackageSearch size={28} color="#16a34a" />
@@ -55,7 +53,6 @@ export default function FornecedorDashboard() {
         </div>
       </header>
 
-      {/* ÁREA DE CONTEÚDO */}
       <main style={{ flex: 1, padding: '32px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         
         <div style={{ marginBottom: '24px' }}>
@@ -84,22 +81,29 @@ export default function FornecedorDashboard() {
                   </td>
                 </tr>
               ) : (
-                cotacoes.map(cotacao => (
-                  <tr key={cotacao.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                    <td style={{ padding: '16px 24px', fontWeight: '600', color: '#334155' }}>#{cotacao.id}</td>
-                    <td style={{ padding: '16px 24px', color: '#64748b' }}>{cotacao.dataEnvio || 'Data não informada'}</td>
-                    <td style={{ padding: '16px 24px' }}>
-                      <span style={{ padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', backgroundColor: '#fef3c7', color: '#b45309' }}>
-                        Pendente de Resposta
-                      </span>
-                    </td>
-                    <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                      <button style={{ backgroundColor: '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
-                        Responder
-                      </button>
-                    </td>
-                  </tr>
-                ))
+                cotacoes.map(vinculo => {
+                  const idCotacao = vinculo.cotacao ? vinculo.cotacao.id : vinculo.id;
+                  const dataEnvio = vinculo.cotacao ? (vinculo.cotacao.dataCriacao || 'Data não informada') : (vinculo.dataEnvio || 'Data não informada');
+                  
+                  return (
+                    <tr key={vinculo.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <td style={{ padding: '16px 24px', fontWeight: '600', color: '#334155' }}>#{idCotacao}</td>
+                      <td style={{ padding: '16px 24px', color: '#64748b' }}>{dataEnvio}</td>
+                      <td style={{ padding: '16px 24px' }}>
+                        <span style={{ padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', backgroundColor: '#fef3c7', color: '#b45309' }}>
+                          Pendente
+                        </span>
+                      </td>
+                      <td style={{ padding: '16px 24px', textAlign: 'right' }}>
+                        <button 
+                          onClick={() => navigate(`/responder-cotacao/${idCotacao}`)}
+                          style={{ backgroundColor: '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                          Responder
+                        </button>
+                      </td>
+                    </tr>
+                  )
+                })
               )}
             </tbody>
           </table>

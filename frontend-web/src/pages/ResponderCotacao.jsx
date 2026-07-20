@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Lock } from 'lucide-react';
+import { Lock, ArrowLeft } from 'lucide-react';
 
 export default function ResponderCotacao() {
   const { idCotacao } = useParams();
+  const navigate = useNavigate(); // Hook de navegação inserido
   
-  // Lê diretamente os dados salvos pelo Login Principal
   const usuarioId = localStorage.getItem('usuarioId');
   const nomeUsuario = localStorage.getItem('nomeUsuario');
   
@@ -167,6 +167,11 @@ export default function ResponderCotacao() {
 
       await api.post('/api/fornecedor/salvar-respostas', payload);
       setEnviado(true);
+      
+      setTimeout(() => {
+        navigate('/portal-fornecedor');
+      }, 3000);
+
     } catch (error) {
       console.error('Erro ao enviar:', error);
       alert('Erro ao enviar cotação.');
@@ -233,14 +238,26 @@ export default function ResponderCotacao() {
         <h2 style={{ marginBottom: '10px' }}>✅ Proposta Enviada!</h2>
         <p>Obrigado, <strong>{nomeUsuario}</strong>!</p>
         <p>Sua proposta foi registrada com segurança no sistema.</p>
+        <p style={{ fontSize: '14px', marginTop: '15px', color: '#64748b' }}>Retornando ao painel em instantes...</p>
       </div>
     );
   }
 
   return (
     <div style={styles.container}>
+      {/* CABEÇALHO COM O BOTÃO DE VOLTAR NO CANTO ESQUERDO */}
       <div style={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', flexWrap: 'wrap', gap: '10px'}}>
-        <h1 style={{...styles.header, margin: 0}}>Cotação #{idCotacao}</h1>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          <button 
+            onClick={() => navigate('/portal-fornecedor')}
+            style={{ display: 'flex', alignItems: 'center', gap: '5px', padding: '8px 12px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+          >
+            <ArrowLeft size={16} /> Voltar
+          </button>
+          <h1 style={{...styles.header, margin: 0}}>Cotação #{idCotacao}</h1>
+        </div>
+        
         <div style={{background: '#dbeafe', color: '#1e40af', padding: '8px 12px', borderRadius: '8px', fontSize: '14px', fontWeight: 'bold'}}>
           Olá, {nomeUsuario}
         </div>
