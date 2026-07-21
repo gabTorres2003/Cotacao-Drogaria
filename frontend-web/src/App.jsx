@@ -8,6 +8,8 @@ import Fornecedores from './pages/Fornecedores'
 import Relatorios from './pages/Relatorios'
 import Usuarios from './pages/Usuarios'
 import FornecedorDashboard from './pages/FornecedorDashboard' 
+import Pedidos from './pages/Pedidos' 
+import PedidoDetalhes from './pages/PedidoDetalhes'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
@@ -31,6 +33,8 @@ function App() {
         <Route path="/cotacoes" element={<RotaPrivada><Cotacoes /></RotaPrivada>} />
         <Route path="/fornecedores" element={<RotaPrivada><Fornecedores /></RotaPrivada>} />
         <Route path="/cotacao/:id" element={<RotaPrivada><CotacaoDetalhes /></RotaPrivada>} />
+        <Route path="/pedidos" element={<RotaPrivada><Pedidos /></RotaPrivada>} />
+        <Route path="/pedidos/:id" element={<RotaPrivada><PedidoDetalhes /></RotaPrivada>} />
         <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
         <Route

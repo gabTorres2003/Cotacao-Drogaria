@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LayoutDashboard, Users, FileSpreadsheet, Settings, Pill, UserCog, LogOut, Lock } from 'lucide-react';
+import { LayoutDashboard, Users, FileSpreadsheet, Settings, Pill, UserCog, LogOut, Lock, ShoppingCart } from 'lucide-react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 
@@ -17,6 +17,7 @@ export default function Sidebar() {
   }, []);
 
   const isActive = (path) => location.pathname === path ? 'menu-item active' : 'menu-item';
+  const isMenuActive = (basePath) => location.pathname.startsWith(basePath) ? 'menu-item active' : 'menu-item';
 
   const handleLogout = () => {
     localStorage.clear();
@@ -48,16 +49,22 @@ export default function Sidebar() {
 
         {/* Flex 1 empurra tudo que está abaixo dele para o fim da tela */}
         <nav style={{ flex: 1, overflowY: 'auto' }}>
-          <Link to="/cotacoes" className={isActive('/cotacoes')} style={{ textDecoration: 'none' }}>
+          <Link to="/cotacoes" className={isMenuActive('/cotacoes')} style={{ textDecoration: 'none' }}>
             <LayoutDashboard size={20} /> Cotação
           </Link>
-          <Link to="/fornecedores" className={isActive('/fornecedores')} style={{ textDecoration: 'none' }}>
+          
+          {/* Link para Pedidos */}
+          <Link to="/pedidos" className={isMenuActive('/pedidos')} style={{ textDecoration: 'none' }}>
+            <ShoppingCart size={20} /> Pedidos
+          </Link>
+
+          <Link to="/fornecedores" className={isMenuActive('/fornecedores')} style={{ textDecoration: 'none' }}>
             <Users size={20} /> Fornecedores
           </Link>
-          <Link to="/usuarios" className={isActive('/usuarios')} style={{ textDecoration: 'none' }}>
+          <Link to="/usuarios" className={isMenuActive('/usuarios')} style={{ textDecoration: 'none' }}>
             <UserCog size={20} /> Usuários
           </Link>
-          <Link to="/relatorios" className={isActive('/relatorios')} style={{ textDecoration: 'none' }}>
+          <Link to="/relatorios" className={isMenuActive('/relatorios')} style={{ textDecoration: 'none' }}>
             <FileSpreadsheet size={20} /> Relatórios
           </Link>
           <div className="menu-item">
