@@ -14,8 +14,6 @@ import {
   Save,
   X,
 } from 'lucide-react'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -102,36 +100,7 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  const trocarFornecedor = (idItem, novoFornecedor) => {
-    setDecisaoCompra((prev) => ({ ...prev, [idItem]: novoFornecedor }))
-  }
-
-  // Tratamento seguro para formatação de moeda e datas
-  const fMoney = (v) =>
-    v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
-    
-  const fData = (dataIso) => {
-    if (!dataIso) return '-';
-    return new Date(dataIso + 'T12:00:00').toLocaleDateString('pt-BR');
-  };
-
-  const gerarPDF = (nomeFornecedor, itens) => {
-    /* ... */
-  }
-  const marcarComoEnviado = async (nomeFornecedor) => {
-    /* ... */
-  }
-  const enviarPedidoWhatsApp = (nomeFornecedor, itensDoPedido) => {
-    /* ... */
-  }
-
-  const RenderPedidos = () => {
-    return (
-      <div>Visualização de pedidos omitida para focar na tabela principal.</div>
-    )
-  }
-
-const handleGerarPedidos = async () => {
+  const handleGerarPedidos = async () => {
     const pedidosPorFornecedor = {}
 
     Object.entries(decisaoCompra).forEach(([idItem, fornecedorNome]) => {
@@ -178,11 +147,13 @@ const handleGerarPedidos = async () => {
     }
   }
 
-{cotacao.status === 'FINALIZADA' && (
-    <button onClick={() => gerarPedido(cotacao.fornecedorVencedorId)} className="bg-blue-600 text-white p-2 rounded">
-        Gerar Pedidos de Compra
-    </button>
-)}
+  const fMoney = (v) =>
+    v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+    
+  const fData = (dataIso) => {
+    if (!dataIso) return '-';
+    return new Date(dataIso + 'T12:00:00').toLocaleDateString('pt-BR');
+  };
 
   const RenderTabela = () => (
     <div style={styles.card}>
@@ -220,7 +191,6 @@ const handleGerarPedidos = async () => {
         <tbody>
           {relatorio.map((item) => (
             <tr key={item.idItem}>
-              {/* NOME DO PRODUTO */}
               <td style={styles.td}>
                 {editandoItem === item.idItem ? (
                   <input
@@ -234,8 +204,6 @@ const handleGerarPedidos = async () => {
                   <strong>{item.nomeProduto}</strong>
                 )}
               </td>
-
-              {/* QUANTIDADE */}
               <td style={styles.td}>
                 {editandoItem === item.idItem ? (
                   <input
@@ -254,22 +222,18 @@ const handleGerarPedidos = async () => {
                 )}
               </td>
 
-              {/* DADOS EXTRAS DO DNA - Utilizando os nomes atualizados do DTO e o fData para as datas */}
               <td style={styles.td}>{item.estoque ?? '-'}</td>
               <td style={styles.td}>{item.vendidoNoMes ?? '-'}</td>
               <td style={styles.td}>{item.vendidoAposUltCompra ?? '-'}</td>
               <td style={styles.td}>{fData(item.ultCompraData)}</td>
               <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
               <td style={styles.td}>{fData(item.ultVendaData)}</td>
-
-              {/* PREÇO ÚLTIMA COMPRA (Referente ao PRECOCUSTO do DNA) */}
               <td
                 style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}
               >
                 {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
               </td>
 
-              {/* FORNECEDORES E PREÇOS */}
               {fornecedores.map((f) => {
                 const precoFornecedor = item.precosPorFornecedor[f]
                 const isWinner = f === item.fornecedorVencedor
@@ -298,7 +262,6 @@ const handleGerarPedidos = async () => {
                 )
               })}
 
-              {/* AÇÕES (EDITAR E REMOVER) */}
               <td style={{ ...styles.td, textAlign: 'center' }}>
                 {editandoItem === item.idItem ? (
                   <div
