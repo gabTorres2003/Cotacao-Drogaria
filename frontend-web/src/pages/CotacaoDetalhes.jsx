@@ -131,25 +131,6 @@ export default function CotacaoDetalhes() {
     )
   }
 
-  const gerarPedido = async (fornecedorVencedorId) => {
-    const payload = {
-        cotacaoId: cotacao.id,
-        fornecedorId: fornecedorVencedorId,
-        itens: cotacao.itens.map(item => ({
-            itemCotacaoId: item.id,
-            quantidadePedida: item.quantidadeDesejada,
-            valorUnitarioPedido: item.melhorPreco
-        }))
-    };
-
-    await fetch('http://localhost:8080/api/pedidos/gerar', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-    });
-    alert('Pedido gerado com sucesso!');
-};
-
 const handleGerarPedidos = async () => {
     const pedidosPorFornecedor = {}
 
