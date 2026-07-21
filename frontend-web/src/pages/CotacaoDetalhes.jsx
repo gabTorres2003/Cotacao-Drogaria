@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import jsPDF from 'jspdf'
+import autoTable from 'jspdf-autotable'
 import {
   MessageCircle,
   FileText,
@@ -23,6 +25,9 @@ export default function CotacaoDetalhes() {
   const [loading, setLoading] = useState(true)
   const [modoVisualizacao, setModoVisualizacao] = useState('tabela')
   const [decisaoCompra, setDecisaoCompra] = useState({})
+  const [showModal, setShowModal] = useState(false)
+  const [pedidosGerados, setPedidosGerados] = useState([])
+
   const [enviados, setEnviados] = useState(() => {
     const salvos = localStorage.getItem(`enviados_cotacao_${id}`)
     return salvos ? JSON.parse(salvos) : []
@@ -88,9 +93,7 @@ export default function CotacaoDetalhes() {
   }
 
   const deletarItem = async (idItem) => {
-    if (
-      window.confirm('Tem certeza que deseja remover este produto da cotação?')
-    ) {
+    if (window.confirm('Tem certeza que deseja remover este produto da cotação?')) {
       try {
         await api.delete(`/api/cotacao/item/${idItem}`)
         carregarRelatorio()
@@ -100,7 +103,7 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  const handleGerarPedidos = async () => {
+  const handleGerarPedidos = () => {
     const pedidosPorFornecedor = {}
 
     Object.entries(decisaoCompra).forEach(([idItem, fornecedorNome]) => {
@@ -108,20 +111,25 @@ export default function CotacaoDetalhes() {
 
       if (!pedidosPorFornecedor[fornecedorNome]) {
         pedidosPorFornecedor[fornecedorNome] = {
-          cotacaoId: Number(id),
           fornecedorNome: fornecedorNome,
           itens: [],
+          total: 0
         }
       }
 
       const itemRelatorio = relatorio.find((r) => r.idItem === Number(idItem))
       
       if (itemRelatorio) {
+        const qtd = itemRelatorio.quantidade;
+        const preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
+        
         pedidosPorFornecedor[fornecedorNome].itens.push({
-          itemCotacaoId: Number(idItem),
-          quantidadePedida: itemRelatorio.quantidade,
-          valorUnitarioPedido: itemRelatorio.precosPorFornecedor[fornecedorNome],
+          nomeProduto: itemRelatorio.nomeProduto,
+          quantidadePedida: qtd,
+          valorUnitarioPedido: preco,
+          subtotal: qtd * preco
         })
+        pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
       }
     })
 
@@ -132,19 +140,40 @@ export default function CotacaoDetalhes() {
       return
     }
 
-    try {
-      setLoading(true)
-      for (const payload of pedidosArray) {
-        await api.post('/api/pedidos/gerar', payload)
-      }
-      alert('Pedidos gerados com sucesso! Acompanhe na aba Pedidos.')
-      navigate('/pedidos') 
-    } catch (error) {
-      console.error('Erro ao gerar pedidos:', error)
-      alert('Ocorreu um erro ao gerar os pedidos.')
-    } finally {
-      setLoading(false)
-    }
+    setPedidosGerados(pedidosArray)
+    setShowModal(true)
+  }
+
+  const gerarPDF = (pedido) => {
+    const doc = new jsPDF()
+    const dataAtual = new Date()
+    const diaFormatado = dataAtual.toLocaleDateString('pt-BR')
+    const diaArquivo = diaFormatado.replace(/\//g, '-') 
+    
+    doc.setFontSize(18)
+    doc.text(`Pedido de Compra`, 14, 20)
+    
+    doc.setFontSize(12)
+    doc.text(`Fornecedor: ${pedido.fornecedorNome}`, 14, 30)
+    doc.text(`Data: ${diaFormatado}`, 14, 36)
+    
+    const tableData = pedido.itens.map(item => [
+      item.nomeProduto,
+      `${item.quantidadePedida} un`,
+      fMoney(item.valorUnitarioPedido),
+      fMoney(item.subtotal)
+    ])
+
+    autoTable(doc, {
+      startY: 45,
+      head: [['Produto', 'Quantidade', 'Valor Unit.', 'Subtotal']],
+      body: tableData,
+      foot: [['', '', 'Total do Pedido:', fMoney(pedido.total)]],
+      theme: 'striped',
+      headStyles: { fillColor: [37, 99, 235] }
+    })
+
+    doc.save(`cotacao dia ${diaArquivo} ${pedido.fornecedorNome}.pdf`)
   }
 
   const fMoney = (v) =>
@@ -228,9 +257,7 @@ export default function CotacaoDetalhes() {
               <td style={styles.td}>{fData(item.ultCompraData)}</td>
               <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
               <td style={styles.td}>{fData(item.ultVendaData)}</td>
-              <td
-                style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}
-              >
+              <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
                 {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
               </td>
 
@@ -264,13 +291,7 @@ export default function CotacaoDetalhes() {
 
               <td style={{ ...styles.td, textAlign: 'center' }}>
                 {editandoItem === item.idItem ? (
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '5px',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                     <button
                       onClick={() => salvarEdicao(item.idItem)}
                       title="Salvar"
@@ -287,13 +308,7 @@ export default function CotacaoDetalhes() {
                     </button>
                   </div>
                 ) : (
-                  <div
-                    style={{
-                      display: 'flex',
-                      gap: '5px',
-                      justifyContent: 'center',
-                    }}
-                  >
+                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                     <button
                       onClick={() => iniciarEdicao(item)}
                       title="Editar Produto"
@@ -319,73 +334,27 @@ export default function CotacaoDetalhes() {
   )
 
   const styles = {
-    container: {
-      padding: '20px',
-      backgroundColor: '#f3f4f6',
-      minHeight: '100vh',
-      fontFamily: 'Segoe UI',
-    },
-    header: {
-      marginBottom: '20px',
-      display: 'flex',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-    },
+    container: { padding: '20px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
+    header: { marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
-    card: {
-      backgroundColor: 'white',
-      padding: '20px',
-      borderRadius: '12px',
-      boxShadow: '0 4px 6px rgba(0,0,0,0.05)',
-      overflowX: 'auto',
-    },
+    card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-    th: {
-      textAlign: 'left',
-      padding: '12px',
-      borderBottom: '2px solid #e5e7eb',
-      color: '#4b5563',
-      fontSize: '13px',
-    },
-    td: {
-      padding: '12px',
-      borderBottom: '1px solid #e5e7eb',
-      color: '#374151',
-      fontSize: '13px',
-    },
-    btnVoltar: {
-      padding: '10px 20px',
-      backgroundColor: '#6b7280',
-      color: 'white',
-      border: 'none',
-      borderRadius: '6px',
-      cursor: 'pointer',
-    },
+    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
+    td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' },
     toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px' },
     toggleBtn: (ativo) => ({
-      display: 'flex',
-      alignItems: 'center',
-      gap: '8px',
-      padding: '10px 20px',
-      borderRadius: '30px',
-      border: 'none',
-      cursor: 'pointer',
-      fontWeight: '600',
-      backgroundColor: ativo ? '#2563eb' : 'white',
-      color: ativo ? 'white' : '#4b5563',
+      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '30px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#4b5563'
     }),
-    inputEdicao: {
-      padding: '4px 8px',
-      border: '1px solid #d1d5db',
-      borderRadius: '4px',
-      fontSize: '13px',
+    inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
+    btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
+    modalOverlay: {
+      position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+      backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
     },
-    btnIcon: {
-      background: 'none',
-      border: 'none',
-      cursor: 'pointer',
-      padding: '4px',
-    },
+    modalContent: {
+      backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '85vh', overflowY: 'auto'
+    }
   }
 
   return (
@@ -401,7 +370,6 @@ export default function CotacaoDetalhes() {
             }}
             onClick={handleGerarPedidos}
             disabled={Object.keys(decisaoCompra).length === 0}
-            title="Gera os pedidos automaticamente baseados nos menores preços"
           >
             <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
             Gerar Pedidos de Compra
@@ -423,6 +391,68 @@ export default function CotacaoDetalhes() {
       </div>
 
       {loading ? <p>Carregando dados da cotação...</p> : <RenderTabela />}
+
+      {/* MODAL DE RESUMO DE PEDIDOS */}
+      {showModal && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Resumo de Vencedores</h2>
+              <button onClick={() => setShowModal(false)} style={styles.btnIcon} title="Fechar">
+                <X size={24} color="#4b5563" />
+              </button>
+            </div>
+            
+            {pedidosGerados.map((pedido, index) => (
+              <div key={index} style={{ marginBottom: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                  <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>
+                    {pedido.fornecedorNome}
+                  </h3>
+                  <button 
+                    onClick={() => gerarPDF(pedido)}
+                    style={{ ...styles.btnVoltar, backgroundColor: '#2563eb', padding: '8px 16px' }}
+                  >
+                    <FileText size={16} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                    Gerar PDF
+                  </button>
+                </div>
+                
+                <table style={{ ...styles.table, backgroundColor: 'white' }}>
+                  <thead>
+                    <tr>
+                      <th style={styles.th}>Produto</th>
+                      <th style={styles.th}>Qtd</th>
+                      <th style={styles.th}>Preço</th>
+                      <th style={styles.th}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pedido.itens.map((item, idx) => (
+                      <tr key={idx}>
+                        <td style={styles.td}>{item.nomeProduto}</td>
+                        <td style={styles.td}>{item.quantidadePedida}</td>
+                        <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
+                        <td style={styles.td}>{fMoney(item.subtotal)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                  <tfoot>
+                    <tr>
+                      <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total do Fornecedor:</td>
+                      <td style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a' }}>{fMoney(pedido.total)}</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            ))}
+            
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+              <button onClick={() => setShowModal(false)} style={styles.btnVoltar}>Voltar à Tabela</button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

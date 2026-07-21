@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
+import api from '../services/api';
 import ReceberPedidoModal from '../components/ReceberPedidoModal';
 import DevolucaoModal from '../components/DevolucaoModal';
 
@@ -9,21 +10,25 @@ export default function PedidoDetalhes() {
     const [isReceberModalOpen, setIsReceberModalOpen] = useState(false);
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
 
-    const carregarPedido = () => {
-        fetch(`http://localhost:8080/api/pedidos/${id}`)
-            .then(res => res.json())
-            .then(data => setPedido(data));
+    const carregarPedido = async () => {
+        try {
+            const response = await api.get(`/api/pedidos/${id}`);
+            setPedido(response.data);
+        } catch (error) {
+            console.error('Erro ao carregar pedido:', error);
+        }
     };
 
     useEffect(() => {
         carregarPedido();
     }, [id]);
 
-    if (!pedido) return <div>Carregando...</div>;
+    if (!pedido) return <div className="p-6">Carregando...</div>
+    const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-4">Pedido #{pedido.id} - {pedido.fornecedorNome}</h1>
+            <h1 className="text-2xl font-bold mb-4">Pedido #{pedido.id} - {fornecedorNome}</h1>
             
             <div className="bg-gray-50 p-4 rounded mb-6 flex justify-between items-center">
                 <div>

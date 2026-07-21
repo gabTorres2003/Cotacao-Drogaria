@@ -58,7 +58,8 @@ export default function Pedidos() {
 
   const pedidosFiltrados = pedidos.filter((p) => {
     const textoBusca = busca.toLowerCase()
-    const matchTexto = p.fornecedorNome?.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca)
+    const nomeFornecedor = p.fornecedor?.nome || p.fornecedorNome || ''
+    const matchTexto = nomeFornecedor.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca)
     const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
     return matchTexto && matchStatus
   })
@@ -84,7 +85,7 @@ export default function Pedidos() {
       case 'ENTREGUE_SUCESSO': return { texto: 'Entregue', classe: 'status-FINALIZADA' }
       case 'ENTREGUE_COM_FALTA': return { texto: 'Entregue c/ Falta', classe: 'status-RESPONDIDA_PARCIALMENTE' }
       case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência', classe: 'status-ABERTA' }
-      case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução', classe: 'status-ABERTA' } // Reutilizando vermelho/alerta se houver no CSS
+      case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução', classe: 'status-ABERTA' }
       default: return { texto: status, classe: 'bg-gray-100 text-gray-800' }
     }
   }
@@ -170,10 +171,12 @@ export default function Pedidos() {
               ) : (
                 pedidosFiltrados.map((p) => {
                   const statusInfo = getStatusFormatado(p.status)
+                  const nomeFornecedor = p.fornecedor?.nome || p.fornecedorNome || 'N/A'
+                  
                   return (
                     <tr key={p.id}>
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
-                      <td><span style={{ fontWeight: '500', color: '#111827', fontSize: '15px' }}>{p.fornecedorNome}</span></td>
+                      <td><span style={{ fontWeight: '500', color: '#111827', fontSize: '15px' }}>{nomeFornecedor}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
                       <td><span className={`status-badge ${statusInfo.classe}`}>{statusInfo.texto}</span></td>
                       <td>
