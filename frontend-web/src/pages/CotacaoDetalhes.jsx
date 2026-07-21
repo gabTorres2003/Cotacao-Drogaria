@@ -131,6 +131,32 @@ export default function CotacaoDetalhes() {
     )
   }
 
+  const gerarPedido = async (fornecedorVencedorId) => {
+    const payload = {
+        cotacaoId: cotacao.id,
+        fornecedorId: fornecedorVencedorId,
+        itens: cotacao.itens.map(item => ({
+            itemCotacaoId: item.id,
+            quantidadePedida: item.quantidadeDesejada,
+            valorUnitarioPedido: item.melhorPreco
+        }))
+    };
+
+    await fetch('http://localhost:8080/api/pedidos/gerar', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+    });
+    alert('Pedido gerado com sucesso!');
+};
+
+// No JSX (botão condicional)
+{cotacao.status === 'FINALIZADA' && (
+    <button onClick={() => gerarPedido(cotacao.fornecedorVencedorId)} className="bg-blue-600 text-white p-2 rounded">
+        Gerar Pedidos de Compra
+    </button>
+)}
+
   const RenderTabela = () => (
     <div style={styles.card}>
       <table style={styles.table}>

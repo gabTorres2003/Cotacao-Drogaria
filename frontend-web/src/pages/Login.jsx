@@ -12,8 +12,6 @@ export default function Login() {
   
   const navigate = useNavigate();
   const location = useLocation();
-  
-  // Captura a rota que o usuário tentou acessar antes de ser barrado (se houver)
   const from = location.state?.from || null;
 
   const handleLogin = async (e) => {
