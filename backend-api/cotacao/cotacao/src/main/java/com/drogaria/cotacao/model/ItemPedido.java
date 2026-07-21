@@ -1,22 +1,21 @@
 package com.drogaria.cotacao.model;
 
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
+import com.fasterxml.jackson.annotation.JsonBackReference;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-@Data
-@NoArgsConstructor
 @Entity
 @Table(name = "tb_itens_pedido")
+@Data
 public class ItemPedido {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
     @ManyToOne
     @JoinColumn(name = "pedido_id", nullable = false)
+    @JsonBackReference
     private Pedido pedido;
 
     @ManyToOne
@@ -35,10 +34,10 @@ public class ItemPedido {
     @Column(name = "valor_unitario_real")
     private Double valorUnitarioReal;
 
+    @Column(name = "observacao_devolucao")
+    private String observacaoDevolucao;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status_recebimento")
     private StatusItemRecebimento statusRecebimento;
-
-    @Column(name = "observacao_devolucao")
-    private String observacaoDevolucao;
 }

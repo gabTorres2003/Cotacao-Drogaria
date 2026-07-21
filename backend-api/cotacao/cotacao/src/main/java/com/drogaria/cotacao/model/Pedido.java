@@ -1,21 +1,16 @@
 package com.drogaria.cotacao.model;
 
 import com.drogaria.cotacao.model.enums.StatusPedido;
+import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
 import lombok.Data;
-import lombok.EqualsAndHashCode;
-import lombok.NoArgsConstructor;
-import lombok.ToString;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Data
-@NoArgsConstructor
 @Entity
 @Table(name = "tb_pedidos")
+@Data
 public class Pedido {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -28,6 +23,12 @@ public class Pedido {
     @JoinColumn(name = "fornecedor_id", nullable = false)
     private Fornecedor fornecedor;
 
+    @Column(name = "valor_total_pedido")
+    private Double valorTotalPedido;
+
+    @Column(name = "valor_total_real")
+    private Double valorTotalReal;
+
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
@@ -35,14 +36,7 @@ public class Pedido {
     @Column(name = "status", nullable = false)
     private StatusPedido status;
 
-    @Column(name = "valor_total_pedido")
-    private Double valorTotalPedido;
-
-    @Column(name = "valor_total_real")
-    private Double valorTotalReal;
-
-    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
-    @ToString.Exclude
-    @EqualsAndHashCode.Exclude
+    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
+    @JsonManagedReference
     private List<ItemPedido> itens;
 }

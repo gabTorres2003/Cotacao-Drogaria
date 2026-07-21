@@ -1,16 +1,26 @@
 package com.drogaria.cotacao.service;
 
+import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
+import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
+import com.drogaria.cotacao.model.Cotacao;
+import com.drogaria.cotacao.model.Fornecedor;
+import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
+import com.drogaria.cotacao.repository.CotacaoRepository;
+import com.drogaria.cotacao.repository.FornecedorRepository;
+import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Service
@@ -19,6 +29,9 @@ public class PedidoService {
 
     private final PedidoRepository pedidoRepository;
     private final ItemPedidoRepository itemPedidoRepository;
+    private final CotacaoRepository cotacaoRepository;
+    private final FornecedorRepository fornecedorRepository;
+    private final ItemCotacaoRepository itemCotacaoRepository;
 
     public List<Pedido> listarTodos() {
         return pedidoRepository.findAll();
@@ -97,6 +110,46 @@ public class PedidoService {
     public Pedido atualizarStatus(Long pedidoId, StatusPedido novoStatus) {
         Pedido pedido = buscarPorId(pedidoId);
         pedido.setStatus(novoStatus);
+        return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido gerarPedidoEmLote(GerarPedidoRequestDTO dto) {
+        Cotacao cotacao = cotacaoRepository.findById(dto.getCotacaoId())
+                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+
+        Fornecedor fornecedor = fornecedorRepository.findByNome(dto.getFornecedorNome())
+                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + dto.getFornecedorNome()));
+
+        Pedido pedido = new Pedido();
+        pedido.setCotacao(cotacao);
+        pedido.setFornecedor(fornecedor);
+        pedido.setStatus(StatusPedido.PENDENTE_ENTREGA);
+        pedido.setDataCriacao(LocalDateTime.now());
+
+        double valorTotal = 0.0;
+        List<ItemPedido> itens = new ArrayList<>();
+
+        for (ItemGerarPedidoDTO itemDto : dto.getItens()) {
+            ItemCotacao itemCotacao = itemCotacaoRepository.findById(itemDto.getItemCotacaoId())
+                    .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
+
+            ItemPedido itemPedido = new ItemPedido();
+            itemPedido.setPedido(pedido);
+            itemPedido.setItemCotacao(itemCotacao);
+            itemPedido.setQuantidadePedida(itemDto.getQuantidadePedida());
+            itemPedido.setValorUnitarioPedido(itemDto.getValorUnitarioPedido());
+            // Inicia zerado a conferência
+            itemPedido.setQuantidadeReal(0);
+            itemPedido.setValorUnitarioReal(0.0);
+
+            valorTotal += (itemDto.getQuantidadePedida() * itemDto.getValorUnitarioPedido());
+            itens.add(itemPedido);
+        }
+
+        pedido.setValorTotalPedido(valorTotal);
+        pedido.setItens(itens);
+
         return pedidoRepository.save(pedido);
     }
 }

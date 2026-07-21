@@ -150,7 +150,53 @@ export default function CotacaoDetalhes() {
     alert('Pedido gerado com sucesso!');
 };
 
-// No JSX (botão condicional)
+const handleGerarPedidos = async () => {
+    const pedidosPorFornecedor = {}
+
+    Object.entries(decisaoCompra).forEach(([idItem, fornecedorNome]) => {
+      if (fornecedorNome === 'Sem ofertas') return
+
+      if (!pedidosPorFornecedor[fornecedorNome]) {
+        pedidosPorFornecedor[fornecedorNome] = {
+          cotacaoId: Number(id),
+          fornecedorNome: fornecedorNome,
+          itens: [],
+        }
+      }
+
+      const itemRelatorio = relatorio.find((r) => r.idItem === Number(idItem))
+      
+      if (itemRelatorio) {
+        pedidosPorFornecedor[fornecedorNome].itens.push({
+          itemCotacaoId: Number(idItem),
+          quantidadePedida: itemRelatorio.quantidade,
+          valorUnitarioPedido: itemRelatorio.precosPorFornecedor[fornecedorNome],
+        })
+      }
+    })
+
+    const pedidosArray = Object.values(pedidosPorFornecedor)
+    
+    if (pedidosArray.length === 0) {
+      alert('Nenhum fornecedor vencedor selecionado para gerar pedido.')
+      return
+    }
+
+    try {
+      setLoading(true)
+      for (const payload of pedidosArray) {
+        await api.post('/api/pedidos/gerar', payload)
+      }
+      alert('Pedidos gerados com sucesso! Acompanhe na aba Pedidos.')
+      navigate('/pedidos') 
+    } catch (error) {
+      console.error('Erro ao gerar pedidos:', error)
+      alert('Ocorreu um erro ao gerar os pedidos.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
 {cotacao.status === 'FINALIZADA' && (
     <button onClick={() => gerarPedido(cotacao.fornecedorVencedorId)} className="bg-blue-600 text-white p-2 rounded">
         Gerar Pedidos de Compra
@@ -402,9 +448,25 @@ export default function CotacaoDetalhes() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Cotação #{id}</h1>
-        <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>
-          Voltar ao Painel
-        </button>
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button
+            style={{ 
+              ...styles.btnVoltar, 
+              backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af',
+              cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed'
+            }}
+            onClick={handleGerarPedidos}
+            disabled={Object.keys(decisaoCompra).length === 0}
+            title="Gera os pedidos automaticamente baseados nos menores preços"
+          >
+            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+            Gerar Pedidos de Compra
+          </button>
+          
+          <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>
+            Voltar ao Painel
+          </button>
+        </div>
       </div>
 
       <div style={styles.toggleContainer}>

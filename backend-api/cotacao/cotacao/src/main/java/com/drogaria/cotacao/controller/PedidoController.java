@@ -1,7 +1,7 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
-import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.service.PedidoService;
@@ -36,8 +36,8 @@ public class PedidoController {
     }
 
     @PostMapping("/gerar")
-    public ResponseEntity<Pedido> gerarPedido(@RequestBody Pedido pedido) {
-        Pedido pedidoSalvo = pedidoService.salvarPedido(pedido);
+    public ResponseEntity<Pedido> gerarPedido(@RequestBody GerarPedidoRequestDTO requestDTO) {
+        Pedido pedidoSalvo = pedidoService.gerarPedidoEmLote(requestDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
     }
 
