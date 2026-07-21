@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.enums.StatusPedido;
@@ -40,17 +41,14 @@ public class PedidoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
     }
 
-    // Endpoint utilizado no "Modal de Receber Pedido" para enviar a conferência cega
     @PutMapping("/{id}/receber")
     public ResponseEntity<Pedido> processarRecebimento(
             @PathVariable Long id, 
-            @RequestBody List<ItemPedido> itensConferidos) {
-        
-        Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, itensConferidos);
+            @RequestBody ReceberPedidoRequestDTO requestDTO) { 
+        Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO.getItens());
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
-    // Endpoint para mudar status manuais, como concluir uma devolução
     @PatchMapping("/{id}/status")
     public ResponseEntity<Pedido> atualizarStatus(
             @PathVariable Long id, 

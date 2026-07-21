@@ -25,23 +25,27 @@ public class SecurityConfigurations {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
         return httpSecurity
-                .cors(Customizer.withDefaults()) 
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authorize -> authorize
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/swagger-ui/**", "/v3/api-docs/**", "/swagger-ui.html").permitAll()
-                        
+
                         // ROTAS PÚBLICAS REAIS
                         .requestMatchers(HttpMethod.POST, "/auth/login").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/login").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/comparativo/listar-itens/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/fornecedor/salvar-respostas").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna")
+                        .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao", "/api/cotacao/**").permitAll()
-                        
-                        .anyRequest().authenticated()
-                )
+                        .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos/**").permitAll()
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").permitAll()
+
+                        .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(Customizer.withDefaults()))
                 .build();
     }

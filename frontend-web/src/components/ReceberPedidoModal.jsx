@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import api from '../services/api'; 
 
 export default function ReceberPedidoModal({ pedidoId, itens, onClose, onSuccess }) {
     const [conferencia, setConferencia] = useState(
@@ -16,7 +17,7 @@ export default function ReceberPedidoModal({ pedidoId, itens, onClose, onSuccess
         ));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e) => {
         e.preventDefault();
         
         const payload = {
@@ -29,13 +30,13 @@ export default function ReceberPedidoModal({ pedidoId, itens, onClose, onSuccess
             }))
         };
 
-        fetch(`http://localhost:8080/api/pedidos/${pedidoId}/receber`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-        }).then(res => {
-            if(res.ok) onSuccess();
-        });
+        try {
+            await api.put(`/api/pedidos/${pedidoId}/receber`, payload);
+            onSuccess(); 
+        } catch (error) {
+            console.error("Erro ao finalizar conferência:", error);
+            alert("Ocorreu um erro ao processar o recebimento do pedido.");
+        }
     };
 
     return (

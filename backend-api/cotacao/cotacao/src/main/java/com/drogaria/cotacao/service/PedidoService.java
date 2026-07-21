@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.service;
 
+import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
@@ -34,12 +35,9 @@ public class PedidoService {
 
     @Transactional
     public Pedido salvarPedido(Pedido pedido) {
-        // Garante que o status inicial seja Pendente de Entrega
         if (pedido.getStatus() == null) {
             pedido.setStatus(StatusPedido.PENDENTE_ENTREGA);
         }
-        
-        // Garante que a relação bidirecional seja salva corretamente
         if (pedido.getItens() != null) {
             pedido.getItens().forEach(item -> item.setPedido(pedido));
         }
@@ -48,7 +46,7 @@ public class PedidoService {
     }
 
     @Transactional
-    public Pedido processarRecebimento(Long pedidoId, List<ItemPedido> itensConferidos) {
+    public Pedido processarRecebimento(Long pedidoId, List<ItemRecebidoDTO> itensConferidos) {
         Pedido pedido = buscarPorId(pedidoId);
         
         boolean temFalta = false;
@@ -56,17 +54,14 @@ public class PedidoService {
         boolean temDevolucao = false;
         double valorTotalReal = 0.0;
 
-        for (ItemPedido itemConferido : itensConferidos) {
+        for (ItemRecebidoDTO itemConferido : itensConferidos) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
                     .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
-
-            // Atualiza os dados da conferência cega
             itemBanco.setQuantidadeReal(itemConferido.getQuantidadeReal());
             itemBanco.setValorUnitarioReal(itemConferido.getValorUnitarioReal());
-            itemBanco.setStatusRecebimento(itemConferido.getStatusRecebimento());
+            itemBanco.setStatusRecebimento(itemConferido.getStatusRecebimento()); 
             itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
 
-            // Cálculos para o status do pedido
             if (itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida()) {
                 temFalta = true;
             }
@@ -85,7 +80,6 @@ public class PedidoService {
 
         pedido.setValorTotalReal(valorTotalReal);
 
-        // Define o status do pedido baseado nas regras de negócio
         if (temDevolucao) {
             pedido.setStatus(StatusPedido.PENDENTE_DEVOLUCAO);
         } else if (temIncompatibilidadeValor) {
