@@ -35,7 +35,7 @@ public class ItemCotacao {
     @JsonIgnore
     private Cotacao cotacao;
 
-    @OneToMany(mappedBy = "itemCotacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "item", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<PrecoCotacao> precos;
 
     public Long getId() { return id; }
