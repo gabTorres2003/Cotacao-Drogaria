@@ -11,6 +11,7 @@ import FornecedorDashboard from './pages/FornecedorDashboard'
 import Pedidos from './pages/Pedidos' 
 import PedidoDetalhes from './pages/PedidoDetalhes'
 import SessionTimeout from './components/SessionTimeout'
+import PedidoConferencia from './pages/PedidoConferencia';
 import './App.css'
 
 // Componente que protege as rotas e guarda a intenção de redirecionamento
@@ -37,6 +38,7 @@ function App() {
         <Route path="/pedidos/:id" element={<RotaPrivada><PedidoDetalhes /></RotaPrivada>} />
         <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
+        <Route path="/pedido-conferencia" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
         <Route
           path="/responder-cotacao/:idCotacao"
           element={
