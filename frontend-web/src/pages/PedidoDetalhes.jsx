@@ -63,7 +63,9 @@ export default function PedidoDetalhes() {
                 <tbody className="text-center">
                     {pedido.itens?.map(item => (
                         <tr key={item.id}>
-                            <td className="py-2 px-4 border">{item.nomeProduto}</td>
+                            <td className="py-2 px-4 border">
+                                {item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
+                            </td>
                             <td className="py-2 px-4 border">{item.quantidadePedida}</td>
                             <td className="py-2 px-4 border">{item.quantidadeReal !== null ? item.quantidadeReal : '-'}</td>
                             <td className="py-2 px-4 border">{item.statusRecebimento || 'AGUARDANDO'}</td>
