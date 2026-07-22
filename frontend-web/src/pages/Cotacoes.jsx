@@ -97,7 +97,7 @@ export default function Cotacoes() {
     if (window.confirm('Tem certeza que deseja excluir esta cotação?')) {
         try {
             await api.delete(`/api/cotacao/${id}`);
-            setCotacoes(pedidos.filter(c => c.id !== id));
+            setCotacoes(cotacoes.filter(c => c.id !== id));
             alert('Cotação excluída com sucesso!');
         } catch (error) {
             console.error('Erro ao excluir:', error);
