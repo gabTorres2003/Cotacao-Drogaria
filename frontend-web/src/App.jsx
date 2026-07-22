@@ -36,9 +36,9 @@ function App() {
         <Route path="/cotacao/:id" element={<RotaPrivada><CotacaoDetalhes /></RotaPrivada>} />
         <Route path="/pedidos" element={<RotaPrivada><Pedidos /></RotaPrivada>} />
         <Route path="/pedidos/:id" element={<RotaPrivada><PedidoDetalhes /></RotaPrivada>} />
+        <Route path="/pedidos/:id/conferir" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
         <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
-        <Route path="/pedido-conferencia" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
         <Route
           path="/responder-cotacao/:idCotacao"
           element={
