@@ -10,6 +10,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+
 import java.util.Map;
 
 import java.time.LocalDateTime;
@@ -110,6 +111,12 @@ public class CotacaoController {
             return ResponseEntity.noContent().build();
         }
         return ResponseEntity.notFound().build();
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletarCotacao(@PathVariable Long id) {
+        cotacaoService.deletarCotacao(id);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/teste-firebird")

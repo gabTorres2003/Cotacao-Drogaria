@@ -40,6 +40,7 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.POST, "/api/cotacao/importar", "/api/cotacao/importar-dna")
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao", "/api/cotacao/**").permitAll()
+                        .requestMatchers(HttpMethod.DELETE, "/api/cotacao/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").permitAll()

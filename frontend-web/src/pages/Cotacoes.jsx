@@ -95,14 +95,16 @@ export default function Cotacoes() {
 
   const deletarCotacao = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta cotação?')) {
-      try {
-        await api.delete(`/api/cotacao/${id}`)
-        carregarCotacoes()
-      } catch (error) {
-        alert('Erro ao excluir cotação.')
-      }
+        try {
+            await api.delete(`/api/cotacao/${id}`);
+            setCotacoes(pedidos.filter(c => c.id !== id));
+            alert('Cotação excluída com sucesso!');
+        } catch (error) {
+            console.error('Erro ao excluir:', error);
+            alert('Erro ao excluir cotação.');
+        }
     }
-  }
+};
 
   const baixarRelatorioGeral = async (idCotacao) => {
     try {

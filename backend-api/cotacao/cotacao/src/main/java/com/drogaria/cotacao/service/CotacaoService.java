@@ -42,4 +42,12 @@ public class CotacaoService {
         
         return cotacaoRepository.save(novaCotacao);
     }
+
+    @Transactional
+    public void deletarCotacao(Long id) {
+        if (!cotacaoRepository.existsById(id)) {
+            throw new RuntimeException("Cotação não encontrada!");
+        }
+        cotacaoRepository.deleteById(id);
+    }
 }
