@@ -7,6 +7,9 @@ public class SalvarPrecoDTO {
     private Integer quantidadeDisponivel;
     private String observacao;
     private String produtoSubstituto;
+    private Double precoSubstituto;
+    private Integer quantidadeSubstituto;
+
     // Getters e Setters
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -25,4 +28,10 @@ public class SalvarPrecoDTO {
 
     public String getProdutoSubstituto() { return produtoSubstituto; }
     public void setProdutoSubstituto(String produtoSubstituto) { this.produtoSubstituto = produtoSubstituto; }
+
+    public Double getPrecoSubstituto() { return precoSubstituto; }
+    public void setPrecoSubstituto(Double precoSubstituto) { this.precoSubstituto = precoSubstituto; }
+
+    public Integer getQuantidadeSubstituto() { return quantidadeSubstituto; }
+    public void setQuantidadeSubstituto(Integer quantidadeSubstituto) { this.quantidadeSubstituto = quantidadeSubstituto; }
 }

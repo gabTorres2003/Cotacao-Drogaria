@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.repository;
 
+import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.PrecoCotacao;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -17,6 +18,7 @@ public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long
     List<PrecoCotacao> findByItem(ItemCotacao item);
     
     List<PrecoCotacao> findByItemIn(List<ItemCotacao> itens);
+    List<PrecoCotacao> findByFornecedorAndItemIn(Fornecedor fornecedor, List<ItemCotacao> itens);
     
     @Query("SELECT p FROM PrecoCotacao p " +
            "WHERE p.item.nomeProduto = :nomeProduto " +
