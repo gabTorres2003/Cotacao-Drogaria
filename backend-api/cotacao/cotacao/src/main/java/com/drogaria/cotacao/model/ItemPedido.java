@@ -2,12 +2,15 @@ package com.drogaria.cotacao.model;
 
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.fasterxml.jackson.annotation.JsonBackReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 @Entity
 @Table(name = "tb_itens_pedido")
-@Data
+@Getter
+@Setter
 public class ItemPedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -20,6 +23,7 @@ public class ItemPedido {
 
     @ManyToOne
     @JoinColumn(name = "item_cotacao_id", nullable = false)
+    @JsonIgnoreProperties({"cotacao", "itensPedido"}) 
     private ItemCotacao itemCotacao;
 
     @Column(name = "quantidade_pedida", nullable = false)
