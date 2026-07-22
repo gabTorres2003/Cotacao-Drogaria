@@ -3,22 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import {
-  MessageCircle,
-  FileText,
-  ArrowRightLeft,
-  ShoppingCart,
-  BarChart2,
-  CheckCircle,
-  Clock,
-  Edit2,
-  Trash2,
-  Save,
-  X,
-  List,
-  Tag,
-  Plus
-} from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, Check } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -31,6 +16,8 @@ export default function CotacaoDetalhes() {
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
   
   const [decisaoCompra, setDecisaoCompra] = useState({})
+  const [aceitesTroca, setAceitesTroca] = useState({})
+
   const [showModal, setShowModal] = useState(false)
   const [pedidosGerados, setPedidosGerados] = useState([])
   const [salvandoPedidos, setSalvandoPedidos] = useState(false)
@@ -44,7 +31,6 @@ export default function CotacaoDetalhes() {
 
   const carregarRelatorio = async () => {
     try {
-      // Busca os itens do comparativo
       const response = await api.get(`/api/comparativo/relatorio/${id}`)
       setRelatorio(response.data)
 
@@ -63,20 +49,31 @@ export default function CotacaoDetalhes() {
       setFornecedores(Array.from(nomes))
       setDecisaoCompra(decisaoInicial)
 
-      // Busca as sugestões e promoções extras
       try {
         const resPromos = await api.get(`/api/cotacao/sugestoes/${id}`);
         setPromocoes(resPromos.data || []);
       } catch (err) {
-        console.warn('Cotação sem promoções extras ou erro ao buscar.', err);
+        console.warn('Sem promoções extras.');
       }
-
     } catch (error) {
-      console.error('Erro:', error)
       alert('Erro ao carregar detalhes.')
     } finally {
       setLoading(false)
     }
+  }
+
+  const handleSetWinner = (idItem, fornecedorNome) => {
+    setDecisaoCompra(prev => ({ ...prev, [idItem]: fornecedorNome }))
+  }
+
+  const toggleTroca = (idItem, fornecedorNome) => {
+    setAceitesTroca(prev => {
+      const novoValor = !prev[idItem];
+      if (novoValor) {
+        handleSetWinner(idItem, fornecedorNome); // Se aceitou a troca, seta o fornecedor como vencedor
+      }
+      return { ...prev, [idItem]: novoValor };
+    });
   }
 
   const iniciarEdicao = (item) => {
@@ -86,10 +83,7 @@ export default function CotacaoDetalhes() {
 
   const salvarEdicao = async (idItem) => {
     try {
-      await api.put(`/api/cotacao/item/${idItem}`, {
-        nomeProduto: formEdicao.nome,
-        quantidade: formEdicao.qtd,
-      })
+      await api.put(`/api/cotacao/item/${idItem}`, { nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd })
       setEditandoItem(null)
       carregarRelatorio()
     } catch (error) {
@@ -108,34 +102,44 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  // --- LÓGICA DE GERAR PEDIDOS ---
   const handleGerarPedidos = () => {
     const pedidosPorFornecedor = {}
 
-    Object.entries(decisaoCompra).forEach(([idItem, fornecedorNome]) => {
+    Object.entries(decisaoCompra).forEach(([idItemStr, fornecedorNome]) => {
+      const idItem = Number(idItemStr);
       if (fornecedorNome === 'Sem ofertas') return
 
       if (!pedidosPorFornecedor[fornecedorNome]) {
-        pedidosPorFornecedor[fornecedorNome] = {
-          fornecedorNome: fornecedorNome,
-          itens: [],
-          total: 0
-        }
+        pedidosPorFornecedor[fornecedorNome] = { fornecedorNome: fornecedorNome, itens: [], total: 0 }
       }
 
-      const itemRelatorio = relatorio.find((r) => r.idItem === Number(idItem))
+      const itemRelatorio = relatorio.find((r) => r.idItem === idItem)
       
       if (itemRelatorio) {
-        const qtd = itemRelatorio.quantidade;
-        const preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
-        const substituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
-        const obs = itemRelatorio.observacoesPorFornecedor?.[fornecedorNome];
-        
+        const isTrocaAceita = aceitesTroca[idItem];
+        const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
+
+        let preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
+        let qtd = itemRelatorio.quantidade;
+        let nomeFinal = itemRelatorio.nomeProduto;
+        let nomeOriginal = null;
+
+        // Se a troca foi aceita, atualiza os dados da compra
+        if (isTrocaAceita && nomeSubstituto) {
+          preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
+          qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
+          nomeFinal = nomeSubstituto;
+          nomeOriginal = itemRelatorio.nomeProduto;
+        }
+
+        // Se estiver em falta (-1) e não for uma troca aceita, ignora do pedido
+        if (preco === -1) return;
+
         pedidosPorFornecedor[fornecedorNome].itens.push({
-          idItem: Number(idItem),
-          nomeProduto: substituto ? substituto : itemRelatorio.nomeProduto,
-          nomeOriginal: substituto ? itemRelatorio.nomeProduto : null,
-          observacao: obs,
+          idItem: idItem,
+          nomeProduto: nomeFinal,
+          nomeOriginal: nomeOriginal,
+          observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
           quantidadePedida: qtd,
           valorUnitarioPedido: preco,
           subtotal: qtd * preco,
@@ -145,10 +149,10 @@ export default function CotacaoDetalhes() {
       }
     })
 
-    const pedidosArray = Object.values(pedidosPorFornecedor)
+    const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0)
     
     if (pedidosArray.length === 0) {
-      alert('Nenhum fornecedor vencedor selecionado para gerar pedido.')
+      alert('Nenhum item válido para gerar pedido.')
       return
     }
 
@@ -170,11 +174,7 @@ export default function CotacaoDetalhes() {
           subtotal: subtotal,
           isExtra: true
         };
-        return {
-          ...ped,
-          itens: [...ped.itens, novoItem],
-          total: ped.total + subtotal
-        };
+        return { ...ped, itens: [...ped.itens, novoItem], total: ped.total + subtotal };
       }
       return ped;
     }));
@@ -185,11 +185,7 @@ export default function CotacaoDetalhes() {
       if (ped.fornecedorNome === fornecedorNome) {
         const novosItens = [...ped.itens];
         novosItens.splice(indexItem, 1);
-        return {
-          ...ped,
-          itens: novosItens,
-          total: novosItens.reduce((acc, it) => acc + it.subtotal, 0)
-        };
+        return { ...ped, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
       }
       return ped;
     }).filter(ped => ped.itens.length > 0));
@@ -204,7 +200,7 @@ export default function CotacaoDetalhes() {
           fornecedorNome: pedido.fornecedorNome,
           itens: pedido.itens.map(item => ({
             itemCotacaoId: item.idItem || null, 
-            nomeProduto: item.nomeProduto,
+            nomeProduto: item.nomeProduto, // Passa o nome final (Substituto ou Promoção)
             quantidadePedida: item.quantidadePedida,
             valorUnitarioPedido: item.valorUnitarioPedido
           }))
@@ -212,134 +208,18 @@ export default function CotacaoDetalhes() {
         await api.post('/api/pedidos/gerar', payload)
       }
       
-      alert('Pedidos gerados e salvos com sucesso no sistema!')
+      alert('Pedidos gerados com sucesso!')
       setShowModal(false)
       navigate('/pedidos')
       
     } catch (error) {
-      console.error('Erro ao salvar pedidos no banco:', error)
-      alert(`Falha ao salvar no banco. Motivo: ${error.response?.data?.message || 'Erro desconhecido'}`)
+      alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro'}`)
     } finally {
       setSalvandoPedidos(false)
     }
   }
 
-  const gerarPDF = (pedido) => {
-    const doc = new jsPDF()
-    const dataAtual = new Date()
-    const diaFormatado = dataAtual.toLocaleDateString('pt-BR')
-    const diaArquivo = diaFormatado.replace(/\//g, '-') 
-    
-    doc.setFontSize(18)
-    doc.text(`Pedido de Compra`, 14, 20)
-    
-    doc.setFontSize(12)
-    doc.text(`Fornecedor: ${pedido.fornecedorNome}`, 14, 30)
-    doc.text(`Data: ${diaFormatado}`, 14, 36)
-    
-    const tableData = pedido.itens.map(item => {
-      let nomeApresentacao = item.nomeProduto;
-      if (item.isExtra) nomeApresentacao = `[PROMO] ${item.nomeProduto}`;
-      else if (item.nomeOriginal) nomeApresentacao = `[TROCA] ${item.nomeProduto} (Original: ${item.nomeOriginal})`;
-
-      return [
-        nomeApresentacao,
-        `${item.quantidadePedida} un`,
-        fMoney(item.valorUnitarioPedido),
-        fMoney(item.subtotal)
-      ]
-    })
-
-    autoTable(doc, {
-      startY: 45,
-      head: [['Produto', 'Quantidade', 'Valor Unit.', 'Subtotal']],
-      body: tableData,
-      foot: [['', '', 'Total do Pedido:', fMoney(pedido.total)]],
-      theme: 'striped',
-      headStyles: { fillColor: [37, 99, 235] }
-    })
-
-    doc.save(`cotacao_dia_${diaArquivo}_${pedido.fornecedorNome}.pdf`)
-  }
-
-  const handleQuantidadeModalChange = (fornecedorNome, indexItem, novaQtd) => {
-    const qtdNumber = Number(novaQtd) > 0 ? Number(novaQtd) : 1; 
-    setPedidosGerados(prev => prev.map(pedido => {
-      if (pedido.fornecedorNome === fornecedorNome) {
-        const novosItens = [...pedido.itens];
-        novosItens[indexItem] = { 
-          ...novosItens[indexItem], 
-          quantidadePedida: qtdNumber, 
-          subtotal: qtdNumber * novosItens[indexItem].valorUnitarioPedido 
-        };
-        return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, i) => acc + i.subtotal, 0) };
-      }
-      return pedido;
-    }));
-  };
-
-  const handleFornecedorModalChange = (fornecedorAtual, novoFornecedor, idItem, indexItem) => {
-    if (novoFornecedor === fornecedorAtual || idItem == null) return;
-    
-    if (!window.confirm(`Mover este produto para "${novoFornecedor}"? O valor unitário poderá sofrer alterações baseadas na oferta do fornecedor.`)) {
-      return;
-    }
-
-    const itemBase = relatorio.find(r => r.idItem === idItem);
-    const novoPreco = itemBase.precosPorFornecedor[novoFornecedor];
-    const novoSubstituto = itemBase.substitutosPorFornecedor?.[novoFornecedor];
-    const novaObs = itemBase.observacoesPorFornecedor?.[novoFornecedor];
-
-    if (!novoPreco || novoPreco === -1) {
-      alert(`Operação cancelada: O fornecedor ${novoFornecedor} não possui um preço cadastrado (ou está em falta) para este produto.`);
-      return;
-    }
-
-    setPedidosGerados(prev => {
-      let itemRemovido = null;
-
-      const prevSemItem = prev.map(pedido => {
-        if (pedido.fornecedorNome === fornecedorAtual) {
-          itemRemovido = pedido.itens[indexItem];
-          const novosItens = [...pedido.itens];
-          novosItens.splice(indexItem, 1);
-          return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
-        }
-        return pedido;
-      });
-
-      const itemAtualizado = {
-        ...itemRemovido,
-        nomeProduto: novoSubstituto ? novoSubstituto : itemBase.nomeProduto,
-        nomeOriginal: novoSubstituto ? itemBase.nomeProduto : null,
-        observacao: novaObs,
-        valorUnitarioPedido: novoPreco,
-        subtotal: itemRemovido.quantidadePedida * novoPreco
-      };
-
-      let fornecedorJaExiste = false;
-      const novoState = prevSemItem.map(pedido => {
-        if (pedido.fornecedorNome === novoFornecedor) {
-          fornecedorJaExiste = true;
-          const novosItens = [...pedido.itens, itemAtualizado];
-          return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
-        }
-        return pedido;
-      });
-
-      if (!fornecedorJaExiste) {
-        novoState.push({
-          fornecedorNome: novoFornecedor,
-          itens: [itemAtualizado],
-          total: itemAtualizado.subtotal
-        });
-      }
-
-      return novoState.filter(pedido => pedido.itens.length > 0);
-    });
-  };
-
-  const fMoney = (v) => v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+  const fMoney = (v) => v != null && v !== -1 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
 
   const RenderTabela = () => {
@@ -372,7 +252,6 @@ export default function CotacaoDetalhes() {
                   {f}
                 </th>
               ))}
-
               {isItens && <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>}
             </tr>
           </thead>
@@ -405,41 +284,63 @@ export default function CotacaoDetalhes() {
                   </>
                 )}
 
-                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
-                  {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
-                </td>
+                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</td>
 
-                {/* ABA COMPARATIVO: Renderizando as respostas com Observações e Trocas */}
+                {/* LOGICA DA EXIBIÇÃO DE TROCAS E PREÇOS */}
                 {isComparativo && fornecedores.map((f) => {
-                  const precoFornecedor = item.precosPorFornecedor[f]
+                  const precoOriginal = item.precosPorFornecedor[f]
+                  const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
+                  const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade
                   const obs = item.observacoesPorFornecedor?.[f]
                   const substituto = item.substitutosPorFornecedor?.[f]
-                  const isWinner = f === item.fornecedorVencedor
-                  const emFalta = precoFornecedor === -1
+                  
+                  const isWinner = decisaoCompra[item.idItem] === f
+                  const isTrocaAceita = aceitesTroca[item.idItem]
+                  const isEmFaltaOriginal = precoOriginal === -1;
 
                   return (
                     <td
                       key={f}
+                      onClick={() => handleSetWinner(item.idItem, f)}
                       style={{
                         ...styles.td,
                         backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
                         textAlign: 'center',
                         borderLeft: '1px solid #f3f4f6',
-                        verticalAlign: 'top'
+                        border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
+                        cursor: 'pointer',
+                        verticalAlign: 'top',
+                        position: 'relative'
                       }}
                     >
-                      <div style={{ fontWeight: isWinner ? 'bold' : 'normal', color: isWinner ? '#059669' : emFalta ? '#dc2626' : '#374151' }}>
-                        {emFalta ? 'Em falta' : precoFornecedor ? fMoney(precoFornecedor) : '-'}
+                      {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
+
+                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151' }}>
+                        {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
                       </div>
                       
                       {substituto && (
-                        <div style={{ fontSize: '11px', color: '#b45309', backgroundColor: '#fef3c7', padding: '2px 4px', borderRadius: '4px', marginTop: '6px', display: 'inline-block' }}>
-                          Troca: {substituto}
+                        <div 
+                          onClick={(e) => e.stopPropagation()} 
+                          style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}
+                        >
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#111827' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={isTrocaAceita && isWinner} 
+                              onChange={() => toggleTroca(item.idItem, f)} 
+                              style={{ marginTop: '2px' }}
+                            />
+                            <div>
+                              <strong style={{ color: '#b45309' }}>Troca: {substituto}</strong><br/>
+                              <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
+                            </div>
+                          </label>
                         </div>
                       )}
                       
                       {obs && (
-                        <div style={{ fontSize: '11px', color: '#475569', marginTop: '4px', fontStyle: 'italic', lineHeight: '1.2' }}>
+                        <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>
                           Obs: {obs}
                         </div>
                       )}
@@ -467,7 +368,7 @@ export default function CotacaoDetalhes() {
           </tbody>
         </table>
 
-        {/* SEÇÃO DE PROMOÇÕES EXTRAS (Visível no Comparativo) */}
+        {/* EXIBIÇÃO DE PROMOÇÕES EXTRAS */}
         {isComparativo && promocoes.length > 0 && (
           <div style={{ marginTop: '30px', borderTop: '2px dashed #e5e7eb', paddingTop: '20px' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -475,16 +376,13 @@ export default function CotacaoDetalhes() {
             </h3>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '16px' }}>
               {promocoes.map(promo => (
-                <div key={promo.id} style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
-                  <div>
-                    <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', marginBottom: '4px', textTransform: 'uppercase' }}>{promo.fornecedorNome}</div>
-                    <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a', lineHeight: '1.2' }}>{promo.nomeProduto}</div>
-                    <div style={{ fontSize: '14px', color: '#1e40af', marginTop: '6px' }}>
-                      <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{fMoney(promo.preco)}</span> <br/>
-                      <span style={{ fontSize: '12px' }}>(Mínimo: {promo.qtdMinima} un)</span>
-                    </div>
-                    {promo.observacao && <div style={{ fontSize: '12px', color: '#475569', marginTop: '8px', fontStyle: 'italic', borderTop: '1px solid #bfdbfe', paddingTop: '8px' }}>{promo.observacao}</div>}
+                <div key={promo.id} style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px' }}>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', textTransform: 'uppercase' }}>{promo.fornecedorNome}</div>
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a', marginTop: '4px' }}>{promo.nomeProduto}</div>
+                  <div style={{ fontSize: '14px', color: '#1e40af', marginTop: '6px' }}>
+                    <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{fMoney(promo.preco)}</span> <span style={{ fontSize: '12px' }}>(Mínimo: {promo.qtdMinima} un)</span>
                   </div>
+                  {promo.observacao && <div style={{ fontSize: '12px', color: '#475569', marginTop: '8px', fontStyle: 'italic', borderTop: '1px solid #bfdbfe', paddingTop: '8px' }}>{promo.observacao}</div>}
                 </div>
               ))}
             </div>
@@ -504,9 +402,7 @@ export default function CotacaoDetalhes() {
     td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
     toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' },
-    toggleBtn: (ativo) => ({
-      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s'
-    }),
+    toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
     inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
@@ -518,58 +414,43 @@ export default function CotacaoDetalhes() {
       <div style={styles.header}>
         <h1 style={styles.title}>Cotação #{id}</h1>
         <div style={{ display: 'flex', gap: '10px' }}>
-          <button
-            style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed' }}
-            onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}
-          >
-            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
-            Gerar Pedidos de Compra
+          <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
+            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos de Compra
           </button>
           <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
       </div>
 
       <div style={styles.toggleContainer}>
-        <button style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}>
-          <List size={18} /> Detalhes da Cotação
-        </button>
-        <button style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}>
-          <BarChart2 size={18} /> Comparativo de Preços
-        </button>
+        <button style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
+        <button style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
       </div>
 
-      {loading ? <p>Carregando dados da cotação...</p> : <RenderTabela />}
+      {loading ? <p>Carregando dados...</p> : <RenderTabela />}
 
-      {/* MODAL DE RESUMO DE PEDIDOS COMPLETO */}
+      {/* MODAL DE RESUMO DE PEDIDOS */}
       {showModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Resumo de Vencedores para Emissão de Pedido</h2>
-              <button onClick={() => setShowModal(false)} style={styles.btnIcon} title="Fechar"><X size={24} color="#4b5563" /></button>
+              <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Resumo de Pedidos</h2>
+              <button onClick={() => setShowModal(false)} style={styles.btnIcon}><X size={24} color="#4b5563" /></button>
             </div>
             
             {pedidosGerados.map((pedido, index) => {
-              // Verifica se tem promoções extras disponíveis para adicionar neste fornecedor
               const promosDesteFornecedor = promocoes.filter(p => p.fornecedorNome === pedido.fornecedorNome);
               const promosNaoAdicionadas = promosDesteFornecedor.filter(p => !pedido.itens.some(i => i.isExtra && i.promocaoId === p.id));
 
               return (
                 <div key={index} style={{ marginBottom: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>
-                      {pedido.fornecedorNome}
-                    </h3>
-                    <button onClick={() => gerarPDF(pedido)} style={{ ...styles.btnVoltar, backgroundColor: '#2563eb', padding: '8px 16px' }}>
-                      <FileText size={16} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar PDF
-                    </button>
+                    <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>{pedido.fornecedorNome}</h3>
                   </div>
                   
                   <table style={{ ...styles.table, backgroundColor: 'white' }}>
                     <thead>
                       <tr>
                         <th style={styles.th}>Produto</th>
-                        <th style={styles.th}>Vendedor</th>
                         <th style={{...styles.th, textAlign: 'center'}}>Qtd</th>
                         <th style={styles.th}>Preço Unit.</th>
                         <th style={styles.th}>Subtotal</th>
@@ -582,33 +463,30 @@ export default function CotacaoDetalhes() {
                           <td style={styles.td}>
                             <span style={{ fontWeight: '500', color: '#111827', display: 'block' }}>{item.nomeProduto}</span>
                             {item.nomeOriginal && <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Troca de: {item.nomeOriginal}</span>}
-                            {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Promoção Extra Adicionada</span>}
+                            {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Oferta Extra</span>}
                             {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
-                          </td>
-                          <td style={styles.td}>
-                            {!item.isExtra ? (
-                              <select 
-                                value={pedido.fornecedorNome}
-                                onChange={(e) => handleFornecedorModalChange(pedido.fornecedorNome, e.target.value, item.idItem, idx)}
-                                style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px', backgroundColor: '#f9fafb', cursor: 'pointer' }}
-                              >
-                                {fornecedores.map(f => (<option key={f} value={f}>{f}</option>))}
-                              </select>
-                            ) : (
-                              <span style={{ fontSize: '13px', color: '#6b7280' }}>Fixo (Extra)</span>
-                            )}
                           </td>
                           <td style={{...styles.td, textAlign: 'center'}}>
                             <input 
                               type="number" min="1" value={item.quantidadePedida}
-                              onChange={(e) => handleQuantidadeModalChange(pedido.fornecedorNome, idx, e.target.value)}
+                              onChange={(e) => {
+                                const q = Number(e.target.value) || 1;
+                                setPedidosGerados(prev => prev.map(p => {
+                                  if (p.fornecedorNome === pedido.fornecedorNome) {
+                                    const nitens = [...p.itens];
+                                    nitens[idx] = { ...nitens[idx], quantidadePedida: q, subtotal: q * nitens[idx].valorUnitarioPedido };
+                                    return { ...p, itens: nitens, total: nitens.reduce((a, b) => a + b.subtotal, 0) };
+                                  }
+                                  return p;
+                                }));
+                              }}
                               style={{ ...styles.inputEdicao, width: '60px', textAlign: 'center' }}
                             />
                           </td>
                           <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
                           <td style={styles.td}>{fMoney(item.subtotal)}</td>
                           <td style={{...styles.td, textAlign: 'center'}}>
-                            <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }} title="Remover item">
+                            <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
                               <Trash2 size={16} />
                             </button>
                           </td>
@@ -617,30 +495,24 @@ export default function CotacaoDetalhes() {
                     </tbody>
                     <tfoot>
                       <tr>
-                        <td colSpan="4" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total do Fornecedor:</td>
+                        <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
                         <td colSpan="2" style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a', fontSize: '16px' }}>{fMoney(pedido.total)}</td>
                       </tr>
                     </tfoot>
                   </table>
 
-                  {/* Botões para adicionar promoções que ficaram de fora */}
                   {promosNaoAdicionadas.length > 0 && (
                     <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-                      <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#166534', fontWeight: '600' }}>Este fornecedor ofereceu itens extras. Deseja incluir no pedido?</p>
+                      <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#166534', fontWeight: '600' }}>Fornecedor ofereceu itens extras. Incluir no pedido?</p>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         {promosNaoAdicionadas.map(promo => (
-                          <button 
-                            key={promo.id}
-                            onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)}
-                            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}
-                          >
+                          <button key={promo.id} onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
                             <Plus size={14} /> Add {promo.nomeProduto} ({fMoney(promo.preco)})
                           </button>
                         ))}
                       </div>
                     </div>
                   )}
-
                 </div>
               );
             })}
@@ -648,7 +520,7 @@ export default function CotacaoDetalhes() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
               <button onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
               <button onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
-                {salvandoPedidos ? 'Salvando no Banco...' : 'Salvar Pedidos no Sistema'}
+                {salvandoPedidos ? 'Salvando...' : 'Salvar Pedidos no Sistema'}
               </button>
             </div>
           </div>

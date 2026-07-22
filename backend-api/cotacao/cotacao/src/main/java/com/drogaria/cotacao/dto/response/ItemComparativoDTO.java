@@ -26,6 +26,9 @@ public class ItemComparativoDTO {
     private Map<String, Double> precosPorFornecedor = new HashMap<>();
     private Map<String, String> substitutosPorFornecedor = new HashMap<>();
     private Map<String, String> observacoesPorFornecedor = new HashMap<>();
+    
+    private Map<String, Double> precosSubstitutosPorFornecedor = new HashMap<>();
+    private Map<String, Integer> qtdsSubstitutosPorFornecedor = new HashMap<>();
 
     // Getters e Setters
     public Long getIdItem() { return idItem; }
@@ -81,4 +84,10 @@ public class ItemComparativoDTO {
 
     public Map<String, String> getObservacoesPorFornecedor() { return observacoesPorFornecedor; }
     public void setObservacoesPorFornecedor(Map<String, String> observacoesPorFornecedor) { this.observacoesPorFornecedor = observacoesPorFornecedor; }
+
+    public Map<String, Double> getPrecosSubstitutosPorFornecedor() { return precosSubstitutosPorFornecedor; }
+    public void setPrecosSubstitutosPorFornecedor(Map<String, Double> precosSubstitutosPorFornecedor) { this.precosSubstitutosPorFornecedor = precosSubstitutosPorFornecedor; }
+
+    public Map<String, Integer> getQtdsSubstitutosPorFornecedor() { return qtdsSubstitutosPorFornecedor; }
+    public void setQtdsSubstitutosPorFornecedor(Map<String, Integer> qtdsSubstitutosPorFornecedor) { this.qtdsSubstitutosPorFornecedor = qtdsSubstitutosPorFornecedor; }
 }

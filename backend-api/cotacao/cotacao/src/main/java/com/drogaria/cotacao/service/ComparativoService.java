@@ -95,6 +95,8 @@ public class ComparativoService {
 
                     if (oferta.getProdutoSubstituto() != null && !oferta.getProdutoSubstituto().trim().isEmpty()) {
                         linha.getSubstitutosPorFornecedor().put(nomeForn, oferta.getProdutoSubstituto().trim());
+                        linha.getPrecosSubstitutosPorFornecedor().put(nomeForn, oferta.getPrecoSubstituto());
+                        linha.getQtdsSubstitutosPorFornecedor().put(nomeForn, oferta.getQuantidadeSubstituto());
                     }
                     if (oferta.getObservacao() != null && !oferta.getObservacao().trim().isEmpty()) {
                         linha.getObservacoesPorFornecedor().put(nomeForn, oferta.getObservacao().trim());
@@ -212,7 +214,6 @@ public class ComparativoService {
         Fornecedor fornecedor = fornecedorRepository.findById(request.getFornecedorId())
                 .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + request.getFornecedorId()));
 
-        // 1. Limpa registros anteriores desta cotação para este fornecedor
         List<ItemCotacao> itensCotacao = itemRepository.findByCotacao(cotacao);
         if (!itensCotacao.isEmpty()) {
             List<PrecoCotacao> precosAntigos = precoRepository.findByFornecedorAndItemIn(fornecedor, itensCotacao);
@@ -229,7 +230,6 @@ public class ComparativoService {
         boolean possuiItens = request.getItens() != null && !request.getItens().isEmpty();
         boolean possuiSugestoes = request.getSugestoes() != null && !request.getSugestoes().isEmpty();
 
-        // 2. Salvar os preços dos itens regulares, substituições (com preço e qtd) e observações
         if (possuiItens) {
             for (SalvarPrecoDTO dto : request.getItens()) {
                 ItemCotacao item = itemRepository.findById(dto.getIdItem())
@@ -246,7 +246,6 @@ public class ComparativoService {
                 preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
                 preco.setObservacao(dto.getObservacao());
                 
-                // Mapeamento completo da troca de marca com preço e quantidade próprios
                 preco.setProdutoSubstituto(dto.getProdutoSubstituto());
                 preco.setPrecoSubstituto(dto.getPrecoSubstituto());
                 preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
@@ -257,7 +256,6 @@ public class ComparativoService {
             }
         }
 
-        // 3. Salvar as sugestões e promoções extras
         if (possuiSugestoes) {
             for (SugestaoPromocaoDTO sugDto : request.getSugestoes()) {
                 if (sugDto.getNomeProduto() == null || sugDto.getNomeProduto().trim().isEmpty()) {
@@ -276,11 +274,9 @@ public class ComparativoService {
             }
         }
 
-        // 4. Atualizar status geral da cotação
         cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
         cotacaoRepository.save(cotacao);
 
-        // 5. Atualizar status na tabela de vínculo CotacaoFornecedor
         CotacaoFornecedor cotacaoFornecedor = cotacaoFornecedorRepository.findByCotacaoIdAndFornecedorId(request.getCotacaoId(), request.getFornecedorId())
                 .orElse(null);
         if (cotacaoFornecedor != null) {

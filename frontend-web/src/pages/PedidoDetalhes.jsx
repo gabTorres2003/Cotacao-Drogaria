@@ -95,7 +95,8 @@ export default function PedidoDetalhes() {
                             {pedido.itens?.map(item => (
                                 <tr key={item.id}>
                                     <td style={styles.td}>
-                                        <strong>{item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                        {/* CORREÇÃO APLICADA AQUI: Busca primeiro o nomeProduto salvo no item do pedido */}
+                                        <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
                                     </td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadePedida} un</td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadeReal !== null ? `${item.quantidadeReal} un` : '-'}</td>
