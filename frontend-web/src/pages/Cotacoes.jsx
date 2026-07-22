@@ -20,6 +20,7 @@ import autoTable from 'jspdf-autotable'
 export default function Cotacoes() {
   const [cotacoes, setCotacoes] = useState([])
   const [modalAberto, setModalAberto] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   // ESTADOS DE FILTRO
   const [busca, setBusca] = useState('')
@@ -49,10 +50,8 @@ export default function Cotacoes() {
         setResumo({
           total: response.data.length,
           abertas: response.data.filter((c) => c.status === 'ABERTA').length,
-          pendentes: response.data.filter((c) => c.status === 'PENDENTE')
-            .length,
-          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA')
-            .length,
+          pendentes: response.data.filter((c) => c.status === 'PENDENTE').length,
+          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
         })
       } else {
         setCotacoes([])
@@ -95,16 +94,19 @@ export default function Cotacoes() {
 
   const deletarCotacao = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta cotação?')) {
-        try {
-            await api.delete(`/api/cotacao/${id}`);
-            setCotacoes(cotacoes.filter(c => c.id !== id));
-            alert('Cotação excluída com sucesso!');
-        } catch (error) {
-            console.error('Erro ao excluir:', error);
-            alert('Erro ao excluir cotação.');
-        }
+      setIsDeleting(true);
+      try {
+        await api.delete(`/api/cotacao/${id}`);
+        setCotacoes(cotacoes.filter(c => c.id !== id));
+        alert('Cotação excluída com sucesso!');
+      } catch (error) {
+        console.error('Erro ao excluir:', error);
+        alert('Erro ao excluir cotação.');
+      } finally {
+        setIsDeleting(false);
+      }
     }
-};
+  };
 
   const baixarRelatorioGeral = async (idCotacao) => {
     try {
@@ -392,6 +394,26 @@ export default function Cotacoes() {
             onClose={() => setCotacaoParaEnviar(null)}
             onStatusUpdate={carregarCotacoes}
           />
+        )}
+
+        {/* OVERLAY DE CARREGAMENTO */}
+        {isDeleting && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: '#fff', padding: '20px 40px',
+              borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <p style={{ fontWeight: 'bold', color: '#374151', margin: 0 }}>Excluindo cotação...</p>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>Por favor, aguarde.</p>
+            </div>
+          </div>
         )}
       </main>
     </div>
