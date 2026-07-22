@@ -13,11 +13,18 @@ public class PrecoCotacao {
 
     @ManyToOne
     @JoinColumn(name = "item_id")
-    private ItemCotacao item; // O remédio 
+    private ItemCotacao item; 
+
+    @Column(name = "observacao")
+    private String observacao;
+
+    @Column(name = "produto_substituto")
+    private String produtoSubstituto;
 
     @ManyToOne
     @JoinColumn(name = "fornecedor_id")
     private Fornecedor fornecedor;
+
     private Double precoOfertado; 
     private LocalDateTime dataResposta;
     private Integer quantidadeDisponivel;
@@ -25,13 +32,19 @@ public class PrecoCotacao {
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
-    
+
     public ItemCotacao getItem() { return item; }
     public void setItem(ItemCotacao item) { this.item = item; }
-    
+
+    public String getObservacao() { return observacao; }
+    public void setObservacao(String observacao) { this.observacao = observacao; }
+
+    public String getProdutoSubstituto() { return produtoSubstituto; }
+    public void setProdutoSubstituto(String produtoSubstituto) { this.produtoSubstituto = produtoSubstituto; }
+
     public Fornecedor getFornecedor() { return fornecedor; }
     public void setFornecedor(Fornecedor fornecedor) { this.fornecedor = fornecedor; }
-    
+
     public Double getPrecoOfertado() { return precoOfertado; }
     public void setPrecoOfertado(Double precoOfertado) { this.precoOfertado = precoOfertado; }
 

@@ -1,17 +1,22 @@
 package com.drogaria.cotacao.service;
 
 import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
+import com.drogaria.cotacao.dto.request.SalvarRespostaFornecedorRequestDTO;
+import com.drogaria.cotacao.dto.request.SugestaoPromocaoDTO;
 import com.drogaria.cotacao.dto.response.ItemComparativoDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.PrecoCotacao;
+import com.drogaria.cotacao.model.SugestaoPromocao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
+import com.drogaria.cotacao.repository.SugestaoPromocaoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
@@ -31,6 +36,8 @@ public class ComparativoService {
     private PrecoCotacaoRepository precoRepository;
     @Autowired
     private FornecedorRepository fornecedorRepository; 
+    @Autowired
+    private SugestaoPromocaoRepository sugestaoPromocaoRepository;
 
     public List<ItemComparativoDTO> compararPrecos(Long idCotacao) {
         List<ItemComparativoDTO> relatorio = new ArrayList<>();
@@ -45,7 +52,6 @@ public class ComparativoService {
         }
 
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
-
         List<PrecoCotacao> todasOfertas = precoRepository.findByItemIn(itens);
         
         Map<Long, List<PrecoCotacao>> ofertasPorItem = todasOfertas.stream()
@@ -66,13 +72,15 @@ public class ComparativoService {
             linha.setNomeProduto(item.getNomeProduto());
             linha.setQuantidade(item.getQuantidade());
             
-            // Novos campos mapeados do banco (DNA) para o DTO
             linha.setEstoque(item.getEstoque());
             linha.setGrupo(item.getGrupo());
             linha.setVendidoNoMes(item.getVendidoNoMes());
-            linha.setUltCompraData(item.getUltCompraData());
+            
+            // CORREÇÃO: Formatando LocalDate para String evitando NullPointerException
+            linha.setUltCompraData(item.getUltCompraData() != null ? item.getUltCompraData().format(formatter) : null);
             linha.setUltCompraQtde(item.getUltCompraQtde());
-            linha.setUltVendaData(item.getUltVendaData());
+            linha.setUltVendaData(item.getUltVendaData() != null ? item.getUltVendaData().format(formatter) : null);
+            
             linha.setVendidoAposUltCompra(item.getVendidoAposUltCompra());
             linha.setUltimoPreco(item.getUltimoPreco());
 
@@ -80,7 +88,16 @@ public class ComparativoService {
 
             for (PrecoCotacao oferta : ofertas) {
                 if (oferta.getFornecedor() != null) {
-                    linha.getPrecosPorFornecedor().put(oferta.getFornecedor().getNome(), oferta.getPrecoOfertado());
+                    String nomeForn = oferta.getFornecedor().getNome();
+                    linha.getPrecosPorFornecedor().put(nomeForn, oferta.getPrecoOfertado());
+
+                    // MAPEAMENTO: Substituto e Observação
+                    if (oferta.getProdutoSubstituto() != null && !oferta.getProdutoSubstituto().trim().isEmpty()) {
+                        linha.getSubstitutosPorFornecedor().put(nomeForn, oferta.getProdutoSubstituto().trim());
+                    }
+                    if (oferta.getObservacao() != null && !oferta.getObservacao().trim().isEmpty()) {
+                        linha.getObservacoesPorFornecedor().put(nomeForn, oferta.getObservacao().trim());
+                    }
                 }
             }
 
@@ -114,7 +131,6 @@ public class ComparativoService {
                     break; 
                 }
             }
-
             relatorio.add(linha);
         }
         return relatorio;
@@ -133,7 +149,12 @@ public class ComparativoService {
         }).collect(Collectors.toList());
     }
 
+    @Transactional
     public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {
+        if (precosDtos == null || precosDtos.isEmpty()) return;
+
+        Cotacao cotacaoAlvo = null;
+
         for (SalvarPrecoDTO dto : precosDtos) {
             ItemCotacao item = itemRepository.findById(dto.getIdItem())
                 .orElseThrow(() -> new RuntimeException("Item não encontrado: " + dto.getIdItem()));
@@ -147,8 +168,100 @@ public class ComparativoService {
             preco.setPrecoOfertado(dto.getPreco());
             preco.setDataResposta(LocalDateTime.now()); 
             preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
+            preco.setObservacao(dto.getObservacao()); 
+            preco.setProdutoSubstituto(dto.getProdutoSubstituto());
             
             precoRepository.save(preco);
+
+            if (cotacaoAlvo == null && item.getCotacao() != null) {
+                cotacaoAlvo = item.getCotacao();
+            }
         }
+
+        if (cotacaoAlvo != null) {
+            cotacaoAlvo.setStatus("RESPONDIDA_PARCIALMENTE");
+            cotacaoRepository.save(cotacaoAlvo);
+        }
+    }
+
+    @Transactional
+    public void salvarRespostasFornecedor(SalvarRespostaFornecedorRequestDTO request) {
+        if (request == null || request.getCotacaoId() == null || request.getFornecedorId() == null) {
+            throw new IllegalArgumentException("Identificadores da cotação e do fornecedor são obrigatórios.");
+        }
+
+        boolean possuiItens = request.getItens() != null && !request.getItens().isEmpty();
+        boolean possuiSugestoes = request.getSugestoes() != null && !request.getSugestoes().isEmpty();
+
+        if (!possuiItens && !possuiSugestoes) {
+            throw new IllegalArgumentException("A proposta deve conter ao menos um preço, item em falta ou sugestão de promoção.");
+        }
+
+        Cotacao cotacao = cotacaoRepository.findById(request.getCotacaoId())
+                .orElseThrow(() -> new RuntimeException("Cotação não encontrada: " + request.getCotacaoId()));
+
+        Fornecedor fornecedor = fornecedorRepository.findById(request.getFornecedorId())
+                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + request.getFornecedorId()));
+
+        if (possuiItens) {
+            for (SalvarPrecoDTO dto : request.getItens()) {
+                ItemCotacao item = itemRepository.findById(dto.getIdItem())
+                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + dto.getIdItem()));
+
+                if (dto.getPreco() == null) {
+                    throw new IllegalArgumentException("O preço do produto '" + item.getNomeProduto() + "' não pode ser nulo.");
+                }
+
+                boolean isEmFalta = dto.getPreco() == -1;
+
+                if (!isEmFalta && dto.getPreco() <= 0) {
+                    throw new IllegalArgumentException("O preço do produto '" + item.getNomeProduto() + "' deve ser maior que zero R$.");
+                }
+
+                if (dto.getQuantidadeDisponivel() != null && dto.getQuantidadeDisponivel() < 0) {
+                    throw new IllegalArgumentException("A quantidade disponível do produto '" + item.getNomeProduto() + "' não pode ser negativa.");
+                }
+
+                PrecoCotacao preco = new PrecoCotacao();
+                preco.setItem(item);
+                preco.setFornecedor(fornecedor);
+                preco.setPrecoOfertado(dto.getPreco());
+                preco.setQuantidadeDisponivel(isEmFalta ? 0 : dto.getQuantidadeDisponivel());
+                preco.setObservacao(dto.getObservacao());
+                preco.setProdutoSubstituto(dto.getProdutoSubstituto());
+                preco.setDataResposta(LocalDateTime.now());
+
+                precoRepository.save(preco);
+            }
+        }
+
+        if (possuiSugestoes) {
+            for (SugestaoPromocaoDTO sugDto : request.getSugestoes()) {
+                if (sugDto.getNomeProduto() == null || sugDto.getNomeProduto().trim().isEmpty()) {
+                    throw new IllegalArgumentException("O nome do produto em promoção é obrigatório.");
+                }
+
+                if (sugDto.getPreco() == null || sugDto.getPreco() <= 0) {
+                    throw new IllegalArgumentException("O preço promocional de '" + sugDto.getNomeProduto() + "' deve ser maior que zero R$.");
+                }
+
+                if (sugDto.getQtdMinima() == null || sugDto.getQtdMinima() < 1) {
+                    throw new IllegalArgumentException("A quantidade mínima para '" + sugDto.getNomeProduto() + "' deve ser de no mínimo 1 unidade.");
+                }
+
+                SugestaoPromocao sugestao = new SugestaoPromocao();
+                sugestao.setCotacao(cotacao);
+                sugestao.setFornecedor(fornecedor);
+                sugestao.setNomeProduto(sugDto.getNomeProduto().trim());
+                sugestao.setPreco(sugDto.getPreco());
+                sugestao.setQtdMinima(sugDto.getQtdMinima());
+                sugestao.setObservacao(sugDto.getObservacao());
+
+                sugestaoPromocaoRepository.save(sugestao);
+            }
+        }
+
+        cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
+        cotacaoRepository.save(cotacao);
     }
 }
