@@ -12,6 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class ItemPedido {
+
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -21,10 +22,13 @@ public class ItemPedido {
     @JsonIgnore 
     private Pedido pedido;
 
-    @ManyToOne
-    @JoinColumn(name = "item_cotacao_id", nullable = false)
+    @ManyToOne(optional = true)
+    @JoinColumn(name = "item_cotacao_id", nullable = true)
     @JsonIgnoreProperties({"cotacao", "itensPedido", "precos"}) 
     private ItemCotacao itemCotacao;
+
+    @Column(name = "nome_produto")
+    private String nomeProduto;
 
     @Column(name = "quantidade_pedida", nullable = false)
     private Integer quantidadePedida;

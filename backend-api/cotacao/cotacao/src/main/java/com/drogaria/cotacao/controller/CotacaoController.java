@@ -1,9 +1,11 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
+import com.drogaria.cotacao.service.ComparativoService;
 import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -36,6 +38,9 @@ public class CotacaoController {
 
     @Autowired
     private ExcelReaderService excelService;
+
+    @Autowired
+    private ComparativoService comparativoService;
 
     @GetMapping
     public ResponseEntity<List<Cotacao>> listarTodas() {
@@ -117,6 +122,11 @@ public class CotacaoController {
     public ResponseEntity<Void> deletarCotacao(@PathVariable Long id) {
         cotacaoService.deletarCotacao(id);
         return ResponseEntity.noContent().build();
+    }
+
+    @GetMapping("/sugestoes/{idCotacao}")
+    public ResponseEntity<List<SugestaoPromocaoResponseDTO>> listarSugestoes(@PathVariable Long idCotacao) {
+        return ResponseEntity.ok(comparativoService.listarSugestoesDaCotacao(idCotacao));
     }
 
     @GetMapping("/teste-firebird")

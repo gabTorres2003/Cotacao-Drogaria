@@ -7,4 +7,5 @@ public class ItemGerarPedidoDTO {
     private Long itemCotacaoId;
     private Integer quantidadePedida;
     private Double valorUnitarioPedido;
+    private String nomeProduto;
 }

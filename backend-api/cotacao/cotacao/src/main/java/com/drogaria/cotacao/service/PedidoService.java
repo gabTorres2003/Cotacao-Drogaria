@@ -131,15 +131,26 @@ public class PedidoService {
         List<ItemPedido> itens = new ArrayList<>();
 
         for (ItemGerarPedidoDTO itemDto : dto.getItens()) {
-            ItemCotacao itemCotacao = itemCotacaoRepository.findById(itemDto.getItemCotacaoId())
-                    .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
-
             ItemPedido itemPedido = new ItemPedido();
             itemPedido.setPedido(pedido);
-            itemPedido.setItemCotacao(itemCotacao);
+
+            if (itemDto.getItemCotacaoId() != null) {
+                ItemCotacao itemCotacao = itemCotacaoRepository.findById(itemDto.getItemCotacaoId())
+                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + itemDto.getItemCotacaoId()));
+                
+                itemPedido.setItemCotacao(itemCotacao);
+                itemPedido.setNomeProduto(itemDto.getNomeProduto() != null ? itemDto.getNomeProduto() : itemCotacao.getNomeProduto());
+            } else {
+                itemPedido.setItemCotacao(null);
+                itemPedido.setNomeProduto(itemDto.getNomeProduto());
+                
+                if (itemPedido.getNomeProduto() == null || itemPedido.getNomeProduto().isEmpty()) {
+                    throw new RuntimeException("Itens extras precisam obrigatoriamente ter um nome_produto definido no DTO.");
+                }
+            }
+
             itemPedido.setQuantidadePedida(itemDto.getQuantidadePedida());
             itemPedido.setValorUnitarioPedido(itemDto.getValorUnitarioPedido());
-            // Inicia zerado a conferência
             itemPedido.setQuantidadeReal(0);
             itemPedido.setValorUnitarioReal(0.0);
 

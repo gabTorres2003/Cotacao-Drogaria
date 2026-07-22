@@ -283,10 +283,10 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) =>
     v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
     
-  const fData = (dataIso) => {
-    if (!dataIso) return '-';
-    return new Date(dataIso + 'T12:00:00').toLocaleDateString('pt-BR');
-  };
+  const fData = (data) => {
+  if (!data) return '-';
+  return data; 
+};
 
   const RenderTabela = () => (
     <div style={styles.card}>

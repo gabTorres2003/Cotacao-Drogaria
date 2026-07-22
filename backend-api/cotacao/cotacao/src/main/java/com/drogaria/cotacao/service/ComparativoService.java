@@ -4,6 +4,7 @@ import com.drogaria.cotacao.dto.request.SalvarPrecoDTO;
 import com.drogaria.cotacao.dto.request.SalvarRespostaFornecedorRequestDTO;
 import com.drogaria.cotacao.dto.request.SugestaoPromocaoDTO;
 import com.drogaria.cotacao.dto.response.ItemComparativoDTO;
+import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
@@ -148,6 +149,20 @@ public class ComparativoService {
             return dto;
         }).collect(Collectors.toList());
     }
+
+    public List<SugestaoPromocaoResponseDTO> listarSugestoesDaCotacao(Long idCotacao) {
+    List<SugestaoPromocao> sugestoes = sugestaoPromocaoRepository.findByCotacaoId(idCotacao);
+    return sugestoes.stream().map(s -> {
+        SugestaoPromocaoResponseDTO dto = new SugestaoPromocaoResponseDTO();
+        dto.setId(s.getId());
+        dto.setFornecedorNome(s.getFornecedor().getNome());
+        dto.setNomeProduto(s.getNomeProduto());
+        dto.setPreco(s.getPreco());
+        dto.setQtdMinima(s.getQtdMinima());
+        dto.setObservacao(s.getObservacao());
+        return dto;
+    }).collect(Collectors.toList());
+}
 
     @Transactional
     public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {

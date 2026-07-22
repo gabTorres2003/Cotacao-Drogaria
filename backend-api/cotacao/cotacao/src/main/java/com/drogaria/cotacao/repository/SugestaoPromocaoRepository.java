@@ -9,4 +9,5 @@ import java.util.List;
 @Repository
 public interface SugestaoPromocaoRepository extends JpaRepository<SugestaoPromocao, Long> {
     List<SugestaoPromocao> findByCotacaoIdAndFornecedorId(Long cotacaoId, Long fornecedorId);
+    List<SugestaoPromocao> findByCotacaoId(Long cotacaoId);
 }
