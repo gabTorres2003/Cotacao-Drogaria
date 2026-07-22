@@ -1,7 +1,7 @@
 package com.drogaria.cotacao.model;
 
 import com.drogaria.cotacao.model.enums.StatusPedido;
-import com.fasterxml.jackson.annotation.JsonManagedReference;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -19,10 +19,12 @@ public class Pedido {
 
     @ManyToOne
     @JoinColumn(name = "cotacao_id", nullable = false)
+    @JsonIgnoreProperties({"pedidos", "itens"}) 
     private Cotacao cotacao;
 
     @ManyToOne
     @JoinColumn(name = "fornecedor_id", nullable = false)
+    @JsonIgnoreProperties("pedidos") 
     private Fornecedor fornecedor;
 
     @Column(name = "valor_total_pedido")
@@ -39,6 +41,6 @@ public class Pedido {
     private StatusPedido status;
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
-    @JsonManagedReference
+    @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;
 }
