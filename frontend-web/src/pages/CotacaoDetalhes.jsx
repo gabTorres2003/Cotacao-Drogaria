@@ -15,6 +15,7 @@ import {
   Trash2,
   Save,
   X,
+  List
 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
@@ -23,7 +24,10 @@ export default function CotacaoDetalhes() {
   const [relatorio, setRelatorio] = useState([])
   const [fornecedores, setFornecedores] = useState([])
   const [loading, setLoading] = useState(true)
-  const [modoVisualizacao, setModoVisualizacao] = useState('tabela')
+  
+  // Novo estado inicial: começa na aba de itens
+  const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
+  
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [showModal, setShowModal] = useState(false)
   const [pedidosGerados, setPedidosGerados] = useState([])
@@ -192,7 +196,6 @@ export default function CotacaoDetalhes() {
           }))
         }
         
-        console.log(`Enviando pedido para o fornecedor ${pedido.fornecedorNome}:`, payload);
         await api.post('/api/pedidos/gerar', payload)
       }
       
@@ -284,158 +287,183 @@ export default function CotacaoDetalhes() {
     v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
     
   const fData = (data) => {
-  if (!data) return '-';
-  return data; 
-};
+    if (!data) return '-';
+    return data; 
+  };
 
-  const RenderTabela = () => (
-    <div style={styles.card}>
-      <table style={styles.table}>
-        <thead>
-          <tr>
-            <th style={styles.th}>Produto</th>
-            <th style={styles.th}>Qtd. Solicitada</th>
-            <th style={styles.th}>Estoque Atual</th>
-            <th style={styles.th}>Vendido no Mês</th>
-            <th style={styles.th}>Vendido pós Últ. Compra</th>
-            <th style={styles.th}>Data Últ. Compra</th>
-            <th style={styles.th}>Qtd. Últ. Compra</th>
-            <th style={styles.th}>Data Últ. Venda</th>
-            <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right' }}>
-              Preço Última Compra
-            </th>
+  const RenderTabela = () => {
+    const isComparativo = modoVisualizacao === 'comparativo';
+    const isItens = modoVisualizacao === 'itens';
 
-            {fornecedores.map((f) => (
-              <th
-                key={f}
-                style={{
-                  ...styles.th,
-                  backgroundColor: '#f9fafb',
-                  textAlign: 'center',
-                }}
-              >
-                {f}
+    return (
+      <div style={styles.card}>
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={styles.th}>Produto</th>
+              <th style={styles.th}>Qtd. Solicitada</th>
+              <th style={styles.th}>Estoque Atual</th>
+              
+              {/* Colunas Exclusivas da Aba de Itens */}
+              {isItens && (
+                <>
+                  <th style={styles.th}>Vendido no Mês</th>
+                  <th style={styles.th}>Vendido pós Últ. Compra</th>
+                  <th style={styles.th}>Data Últ. Compra</th>
+                  <th style={styles.th}>Qtd. Últ. Compra</th>
+                  <th style={styles.th}>Data Últ. Venda</th>
+                </>
+              )}
+
+              {/* Coluna comum a ambas as abas */}
+              <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right' }}>
+                Preço Últ. Compra
               </th>
-            ))}
 
-            <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>
-          </tr>
-        </thead>
-        <tbody>
-          {relatorio.map((item) => (
-            <tr key={item.idItem}>
-              <td style={styles.td}>
-                {editandoItem === item.idItem ? (
-                  <input
-                    style={styles.inputEdicao}
-                    value={formEdicao.nome}
-                    onChange={(e) =>
-                      setFormEdicao({ ...formEdicao, nome: e.target.value })
-                    }
-                  />
-                ) : (
-                  <strong>{item.nomeProduto}</strong>
-                )}
-              </td>
-              <td style={styles.td}>
-                {editandoItem === item.idItem ? (
-                  <input
-                    type="number"
-                    style={{ ...styles.inputEdicao, width: '60px' }}
-                    value={formEdicao.qtd}
-                    onChange={(e) =>
-                      setFormEdicao({
-                        ...formEdicao,
-                        qtd: Number(e.target.value),
-                      })
-                    }
-                  />
-                ) : (
-                  `${item.quantidade} un`
-                )}
-              </td>
+              {/* Colunas Exclusivas da Aba Comparativo */}
+              {isComparativo && fornecedores.map((f) => (
+                <th
+                  key={f}
+                  style={{
+                    ...styles.th,
+                    backgroundColor: '#f9fafb',
+                    textAlign: 'center',
+                    borderLeft: '1px solid #e5e7eb'
+                  }}
+                >
+                  {f}
+                </th>
+              ))}
 
-              <td style={styles.td}>{item.estoque ?? '-'}</td>
-              <td style={styles.td}>{item.vendidoNoMes ?? '-'}</td>
-              <td style={styles.td}>{item.vendidoAposUltCompra ?? '-'}</td>
-              <td style={styles.td}>{fData(item.ultCompraData)}</td>
-              <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
-              <td style={styles.td}>{fData(item.ultVendaData)}</td>
-              <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
-                {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
-              </td>
-
-              {fornecedores.map((f) => {
-                const precoFornecedor = item.precosPorFornecedor[f]
-                const isWinner = f === item.fornecedorVencedor
-                const emFalta = precoFornecedor === -1
-                return (
-                  <td
-                    key={f}
-                    style={{
-                      ...styles.td,
-                      fontWeight: isWinner ? 'bold' : 'normal',
-                      color: isWinner
-                        ? '#059669'
-                        : emFalta
-                          ? '#dc2626'
-                          : '#374151',
-                      backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
-                      textAlign: 'center',
-                    }}
-                  >
-                    {emFalta
-                      ? 'Em falta'
-                      : precoFornecedor
-                        ? fMoney(precoFornecedor)
-                        : '-'}
-                  </td>
-                )
-              })}
-
-              <td style={{ ...styles.td, textAlign: 'center' }}>
-                {editandoItem === item.idItem ? (
-                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                    <button
-                      onClick={() => salvarEdicao(item.idItem)}
-                      title="Salvar"
-                      style={{ ...styles.btnIcon, color: '#16a34a' }}
-                    >
-                      <Save size={18} />
-                    </button>
-                    <button
-                      onClick={() => setEditandoItem(null)}
-                      title="Cancelar"
-                      style={{ ...styles.btnIcon, color: '#6b7280' }}
-                    >
-                      <X size={18} />
-                    </button>
-                  </div>
-                ) : (
-                  <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                    <button
-                      onClick={() => iniciarEdicao(item)}
-                      title="Editar Produto"
-                      style={{ ...styles.btnIcon, color: '#3b82f6' }}
-                    >
-                      <Edit2 size={18} />
-                    </button>
-                    <button
-                      onClick={() => deletarItem(item.idItem)}
-                      title="Remover Produto"
-                      style={{ ...styles.btnIcon, color: '#ef4444' }}
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                )}
-              </td>
+              {/* Ações apenas na aba de Itens */}
+              {isItens && <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>}
             </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  )
+          </thead>
+          <tbody>
+            {relatorio.map((item) => (
+              <tr key={item.idItem}>
+                <td style={styles.td}>
+                  {editandoItem === item.idItem ? (
+                    <input
+                      style={styles.inputEdicao}
+                      value={formEdicao.nome}
+                      onChange={(e) =>
+                        setFormEdicao({ ...formEdicao, nome: e.target.value })
+                      }
+                    />
+                  ) : (
+                    <strong>{item.nomeProduto}</strong>
+                  )}
+                </td>
+                <td style={styles.td}>
+                  {editandoItem === item.idItem ? (
+                    <input
+                      type="number"
+                      style={{ ...styles.inputEdicao, width: '60px' }}
+                      value={formEdicao.qtd}
+                      onChange={(e) =>
+                        setFormEdicao({
+                          ...formEdicao,
+                          qtd: Number(e.target.value),
+                        })
+                      }
+                    />
+                  ) : (
+                    `${item.quantidade} un`
+                  )}
+                </td>
+
+                <td style={styles.td}>{item.estoque ?? '-'}</td>
+
+                {isItens && (
+                  <>
+                    <td style={styles.td}>{item.vendidoNoMes ?? '-'}</td>
+                    <td style={styles.td}>{item.vendidoAposUltCompra ?? '-'}</td>
+                    <td style={styles.td}>{fData(item.ultCompraData)}</td>
+                    <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
+                    <td style={styles.td}>{fData(item.ultVendaData)}</td>
+                  </>
+                )}
+
+                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
+                  {item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}
+                </td>
+
+                {isComparativo && fornecedores.map((f) => {
+                  const precoFornecedor = item.precosPorFornecedor[f]
+                  const isWinner = f === item.fornecedorVencedor
+                  const emFalta = precoFornecedor === -1
+                  return (
+                    <td
+                      key={f}
+                      style={{
+                        ...styles.td,
+                        fontWeight: isWinner ? 'bold' : 'normal',
+                        color: isWinner
+                          ? '#059669'
+                          : emFalta
+                            ? '#dc2626'
+                            : '#374151',
+                        backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
+                        textAlign: 'center',
+                        borderLeft: '1px solid #f3f4f6'
+                      }}
+                    >
+                      {emFalta
+                        ? 'Em falta'
+                        : precoFornecedor
+                          ? fMoney(precoFornecedor)
+                          : '-'}
+                    </td>
+                  )
+                })}
+
+                {isItens && (
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                    {editandoItem === item.idItem ? (
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => salvarEdicao(item.idItem)}
+                          title="Salvar"
+                          style={{ ...styles.btnIcon, color: '#16a34a' }}
+                        >
+                          <Save size={18} />
+                        </button>
+                        <button
+                          onClick={() => setEditandoItem(null)}
+                          title="Cancelar"
+                          style={{ ...styles.btnIcon, color: '#6b7280' }}
+                        >
+                          <X size={18} />
+                        </button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        <button
+                          onClick={() => iniciarEdicao(item)}
+                          title="Editar Produto"
+                          style={{ ...styles.btnIcon, color: '#3b82f6' }}
+                        >
+                          <Edit2 size={18} />
+                        </button>
+                        <button
+                          onClick={() => deletarItem(item.idItem)}
+                          title="Remover Produto"
+                          style={{ ...styles.btnIcon, color: '#ef4444' }}
+                        >
+                          <Trash2 size={18} />
+                        </button>
+                      </div>
+                    )}
+                  </td>
+                )}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    );
+  }
 
   const styles = {
     container: { padding: '20px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
@@ -443,12 +471,12 @@ export default function CotacaoDetalhes() {
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
+    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap' },
     td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer' },
-    toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px' },
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
+    toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' },
     toggleBtn: (ativo) => ({
-      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '30px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#4b5563'
+      display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s'
     }),
     inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
@@ -487,16 +515,22 @@ export default function CotacaoDetalhes() {
 
       <div style={styles.toggleContainer}>
         <button
-          style={styles.toggleBtn(modoVisualizacao === 'tabela')}
-          onClick={() => setModoVisualizacao('tabela')}
+          style={styles.toggleBtn(modoVisualizacao === 'itens')}
+          onClick={() => setModoVisualizacao('itens')}
         >
-          <BarChart2 size={18} /> Comparativo / Itens
+          <List size={18} /> Detalhes da Cotação
+        </button>
+        <button
+          style={styles.toggleBtn(modoVisualizacao === 'comparativo')}
+          onClick={() => setModoVisualizacao('comparativo')}
+        >
+          <BarChart2 size={18} /> Comparativo de Preços
         </button>
       </div>
 
       {loading ? <p>Carregando dados da cotação...</p> : <RenderTabela />}
 
-      {/* MODAL DE RESUMO DE PEDIDOS */}
+      {/* MODAL DE RESUMO DE PEDIDOS (MANTIDO INTACTO) */}
       {showModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>
