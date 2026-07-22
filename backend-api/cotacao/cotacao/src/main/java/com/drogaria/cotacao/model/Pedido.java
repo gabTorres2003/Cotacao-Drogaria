@@ -24,7 +24,7 @@ public class Pedido {
 
     @ManyToOne
     @JoinColumn(name = "fornecedor_id", nullable = false)
-    @JsonIgnoreProperties("pedidos") 
+    @JsonIgnoreProperties({"pedidos", "precos"}) 
     private Fornecedor fornecedor;
 
     @Column(name = "valor_total_pedido")
