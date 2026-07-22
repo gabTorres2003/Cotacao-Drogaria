@@ -3,6 +3,7 @@ package com.drogaria.cotacao.model;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
+import java.util.List; 
 
 @Entity
 @Table(name = "tb_itens_cotacao")
@@ -34,6 +35,9 @@ public class ItemCotacao {
     @JsonIgnore
     private Cotacao cotacao;
 
+    @OneToMany(mappedBy = "itemCotacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<PrecoCotacao> precos;
+
     public Long getId() { return id; }
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
@@ -58,4 +62,6 @@ public class ItemCotacao {
     public void setUltVendaData(LocalDate ultVendaData) { this.ultVendaData = ultVendaData; }
     public Double getVendidoAposUltCompra() { return vendidoAposUltCompra; }
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
+    public List<PrecoCotacao> getPrecos() { return precos; }
+    public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
 }

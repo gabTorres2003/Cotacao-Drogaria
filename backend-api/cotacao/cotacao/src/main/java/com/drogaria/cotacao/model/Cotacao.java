@@ -19,8 +19,19 @@ public class Cotacao {
     private String descricao; 
     
     @JsonIgnore 
-    @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL)
+    @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemCotacao> itens;
+
+    @JsonIgnore
+    @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CotacaoFornecedor> cotacaoFornecedores;
+
+    public List<CotacaoFornecedor> getCotacaoFornecedores() {
+        return cotacaoFornecedores;
+    }
+    public void setCotacaoFornecedores(List<CotacaoFornecedor> cotacaoFornecedores) {
+        this.cotacaoFornecedores = cotacaoFornecedores;
+    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
