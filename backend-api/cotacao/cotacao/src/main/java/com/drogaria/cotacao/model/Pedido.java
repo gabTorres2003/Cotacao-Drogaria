@@ -3,13 +3,15 @@ package com.drogaria.cotacao.model;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.fasterxml.jackson.annotation.JsonManagedReference;
 import jakarta.persistence.*;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
 @Table(name = "tb_pedidos")
-@Data
+@Getter
+@Setter
 public class Pedido {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

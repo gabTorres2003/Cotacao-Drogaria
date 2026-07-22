@@ -191,7 +191,8 @@ export default function CotacaoDetalhes() {
             valorUnitarioPedido: item.valorUnitarioPedido
           }))
         }
-  
+        
+        console.log(`Enviando pedido para o fornecedor ${pedido.fornecedorNome}:`, payload);
         await api.post('/api/pedidos/gerar', payload)
       }
       
@@ -201,7 +202,8 @@ export default function CotacaoDetalhes() {
       
     } catch (error) {
       console.error('Erro ao salvar pedidos no banco:', error)
-      alert('Erro ao salvar os pedidos. Verifique se o nome do fornecedor está idêntico ao cadastrado.')
+      const msgErro = error.response?.data?.message || error.message || 'Erro desconhecido'
+      alert(`Falha ao salvar no banco. Motivo: ${msgErro}`)
     } finally {
       setSalvandoPedidos(false)
     }
