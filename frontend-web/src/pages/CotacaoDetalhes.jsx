@@ -27,6 +27,7 @@ export default function CotacaoDetalhes() {
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [showModal, setShowModal] = useState(false)
   const [pedidosGerados, setPedidosGerados] = useState([])
+  const [salvandoPedidos, setSalvandoPedidos] = useState(false)
 
   const [enviados, setEnviados] = useState(() => {
     const salvos = localStorage.getItem(`enviados_cotacao_${id}`)
@@ -124,6 +125,7 @@ export default function CotacaoDetalhes() {
         const preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
         
         pedidosPorFornecedor[fornecedorNome].itens.push({
+          idItem: Number(idItem),
           nomeProduto: itemRelatorio.nomeProduto,
           quantidadePedida: qtd,
           valorUnitarioPedido: preco,
@@ -175,6 +177,106 @@ export default function CotacaoDetalhes() {
 
     doc.save(`cotacao dia ${diaArquivo} ${pedido.fornecedorNome}.pdf`)
   }
+
+  const salvarPedidosNoBanco = async () => {
+    setSalvandoPedidos(true)
+    try {
+      for (const pedido of pedidosGerados) {
+        const payload = {
+          cotacaoId: Number(id),
+          fornecedorNome: pedido.fornecedorNome,
+          itens: pedido.itens.map(item => ({
+            itemCotacaoId: item.idItem,
+            quantidadePedida: item.quantidadePedida,
+            valorUnitarioPedido: item.valorUnitarioPedido
+          }))
+        }
+  
+        await api.post('/api/pedidos/gerar', payload)
+      }
+      
+      alert('Pedidos gerados e salvos com sucesso no sistema!')
+      setShowModal(false)
+      navigate('/pedidos')
+      
+    } catch (error) {
+      console.error('Erro ao salvar pedidos no banco:', error)
+      alert('Erro ao salvar os pedidos. Verifique se o nome do fornecedor está idêntico ao cadastrado.')
+    } finally {
+      setSalvandoPedidos(false)
+    }
+  }
+
+  const handleQuantidadeModalChange = (fornecedorNome, idItem, novaQtd) => {
+    const qtdNumber = Number(novaQtd) > 0 ? Number(novaQtd) : 1; 
+    
+    setPedidosGerados(prev => prev.map(pedido => {
+      if (pedido.fornecedorNome === fornecedorNome) {
+        const novosItens = pedido.itens.map(item => 
+          item.idItem === idItem 
+            ? { ...item, quantidadePedida: qtdNumber, subtotal: qtdNumber * item.valorUnitarioPedido }
+            : item
+        );
+        return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, i) => acc + i.subtotal, 0) };
+      }
+      return pedido;
+    }));
+  };
+
+  const handleFornecedorModalChange = (fornecedorAtual, novoFornecedor, idItem) => {
+    if (novoFornecedor === fornecedorAtual) return;
+    
+    if (!window.confirm(`Tem certeza que deseja mover este produto para "${novoFornecedor}"? O valor unitário poderá ser maior que a melhor oferta.`)) {
+      return;
+    }
+
+    const itemBase = relatorio.find(r => r.idItem === idItem);
+    const novoPreco = itemBase.precosPorFornecedor[novoFornecedor];
+
+    if (!novoPreco || novoPreco === -1) {
+      alert(`Operação cancelada: O fornecedor ${novoFornecedor} não possui um preço cadastrado (ou está em falta) para este produto.`);
+      return;
+    }
+
+    setPedidosGerados(prev => {
+      let itemRemovido = null;
+
+      const prevSemItem = prev.map(pedido => {
+        if (pedido.fornecedorNome === fornecedorAtual) {
+          itemRemovido = pedido.itens.find(i => i.idItem === idItem);
+          const novosItens = pedido.itens.filter(i => i.idItem !== idItem);
+          return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
+        }
+        return pedido;
+      });
+
+      const itemAtualizado = {
+        ...itemRemovido,
+        valorUnitarioPedido: novoPreco,
+        subtotal: itemRemovido.quantidadePedida * novoPreco
+      };
+
+      let fornecedorJaExiste = false;
+      const novoState = prevSemItem.map(pedido => {
+        if (pedido.fornecedorNome === novoFornecedor) {
+          fornecedorJaExiste = true;
+          const novosItens = [...pedido.itens, itemAtualizado];
+          return { ...pedido, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
+        }
+        return pedido;
+      });
+
+      if (!fornecedorJaExiste) {
+        novoState.push({
+          fornecedorNome: novoFornecedor,
+          itens: [itemAtualizado],
+          total: itemAtualizado.subtotal
+        });
+      }
+
+      return novoState.filter(pedido => pedido.itens.length > 0);
+    });
+  };
 
   const fMoney = (v) =>
     v != null ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
@@ -422,16 +524,40 @@ export default function CotacaoDetalhes() {
                   <thead>
                     <tr>
                       <th style={styles.th}>Produto</th>
+                      <th style={styles.th}>Vendedor</th>
                       <th style={styles.th}>Qtd</th>
-                      <th style={styles.th}>Preço</th>
+                      <th style={styles.th}>Preço Unit.</th>
                       <th style={styles.th}>Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {pedido.itens.map((item, idx) => (
                       <tr key={idx}>
-                        <td style={styles.td}>{item.nomeProduto}</td>
-                        <td style={styles.td}>{item.quantidadePedida}</td>
+                        <td style={styles.td}>
+                          <span style={{ fontWeight: '500', color: '#111827' }}>
+                            {item.nomeProduto}
+                          </span>
+                        </td>
+                        <td style={styles.td}>
+                          <select 
+                            value={pedido.fornecedorNome}
+                            onChange={(e) => handleFornecedorModalChange(pedido.fornecedorNome, e.target.value, item.idItem)}
+                            style={{ padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px', backgroundColor: '#f9fafb', cursor: 'pointer' }}
+                          >
+                            {fornecedores.map(f => (
+                              <option key={f} value={f}>{f}</option>
+                            ))}
+                          </select>
+                        </td>
+                        <td style={styles.td}>
+                          <input 
+                            type="number" 
+                            min="1"
+                            value={item.quantidadePedida}
+                            onChange={(e) => handleQuantidadeModalChange(pedido.fornecedorNome, item.idItem, e.target.value)}
+                            style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center' }}
+                          />
+                        </td>
                         <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
                         <td style={styles.td}>{fMoney(item.subtotal)}</td>
                       </tr>
@@ -439,16 +565,30 @@ export default function CotacaoDetalhes() {
                   </tbody>
                   <tfoot>
                     <tr>
-                      <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total do Fornecedor:</td>
-                      <td style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a' }}>{fMoney(pedido.total)}</td>
+                      <td colSpan="4" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total do Fornecedor:</td>
+                      <td style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a', fontSize: '16px' }}>{fMoney(pedido.total)}</td>
                     </tr>
                   </tfoot>
                 </table>
               </div>
             ))}
             
-            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-              <button onClick={() => setShowModal(false)} style={styles.btnVoltar}>Voltar à Tabela</button>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
+              <button 
+                onClick={() => setShowModal(false)} 
+                style={styles.btnVoltar}
+                disabled={salvandoPedidos}
+              >
+                Cancelar
+              </button>
+              
+              <button 
+                onClick={salvarPedidosNoBanco} 
+                style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }}
+                disabled={salvandoPedidos}
+              >
+                {salvandoPedidos ? 'Salvando no Banco...' : 'Salvar Pedidos no Sistema'}
+              </button>
             </div>
           </div>
         </div>
