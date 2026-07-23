@@ -274,11 +274,13 @@ public class ComparativoService {
             }
         }
 
-        CotacaoFornecedor cotacaoFornecedor = cotacaoFornecedorRepository.findByCotacaoIdAndFornecedorId(request.getCotacaoId(), request.getFornecedorId())
-                .orElse(null);
-        if (cotacaoFornecedor != null) {
-            cotacaoFornecedor.setStatus("RESPONDIDA");
-            cotacaoFornecedorRepository.save(cotacaoFornecedor);
+        // --- ATUALIZANDO O VÍNCULO DO FORNECEDOR (Lidando com duplicatas na Base) ---
+        List<CotacaoFornecedor> vinculosDoFornecedor = cotacaoFornecedorRepository.findByCotacaoIdAndFornecedorId(request.getCotacaoId(), request.getFornecedorId());
+        if (vinculosDoFornecedor != null && !vinculosDoFornecedor.isEmpty()) {
+            for (CotacaoFornecedor cf : vinculosDoFornecedor) {
+                cf.setStatus("RESPONDIDA");
+            }
+            cotacaoFornecedorRepository.saveAll(vinculosDoFornecedor);
         }
 
         List<CotacaoFornecedor> todosVinculos = cotacaoFornecedorRepository.findByCotacaoId(cotacao.getId());
