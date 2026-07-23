@@ -78,13 +78,23 @@ export default function Pedidos() {
   }
 
   const getStatusFormatado = (status) => {
+    const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-block' };
+    
     switch (status) {
-      case 'PENDENTE_ENTREGA': return { texto: 'Aguardando', classe: 'status-PENDENTE' }
-      case 'ENTREGUE_SUCESSO': return { texto: 'Entregue', classe: 'status-FINALIZADA' }
-      case 'ENTREGUE_COM_FALTA': return { texto: 'Entregue c/ Falta', classe: 'status-RESPONDIDA_PARCIALMENTE' }
-      case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência', classe: 'status-ABERTA' }
-      case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução', classe: 'status-ABERTA' }
-      default: return { texto: status, classe: 'bg-gray-100 text-gray-800' }
+      case 'PENDENTE_ENTREGA': 
+        return { texto: 'Aguardando', style: { ...baseStyle, backgroundColor: '#ffedd5', color: '#c2410c' } };
+      case 'ENTREGUE_SUCESSO': 
+        return { texto: 'Entregue', style: { ...baseStyle, backgroundColor: '#dcfce7', color: '#15803d' } };
+      case 'ENTREGUE_COM_FALTA': 
+        return { texto: 'Divergência: Falta', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
+      case 'VALORES_INCOMPATIVEIS': 
+        return { texto: 'Divergência: Valor', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
+      case 'DIVERGENCIA': 
+        return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
+      case 'PENDENTE_DEVOLUCAO': 
+        return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: '#f3e8ff', color: '#7e22ce' } };
+      default: 
+        return { texto: status, style: { ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' } };
     }
   }
 
@@ -142,6 +152,7 @@ export default function Pedidos() {
               <option value="ENTREGUE_SUCESSO">Entregue com Sucesso</option>
               <option value="ENTREGUE_COM_FALTA">Entregue com Falta</option>
               <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
+              <option value="DIVERGENCIA">Divergência de Quantidade</option>
               <option value="PENDENTE_DEVOLUCAO">Pendente de Devolução</option>
             </select>
           </div>
@@ -178,7 +189,7 @@ export default function Pedidos() {
                       .map(item => item.itemCotacao?.grupo)
                       .filter(Boolean); 
                     
-                    const gruposUnicos = [...new Set(listaDeGrupos)]; // Remove repetições
+                    const gruposUnicos = [...new Set(listaDeGrupos)]; 
                     
                     if (gruposUnicos.length > 0) {
                       gruposFormatados = gruposUnicos.join(', ');
@@ -192,7 +203,10 @@ export default function Pedidos() {
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
                       <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
-                      <td><span className={`status-badge ${statusInfo.classe}`}>{statusInfo.texto}</span></td>
+                      
+                      {/* APLICAÇÃO DO NOVO ESTILO AQUI */}
+                      <td><span style={statusInfo.style}>{statusInfo.texto}</span></td>
+                      
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/pedidos/${p.id}`)}>
