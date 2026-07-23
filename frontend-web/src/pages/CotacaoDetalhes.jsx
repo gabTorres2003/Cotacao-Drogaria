@@ -67,13 +67,32 @@ export default function CotacaoDetalhes() {
   }
 
   const toggleTroca = (idItem, fornecedorNome) => {
-    setAceitesTroca(prev => {
-      const novoValor = !prev[idItem];
-      if (novoValor) {
-        handleSetWinner(idItem, fornecedorNome); // Se aceitou a troca, seta o fornecedor como vencedor
+    const isAtivando = !aceitesTroca[idItem];
+
+    setAceitesTroca(prev => ({ ...prev, [idItem]: isAtivando }));
+
+    if (isAtivando) {
+      handleSetWinner(idItem, fornecedorNome);
+    } else {
+      const itemRelatorio = relatorio.find(r => r.idItem === idItem);
+      if (itemRelatorio) {
+        const precoOriginal = itemRelatorio.precosPorFornecedor[fornecedorNome];
+        
+        if (!precoOriginal || precoOriginal <= 0) {
+          let menorPreco = Infinity;
+          let vencedorOriginal = 'Sem ofertas';
+          
+          Object.entries(itemRelatorio.precosPorFornecedor).forEach(([forn, p]) => {
+            if (p > 0 && p < menorPreco) {
+              menorPreco = p;
+              vencedorOriginal = forn;
+            }
+          });
+          
+          handleSetWinner(idItem, vencedorOriginal);
+        }
       }
-      return { ...prev, [idItem]: novoValor };
-    });
+    }
   }
 
   const iniciarEdicao = (item) => {
@@ -124,7 +143,6 @@ export default function CotacaoDetalhes() {
         let nomeFinal = itemRelatorio.nomeProduto;
         let nomeOriginal = null;
 
-        // Se a troca foi aceita, atualiza os dados da compra
         if (isTrocaAceita && nomeSubstituto) {
           preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
           qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
@@ -132,8 +150,8 @@ export default function CotacaoDetalhes() {
           nomeOriginal = itemRelatorio.nomeProduto;
         }
 
-        // Se estiver em falta (-1) e não for uma troca aceita, ignora do pedido
-        if (preco === -1) return;
+        // Regra garantida: Ignora do pedido se o preço for -1 ou 0
+        if (preco <= 0) return;
 
         pedidosPorFornecedor[fornecedorNome].itens.push({
           idItem: idItem,
@@ -200,7 +218,7 @@ export default function CotacaoDetalhes() {
           fornecedorNome: pedido.fornecedorNome,
           itens: pedido.itens.map(item => ({
             itemCotacaoId: item.idItem || null, 
-            nomeProduto: item.nomeProduto, // Passa o nome final (Substituto ou Promoção)
+            nomeProduto: item.nomeProduto, 
             quantidadePedida: item.quantidadePedida,
             valorUnitarioPedido: item.valorUnitarioPedido
           }))
@@ -219,7 +237,7 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  const fMoney = (v) => v != null && v !== -1 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+  const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
 
   const RenderTabela = () => {
@@ -286,7 +304,6 @@ export default function CotacaoDetalhes() {
 
                 <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</td>
 
-                {/* LOGICA DA EXIBIÇÃO DE TROCAS E PREÇOS */}
                 {isComparativo && fornecedores.map((f) => {
                   const precoOriginal = item.precosPorFornecedor[f]
                   const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
@@ -296,7 +313,7 @@ export default function CotacaoDetalhes() {
                   
                   const isWinner = decisaoCompra[item.idItem] === f
                   const isTrocaAceita = aceitesTroca[item.idItem]
-                  const isEmFaltaOriginal = precoOriginal === -1;
+                  const isEmFaltaOriginal = precoOriginal <= 0; // -1 ou 0
 
                   return (
                     <td
@@ -428,7 +445,6 @@ export default function CotacaoDetalhes() {
 
       {loading ? <p>Carregando dados...</p> : <RenderTabela />}
 
-      {/* MODAL DE RESUMO DE PEDIDOS */}
       {showModal && (
         <div style={styles.modalOverlay}>
           <div style={styles.modalContent}>

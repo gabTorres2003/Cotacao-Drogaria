@@ -108,7 +108,7 @@ export default function PedidoConferencia() {
                 {pedido.itens?.map((item, index) => (
                   <tr key={item.id}>
                     <td style={styles.td}>
-                      <strong>{item.itemCotacao?.nomeProduto || 'Produto'}</strong>
+                      <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
                     </td>
                     <td style={{ ...styles.td, textAlign: 'center' }}>
                       <input 

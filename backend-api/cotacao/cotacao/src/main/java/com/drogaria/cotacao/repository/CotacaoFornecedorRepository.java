@@ -6,6 +6,10 @@ import java.util.List;
 import java.util.Optional;
 
 public interface CotacaoFornecedorRepository extends JpaRepository<CotacaoFornecedor, Long> {
+    
     List<CotacaoFornecedor> findByFornecedorLogin(String login);
+    
     Optional<CotacaoFornecedor> findByCotacaoIdAndFornecedorId(Long cotacaoId, Long fornecedorId);
+    
+    List<CotacaoFornecedor> findByCotacaoId(Long cotacaoId);
 }

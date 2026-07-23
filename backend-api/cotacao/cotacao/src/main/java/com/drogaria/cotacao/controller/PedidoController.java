@@ -59,4 +59,10 @@ public class PedidoController {
         Pedido pedidoAtualizado = pedidoService.atualizarStatus(id, novoStatus);
         return ResponseEntity.ok(pedidoAtualizado);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletarPedido(@PathVariable Long id) {
+        pedidoService.deletarPedido(id);
+        return ResponseEntity.noContent().build();
+    }
 }

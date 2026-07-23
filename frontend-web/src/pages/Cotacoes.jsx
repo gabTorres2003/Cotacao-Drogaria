@@ -22,10 +22,9 @@ export default function Cotacoes() {
   const [modalAberto, setModalAberto] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
 
-  // ESTADOS DE FILTRO
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
-  const [ordemData, setOrdemData] = useState('RECENTES') // 'RECENTES' ou 'ANTIGAS'
+  const [ordemData, setOrdemData] = useState('RECENTES') 
 
   const [resumo, setResumo] = useState({
     total: 0,
@@ -64,25 +63,21 @@ export default function Cotacoes() {
 
   const cotacoesFiltradas = cotacoes
     .filter((c) => {
-      // 1. Filtro de Texto
       const textoBusca = busca.toLowerCase()
       const matchTexto =
         c.descricao?.toLowerCase().includes(textoBusca) ||
         c.id.toString().includes(textoBusca)
 
-      // 2. Filtro de Status
       const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus
 
       return matchTexto && matchStatus
     })
     .sort((a, b) => {
-      // 3. Ordenação por Data
       const dateA = new Date(a.dataCriacao)
       const dateB = new Date(b.dataCriacao)
       return ordemData === 'RECENTES' ? dateB - dateA : dateA - dateB
     })
 
-  // FORMATADOR DE DATA (DD/MM/AA)
   const formatarDataBR = (dataIso) => {
     if (!dataIso) return '--/--/--'
     return new Date(dataIso).toLocaleDateString('pt-BR', {
@@ -170,21 +165,6 @@ export default function Cotacoes() {
     }
   }
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'ABERTA':
-        return 'bg-green-100 text-green-800'
-      case 'PENDENTE_RESPOSTA':
-        return 'bg-yellow-100 text-yellow-800'
-      case 'RESPONDIDA_PARCIALMENTE':
-        return 'bg-orange-100 text-orange-800'
-      case 'FINALIZADA':
-        return 'bg-gray-100 text-gray-800'
-      default:
-        return 'bg-gray-100'
-    }
-  }
-
   return (
     <div className="layout">
       <Sidebar />
@@ -215,7 +195,6 @@ export default function Cotacoes() {
           </button>
         </header>
 
-        {/* Cards de Resumo */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
@@ -307,12 +286,12 @@ export default function Cotacoes() {
               ) : (
                 cotacoesFiltradas.map((c) => (
                   <tr key={c.id}>
-                    <td>
+                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
                       <span style={{ fontWeight: 'bold', color: '#374151' }}>
                         #{c.id}
                       </span>
                     </td>
-                    <td>
+                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
                       <span
                         style={{
                           fontWeight: '500',
@@ -324,14 +303,13 @@ export default function Cotacoes() {
                       </span>
                     </td>
 
-                    {/* DATA PADRÃO BRASILEIRO */}
-                    <td>
+                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
                       <span style={{ color: '#6b7280', fontSize: '14px' }}>
                         {formatarDataBR(c.dataCriacao)}
                       </span>
                     </td>
 
-                    <td>
+                    <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
                       <span className={`status-badge status-${c.status}`}>
                         {c.status === 'ABERTA'
                           ? 'Aberta'
@@ -341,8 +319,16 @@ export default function Cotacoes() {
                               ? 'Finalizada'
                               : c.status}
                       </span>
+                      
+                      {c.fornecedoresPendentes && c.fornecedoresPendentes.length > 0 && (
+                        <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '8px', lineHeight: '1.4' }}>
+                          <strong>Falta responder:</strong><br/>
+                          {c.fornecedoresPendentes.join(', ')}
+                        </div>
+                      )}
                     </td>
-                    <td>
+                    
+                    <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           className="btn-icon"
@@ -396,7 +382,6 @@ export default function Cotacoes() {
           />
         )}
 
-        {/* OVERLAY DE CARREGAMENTO */}
         {isDeleting && (
           <div style={{
             position: 'fixed',

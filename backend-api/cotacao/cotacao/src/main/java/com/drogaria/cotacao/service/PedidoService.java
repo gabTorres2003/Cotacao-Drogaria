@@ -163,4 +163,10 @@ public class PedidoService {
 
         return pedidoRepository.save(pedido);
     }
+
+    @Transactional
+    public void deletarPedido(Long id) {
+        Pedido pedido = buscarPorId(id);
+        pedidoRepository.delete(pedido);
+    }
 }

@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2 } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -28,6 +28,19 @@ export default function PedidoDetalhes() {
         carregarPedido();
     }, [id]);
 
+    const handleExcluirPedido = async () => {
+        if (window.confirm('Tem certeza que deseja excluir este pedido permanentemente? Esta ação não pode ser desfeita.')) {
+            try {
+                await api.delete(`/api/pedidos/${id}`);
+                alert('Pedido excluído com sucesso!');
+                navigate('/pedidos');
+            } catch (error) {
+                console.error('Erro ao excluir pedido:', error);
+                alert(`Erro ao excluir pedido. Motivo: ${error.response?.data?.message || error.message}`);
+            }
+        }
+    };
+
     const fMoney = (valor) => {
         if (valor == null) return '-';
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -47,10 +60,22 @@ export default function PedidoDetalhes() {
                         <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Pedido #{pedido.id}</h1>
                         <p style={{ color: '#6b7280' }}>Fornecedor: {fornecedorNome}</p>
                     </div>
-                    <button style={styles.btnVoltar} onClick={() => navigate('/pedidos')}>
-                        <ArrowLeft size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                        Voltar aos Pedidos
-                    </button>
+                    
+                    <div style={{ display: 'flex', gap: '10px' }}>
+                        {/* NOVO BOTÃO: Excluir Pedido */}
+                        <button 
+                            style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} 
+                            onClick={handleExcluirPedido}
+                        >
+                            <Trash2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                            Excluir Pedido
+                        </button>
+
+                        <button style={styles.btnVoltar} onClick={() => navigate('/pedidos')}>
+                            <ArrowLeft size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                            Voltar aos Pedidos
+                        </button>
+                    </div>
                 </header>
 
                 <div style={styles.infoCard}>
@@ -146,7 +171,7 @@ const styles = {
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
     th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
     td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '14px' },
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', transition: '0.2s' },
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     statusBadge: { fontWeight: '600', color: '#2563eb' },

@@ -3,6 +3,7 @@ package com.drogaria.cotacao.model;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore; 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
@@ -25,6 +26,17 @@ public class Cotacao {
     @JsonIgnore
     @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CotacaoFornecedor> cotacaoFornecedores;
+
+    @Transient
+    private List<String> fornecedoresPendentes = new ArrayList<>();
+
+    public List<String> getFornecedoresPendentes() {
+        return fornecedoresPendentes;
+    }
+
+    public void setFornecedoresPendentes(List<String> fornecedoresPendentes) {
+        this.fornecedoresPendentes = fornecedoresPendentes;
+    }
 
     public List<CotacaoFornecedor> getCotacaoFornecedores() {
         return cotacaoFornecedores;
