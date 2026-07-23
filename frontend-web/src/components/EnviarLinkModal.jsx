@@ -1,45 +1,46 @@
 import React, { useEffect, useState } from 'react';
-import { X, Send, User, Users, CheckCircle } from 'lucide-react';
+import { X, Send, User, Users, CheckCircle, Clock } from 'lucide-react';
 import api from '../services/api';
 
 export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) {
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Resgata o nome de quem está logado no painel administrativo
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'nossa equipe';
   
-  // Estado que guarda quem já recebeu o link
-  const [enviados, setEnviados] = useState(() => {
-    const salvos = localStorage.getItem(`link_enviado_cotacao_${idCotacao}`);
-    return salvos ? JSON.parse(salvos) : [];
-  });
+  const [vinculados, setVinculados] = useState([]);
+  const [respondidos, setRespondidos] = useState([]);
 
   useEffect(() => {
-    carregarFornecedores();
+    carregarDados();
   }, []);
 
-  // Salva no navegador sempre que a lista de enviados mudar
-  useEffect(() => {
-    localStorage.setItem(`link_enviado_cotacao_${idCotacao}`, JSON.stringify(enviados));
-  }, [enviados, idCotacao]);
-
-  const carregarFornecedores = async () => {
+  const carregarDados = async () => {
     try {
-      const response = await api.get('/api/fornecedor');
-      setFornecedores(response.data);
+      // Faz duas requisições simultâneas para cruzar os dados
+      const [resForn, resCot] = await Promise.all([
+        api.get('/api/fornecedor'),
+        api.get('/api/cotacao')
+      ]);
+      
+      setFornecedores(resForn.data);
+      
+      // Encontra a cotação e injeta as listas que vieram do banco de dados
+      const cotacao = resCot.data.find(c => c.id === Number(idCotacao));
+      if (cotacao) {
+         setVinculados(cotacao.fornecedoresVinculadosIds || []);
+         setRespondidos(cotacao.fornecedoresRespondidosIds || []);
+      }
     } catch (error) {
-      console.error('Erro ao listar fornecedores', error);
+      console.error('Erro ao carregar dados', error);
     } finally {
       setLoading(false);
     }
   };
 
-  // Envia os IDs dos fornecedores para salvar a tabela relacional no backend
   const vincularFornecedoresNoBackend = async (fornecedoresIds) => {
     try {
       await api.post(`/api/cotacao-fornecedor/vincular/${idCotacao}`, fornecedoresIds);
-      console.log("Vínculo salvo com sucesso no banco!");
     } catch (error) {
       console.error("Erro ao vincular fornecedores no banco", error);
     }
@@ -56,8 +57,9 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
   // ENVIO INDIVIDUAL
   const enviarZap = async (fornecedor) => {
-    if (!enviados.includes(fornecedor.id)) {
-      setEnviados([...enviados, fornecedor.id]);
+    // Se ainda não estava vinculado no banco, nós vinculamos na hora
+    if (!vinculados.includes(fornecedor.id)) {
+      setVinculados(prev => [...prev, fornecedor.id]); // Atualiza a cor na hora pro usuário
       await vincularFornecedoresNoBackend([fornecedor.id]); 
       await atualizarStatusCotacao();
     }
@@ -72,10 +74,10 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
   // ENVIO GERAL (LISTA DE TRANSMISSÃO)
   const enviarParaLista = async () => {
     const todosIds = fornecedores.map(f => f.id);
-    setEnviados(todosIds);
+    setVinculados(todosIds); // Atualiza todas as cores na hora
     await vincularFornecedoresNoBackend(todosIds);
     await atualizarStatusCotacao();
-
+    
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
     const mensagem = `Olá, parceiros! Aqui é ${nomeUsuario} da Drogaria Torres Farma.\n\nAcabamos de liberar uma nova cotação. Aguardamos as melhores propostas de vocês!\n\n🔗 Acesse o link para preencher: ${link}\n\n🔒 *Acesso rápido: utilizem o login e senha já cadastrados.*`;
     
@@ -86,18 +88,12 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
   // ESTILOS DO MODAL
   const styles = {
     overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+    modal: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '550px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
     header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' },
-    title: { margin: 0, fontSize: '20px', color: '#1f2937' },
+    title: { margin: 0, fontSize: '20px', color: '#1f2937', fontWeight: 'bold' },
     closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' },
     listaContainer: { overflowY: 'auto', flex: 1, paddingRight: '5px' },
-    fornecedorItem: (jaEnviado) => ({ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: '1px solid', borderColor: jaEnviado ? '#bbf7d0' : '#e5e7eb', backgroundColor: jaEnviado ? '#f0fdf4' : 'white', borderRadius: '8px', marginBottom: '10px' }),
-    infoArea: { display: 'flex', alignItems: 'center', gap: '12px' },
-    iconBox: (jaEnviado) => ({ background: jaEnviado ? '#22c55e' : '#f3f4f6', color: jaEnviado ? 'white' : '#9ca3af', padding: '8px', borderRadius: '50%' }),
-    nomeFornecedor: { fontWeight: '600', color: '#374151', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' },
-    telefone: { fontSize: '13px', color: '#6b7280', margin: 0 },
-    btnSendItem: (jaEnviado) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 15px', backgroundColor: jaEnviado ? 'transparent' : '#2563eb', color: jaEnviado ? '#22c55e' : 'white', border: jaEnviado ? '1px solid #22c55e' : 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px' }),
-    btnListaGeral: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)' }
+    btnListaGeral: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: '0.2s' }
   };
 
   return (
@@ -110,46 +106,78 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
           </button>
         </div>
 
-        {/* BOTÃO GERAL DE LISTA DE TRANSMISSÃO */}
         <button style={styles.btnListaGeral} onClick={enviarParaLista}>
           <Users size={20} />
           Enviar para Lista de Transmissão (Todos)
         </button>
 
-        <div style={{ marginBottom: '10px', fontSize: '14px', color: '#6b7280', fontWeight: '500' }}>
-          Ou envie individualmente:
+        <div style={{ marginBottom: '15px', fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
+          Status dos Fornecedores:
         </div>
 
         <div style={styles.listaContainer}>
           {loading ? (
-            <p style={{ textAlign: 'center', color: '#6b7280' }}>A carregar fornecedores...</p>
+            <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Carregando dados dos fornecedores...</p>
           ) : fornecedores.length === 0 ? (
             <p style={{ textAlign: 'center', color: '#6b7280' }}>Nenhum fornecedor cadastrado. Vá a "Fornecedores" no menu para cadastrar.</p>
           ) : (
             fornecedores.map((fornecedor) => {
-              const jaEnviado = enviados.includes(fornecedor.id);
+              
+              // LÓGICA MESTRA 100% BASEADA NO BANCO DE DADOS
+              const isEnviado = vinculados.includes(fornecedor.id);
+              const isRespondido = respondidos.includes(fornecedor.id);
+              const isPendente = isEnviado && !isRespondido;
+
+              let bgColor, borderColor, iconBg, iconColor, statusBadge, btnText, btnColor, btnBorder;
+
+              if (isRespondido) {
+                bgColor = '#f0fdf4'; borderColor = '#bbf7d0'; iconBg = '#22c55e'; iconColor = 'white';
+                btnText = 'Reenviar Link'; btnColor = '#22c55e'; btnBorder = '1px solid #22c55e';
+                statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#22c55e', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Já Respondeu</span>;
+              
+              } else if (isPendente) {
+                bgColor = '#fffbeb'; borderColor = '#fde68a'; iconBg = '#f59e0b'; iconColor = 'white';
+                btnText = 'Cobrar Resposta'; btnColor = '#f59e0b'; btnBorder = '1px solid #f59e0b';
+                statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#f59e0b', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Aguardando</span>;
+              
+              } else {
+                bgColor = 'white'; borderColor = '#e5e7eb'; iconBg = '#f3f4f6'; iconColor = '#9ca3af';
+                btnText = 'Enviar Link'; btnColor = 'white'; btnBorder = 'none';
+                statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#f3f4f6', color: '#6b7280', borderRadius: '10px', fontWeight: 'bold'}}>Não Enviado</span>;
+              }
 
               return (
-                <div key={fornecedor.id} style={styles.fornecedorItem(jaEnviado)}>
-                  <div style={styles.infoArea}>
-                    <div style={styles.iconBox(jaEnviado)}>
-                      <User size={18} />
+                <div key={fornecedor.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '15px', border: `1px solid ${borderColor}`, backgroundColor: bgColor, borderRadius: '8px', marginBottom: '10px' }}>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <div style={{ background: iconBg, color: iconColor, padding: '10px', borderRadius: '50%', display: 'flex' }}>
+                      {isRespondido ? <CheckCircle size={18} /> : isPendente ? <Clock size={18} /> : <User size={18} />}
                     </div>
+                    
                     <div>
-                      <h4 style={styles.nomeFornecedor}>
+                      <h4 style={{ fontWeight: '600', color: '#374151', margin: '0 0 6px 0', fontSize: '15px' }}>
                         {fornecedor.nome}
-                        {jaEnviado && <CheckCircle size={16} color="#22c55e" />}
                       </h4>
-                      <p style={styles.telefone}>{fornecedor.telefone || 'Sem telefone'}</p>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <p style={{ fontSize: '12px', color: '#6b7280', margin: 0 }}>{fornecedor.telefone || 'Sem telefone'}</p>
+                        {statusBadge}
+                      </div>
                     </div>
                   </div>
 
                   <button 
-                    style={styles.btnSendItem(jaEnviado)}
+                    style={{ 
+                      display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', 
+                      backgroundColor: isPendente || isRespondido ? 'transparent' : '#2563eb', 
+                      color: isPendente || isRespondido ? btnColor : 'white', 
+                      border: btnBorder, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '13px'
+                    }}
                     onClick={() => enviarZap(fornecedor)}
                   >
-                    {jaEnviado ? 'Reenviar Link' : <><Send size={16} /> Enviar Link</>}
+                    {(isPendente || isRespondido) ? null : <Send size={14} />}
+                    {btnText}
                   </button>
+                  
                 </div>
               );
             })

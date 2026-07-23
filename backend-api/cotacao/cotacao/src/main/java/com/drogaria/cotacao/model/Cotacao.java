@@ -38,6 +38,12 @@ public class Cotacao {
         this.fornecedoresPendentes = fornecedoresPendentes;
     }
 
+    @Transient
+    private List<Long> fornecedoresVinculadosIds = new ArrayList<>();
+    
+    @Transient
+    private List<Long> fornecedoresRespondidosIds = new ArrayList<>();
+
     public List<CotacaoFornecedor> getCotacaoFornecedores() {
         return cotacaoFornecedores;
     }
@@ -59,4 +65,20 @@ public class Cotacao {
 
     public List<ItemCotacao> getItens() { return itens; }
     public void setItens(List<ItemCotacao> itens) { this.itens = itens; }
+
+    public List<Long> getFornecedoresVinculadosIds() {
+        return fornecedoresVinculadosIds;
+    }
+
+    public void setFornecedoresVinculadosIds(List<Long> fornecedoresVinculadosIds) {
+        this.fornecedoresVinculadosIds = fornecedoresVinculadosIds;
+    }
+
+    public List<Long> getFornecedoresRespondidosIds() {
+        return fornecedoresRespondidosIds;
+    }
+
+    public void setFornecedoresRespondidosIds(List<Long> fornecedoresRespondidosIds) {
+        this.fornecedoresRespondidosIds = fornecedoresRespondidosIds;
+    }
 }

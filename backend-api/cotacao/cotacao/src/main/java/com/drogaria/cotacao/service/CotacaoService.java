@@ -27,14 +27,24 @@ public class CotacaoService {
         for (Cotacao cotacao : cotacoes) {
             if (cotacao.getCotacaoFornecedores() != null && !cotacao.getCotacaoFornecedores().isEmpty()) {
                 
-                List<String> pendentes = cotacao.getCotacaoFornecedores().stream()
+                List<String> pendentesNomes = cotacao.getCotacaoFornecedores().stream()
                         .filter(cf -> !"RESPONDIDA".equals(cf.getStatus()))
                         .map(cf -> cf.getFornecedor().getNome())
                         .collect(Collectors.toList());
-                
-                cotacao.setFornecedoresPendentes(pendentes);
-    
-                if (pendentes.isEmpty() && !"FINALIZADA".equals(cotacao.getStatus())) {
+                cotacao.setFornecedoresPendentes(pendentesNomes);
+
+                List<Long> vinculadosIds = cotacao.getCotacaoFornecedores().stream()
+                        .map(cf -> cf.getFornecedor().getId())
+                        .collect(Collectors.toList());
+                cotacao.setFornecedoresVinculadosIds(vinculadosIds);
+
+                List<Long> respondidosIds = cotacao.getCotacaoFornecedores().stream()
+                        .filter(cf -> "RESPONDIDA".equals(cf.getStatus()))
+                        .map(cf -> cf.getFornecedor().getId())
+                        .collect(Collectors.toList());
+                cotacao.setFornecedoresRespondidosIds(respondidosIds);
+            
+                if (pendentesNomes.isEmpty() && !"FINALIZADA".equals(cotacao.getStatus())) {
                     cotacao.setStatus("FINALIZADA");
                 }
             }
