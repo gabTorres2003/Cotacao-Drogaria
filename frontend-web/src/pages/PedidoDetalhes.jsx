@@ -28,6 +28,11 @@ export default function PedidoDetalhes() {
         carregarPedido();
     }, [id]);
 
+    const fMoney = (valor) => {
+        if (valor == null) return '-';
+        return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+    };
+
     if (loading) return <div className="layout"><Sidebar /><main className="main-content"><p>Carregando...</p></main></div>;
     if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
@@ -52,9 +57,9 @@ export default function PedidoDetalhes() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge}>{pedido.status}</span></p>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> R$ {pedido.valorTotalPedido?.toFixed(2)}</p>
+                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
                             {pedido.valorTotalReal != null && (
-                                <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> R$ {pedido.valorTotalReal?.toFixed(2)}</p>
+                                <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
@@ -86,7 +91,9 @@ export default function PedidoDetalhes() {
                         <thead>
                             <tr>
                                 <th style={styles.th}>Produto</th>
-                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Pedida</th>
+                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Solicitada</th>
+                                <th style={{ ...styles.th, textAlign: 'right' }}>Valor Unit.</th>
+                                <th style={{ ...styles.th, textAlign: 'right' }}>Subtotal</th>
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Real</th>
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
                             </tr>
@@ -95,10 +102,17 @@ export default function PedidoDetalhes() {
                             {pedido.itens?.map(item => (
                                 <tr key={item.id}>
                                     <td style={styles.td}>
-                                        {/* CORREÇÃO APLICADA AQUI: Busca primeiro o nomeProduto salvo no item do pedido */}
                                         <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
                                     </td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadePedida} un</td>
+                                    
+                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#16a34a' }}>
+                                        {fMoney(item.valorUnitarioPedido)}
+                                    </td>
+                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#374151' }}>
+                                        {fMoney((item.valorUnitarioPedido || 0) * (item.quantidadePedida || 0))}
+                                    </td>
+
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadeReal !== null ? `${item.quantidadeReal} un` : '-'}</td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>
                                         <span style={styles.itemStatus(item.statusRecebimento)}>
