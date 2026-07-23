@@ -31,11 +31,11 @@ export default function Login() {
       localStorage.setItem('usuarioId', id)
 
       if (from) {
-        navigate(from) 
+        navigate(from)
       } else if (tipoUsuario === 'ADMIN') {
         navigate('/cotacoes')
       } else {
-        navigate('/portal-fornecedor') 
+        navigate('/portal-fornecedor')
       }
     } catch (error) {
       setErro(
@@ -70,10 +70,21 @@ export default function Login() {
           <img
             src="/assets/logo-torres.png"
             alt="Drogaria Torres Farma"
-            style={{ height: '60px', marginBottom: '16px' }}
+            style={{
+              height:
+                '110px',
+              objectFit: 'contain',
+              marginBottom:
+                '-20px' 
+            }}
           />
           <h2
-            style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937' }}
+            style={{
+              fontSize: '24px',
+              fontWeight: 'bold',
+              color: '#1f2937',
+              margin: 0,
+            }}
           >
             Portal de Cotações
           </h2>
