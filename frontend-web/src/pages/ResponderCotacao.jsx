@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { Lock, ArrowLeft, CheckCircle, AlertCircle, Ban, Plus, Trash2, Tag, RefreshCw } from 'lucide-react';
+import { Lock, ArrowLeft, CheckCircle, AlertCircle, Ban, Plus, Trash2, Tag, RefreshCw, Loader2 } from 'lucide-react'; 
 
 export default function ResponderCotacao() {
   const { idCotacao } = useParams();
@@ -21,7 +21,6 @@ export default function ResponderCotacao() {
   const [quantidades, setQuantidades] = useState({}); 
   const [observacoes, setObservacoes] = useState({});
   
-  // Estados para Troca de Marca com Qtd e Preço próprios
   const [produtoSubstituto, setProdutoSubstituto] = useState({});
   const [precoSubstituto, setPrecoSubstituto] = useState({});
   const [qtdSubstituto, setQtdSubstituto] = useState({});
@@ -31,6 +30,7 @@ export default function ResponderCotacao() {
   const [sugestoes, setSugestoes] = useState([]);
   const [loading, setLoading] = useState(false);
   const [enviado, setEnviado] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false); 
 
   useEffect(() => {
     if (!isPrimeiroAcesso) {
@@ -175,6 +175,7 @@ export default function ResponderCotacao() {
   };
 
   const enviarResposta = async () => {
+    setIsSubmitting(true); 
     try {
       const itensRespostas = itens.map(item => {
         const isFalta = !!emFalta[item.idItem];
@@ -218,6 +219,8 @@ export default function ResponderCotacao() {
     } catch (error) {
       console.error('Erro ao enviar:', error);
       alert('Erro ao enviar cotação.');
+    } finally {
+      setIsSubmitting(false); 
     }
   };
 
@@ -283,7 +286,6 @@ export default function ResponderCotacao() {
                   </button>
                 </div>
 
-                {/* BOTÃO E CAMPOS DE TROCA DE MARCA (Com Qtd e Preço próprios) */}
                 <div style={{ marginTop: '10px' }}>
                   <button type="button" onClick={() => toggleTrocaProduto(item.idItem)} style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}>
                     <RefreshCw size={14} /> {temTrocaAtiva ? 'Remover Sugestão de Troca' : 'Sugerir Troca de Marca/Laboratório'}
@@ -317,7 +319,6 @@ export default function ResponderCotacao() {
             );
           })}
 
-          {/* SEÇÃO DE SUGESTÕES E PROMOÇÕES EXTRAS */}
           <div style={{ marginTop: '24px', backgroundColor: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
               <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Sugestões & Promoções</h3>
@@ -341,9 +342,27 @@ export default function ResponderCotacao() {
             ))}
           </div>
 
-          <button style={mobileStyles.submitButton} onClick={enviarResposta}>Enviar Proposta</button>
+          {/* BOTÃO DE ENVIAR COM ESTADO DE LOADING */}
+          <button 
+            style={{ ...mobileStyles.submitButton, opacity: isSubmitting ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }} 
+            onClick={enviarResposta}
+            disabled={isSubmitting} 
+          >
+            {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Enviando Proposta...</> : 'Enviar Proposta'}
+          </button>
         </div>
       )}
+      
+      {/* Classe CSS para rodar a animação do loader */}
+      <style>{`
+        @keyframes spin {
+          from { transform: rotate(0deg); }
+          to { transform: rotate(360deg); }
+        }
+        .animate-spin {
+          animation: spin 1s linear infinite;
+        }
+      `}</style>
     </div>
   );
 }

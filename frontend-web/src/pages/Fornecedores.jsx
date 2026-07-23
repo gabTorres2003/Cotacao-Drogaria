@@ -10,6 +10,7 @@ import {
   Pencil,
   KeyRound,
   MessageCircle,
+  Building2 
 } from 'lucide-react'
 
 export default function Fornecedores() {
@@ -18,6 +19,7 @@ export default function Fornecedores() {
   const [form, setForm] = useState({
     id: null,
     nome: '',
+    empresa: '', 
     telefone: '',
     login: '',
     email: '',
@@ -43,6 +45,7 @@ export default function Fornecedores() {
     setForm({
       id: null,
       nome: '',
+      empresa: '', 
       telefone: '',
       login: '',
       email: '',
@@ -55,6 +58,7 @@ export default function Fornecedores() {
     setForm({
       id: fornecedor.id,
       nome: fornecedor.nome,
+      empresa: fornecedor.empresa || '', 
       telefone: fornecedor.telefone || '',
       login: fornecedor.login || '',
       email: fornecedor.email || '',
@@ -118,7 +122,8 @@ export default function Fornecedores() {
       : `55${numeroLimpo}`
       
     const linkSistema = 'https://cotacaotorresfarma.netlify.app'
-    const mensagem = `Olá, *${fornecedor.nome}*!\n\nSegue o seu acesso ao nosso novo Portal de Cotações da Drogaria Torres Farma:\n\n*Link:* ${linkSistema}\n*Login:* ${fornecedor.login || 'Não informado'}\n*Senha:* 0000\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
+    const nomeApresentacao = fornecedor.empresa ? `${fornecedor.nome} (${fornecedor.empresa})` : fornecedor.nome;
+    const mensagem = `Olá, *${nomeApresentacao}*!\n\nSegue o seu acesso ao nosso novo Portal de Cotações da Drogaria Torres Farma:\n\n*Link:* ${linkSistema}\n*Login:* ${fornecedor.login || 'Não informado'}\n*Senha:* 0000\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
     
     const mensagemCodificada = encodeURIComponent(mensagem)
     const urlWhatsapp = `https://wa.me/${telefoneFinal}?text=${mensagemCodificada}`
@@ -130,6 +135,7 @@ export default function Fornecedores() {
     e.preventDefault()
     if (
       !form.nome ||
+      !form.empresa || 
       !form.telefone ||
       !form.login ||
       (!form.id && !form.senha)
@@ -147,6 +153,7 @@ export default function Fornecedores() {
       const telefoneLimpo = form.telefone.replace(/\D/g, '')
       const payload = {
         nome: form.nome,
+        empresa: form.empresa, 
         telefone: telefoneLimpo,
         login: form.login,
         email: form.email,
@@ -171,6 +178,7 @@ export default function Fornecedores() {
   const filtrados = fornecedores.filter(
     (f) =>
       f.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      (f.empresa && f.empresa.toLowerCase().includes(busca.toLowerCase())) ||
       (f.telefone && f.telefone.includes(busca)) ||
       (f.login && f.login.toLowerCase().includes(busca.toLowerCase())),
   )
@@ -206,7 +214,7 @@ export default function Fornecedores() {
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar fornecedor por nome, login ou telefone..."
+              placeholder="Buscar por nome, empresa, login ou telefone..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -219,6 +227,7 @@ export default function Fornecedores() {
               <tr>
                 <th style={{ width: '60px' }}>ID</th>
                 <th>Nome / Login</th>
+                <th>Empresa</th>
                 <th>Telefone (WhatsApp)</th>
                 <th style={{ width: '120px' }}>Ações</th>
               </tr>
@@ -227,7 +236,7 @@ export default function Fornecedores() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="4"
+                    colSpan="5"
                     style={{
                       textAlign: 'center',
                       padding: '20px',
@@ -270,6 +279,12 @@ export default function Fornecedores() {
                       </div>
                     </td>
                     <td>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4b5563', fontWeight: '500' }}>
+                        <Building2 size={16} color="#9ca3af" />
+                        {f.empresa || '-'}
+                      </div>
+                    </td>
+                    <td>
                       <div
                         style={{
                           display: 'flex',
@@ -302,7 +317,6 @@ export default function Fornecedores() {
                           <KeyRound size={18} />
                         </button>
 
-                        {/* BOTÃO EXCLUIR ATIVADO */}
                         <button
                           className="btn-icon"
                           style={{ color: '#ef4444', background: '#fef2f2' }}
@@ -312,7 +326,6 @@ export default function Fornecedores() {
                           <Trash2 size={18} />
                         </button>
 
-                        {/* Botão de WhatsApp */}
                         <button
                           onClick={() => handleCompartilharWhatsApp(f)}
                           title="Enviar Acesso pelo WhatsApp"
@@ -349,13 +362,25 @@ export default function Fornecedores() {
               style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
             >
               <div>
-                <label style={styles.label}>Nome da Empresa / Vendedor *</label>
+                <label style={styles.label}>Nome do Vendedor / Representante *</label>
                 <input
                   type="text"
                   style={styles.input}
                   required
                   value={form.nome}
                   onChange={(e) => setForm({ ...form, nome: e.target.value })}
+                  placeholder="Ex: João Silva"
+                />
+              </div>
+
+              <div>
+                <label style={styles.label}>Nome da Empresa *</label>
+                <input
+                  type="text"
+                  style={styles.input}
+                  required
+                  value={form.empresa}
+                  onChange={(e) => setForm({ ...form, empresa: e.target.value })}
                   placeholder="Ex: Distribuidora Santa Cruz"
                 />
               </div>
@@ -454,6 +479,8 @@ const styles = {
     borderRadius: '12px',
     width: '90%',
     maxWidth: '400px',
+    maxHeight: '90vh',
+    overflowY: 'auto',
     boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)',
   },
   label: {
