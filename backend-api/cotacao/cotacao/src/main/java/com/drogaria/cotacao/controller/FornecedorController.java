@@ -41,6 +41,8 @@ public class FornecedorController {
                     fornecedor.setLogin(dados.getLogin());
                     fornecedor.setTelefone(dados.getTelefone());
                     fornecedor.setEmail(dados.getEmail());
+                    fornecedor.setEmpresa(dados.getEmpresa()); 
+                    
                     return ResponseEntity.ok(fornecedorRepository.save(fornecedor));
                 })
                 .orElse(ResponseEntity.notFound().build());

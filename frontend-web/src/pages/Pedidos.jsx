@@ -170,17 +170,18 @@ export default function Pedidos() {
               ) : (
                 pedidosFiltrados.map((p) => {
                   const statusInfo = getStatusFormatado(p.status)
-                  
-                  // Mapeamento prioritário da Empresa, com fallback para o nome do vendedor
                   const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || 'N/A'
                   
-                  // Extração segura dos Grupos da Cotação
                   let gruposFormatados = '-';
-                  if (p.cotacao?.grupos && p.cotacao.grupos.length > 0) {
-                    if (Array.isArray(p.cotacao.grupos)) {
-                       gruposFormatados = p.cotacao.grupos.map(g => typeof g === 'string' ? g : g.nome).join(', ');
-                    } else {
-                       gruposFormatados = p.cotacao.grupos;
+                  if (p.itens && p.itens.length > 0) {
+                    const listaDeGrupos = p.itens
+                      .map(item => item.itemCotacao?.grupo)
+                      .filter(Boolean); 
+                    
+                    const gruposUnicos = [...new Set(listaDeGrupos)]; // Remove repetições
+                    
+                    if (gruposUnicos.length > 0) {
+                      gruposFormatados = gruposUnicos.join(', ');
                     }
                   }
                   
