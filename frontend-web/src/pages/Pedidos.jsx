@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
-import ReceberPedidoModal from '../components/ReceberPedidoModal'
 import DevolucaoModal from '../components/DevolucaoModal'
 import {
   Eye,
@@ -15,12 +14,9 @@ import {
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
   
-  // Estados para Modais
-  const [modalReceberAberto, setModalReceberAberto] = useState(false)
   const [modalDevolucaoAberto, setModalDevolucaoAberto] = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null)
 
-  // Estados de Filtro
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
 
@@ -56,22 +52,24 @@ export default function Pedidos() {
     }
   }
 
+  const fMoney = (valor) => {
+    if (valor == null) return '-';
+    return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   const pedidosFiltrados = pedidos.filter((p) => {
     const textoBusca = busca.toLowerCase()
-    const nomeFornecedor = p.fornecedor?.nome || p.fornecedorNome || ''
-    const matchTexto = nomeFornecedor.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca)
+    const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
+    
+    const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca)
     const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
+    
     return matchTexto && matchStatus
   })
 
   const formatarDataBR = (dataIso) => {
     if (!dataIso) return '--/--/--'
     return new Date(dataIso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
-  }
-
-  const abrirModalRecebimento = (pedido) => {
-    setPedidoSelecionado(pedido)
-    setModalReceberAberto(true)
   }
 
   const abrirModalDevolucao = (pedido) => {
@@ -102,7 +100,6 @@ export default function Pedidos() {
           </div>
         </header>
 
-        {/* Cards de Resumo */}
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
@@ -127,7 +124,7 @@ export default function Pedidos() {
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar por ID ou Fornecedor..."
+              placeholder="Buscar por ID ou Empresa..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -155,8 +152,10 @@ export default function Pedidos() {
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>ID</th>
-                <th>Fornecedor</th>
-                <th style={{ width: '120px' }}>Data</th>
+                <th>Empresa (Fornecedor)</th>
+                <th>Grupos</th>
+                <th>Valor Previsto</th>
+                <th style={{ width: '100px' }}>Data</th>
                 <th>Status</th>
                 <th>Ações</th>
               </tr>
@@ -164,19 +163,33 @@ export default function Pedidos() {
             <tbody>
               {pedidosFiltrados.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado.
                   </td>
                 </tr>
               ) : (
                 pedidosFiltrados.map((p) => {
                   const statusInfo = getStatusFormatado(p.status)
-                  const nomeFornecedor = p.fornecedor?.nome || p.fornecedorNome || 'N/A'
+                  
+                  // Mapeamento prioritário da Empresa, com fallback para o nome do vendedor
+                  const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || 'N/A'
+                  
+                  // Extração segura dos Grupos da Cotação
+                  let gruposFormatados = '-';
+                  if (p.cotacao?.grupos && p.cotacao.grupos.length > 0) {
+                    if (Array.isArray(p.cotacao.grupos)) {
+                       gruposFormatados = p.cotacao.grupos.map(g => typeof g === 'string' ? g : g.nome).join(', ');
+                    } else {
+                       gruposFormatados = p.cotacao.grupos;
+                    }
+                  }
                   
                   return (
                     <tr key={p.id}>
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
-                      <td><span style={{ fontWeight: '500', color: '#111827', fontSize: '15px' }}>{nomeFornecedor}</span></td>
+                      <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
+                      <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
+                      <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
                       <td><span className={`status-badge ${statusInfo.classe}`}>{statusInfo.texto}</span></td>
                       <td>
@@ -186,7 +199,7 @@ export default function Pedidos() {
                           </button>
                           
                           {p.status === 'PENDENTE_ENTREGA' && (
-                            <button className="btn-icon" title="Conferir Entrega" onClick={() => abrirModalRecebimento(p)}>
+                            <button className="btn-icon" title="Conferir Entrega" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
                               <CheckCircle size={18} color="#16a34a" />
                             </button>
                           )}
@@ -205,18 +218,6 @@ export default function Pedidos() {
             </tbody>
           </table>
         </div>
-
-        {modalReceberAberto && pedidoSelecionado && (
-          <ReceberPedidoModal
-            pedidoId={pedidoSelecionado.id}
-            itens={pedidoSelecionado.itens || []}
-            onClose={() => setModalReceberAberto(false)}
-            onSuccess={() => {
-              setModalReceberAberto(false)
-              carregarPedidos()
-            }}
-          />
-        )}
 
         {modalDevolucaoAberto && pedidoSelecionado && (
           <DevolucaoModal

@@ -58,7 +58,7 @@ export default function Fornecedores() {
     setForm({
       id: fornecedor.id,
       nome: fornecedor.nome,
-      empresa: fornecedor.empresa || '', 
+      empresa: fornecedor.empresa || fornecedor.nomeEmpresa || '', 
       telefone: fornecedor.telefone || '',
       login: fornecedor.login || '',
       email: fornecedor.email || '',
@@ -122,7 +122,8 @@ export default function Fornecedores() {
       : `55${numeroLimpo}`
       
     const linkSistema = 'https://cotacaotorresfarma.netlify.app'
-    const nomeApresentacao = fornecedor.empresa ? `${fornecedor.nome} (${fornecedor.empresa})` : fornecedor.nome;
+    const empresaFormatada = fornecedor.empresa || fornecedor.nomeEmpresa;
+    const nomeApresentacao = empresaFormatada ? `${fornecedor.nome} (${empresaFormatada})` : fornecedor.nome;
     const mensagem = `Olá, *${nomeApresentacao}*!\n\nSegue o seu acesso ao nosso novo Portal de Cotações da Drogaria Torres Farma:\n\n*Link:* ${linkSistema}\n*Login:* ${fornecedor.login || 'Não informado'}\n*Senha:* 0000\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
     
     const mensagemCodificada = encodeURIComponent(mensagem)
@@ -154,6 +155,7 @@ export default function Fornecedores() {
       const payload = {
         nome: form.nome,
         empresa: form.empresa, 
+        nomeEmpresa: form.empresa,
         telefone: telefoneLimpo,
         login: form.login,
         email: form.email,
@@ -175,13 +177,15 @@ export default function Fornecedores() {
     }
   }
 
-  const filtrados = fornecedores.filter(
-    (f) =>
-      f.nome.toLowerCase().includes(busca.toLowerCase()) ||
-      (f.empresa && f.empresa.toLowerCase().includes(busca.toLowerCase())) ||
-      (f.telefone && f.telefone.includes(busca)) ||
-      (f.login && f.login.toLowerCase().includes(busca.toLowerCase())),
-  )
+  const filtrados = fornecedores.filter((f) => {
+      const nomeDaEmpresa = f.empresa || f.nomeEmpresa || '';
+      return (
+        f.nome.toLowerCase().includes(busca.toLowerCase()) ||
+        (nomeDaEmpresa.toLowerCase().includes(busca.toLowerCase())) ||
+        (f.telefone && f.telefone.includes(busca)) ||
+        (f.login && f.login.toLowerCase().includes(busca.toLowerCase()))
+      )
+  })
 
   return (
     <div className="layout">
@@ -281,7 +285,7 @@ export default function Fornecedores() {
                     <td>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4b5563', fontWeight: '500' }}>
                         <Building2 size={16} color="#9ca3af" />
-                        {f.empresa || '-'}
+                        {f.empresa || f.nomeEmpresa || '-'}
                       </div>
                     </td>
                     <td>
