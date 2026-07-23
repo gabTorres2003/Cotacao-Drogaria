@@ -38,4 +38,9 @@ public class CotacaoFornecedorController {
     public ResponseEntity<List<CotacaoFornecedor>> minhasCotacoes(org.springframework.security.core.Authentication auth) {
         return ResponseEntity.ok(service.listarPorFornecedor(auth.getName()));
     }
+
+    @GetMapping("/cotacao/{idCotacao}")
+    public ResponseEntity<List<CotacaoFornecedor>> buscarVinculosDaCotacao(@PathVariable Long idCotacao) {
+        return ResponseEntity.ok(repository.findByCotacaoId(idCotacao));
+    }
 }

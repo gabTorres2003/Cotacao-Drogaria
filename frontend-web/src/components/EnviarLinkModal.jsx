@@ -17,20 +17,23 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
   const carregarDados = async () => {
     try {
-      // Faz duas requisições simultâneas para cruzar os dados
-      const [resForn, resCot] = await Promise.all([
+      const [resForn, resVinculos] = await Promise.all([
         api.get('/api/fornecedor'),
-        api.get('/api/cotacao')
+        api.get(`/api/cotacao-fornecedor/cotacao/${idCotacao}`) 
       ]);
       
       setFornecedores(resForn.data);
       
-      // Encontra a cotação e injeta as listas que vieram do banco de dados
-      const cotacao = resCot.data.find(c => c.id === Number(idCotacao));
-      if (cotacao) {
-         setVinculados(cotacao.fornecedoresVinculadosIds || []);
-         setRespondidos(cotacao.fornecedoresRespondidosIds || []);
-      }
+      const listaVinculos = resVinculos.data || [];
+      
+      const idsVinculados = listaVinculos.map(vinculo => vinculo.fornecedor.id);
+      const idsRespondidos = listaVinculos
+        .filter(vinculo => vinculo.status === 'RESPONDIDA')
+        .map(vinculo => vinculo.fornecedor.id);
+
+      setVinculados(idsVinculados);
+      setRespondidos(idsRespondidos);
+      
     } catch (error) {
       console.error('Erro ao carregar dados', error);
     } finally {
@@ -57,9 +60,8 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
   // ENVIO INDIVIDUAL
   const enviarZap = async (fornecedor) => {
-    // Se ainda não estava vinculado no banco, nós vinculamos na hora
     if (!vinculados.includes(fornecedor.id)) {
-      setVinculados(prev => [...prev, fornecedor.id]); // Atualiza a cor na hora pro usuário
+      setVinculados(prev => [...prev, fornecedor.id]); 
       await vincularFornecedoresNoBackend([fornecedor.id]); 
       await atualizarStatusCotacao();
     }
@@ -74,7 +76,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
   // ENVIO GERAL (LISTA DE TRANSMISSÃO)
   const enviarParaLista = async () => {
     const todosIds = fornecedores.map(f => f.id);
-    setVinculados(todosIds); // Atualiza todas as cores na hora
+    setVinculados(todosIds); 
     await vincularFornecedoresNoBackend(todosIds);
     await atualizarStatusCotacao();
     
@@ -123,7 +125,6 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
           ) : (
             fornecedores.map((fornecedor) => {
               
-              // LÓGICA MESTRA 100% BASEADA NO BANCO DE DADOS
               const isEnviado = vinculados.includes(fornecedor.id);
               const isRespondido = respondidos.includes(fornecedor.id);
               const isPendente = isEnviado && !isRespondido;
