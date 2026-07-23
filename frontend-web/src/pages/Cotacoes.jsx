@@ -49,7 +49,7 @@ export default function Cotacoes() {
         setResumo({
           total: response.data.length,
           abertas: response.data.filter((c) => c.status === 'ABERTA').length,
-          pendentes: response.data.filter((c) => c.status === 'PENDENTE').length,
+          pendentes: response.data.filter((c) => c.status === 'PENDENTE' || c.status === 'RESPONDIDA_PARCIALMENTE').length,
           finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
         })
       } else {
@@ -165,6 +165,46 @@ export default function Cotacoes() {
     }
   }
 
+  const renderStatus = (cotacao) => {
+    let bg = '#f3f4f6', color = '#374151', label = cotacao.status;
+
+    if (cotacao.status === 'ABERTA') {
+      bg = '#dbeafe'; color = '#1e40af'; label = 'Em Aberto';
+    } else if (cotacao.status === 'PENDENTE') {
+      bg = '#ffedd5'; color = '#9a3412'; label = 'Aguard. Resposta';
+    } else if (cotacao.status === 'RESPONDIDA_PARCIALMENTE') {
+      bg = '#fef08a'; color = '#854d0e'; label = 'Resp. Parcial';
+    } else if (cotacao.status === 'FINALIZADA') {
+      bg = '#dcfce7'; color = '#166534'; label = 'Pronta p/ Fechar';
+    }
+
+    return (
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
+        <span style={{
+          padding: '6px 12px',
+          borderRadius: '20px',
+          fontSize: '12px',
+          fontWeight: '700',
+          backgroundColor: bg,
+          color: color,
+          whiteSpace: 'nowrap'
+        }}>
+          {label}
+        </span>
+
+        {/* Lista de Fornecedores Pendentes */}
+        {cotacao.fornecedoresPendentes && cotacao.fornecedoresPendentes.length > 0 && (
+          <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', lineHeight: '1.4' }}>
+            ⏳ Faltam:<br/>
+            <span style={{ fontWeight: '400', color: '#6b7280' }}>
+              {cotacao.fornecedoresPendentes.join(', ')}
+            </span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
   return (
     <div className="layout">
       <Sidebar />
@@ -241,7 +281,8 @@ export default function Cotacoes() {
               <option value="TODOS">Todos os Status</option>
               <option value="ABERTA">Aberta</option>
               <option value="PENDENTE">Pendente</option>
-              <option value="FINALIZADA">Finalizada</option>
+              <option value="RESPONDIDA_PARCIALMENTE">Parcial</option>
+              <option value="FINALIZADA">Pronta p/ Fechar</option>
             </select>
           </div>
 
@@ -309,23 +350,9 @@ export default function Cotacoes() {
                       </span>
                     </td>
 
+                    {/* RENDERIZADOR DINÂMICO DE STATUS */}
                     <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
-                      <span className={`status-badge status-${c.status}`}>
-                        {c.status === 'ABERTA'
-                          ? 'Aberta'
-                          : c.status === 'PENDENTE'
-                            ? 'Pendente'
-                            : c.status === 'FINALIZADA'
-                              ? 'Finalizada'
-                              : c.status}
-                      </span>
-                      
-                      {c.fornecedoresPendentes && c.fornecedoresPendentes.length > 0 && (
-                        <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '8px', lineHeight: '1.4' }}>
-                          <strong>Falta responder:</strong><br/>
-                          {c.fornecedoresPendentes.join(', ')}
-                        </div>
-                      )}
+                      {renderStatus(c)}
                     </td>
                     
                     <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>

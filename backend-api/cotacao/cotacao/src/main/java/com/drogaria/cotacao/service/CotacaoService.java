@@ -1,16 +1,13 @@
 package com.drogaria.cotacao.service;
 
 import com.drogaria.cotacao.model.Cotacao;
-import com.drogaria.cotacao.model.CotacaoFornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
-import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -21,26 +18,28 @@ public class CotacaoService {
     private CotacaoRepository cotacaoRepository;
 
     @Autowired
-    private CotacaoFornecedorRepository cotacaoFornecedorRepository;
-
-    @Autowired
     private IntegracaoDNAService integracaoDNAService;
 
+    @Transactional(readOnly = true)
     public List<Cotacao> listarTodas() {
         List<Cotacao> cotacoes = cotacaoRepository.findAll();
 
         for (Cotacao cotacao : cotacoes) {
-            List<CotacaoFornecedor> vinculos = cotacaoFornecedorRepository.findByCotacaoId(cotacao.getId());
-            
-            if (vinculos != null) {
-                List<String> pendentes = vinculos.stream()
-                        .filter(v -> !"RESPONDIDA".equals(v.getStatus()))
-                        .map(v -> v.getFornecedor().getNome())
+            if (cotacao.getCotacaoFornecedores() != null && !cotacao.getCotacaoFornecedores().isEmpty()) {
+                
+                List<String> pendentes = cotacao.getCotacaoFornecedores().stream()
+                        .filter(cf -> !"RESPONDIDA".equals(cf.getStatus()))
+                        .map(cf -> cf.getFornecedor().getNome())
                         .collect(Collectors.toList());
                 
                 cotacao.setFornecedoresPendentes(pendentes);
+    
+                if (pendentes.isEmpty() && !"FINALIZADA".equals(cotacao.getStatus())) {
+                    cotacao.setStatus("FINALIZADA");
+                }
             }
         }
+        
         return cotacoes;
     }
 

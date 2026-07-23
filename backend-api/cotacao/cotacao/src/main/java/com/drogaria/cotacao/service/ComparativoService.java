@@ -274,14 +274,29 @@ public class ComparativoService {
             }
         }
 
-        cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
-        cotacaoRepository.save(cotacao);
-
         CotacaoFornecedor cotacaoFornecedor = cotacaoFornecedorRepository.findByCotacaoIdAndFornecedorId(request.getCotacaoId(), request.getFornecedorId())
                 .orElse(null);
         if (cotacaoFornecedor != null) {
             cotacaoFornecedor.setStatus("RESPONDIDA");
             cotacaoFornecedorRepository.save(cotacaoFornecedor);
         }
+
+        List<CotacaoFornecedor> todosVinculos = cotacaoFornecedorRepository.findByCotacaoId(cotacao.getId());
+        boolean todosResponderam = true;
+        
+        for (CotacaoFornecedor cf : todosVinculos) {
+            if (!"RESPONDIDA".equals(cf.getStatus())) {
+                todosResponderam = false;
+                break;
+            }
+        }
+
+        if (todosResponderam && !todosVinculos.isEmpty()) {
+            cotacao.setStatus("FINALIZADA");
+        } else {
+            cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
+        }
+        
+        cotacaoRepository.save(cotacao);
     }
 }
