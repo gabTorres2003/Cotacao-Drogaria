@@ -62,7 +62,7 @@ public class PedidoService {
     public Pedido processarRecebimento(Long pedidoId, List<ItemRecebidoDTO> itensConferidos) {
         Pedido pedido = buscarPorId(pedidoId);
         
-        boolean temFalta = false;
+        boolean temDivergenciaQuantidade = false;
         boolean temIncompatibilidadeValor = false;
         boolean temDevolucao = false;
         double valorTotalReal = 0.0;
@@ -70,21 +70,26 @@ public class PedidoService {
         for (ItemRecebidoDTO itemConferido : itensConferidos) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
                     .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
+            
             itemBanco.setQuantidadeReal(itemConferido.getQuantidadeReal());
             itemBanco.setValorUnitarioReal(itemConferido.getValorUnitarioReal());
-            itemBanco.setStatusRecebimento(itemConferido.getStatusRecebimento()); 
-            itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
+            
+            StatusItemRecebimento statusItem = itemConferido.getStatusRecebimento();
 
-            if (itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida()) {
-                temFalta = true;
+            if (!itemBanco.getQuantidadeReal().equals(itemBanco.getQuantidadePedida())) {
+                temDivergenciaQuantidade = true;
+                statusItem = StatusItemRecebimento.INCORRETO; 
             }
             
             if (!itemBanco.getValorUnitarioReal().equals(itemBanco.getValorUnitarioPedido())) {
                 temIncompatibilidadeValor = true;
             }
 
-            if (itemBanco.getStatusRecebimento() == StatusItemRecebimento.AVARIADO || 
-                itemBanco.getStatusRecebimento() == StatusItemRecebimento.INCORRETO) {
+            itemBanco.setStatusRecebimento(statusItem); 
+            itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
+
+            if (statusItem == StatusItemRecebimento.AVARIADO || 
+                statusItem == StatusItemRecebimento.INCORRETO) {
                 temDevolucao = true;
             }
 
@@ -93,12 +98,13 @@ public class PedidoService {
 
         pedido.setValorTotalReal(valorTotalReal);
 
-        if (temDevolucao) {
-            pedido.setStatus(StatusPedido.PENDENTE_DEVOLUCAO);
+        // MÁQUINA DE STATUS DO PEDIDO
+        if (temDevolucao || temDivergenciaQuantidade) {
+            // Notei no seu print que ID #15 tem um badge "Divergência". 
+            // Suponho que StatusPedido.DIVERGENCIA exista. Se for outro nome, mude abaixo:
+            pedido.setStatus(StatusPedido.DIVERGENCIA);
         } else if (temIncompatibilidadeValor) {
             pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
-        } else if (temFalta) {
-            pedido.setStatus(StatusPedido.ENTREGUE_COM_FALTA);
         } else {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
