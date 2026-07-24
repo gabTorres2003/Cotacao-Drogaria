@@ -25,9 +25,42 @@ export default function CotacaoDetalhes() {
   const [editandoItem, setEditandoItem] = useState(null)
   const [formEdicao, setFormEdicao] = useState({ nome: '', qtd: 1 })
 
+  const [mostrarNomeReal, setMostrarNomeReal] = useState(false)
+  const [dicionarioDiversos, setDicionarioDiversos] = useState({})
+
   useEffect(() => {
     carregarRelatorio()
+    carregarDicionarioDiversos() 
   }, [id])
+
+  const carregarDicionarioDiversos = async () => {
+    try {
+      const response = await api.get('/api/diversos')
+      const mapDiversos = {}
+      response.data.forEach(item => {
+        if (item.codigoDiversos) {
+          mapDiversos[item.codigoDiversos.toUpperCase().trim()] = item.produto
+        }
+      })
+      setDicionarioDiversos(mapDiversos)
+    } catch (error) {
+      console.error("Erro ao carregar dicionário de diversos:", error)
+    }
+  }
+
+  const getNomeRealSempre = (nomeProduto) => {
+    if (!nomeProduto) return '';
+    const codigoFormatado = nomeProduto.toUpperCase().trim();
+    return dicionarioDiversos[codigoFormatado] || nomeProduto; 
+  }
+
+  const getNomeExibicao = (nomeProduto) => {
+    if (!nomeProduto) return '';
+    if (mostrarNomeReal) {
+      return getNomeRealSempre(nomeProduto);
+    }
+    return nomeProduto;
+  }
 
   const carregarRelatorio = async () => {
     try {
@@ -140,17 +173,18 @@ export default function CotacaoDetalhes() {
 
         let preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
         let qtd = itemRelatorio.quantidade;
-        let nomeFinal = itemRelatorio.nomeProduto;
+        let nomeFinal;
         let nomeOriginal = null;
 
         if (isTrocaAceita && nomeSubstituto) {
           preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
           qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
-          nomeFinal = nomeSubstituto;
-          nomeOriginal = itemRelatorio.nomeProduto;
+          nomeFinal = getNomeRealSempre(nomeSubstituto); 
+          nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+        } else {
+          nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
         }
 
-        // Regra garantida: Ignora do pedido se o preço for -1 ou 0
         if (preco <= 0) return;
 
         pedidosPorFornecedor[fornecedorNome].itens.push({
@@ -185,7 +219,7 @@ export default function CotacaoDetalhes() {
         const novoItem = {
           idItem: null, 
           promocaoId: promo.id,
-          nomeProduto: promo.nomeProduto,
+          nomeProduto: getNomeRealSempre(promo.nomeProduto), 
           observacao: promo.observacao,
           quantidadePedida: promo.qtdMinima,
           valorUnitarioPedido: promo.preco,
@@ -218,7 +252,7 @@ export default function CotacaoDetalhes() {
           fornecedorNome: pedido.fornecedorNome,
           itens: pedido.itens.map(item => ({
             itemCotacaoId: item.idItem || null, 
-            nomeProduto: item.nomeProduto, 
+            nomeProduto: item.nomeProduto, // O nomeProduto aqui já está convertido pra Real pela handleGerarPedidos
             quantidadePedida: item.quantidadePedida,
             valorUnitarioPedido: item.valorUnitarioPedido
           }))
@@ -234,6 +268,69 @@ export default function CotacaoDetalhes() {
       alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro'}`)
     } finally {
       setSalvandoPedidos(false)
+    }
+  }
+
+  const baixarRelatorioGeral = async (idCotacao) => {
+    try {
+      const doc = new jsPDF()
+      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`)
+      const itens = response.data
+
+      if (!itens || itens.length === 0) {
+        alert('Essa cotação ainda não tem itens processados.')
+        return
+      }
+
+      doc.setFontSize(18)
+      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20)
+      doc.setFontSize(12)
+      doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
+
+      const linhas = itens.map((item) => {
+        const vencedor = item.fornecedorVencedor || 'Sem Oferta'
+        const preco = item.menorPrecoEncontrado || 0
+        const total = preco * item.quantidade
+        const nomeCorreto = getNomeRealSempre(item.nomeProduto);
+
+        return [
+          nomeCorreto,
+          item.quantidade,
+          vencedor,
+          preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+        ]
+      })
+
+      const totalGeral = itens.reduce((acc, item) => {
+        const preco = item.menorPrecoEncontrado || 0
+        return acc + preco * item.quantidade
+      }, 0)
+
+      autoTable(doc, {
+        startY: 40,
+        head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
+        body: linhas,
+        foot: [
+          [
+            '',
+            '',
+            '',
+            'TOTAL GERAL',
+            totalGeral.toLocaleString('pt-BR', {
+              style: 'currency',
+              currency: 'BRL',
+            }),
+          ],
+        ],
+        theme: 'striped',
+        headStyles: { fillColor: [22, 163, 74] },
+      })
+
+      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`)
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error)
+      alert('Erro ao gerar o relatório.')
     }
   }
 
@@ -280,7 +377,8 @@ export default function CotacaoDetalhes() {
                   {editandoItem === item.idItem ? (
                     <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                   ) : (
-                    <strong>{item.nomeProduto}</strong>
+                    // CHAMADA DA FUNÇÃO VISUAL PARA ALTERNAR DIVERSOS <-> NOME REAL NA TABELA
+                    <strong>{getNomeExibicao(item.nomeProduto)}</strong>
                   )}
                 </td>
                 <td style={styles.td}>
@@ -313,7 +411,7 @@ export default function CotacaoDetalhes() {
                   
                   const isWinner = decisaoCompra[item.idItem] === f
                   const isTrocaAceita = aceitesTroca[item.idItem]
-                  const isEmFaltaOriginal = precoOriginal <= 0; // -1 ou 0
+                  const isEmFaltaOriginal = precoOriginal <= 0; 
 
                   return (
                     <td
@@ -349,7 +447,7 @@ export default function CotacaoDetalhes() {
                               style={{ marginTop: '2px' }}
                             />
                             <div>
-                              <strong style={{ color: '#b45309' }}>Troca: {substituto}</strong><br/>
+                              <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
                               <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
                             </div>
                           </label>
@@ -385,7 +483,6 @@ export default function CotacaoDetalhes() {
           </tbody>
         </table>
 
-        {/* EXIBIÇÃO DE PROMOÇÕES EXTRAS */}
         {isComparativo && promocoes.length > 0 && (
           <div style={{ marginTop: '30px', borderTop: '2px dashed #e5e7eb', paddingTop: '20px' }}>
             <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -395,7 +492,8 @@ export default function CotacaoDetalhes() {
               {promocoes.map(promo => (
                 <div key={promo.id} style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', textTransform: 'uppercase' }}>{promo.fornecedorNome}</div>
-                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a', marginTop: '4px' }}>{promo.nomeProduto}</div>
+                  {/* Aplica a exibição com toggle também nas sugestões enviadas */}
+                  <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a', marginTop: '4px' }}>{getNomeExibicao(promo.nomeProduto)}</div>
                   <div style={{ fontSize: '14px', color: '#1e40af', marginTop: '6px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{fMoney(promo.preco)}</span> <span style={{ fontSize: '12px' }}>(Mínimo: {promo.qtdMinima} un)</span>
                   </div>
@@ -430,7 +528,26 @@ export default function CotacaoDetalhes() {
     <div style={styles.container}>
       <div style={styles.header}>
         <h1 style={styles.title}>Cotação #{id}</h1>
-        <div style={{ display: 'flex', gap: '10px' }}>
+        
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          
+          <label style={{
+            display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
+            backgroundColor: 'white', padding: '8px 12px', borderRadius: '6px',
+            border: '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)',
+            marginRight: '10px'
+          }}>
+            <input
+              type="checkbox"
+              checked={mostrarNomeReal}
+              onChange={(e) => setMostrarNomeReal(e.target.checked)}
+              style={{ transform: 'scale(1.1)' }}
+            />
+            <span style={{ fontSize: '13px', color: '#374151', fontWeight: '600' }}>
+              Alternar nome diversos
+            </span>
+          </label>
+
           <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
             <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos de Compra
           </button>
@@ -523,7 +640,7 @@ export default function CotacaoDetalhes() {
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         {promosNaoAdicionadas.map(promo => (
                           <button key={promo.id} onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
-                            <Plus size={14} /> Add {promo.nomeProduto} ({fMoney(promo.preco)})
+                            <Plus size={14} /> Add {getNomeRealSempre(promo.nomeProduto)} ({fMoney(promo.preco)})
                           </button>
                         ))}
                       </div>
