@@ -1,4 +1,4 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
 import { Lock, User, Eye, EyeOff, Info } from 'lucide-react'
 import api from '../services/api'
@@ -13,6 +13,15 @@ export default function Login() {
   const navigate = useNavigate()
   const location = useLocation()
   const from = location.state?.from || null
+
+  useEffect(() => {
+    localStorage.removeItem('token')
+    localStorage.removeItem('tipoUsuario')
+    localStorage.removeItem('primeiroAcesso')
+    localStorage.removeItem('nomeUsuario')
+    localStorage.removeItem('usuarioId')
+  }, [])
+  // -------------------------------
 
   const handleLogin = async (e) => {
     e.preventDefault()

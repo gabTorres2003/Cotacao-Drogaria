@@ -96,7 +96,8 @@ export default function Cotacoes() {
         alert('Cotação excluída com sucesso!');
       } catch (error) {
         console.error('Erro ao excluir:', error);
-        alert('Erro ao excluir cotação.');
+        const mensagemErro = error.response?.data || 'Erro ao excluir cotação.';
+        alert(mensagemErro);
       } finally {
         setIsDeleting(false);
       }
@@ -350,7 +351,6 @@ export default function Cotacoes() {
                       </span>
                     </td>
 
-                    {/* RENDERIZADOR DINÂMICO DE STATUS */}
                     <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
                       {renderStatus(c)}
                     </td>
