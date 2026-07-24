@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 
 import java.sql.Date;
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
 public class IntegracaoDNAService {
@@ -28,19 +29,19 @@ public class IntegracaoDNAService {
         MapSqlParameterSource parametros = new MapSqlParameterSource();
 
         if (gruposSelecionados != null && !gruposSelecionados.isEmpty()) {
-            sql.append(" WHERE TRIM(GRUPO) IN (:gruposSelecionados)");
-            parametros.addValue("gruposSelecionados", gruposSelecionados);
+            List<String> gruposUpper = gruposSelecionados.stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toList());
+            sql.append(" WHERE UPPER(TRIM(GRUPO)) IN (:gruposSelecionados)");
+            parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
         return dnaNamedJdbcTemplate.query(sql.toString(), parametros, (rs, rowNum) -> {
             ItemCotacao item = new ItemCotacao();
             
             item.setNomeProduto(rs.getString("DESCRICAO"));
-            
             item.setUltimoPreco(rs.getDouble("PRECOCUSTO")); 
-            
             item.setQuantidade((int) rs.getDouble("FALTAS")); 
-            
             item.setEstoque(rs.getDouble("ESTOQUE"));
             item.setGrupo(rs.getString("GRUPO"));
             item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));

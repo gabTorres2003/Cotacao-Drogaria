@@ -3,7 +3,7 @@ import api from '../../services/api';
 import { X } from 'lucide-react';
 
 const GRUPOS_DISPONIVEIS = [
-  "Alimentos", "Etico", "Gen Antibi", "Generico", "Generico 2", "Liberados", "Oficinais", "Perfumaria"
+  "Alimentos", "Etico", "Etico Anti", "Similar", "Gen Antibi", "Generico", "Generico 2", "Liberados", "Oficinais", "Perfumaria"
 ];
 
 export default function UploadModal({ onClose, onSuccess }) {
