@@ -8,7 +8,8 @@ import {
   Search,
   Filter,
   CheckCircle,
-  RotateCcw
+  RotateCcw,
+  Trash2 
 } from 'lucide-react'
 
 export default function Pedidos() {
@@ -16,6 +17,7 @@ export default function Pedidos() {
   
   const [modalDevolucaoAberto, setModalDevolucaoAberto] = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
@@ -51,6 +53,24 @@ export default function Pedidos() {
       console.error('Erro ao carregar pedidos:', error)
     }
   }
+
+  const deletarPedido = async (id) => {
+    if (window.confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) {
+      setIsDeleting(true);
+      try {
+        await api.delete(`/api/pedidos/${id}`);
+        setPedidos(pedidos.filter(p => p.id !== id));
+        alert('Pedido excluído com sucesso!');
+        carregarPedidos(); 
+      } catch (error) {
+        console.error('Erro ao excluir pedido:', error);
+        const mensagemErro = error.response?.data?.message || error.response?.data || 'Erro ao excluir pedido.';
+        alert(mensagemErro);
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
 
   const fMoney = (valor) => {
     if (valor == null) return '-';
@@ -203,10 +223,7 @@ export default function Pedidos() {
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
                       <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
-                      
-                      {/* APLICAÇÃO DO NOVO ESTILO AQUI */}
                       <td><span style={statusInfo.style}>{statusInfo.texto}</span></td>
-                      
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/pedidos/${p.id}`)}>
@@ -224,6 +241,16 @@ export default function Pedidos() {
                               <RotateCcw size={18} color="#ef4444" />
                             </button>
                           )}
+
+                          {/* --- NOVO BOTÃO DE EXCLUIR --- */}
+                          <button 
+                            className="btn-icon" 
+                            title="Excluir Pedido" 
+                            onClick={() => deletarPedido(p.id)}
+                          >
+                            <Trash2 size={18} color="#ef4444" />
+                          </button>
+
                         </div>
                       </td>
                     </tr>
@@ -243,6 +270,25 @@ export default function Pedidos() {
               carregarPedidos()
             }}
           />
+        )}
+
+        {isDeleting && (
+          <div style={{
+            position: 'fixed',
+            top: 0, left: 0, width: '100vw', height: '100vh',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)',
+            display: 'flex', justifyContent: 'center', alignItems: 'center',
+            zIndex: 9999
+          }}>
+            <div style={{
+              backgroundColor: '#fff', padding: '20px 40px',
+              borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+              textAlign: 'center'
+            }}>
+              <p style={{ fontWeight: 'bold', color: '#374151', margin: 0 }}>Excluindo pedido...</p>
+              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>Por favor, aguarde.</p>
+            </div>
+          </div>
         )}
       </main>
     </div>
