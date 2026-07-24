@@ -9,12 +9,13 @@ import com.drogaria.cotacao.service.ComparativoService;
 import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.Map;
-
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -119,9 +120,17 @@ public class CotacaoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarCotacao(@PathVariable Long id) {
-        cotacaoService.deletarCotacao(id);
-        return ResponseEntity.noContent().build();
+    public ResponseEntity<?> deletarCotacao(@PathVariable Long id) {
+        try {
+            cotacaoService.deletarCotacao(id);
+            return ResponseEntity.ok().build();
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Não é possível excluir esta cotação pois ela já possui Pedidos gerados. Exclua os pedidos vinculados a ela primeiro.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro interno ao tentar excluir a cotação.");
+        }
     }
 
     @GetMapping("/sugestoes/{idCotacao}")
