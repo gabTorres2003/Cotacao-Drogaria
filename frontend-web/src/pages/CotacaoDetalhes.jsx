@@ -39,13 +39,21 @@ export default function CotacaoDetalhes() {
       const mapDiversos = {}
       response.data.forEach(item => {
         if (item.codigoDiversos) {
-          mapDiversos[item.codigoDiversos.toUpperCase().trim()] = item.produto
+          const codigoLimpo = item.codigoDiversos.toUpperCase().replace(/\s/g, '')
+          mapDiversos[codigoLimpo] = item.produto
         }
       })
+      console.log("🔍 Dicionário carregado do Balcão:", mapDiversos) 
       setDicionarioDiversos(mapDiversos)
     } catch (error) {
       console.error("Erro ao carregar dicionário de diversos:", error)
     }
+  }
+
+  const getNomeRealSempre = (nomeProduto) => {
+    if (!nomeProduto) return '';
+    const codigoLimpo = nomeProduto.toUpperCase().replace(/\s/g, '');
+    return dicionarioDiversos[codigoLimpo] || nomeProduto; 
   }
 
   const getNomeRealSempre = (nomeProduto) => {
@@ -377,7 +385,6 @@ export default function CotacaoDetalhes() {
                   {editandoItem === item.idItem ? (
                     <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                   ) : (
-                    // CHAMADA DA FUNÇÃO VISUAL PARA ALTERNAR DIVERSOS <-> NOME REAL NA TABELA
                     <strong>{getNomeExibicao(item.nomeProduto)}</strong>
                   )}
                 </td>
@@ -544,7 +551,7 @@ export default function CotacaoDetalhes() {
               style={{ transform: 'scale(1.1)' }}
             />
             <span style={{ fontSize: '13px', color: '#374151', fontWeight: '600' }}>
-              Alternar nome diversos
+              Alternar Nome Diversos/Real
             </span>
           </label>
 
