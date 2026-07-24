@@ -3,6 +3,7 @@ package com.drogaria.cotacao.service;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
+import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +20,9 @@ public class CotacaoService {
 
     @Autowired
     private IntegracaoDNAService integracaoDNAService;
+
+    @Autowired
+    private EntityManager entityManager;
 
     @Transactional(readOnly = true)
     public List<Cotacao> listarTodas() {
@@ -82,6 +86,11 @@ public class CotacaoService {
         if (!cotacaoRepository.existsById(id)) {
             throw new RuntimeException("Cotação não encontrada!");
         }
+
+        entityManager.createNativeQuery("DELETE FROM tb_sugestoes_promocao WHERE cotacao_id = :id")
+                     .setParameter("id", id)
+                     .executeUpdate();
+
         cotacaoRepository.deleteById(id);
     }
 }
