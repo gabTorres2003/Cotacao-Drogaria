@@ -17,6 +17,7 @@ public class ItemComparativoDTO {
     private String ultVendaData;
     private Double vendidoAposUltCompra;
     private Double ultimoPreco;
+    private String origemItem;
 
     private Double menorPrecoEncontrado;
     private String fornecedorVencedor;
@@ -63,6 +64,9 @@ public class ItemComparativoDTO {
 
     public Double getUltimoPreco() { return ultimoPreco; }
     public void setUltimoPreco(Double ultimoPreco) { this.ultimoPreco = ultimoPreco; }
+
+    public String getOrigemItem() { return origemItem; }
+    public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
 
     public Double getMenorPrecoEncontrado() { return menorPrecoEncontrado; }
     public void setMenorPrecoEncontrado(Double menorPrecoEncontrado) { this.menorPrecoEncontrado = menorPrecoEncontrado; }

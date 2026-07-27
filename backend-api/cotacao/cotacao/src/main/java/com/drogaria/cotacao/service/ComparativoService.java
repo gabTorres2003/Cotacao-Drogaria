@@ -85,6 +85,7 @@ public class ComparativoService {
             linha.setUltVendaData(item.getUltVendaData() != null ? item.getUltVendaData().format(formatter) : null);
             linha.setVendidoAposUltCompra(item.getVendidoAposUltCompra());
             linha.setUltimoPreco(item.getUltimoPreco());
+            linha.setOrigemItem(item.getOrigemItem());
 
             List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
@@ -274,7 +275,6 @@ public class ComparativoService {
             }
         }
 
-        // --- ATUALIZANDO O VÍNCULO DO FORNECEDOR (Lidando com duplicatas na Base) ---
         List<CotacaoFornecedor> vinculosDoFornecedor = cotacaoFornecedorRepository.findByCotacaoIdAndFornecedorId(request.getCotacaoId(), request.getFornecedorId());
         if (vinculosDoFornecedor != null && !vinculosDoFornecedor.isEmpty()) {
             for (CotacaoFornecedor cf : vinculosDoFornecedor) {
