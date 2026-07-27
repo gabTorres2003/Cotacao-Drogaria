@@ -49,6 +49,7 @@ public class IntegracaoDNAService {
             item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
             item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
             item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+            
             item.setOrigemItem("Falta Manual");
 
             Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
@@ -64,18 +65,13 @@ public class IntegracaoDNAService {
     public List<ItemCotacao> buscarSugestoes(List<String> gruposSelecionados, LocalDate dataInicial, LocalDate dataFinal, int diasSuprir) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                "p.DESCRICAO, " +
-                "MAX(p.QUANTIDADE) AS ESTOQUE, " +
-                "MAX(p.PRECOCUSTO) AS PRECOCUSTO, " +
-                "MAX(g.NOME) AS GRUPO, " +
-                "MAX(p.DTULTCOMPRA) AS ULTCOMPRA_DATA, " +
-                "MAX(p.QTDEULTCOMPRA) AS ULTCOMPRA_QTDE, " +
-                "MAX(p.DTULTVENDA) AS ULTVENDA_DATA, " +
-                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
-                "FROM A_VENDAS v " +
-                "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
-                "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
-                "WHERE v.DATA >= :dataInicial AND v.DATA <= :dataFinal"
+                "DESCRICAOPRODUTO AS DESCRICAO, " +
+                "MAX(ESTOQUEATUAL) AS ESTOQUE, " +
+                "MAX(CUSTOATUAL) AS PRECOCUSTO, " +
+                "MAX(GRUPO) AS GRUPO, " +
+                "SUM(QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "FROM A_VENDAS " +
+                "WHERE DATA >= :dataInicial AND DATA <= :dataFinal"
         );
 
         MapSqlParameterSource parametros = new MapSqlParameterSource();
@@ -86,14 +82,14 @@ public class IntegracaoDNAService {
             List<String> gruposUpper = gruposSelecionados.stream()
                     .map(String::toUpperCase)
                     .collect(Collectors.toList());
-            sql.append(" AND UPPER(TRIM(g.NOME)) IN (:gruposSelecionados)");
+            sql.append(" AND UPPER(TRIM(GRUPO)) IN (:gruposSelecionados)");
             parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
-        sql.append(" GROUP BY p.DESCRICAO");
+        sql.append(" GROUP BY DESCRICAOPRODUTO");
 
         long diasPeriodo = ChronoUnit.DAYS.between(dataInicial, dataFinal) + 1;
-        if (diasPeriodo <= 0) diasPeriodo = 1;
+        if (diasPeriodo <= 0) diasPeriodo = 1; 
 
         long finalDiasPeriodo = diasPeriodo;
 
@@ -110,18 +106,11 @@ public class IntegracaoDNAService {
                 item.setQuantidade(sugestao);
                 item.setEstoque(estoque);
                 item.setGrupo(rs.getString("GRUPO"));
-                
-                Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
-                if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
-                
-                Date ultVenda = rs.getDate("ULTVENDA_DATA");
-                if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
-                
                 item.setOrigemItem("Sugestão");
                 
                 return item;
             }
-            return null;
+            return null; 
         });
 
         return sugestoesBrutas.stream().filter(item -> item != null).collect(Collectors.toList());
