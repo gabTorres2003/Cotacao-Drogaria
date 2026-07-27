@@ -180,7 +180,23 @@ public class PedidoService {
         if (idCotacao != null) {
             Cotacao cotacao = cotacaoRepository.findById(idCotacao)
                     .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
-            cotacao.setStatus("FINALIZADA");
+
+            List<ItemCotacao> todosItens = itemCotacaoRepository.findByCotacao(cotacao);
+            List<Pedido> pedidosDaCotacao = pedidoRepository.findByCotacaoId(idCotacao);
+
+            long itensCompradosCount = pedidosDaCotacao.stream()
+                    .flatMap(p -> p.getItens().stream())
+                    .filter(ip -> ip.getItemCotacao() != null)
+                    .map(ip -> ip.getItemCotacao().getId())
+                    .distinct()
+                    .count();
+
+            if (itensCompradosCount >= todosItens.size()) {
+                cotacao.setStatus("FINALIZADA");
+            } else {
+                cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
+            }
+
             cotacaoRepository.save(cotacao);
         }
 

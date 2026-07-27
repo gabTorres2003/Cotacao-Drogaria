@@ -32,7 +32,8 @@ export default function CotacaoDetalhes() {
   const [fornecedorManual, setFornecedorManual] = useState('')
   const [checklist, setChecklist] = useState({})
 
-  // --- NOVOS ESTADOS: FILTROS E ORDENAÇÃO ---
+  const [itensJaComprados, setItensJaComprados] = useState([])
+
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
@@ -41,7 +42,26 @@ export default function CotacaoDetalhes() {
     carregarRelatorio()
     carregarDicionarioDiversos() 
     carregarFornecedores()
+    carregarPedidosDaCotacao()
   }, [id])
+
+  const carregarPedidosDaCotacao = async () => {
+    try {
+      const response = await api.get(`/api/pedidos/cotacao/${id}`)
+      const pedidos = response.data
+      const comprados = []
+      pedidos.forEach(p => {
+        p.itens.forEach(item => {
+          if (item.itemCotacaoId) {
+            comprados.push(item.itemCotacaoId)
+          }
+        })
+      })
+      setItensJaComprados(comprados)
+    } catch (error) {
+      console.error("Erro ao carregar pedidos da cotação", error)
+    }
+  }
 
   const carregarFornecedores = async () => {
     try {
@@ -53,18 +73,34 @@ export default function CotacaoDetalhes() {
   }
 
   useEffect(() => {
-    if (relatorio.length > 0 && Object.keys(checklist).length === 0) {
-      const initialCheck = {}
+    if (relatorio.length > 0) {
+      const newChecklist = { ...checklist }
+      let changed = false
+
       relatorio.forEach(item => {
-        initialCheck[item.idItem] = {
-          comprado: false,
-          qtd: item.quantidade || 1,
-          preco: item.ultimoPreco || 0
+        const isBloqueado = itensJaComprados.includes(item.idItem)
+        
+        if (!newChecklist[item.idItem]) {
+          newChecklist[item.idItem] = {
+            comprado: isBloqueado,
+            qtd: item.quantidade || 1,
+            preco: item.ultimoPreco || 0,
+            bloqueado: isBloqueado
+          }
+          changed = true
+        } else if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
+          // Atualiza caso o item tenha acabado de ser comprado e bloqueado
+          newChecklist[item.idItem].comprado = true
+          newChecklist[item.idItem].bloqueado = true
+          changed = true
         }
       })
-      setChecklist(initialCheck)
+
+      if (changed) {
+        setChecklist(newChecklist)
+      }
     }
-  }, [relatorio])
+  }, [relatorio, itensJaComprados])
 
   const carregarDicionarioDiversos = async () => {
     try {
@@ -240,7 +276,6 @@ export default function CotacaoDetalhes() {
   const handleGerarPedidos = () => {
     const pedidosPorFornecedor = {}
 
-    // Percorre a lista ORDENADA em vez de Object.entries aleatórios
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
       const fornecedorNome = decisaoCompra[idItem];
@@ -302,12 +337,12 @@ export default function CotacaoDetalhes() {
 
     const itensComprados = [];
 
-    // Percorre a lista ORDENADA em vez de Object.keys aleatórios
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
       const chk = checklist[idItem];
       
-      if (chk && chk.comprado && chk.qtd > 0) {
+      // Filtra apenas os que estão sendo comprados AGORA e não os que já foram bloqueados historicamente
+      if (chk && chk.comprado && !chk.bloqueado && chk.qtd > 0) {
         itensComprados.push({
           itemCotacaoId: idItem,
           quantidadePedida: chk.qtd,
@@ -318,7 +353,7 @@ export default function CotacaoDetalhes() {
     });
 
     if (itensComprados.length === 0) {
-      alert('Marque pelo menos um produto como "✅ Já Comprado" para gerar o pedido.');
+      alert('Marque pelo menos um produto (que ainda não foi pedido) como "✅ Já Comprado" para gerar o registro.');
       return;
     }
 
@@ -328,7 +363,7 @@ export default function CotacaoDetalhes() {
       itens: itensComprados
     }];
 
-    if (window.confirm(`Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}? A cotação será finalizada.`)) {
+    if (window.confirm(`Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}?`)) {
       setSalvandoPedidos(true);
       try {
         await api.post('/api/pedidos/registro-manual', payload);
@@ -403,7 +438,6 @@ export default function CotacaoDetalhes() {
 
   const baixarRelatorioGeral = async () => {
     try {
-      // O Relatório PDF usa a lista ORDENADA, ignorando apenas o visual do filtro de texto
       const itens = relatorioOrdenado;
 
       if (!itens || itens.length === 0) {
@@ -475,9 +509,10 @@ export default function CotacaoDetalhes() {
   };
 
   const RenderChecklistManual = () => {
+    // Ignora no total os itens que já haviam sido bloqueados (comprados no passado)
     const totalComprado = Object.keys(checklist).reduce((acc, key) => {
       const item = checklist[key];
-      return item.comprado ? acc + (item.qtd * item.preco) : acc;
+      return (item.comprado && !item.bloqueado) ? acc + (item.qtd * item.preco) : acc;
     }, 0);
 
     return (
@@ -522,13 +557,20 @@ export default function CotacaoDetalhes() {
             </tr>
           </thead>
           <tbody>
-            {/* O MAP É FEITO NO ARRAY DE EXIBIÇÃO (FILTRADO) */}
             {relatorioExibicao.map((item) => {
-              const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0 };
+              const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
               const cores = getCorOrigem(item.origemItem || 'Geral');
               
-              const rowStyle = chk.comprado ? { backgroundColor: '#f0fdf4', opacity: 0.85 } : {};
-              const textStyle = chk.comprado ? { textDecoration: 'line-through', color: '#6b7280' } : { fontWeight: '600', color: '#1f2937' };
+              // Estilo Visual: Bloqueados ficam cinza. Marcados agora ficam verde.
+              const rowStyle = chk.bloqueado 
+                ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
+                : chk.comprado 
+                  ? { backgroundColor: '#f0fdf4', opacity: 0.85 } 
+                  : {};
+
+              const textStyle = chk.bloqueado || chk.comprado 
+                ? { textDecoration: 'line-through', color: '#6b7280' } 
+                : { fontWeight: '600', color: '#1f2937' };
 
               return (
                 <tr key={item.idItem} style={rowStyle}>
@@ -574,18 +616,24 @@ export default function CotacaoDetalhes() {
                     {fMoney(chk.qtd * chk.preco)}
                   </td>
 
-                  <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
-                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
-                      <input 
-                        type="checkbox" 
-                        checked={chk.comprado}
-                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
-                        style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
-                      />
-                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                        {chk.comprado ? 'Comprado' : 'Marcar'}
+                  <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
+                    {chk.bloqueado ? (
+                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>
+                        Já Pedido
                       </span>
-                    </label>
+                    ) : (
+                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={chk.comprado}
+                          onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
+                          style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                        />
+                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                          {chk.comprado ? 'Comprado' : 'Marcar'}
+                        </span>
+                      </label>
+                    )}
                   </td>
 
                 </tr>
@@ -653,7 +701,6 @@ export default function CotacaoDetalhes() {
             </tr>
           </thead>
           <tbody>
-            {/* O MAP É FEITO NO ARRAY DE EXIBIÇÃO (FILTRADO) */}
             {relatorioExibicao.map((item) => {
               const cores = getCorOrigem(item.origemItem || 'Geral');
 
@@ -665,18 +712,34 @@ export default function CotacaoDetalhes() {
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <strong>{getNomeExibicao(item.nomeProduto)}</strong>
-                      <span style={{ 
-                        fontSize: '10px', 
-                        backgroundColor: cores.bg, 
-                        color: cores.color, 
-                        border: `1px solid ${cores.border}`,
-                        padding: '2px 8px', 
-                        borderRadius: '10px', 
-                        width: 'fit-content',
-                        fontWeight: 'bold' 
-                      }}>
-                        {item.origemItem || 'Geral'}
-                      </span>
+                      
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ 
+                          fontSize: '10px', 
+                          backgroundColor: cores.bg, 
+                          color: cores.color, 
+                          border: `1px solid ${cores.border}`,
+                          padding: '2px 8px', 
+                          borderRadius: '10px', 
+                          fontWeight: 'bold' 
+                        }}>
+                          {item.origemItem || 'Geral'}
+                        </span>
+
+                        {itensJaComprados.includes(item.idItem) && (
+                          <span style={{ 
+                            fontSize: '10px', 
+                            backgroundColor: '#dcfce7', 
+                            color: '#166534', 
+                            border: '1px solid #86efac', 
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            fontWeight: 'bold' 
+                          }}>
+                            ✓ Pedido Gerado
+                          </span>
+                        )}
+                      </div>
                     </div>
                   )}
                 </td>
@@ -865,7 +928,6 @@ export default function CotacaoDetalhes() {
         </button>
       </div>
 
-      {/* --- BARRA DE FILTROS --- */}
       <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
         <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
           <Search size={18} color="#6b7280" />
