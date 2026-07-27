@@ -56,12 +56,6 @@ export default function CotacaoDetalhes() {
     return dicionarioDiversos[codigoLimpo] || nomeProduto; 
   }
 
-  const getNomeRealSempre = (nomeProduto) => {
-    if (!nomeProduto) return '';
-    const codigoFormatado = nomeProduto.toUpperCase().trim();
-    return dicionarioDiversos[codigoFormatado] || nomeProduto; 
-  }
-
   const getNomeExibicao = (nomeProduto) => {
     if (!nomeProduto) return '';
     if (mostrarNomeReal) {
