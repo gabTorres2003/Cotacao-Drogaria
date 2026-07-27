@@ -29,6 +29,8 @@ public class ItemCotacao {
     private LocalDate ultVendaData;
     
     private Double vendidoAposUltCompra;
+    @Column(name = "origem_item")
+    private String origemItem;
 
     @ManyToOne
     @JoinColumn(name = "cotacao_id")
@@ -64,4 +66,6 @@ public class ItemCotacao {
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
     public List<PrecoCotacao> getPrecos() { return precos; }
     public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
+    public String getOrigemItem() { return origemItem; }
+    public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
 }

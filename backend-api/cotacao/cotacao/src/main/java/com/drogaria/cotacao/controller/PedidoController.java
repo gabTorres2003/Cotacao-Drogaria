@@ -42,6 +42,12 @@ public class PedidoController {
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
     }
 
+    @PostMapping("/registro-manual")
+    public ResponseEntity<List<Pedido>> registrarPedidosManuais(@RequestBody List<GerarPedidoRequestDTO> requestsDTO) {
+        List<Pedido> pedidosSalvos = pedidoService.gerarPedidosManuais(requestsDTO);
+        return ResponseEntity.status(HttpStatus.CREATED).body(pedidosSalvos);
+    }
+
     @PutMapping("/{id}/receber")
     public ResponseEntity<Pedido> processarRecebimento(
             @PathVariable Long id, 

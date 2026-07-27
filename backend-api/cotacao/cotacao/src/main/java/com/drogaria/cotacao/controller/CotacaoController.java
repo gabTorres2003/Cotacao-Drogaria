@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.controller;
 
+import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
 import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
@@ -80,9 +81,9 @@ public class CotacaoController {
     }
 
     @PostMapping("/importar-dna")
-    public ResponseEntity<String> importarDiretoDoDna(@RequestBody List<String> grupos) {
+    public ResponseEntity<String> importarDiretoDoDna(@RequestBody ImportacaoDNARequestDTO request) {
         try {
-            Cotacao cotacao = cotacaoService.criarCotacaoDNA(grupos);
+            Cotacao cotacao = cotacaoService.criarCotacaoDNA(request);
             return ResponseEntity.ok("Cotação gerada com sucesso! " + cotacao.getItens().size() + " itens importados.");
         } catch (Exception e) {
             e.printStackTrace();

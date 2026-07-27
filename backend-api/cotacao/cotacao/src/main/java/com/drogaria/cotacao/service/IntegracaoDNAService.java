@@ -8,6 +8,8 @@ import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
 import java.sql.Date;
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -47,6 +49,7 @@ public class IntegracaoDNAService {
             item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
             item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
             item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+            item.setOrigemItem("Falta Manual");
 
             Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
             if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
@@ -56,5 +59,71 @@ public class IntegracaoDNAService {
 
             return item;
         });
+    }
+
+    public List<ItemCotacao> buscarSugestoes(List<String> gruposSelecionados, LocalDate dataInicial, LocalDate dataFinal, int diasSuprir) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT " +
+                "p.DESCRICAO, " +
+                "MAX(p.QUANTIDADE) AS ESTOQUE, " +
+                "MAX(p.PRECOCUSTO) AS PRECOCUSTO, " +
+                "MAX(g.NOME) AS GRUPO, " +
+                "MAX(p.DTULTCOMPRA) AS ULTCOMPRA_DATA, " +
+                "MAX(p.QTDEULTCOMPRA) AS ULTCOMPRA_QTDE, " +
+                "MAX(p.DTULTVENDA) AS ULTVENDA_DATA, " +
+                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "FROM A_VENDAS v " +
+                "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
+                "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
+                "WHERE v.DATA >= :dataInicial AND v.DATA <= :dataFinal"
+        );
+
+        MapSqlParameterSource parametros = new MapSqlParameterSource();
+        parametros.addValue("dataInicial", java.sql.Date.valueOf(dataInicial));
+        parametros.addValue("dataFinal", java.sql.Date.valueOf(dataFinal));
+
+        if (gruposSelecionados != null && !gruposSelecionados.isEmpty()) {
+            List<String> gruposUpper = gruposSelecionados.stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toList());
+            sql.append(" AND UPPER(TRIM(g.NOME)) IN (:gruposSelecionados)");
+            parametros.addValue("gruposSelecionados", gruposUpper);
+        }
+
+        sql.append(" GROUP BY p.DESCRICAO");
+
+        long diasPeriodo = ChronoUnit.DAYS.between(dataInicial, dataFinal) + 1;
+        if (diasPeriodo <= 0) diasPeriodo = 1;
+
+        long finalDiasPeriodo = diasPeriodo;
+
+        List<ItemCotacao> sugestoesBrutas = dnaNamedJdbcTemplate.query(sql.toString(), parametros, (rs, rowNum) -> {
+            double totalVendido = rs.getDouble("TOTAL_VENDIDO");
+            double estoque = rs.getDouble("ESTOQUE");
+            double mediaDiaria = totalVendido / finalDiasPeriodo;
+            int sugestao = (int) Math.ceil((mediaDiaria * diasSuprir) - estoque);
+            
+            if (sugestao > 0) {
+                ItemCotacao item = new ItemCotacao();
+                item.setNomeProduto(rs.getString("DESCRICAO"));
+                item.setUltimoPreco(rs.getDouble("PRECOCUSTO"));
+                item.setQuantidade(sugestao);
+                item.setEstoque(estoque);
+                item.setGrupo(rs.getString("GRUPO"));
+                
+                Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
+                if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
+                
+                Date ultVenda = rs.getDate("ULTVENDA_DATA");
+                if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
+                
+                item.setOrigemItem("Sugestão");
+                
+                return item;
+            }
+            return null;
+        });
+
+        return sugestoesBrutas.stream().filter(item -> item != null).collect(Collectors.toList());
     }
 }

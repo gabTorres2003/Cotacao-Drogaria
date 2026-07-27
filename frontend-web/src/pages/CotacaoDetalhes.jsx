@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, Check } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -28,10 +28,38 @@ export default function CotacaoDetalhes() {
   const [mostrarNomeReal, setMostrarNomeReal] = useState(false)
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
+  const [fornecedoresLista, setFornecedoresLista] = useState([])
+  const [fornecedorManual, setFornecedorManual] = useState('')
+  const [checklist, setChecklist] = useState({})
+
   useEffect(() => {
     carregarRelatorio()
     carregarDicionarioDiversos() 
+    carregarFornecedores()
   }, [id])
+
+  const carregarFornecedores = async () => {
+    try {
+      const response = await api.get('/api/fornecedor')
+      setFornecedoresLista(response.data)
+    } catch (error) {
+      console.error("Erro ao carregar lista de fornecedores gerais", error)
+    }
+  }
+
+  useEffect(() => {
+    if (relatorio.length > 0 && Object.keys(checklist).length === 0) {
+      const initialCheck = {}
+      relatorio.forEach(item => {
+        initialCheck[item.idItem] = {
+          comprado: false,
+          qtd: item.quantidade || 1,
+          preco: item.ultimoPreco || 0
+        }
+      })
+      setChecklist(initialCheck)
+    }
+  }, [relatorio])
 
   const carregarDicionarioDiversos = async () => {
     try {
@@ -219,6 +247,53 @@ export default function CotacaoDetalhes() {
     setShowModal(true)
   }
 
+  const handleSalvarRegistroManual = async () => {
+    if (!fornecedorManual) {
+      alert('Por favor, selecione um Fornecedor no topo da tela para vincular as compras.');
+      return;
+    }
+
+    const itensComprados = [];
+    Object.keys(checklist).forEach(idItemStr => {
+      const idItem = Number(idItemStr);
+      const chk = checklist[idItem];
+      
+      if (chk.comprado && chk.qtd > 0) {
+        const itemRelatorio = relatorio.find(r => r.idItem === idItem);
+        itensComprados.push({
+          itemCotacaoId: idItem,
+          quantidadePedida: chk.qtd,
+          valorUnitarioPedido: chk.preco,
+          nomeProduto: getNomeRealSempre(itemRelatorio.nomeProduto)
+        });
+      }
+    });
+
+    if (itensComprados.length === 0) {
+      alert('Marque pelo menos um produto como "✅ Já Comprado" para gerar o pedido.');
+      return;
+    }
+
+    const payload = [{
+      cotacaoId: Number(id),
+      fornecedorNome: fornecedorManual,
+      itens: itensComprados
+    }];
+
+    if (window.confirm(`Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}? A cotação será finalizada.`)) {
+      setSalvandoPedidos(true);
+      try {
+        await api.post('/api/pedidos/registro-manual', payload);
+        alert('Pedido manual registrado com sucesso!');
+        navigate('/pedidos');
+      } catch (error) {
+        alert('Erro ao registrar pedido manual: ' + (error.response?.data?.message || error.message));
+      } finally {
+        setSalvandoPedidos(false);
+      }
+    }
+  }
+
   const adicionarPromocaoAoPedido = (fornecedorNome, promo) => {
     setPedidosGerados(prev => prev.map(ped => {
       if (ped.fornecedorNome === fornecedorNome) {
@@ -259,7 +334,7 @@ export default function CotacaoDetalhes() {
           fornecedorNome: pedido.fornecedorNome,
           itens: pedido.itens.map(item => ({
             itemCotacaoId: item.idItem || null, 
-            nomeProduto: item.nomeProduto, // O nomeProduto aqui já está convertido pra Real pela handleGerarPedidos
+            nomeProduto: item.nomeProduto, 
             quantidadePedida: item.quantidadePedida,
             valorUnitarioPedido: item.valorUnitarioPedido
           }))
@@ -344,6 +419,149 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
 
+  const RenderChecklistManual = () => {
+    
+    const totalComprado = Object.keys(checklist).reduce((acc, key) => {
+      const item = checklist[key];
+      return item.comprado ? acc + (item.qtd * item.preco) : acc;
+    }, 0);
+
+    const getCorOrigem = (origem) => {
+      if (origem === 'Falta Manual') return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' };
+      if (origem === 'Sugestão') return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd' };
+      if (origem === 'Falta e Sugestão') return { bg: '#fae8ff', color: '#6d28d9', border: '#d8b4fe' };
+      return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
+    };
+
+    return (
+      <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
+        
+        {/* Painel de Controle Superior */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb' }}>
+          <div>
+            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Fornecedor da Compra</label>
+            <select 
+              value={fornecedorManual} 
+              onChange={(e) => setFornecedorManual(e.target.value)}
+              style={{ width: '300px', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb', fontSize: '14px' }}
+            >
+              <option value="">-- Selecione o Fornecedor --</option>
+              {fornecedoresLista.map(f => (
+                <option key={f.id} value={f.nome}>{f.nome}</option>
+              ))}
+            </select>
+            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>Marque os itens abaixo à medida que for finalizando no site do fornecedor.</p>
+          </div>
+
+          <div style={{ textAlign: 'right' }}>
+            <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Total Acumulado (Itens Marcados)</div>
+            <div style={{ fontSize: '28px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalComprado)}</div>
+          </div>
+        </div>
+
+        {/* Tabela do Checklist */}
+        <table style={styles.table}>
+          <thead>
+            <tr>
+              <th style={{ ...styles.th, width: '120px' }}>Origem</th>
+              <th style={styles.th}>Produto</th>
+              <th style={{ ...styles.th, textAlign: 'center', width: '100px' }}>Qtd Comprada</th>
+              <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Custo Final (R$)</th>
+              <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Subtotal</th>
+              <th style={{ ...styles.th, textAlign: 'center', width: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {relatorio.map((item) => {
+              const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0 };
+              const cores = getCorOrigem(item.origemItem || 'Geral');
+              
+              const rowStyle = chk.comprado ? { backgroundColor: '#f0fdf4', opacity: 0.85 } : {};
+              const textStyle = chk.comprado ? { textDecoration: 'line-through', color: '#6b7280' } : { fontWeight: '600', color: '#1f2937' };
+
+              return (
+                <tr key={item.idItem} style={rowStyle}>
+                  
+                  {/* Badge de Origem */}
+                  <td style={styles.td}>
+                    <span style={{ 
+                      fontSize: '11px', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', 
+                      backgroundColor: cores.bg, color: cores.color, border: `1px solid ${cores.border}` 
+                    }}>
+                      {item.origemItem || 'Geral'}
+                    </span>
+                  </td>
+
+                  {/* Nome do Produto */}
+                  <td style={styles.td}>
+                    <span style={{ ...textStyle, fontSize: '14px' }}>
+                      {getNomeExibicao(item.nomeProduto)}
+                    </span>
+                  </td>
+
+                  {/* Input Quantidade */}
+                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                    <input 
+                      type="number" 
+                      min="0" 
+                      value={chk.qtd} 
+                      onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
+                      style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
+                      disabled={chk.comprado}
+                    />
+                  </td>
+
+                  {/* Input Preço */}
+                  <td style={{ ...styles.td, textAlign: 'right' }}>
+                    <input 
+                      type="number" 
+                      step="0.01"
+                      min="0" 
+                      value={chk.preco} 
+                      onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
+                      style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
+                      disabled={chk.comprado}
+                    />
+                  </td>
+
+                  {/* Subtotal da Linha */}
+                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#374151' }}>
+                    {fMoney(chk.qtd * chk.preco)}
+                  </td>
+
+                  {/* O Checkbox Gigante */}
+                  <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={chk.comprado}
+                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
+                        style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                      />
+                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                        {chk.comprado ? 'Comprado' : 'Marcar'}
+                      </span>
+                    </label>
+                  </td>
+
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+
+        {/* Botão Flutuante de Salvar no Final */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
+          <button onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
+            <Save size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+            {salvandoPedidos ? 'Registrando...' : 'Finalizar Registro e Gerar Pedidos'}
+          </button>
+        </div>
+
+      </div>
+    );
+  };
+
   const RenderTabela = () => {
     const isComparativo = modoVisualizacao === 'comparativo';
     const isItens = modoVisualizacao === 'itens';
@@ -384,7 +602,12 @@ export default function CotacaoDetalhes() {
                   {editandoItem === item.idItem ? (
                     <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                   ) : (
-                    <strong>{getNomeExibicao(item.nomeProduto)}</strong>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <strong>{getNomeExibicao(item.nomeProduto)}</strong>
+                      <span style={{ fontSize: '10px', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '8px', width: 'fit-content', color: '#6b7280' }}>
+                        {item.origemItem || 'Geral'}
+                      </span>
+                    </div>
                   )}
                 </td>
                 <td style={styles.td}>
@@ -498,7 +721,6 @@ export default function CotacaoDetalhes() {
               {promocoes.map(promo => (
                 <div key={promo.id} style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: '8px', padding: '16px' }}>
                   <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#1d4ed8', textTransform: 'uppercase' }}>{promo.fornecedorNome}</div>
-                  {/* Aplica a exibição com toggle também nas sugestões enviadas */}
                   <div style={{ fontSize: '15px', fontWeight: 'bold', color: '#1e3a8a', marginTop: '4px' }}>{getNomeExibicao(promo.nomeProduto)}</div>
                   <div style={{ fontSize: '14px', color: '#1e40af', marginTop: '6px' }}>
                     <span style={{ fontWeight: 'bold', fontSize: '16px' }}>{fMoney(promo.preco)}</span> <span style={{ fontSize: '12px' }}>(Mínimo: {promo.qtdMinima} un)</span>
@@ -554,8 +776,8 @@ export default function CotacaoDetalhes() {
             </span>
           </label>
 
-          <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
-            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos de Compra
+          <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
+            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos
           </button>
           <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
@@ -564,9 +786,18 @@ export default function CotacaoDetalhes() {
       <div style={styles.toggleContainer}>
         <button style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
+        
+        {/* --- NOVO BOTÃO DA ÁREA DE TRABALHO MANUAL --- */}
+        <button style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
+          <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
+        </button>
       </div>
 
-      {loading ? <p>Carregando dados...</p> : <RenderTabela />}
+      {loading ? <p>Carregando dados...</p> : (
+        <>
+          {modoVisualizacao === 'manual' ? <RenderChecklistManual /> : <RenderTabela />}
+        </>
+      )}
 
       {showModal && (
         <div style={styles.modalOverlay}>

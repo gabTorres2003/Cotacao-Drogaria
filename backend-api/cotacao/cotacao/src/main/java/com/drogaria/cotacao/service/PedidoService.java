@@ -98,10 +98,7 @@ public class PedidoService {
 
         pedido.setValorTotalReal(valorTotalReal);
 
-        // MÁQUINA DE STATUS DO PEDIDO
         if (temDevolucao || temDivergenciaQuantidade) {
-            // Notei no seu print que ID #15 tem um badge "Divergência". 
-            // Suponho que StatusPedido.DIVERGENCIA exista. Se for outro nome, mude abaixo:
             pedido.setStatus(StatusPedido.DIVERGENCIA);
         } else if (temIncompatibilidadeValor) {
             pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
@@ -168,6 +165,26 @@ public class PedidoService {
         pedido.setItens(itens);
 
         return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public List<Pedido> gerarPedidosManuais(List<GerarPedidoRequestDTO> dtos) {
+        List<Pedido> pedidosGerados = new ArrayList<>();
+        Long idCotacao = null;
+
+        for (GerarPedidoRequestDTO dto : dtos) {
+            pedidosGerados.add(gerarPedidoEmLote(dto));
+            idCotacao = dto.getCotacaoId();
+        }
+
+        if (idCotacao != null) {
+            Cotacao cotacao = cotacaoRepository.findById(idCotacao)
+                    .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+            cotacao.setStatus("FINALIZADA");
+            cotacaoRepository.save(cotacao);
+        }
+
+        return pedidosGerados;
     }
 
     @Transactional

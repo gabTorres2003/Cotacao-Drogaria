@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.service;
 
+import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
@@ -9,7 +10,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -53,30 +57,65 @@ public class CotacaoService {
                 }
             }
         }
-        
         return cotacoes;
     }
 
     @Transactional
-    public Cotacao criarCotacaoDNA(List<String> grupos) {
-        List<ItemCotacao> itens = integracaoDNAService.buscarFaltasDiretoDoBanco(grupos);
+    public Cotacao criarCotacaoDNA(ImportacaoDNARequestDTO request) {
+        
+        List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
+        Map<String, ItemCotacao> mapaItens = new HashMap<>();
+        
+        if (itensFalta != null) {
+            for (ItemCotacao item : itensFalta) {
+                mapaItens.put(item.getNomeProduto().toUpperCase().trim(), item);
+            }
+        }
 
-        if (itens == null || itens.isEmpty()) {
-            throw new RuntimeException("Nenhuma falta encontrada no sistema PDV para os grupos selecionados.");
+        if (Boolean.TRUE.equals(request.getIncluirSugestao()) && request.getDataInicial() != null && request.getDataFinal() != null) {
+            List<ItemCotacao> itensSugestao = integracaoDNAService.buscarSugestoes(
+                    request.getGrupos(), 
+                    request.getDataInicial(), 
+                    request.getDataFinal(), 
+                    request.getDiasSuprir() != null ? request.getDiasSuprir() : 1
+            );
+            
+            if (itensSugestao != null) {
+                for (ItemCotacao itemSugestao : itensSugestao) {
+                    String chave = itemSugestao.getNomeProduto().toUpperCase().trim();
+                    
+                    if (mapaItens.containsKey(chave)) {
+                        ItemCotacao itemExistente = mapaItens.get(chave);
+                        // Adota a maior quantidade sugerida x falta manual
+                        if (itemSugestao.getQuantidade() > itemExistente.getQuantidade()) {
+                            itemExistente.setQuantidade(itemSugestao.getQuantidade());
+                        }
+                        itemExistente.setOrigemItem("Falta e Sugestão");
+                    } else {
+                        mapaItens.put(chave, itemSugestao);
+                    }
+                }
+            }
+        }
+
+        List<ItemCotacao> itensFinais = new ArrayList<>(mapaItens.values());
+
+        if (itensFinais.isEmpty()) {
+            throw new RuntimeException("Nenhum produto encontrado nas Faltas ou Sugestões para os filtros selecionados.");
         }
 
         Cotacao novaCotacao = new Cotacao();
-
-        String nomeGrupos = (grupos != null && !grupos.isEmpty()) 
-                            ? String.join(", ", grupos) 
+        String nomeGrupos = (request.getGrupos() != null && !request.getGrupos().isEmpty()) 
+                            ? String.join(", ", request.getGrupos()) 
                             : "Geral";
         
-        novaCotacao.setDescricao("Cotação de " + nomeGrupos);
+        String tipoBusca = Boolean.TRUE.equals(request.getIncluirSugestao()) ? "(Falta+Sugestão) " : "(Faltas) ";
+        novaCotacao.setDescricao("Cotação " + tipoBusca + nomeGrupos);
         novaCotacao.setStatus("ABERTA");
         novaCotacao.setDataCriacao(LocalDateTime.now());
         
-        itens.forEach(item -> item.setCotacao(novaCotacao));
-        novaCotacao.setItens(itens);
+        itensFinais.forEach(item -> item.setCotacao(novaCotacao));
+        novaCotacao.setItens(itensFinais);
         
         return cotacaoRepository.save(novaCotacao);
     }
