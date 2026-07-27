@@ -39,11 +39,16 @@ export default function CotacaoDetalhes() {
       const mapDiversos = {}
       response.data.forEach(item => {
         if (item.codigoDiversos) {
-          const codigoLimpo = item.codigoDiversos.toUpperCase().replace(/\s/g, '')
-          mapDiversos[codigoLimpo] = item.produto
+          const codigoPuro = String(item.codigoDiversos).toUpperCase().replace(/\s/g, '')
+          
+          mapDiversos[codigoPuro] = item.produto
+          
+          if (!codigoPuro.startsWith('DIVERSOS')) {
+            mapDiversos[`DIVERSOS${codigoPuro}`] = item.produto
+          }
         }
       })
-      console.log("🔍 Dicionário carregado do Balcão:", mapDiversos) 
+      
       setDicionarioDiversos(mapDiversos)
     } catch (error) {
       console.error("Erro ao carregar dicionário de diversos:", error)

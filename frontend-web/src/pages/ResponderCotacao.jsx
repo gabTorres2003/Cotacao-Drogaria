@@ -44,6 +44,7 @@ export default function ResponderCotacao() {
   const [loading, setLoading] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
   useEffect(() => {
     if (!isPrimeiroAcesso) {
@@ -205,6 +206,35 @@ export default function ResponderCotacao() {
 
   const removerSugestao = (tempId) => {
     setSugestoes((prev) => prev.filter((item) => item.tempId !== tempId))
+  }
+
+  useEffect(() => {
+    const carregarDicionario = async () => {
+      try {
+        const response = await api.get('/api/diversos')
+        const mapDiversos = {}
+        
+        response.data.forEach(item => {
+          if (item.codigoDiversos) {
+            const codigoPuro = String(item.codigoDiversos).toUpperCase().replace(/\s/g, '')
+            mapDiversos[codigoPuro] = item.produto
+            if (!codigoPuro.startsWith('DIVERSOS')) {
+              mapDiversos[`DIVERSOS${codigoPuro}`] = item.produto
+            }
+          }
+        })
+        setDicionarioDiversos(mapDiversos)
+      } catch (error) {
+        console.error("Erro ao carregar dicionário:", error)
+      }
+    }
+    carregarDicionario()
+  }, [])
+
+  const getNomeReal = (nomeProduto) => {
+    if (!nomeProduto) return '';
+    const codigoLimpo = nomeProduto.toUpperCase().replace(/\s/g, '');
+    return dicionarioDiversos[codigoLimpo] || nomeProduto;
   }
 
   const enviarResposta = async () => {
@@ -391,7 +421,7 @@ export default function ResponderCotacao() {
                     color: '#1f2937',
                   }}
                 >
-                  {item.nomeProduto}
+                  {getNomeReal(item.nomeProduto)}
                 </div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>
                   Solicitado: <strong>{item.quantidade} un</strong>
