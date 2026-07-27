@@ -95,7 +95,7 @@ export default function Login() {
               margin: 0,
             }}
           >
-            Portal de Cotações Drogaria Torres Farma
+            Portal de Cotações <br /> Drogaria Torres Farma
           </h2>
         </div>
 
