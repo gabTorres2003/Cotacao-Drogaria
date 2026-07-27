@@ -1,9 +1,9 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -31,6 +31,11 @@ export default function CotacaoDetalhes() {
   const [fornecedoresLista, setFornecedoresLista] = useState([])
   const [fornecedorManual, setFornecedorManual] = useState('')
   const [checklist, setChecklist] = useState({})
+
+  // --- NOVOS ESTADOS: FILTROS E ORDENAÇÃO ---
+  const [termoBusca, setTermoBusca] = useState('')
+  const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
+  const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
 
   useEffect(() => {
     carregarRelatorio()
@@ -68,15 +73,12 @@ export default function CotacaoDetalhes() {
       response.data.forEach(item => {
         if (item.codigoDiversos) {
           const codigoPuro = String(item.codigoDiversos).toUpperCase().replace(/\s/g, '')
-          
           mapDiversos[codigoPuro] = item.produto
-          
           if (!codigoPuro.startsWith('DIVERSOS')) {
             mapDiversos[`DIVERSOS${codigoPuro}`] = item.produto
           }
         }
       })
-      
       setDicionarioDiversos(mapDiversos)
     } catch (error) {
       console.error("Erro ao carregar dicionário de diversos:", error)
@@ -130,13 +132,59 @@ export default function CotacaoDetalhes() {
     }
   }
 
+  const requestSort = (key) => {
+    let direction = 'asc';
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  const getValorOrdenacao = (item, key) => {
+    if (key === 'nomeProduto') return getNomeExibicao(item.nomeProduto);
+    if (key === 'origemItem') return item.origemItem || 'Geral';
+    return item[key] ?? 0;
+  };
+
+  const relatorioOrdenado = useMemo(() => {
+    let ordenavel = [...relatorio];
+    ordenavel.sort((a, b) => {
+      const valA = getValorOrdenacao(a, sortConfig.key);
+      const valB = getValorOrdenacao(b, sortConfig.key);
+
+      if (typeof valA === 'string' && typeof valB === 'string') {
+        return sortConfig.direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+      }
+      
+      if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+      if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+      return 0;
+    });
+    return ordenavel;
+  }, [relatorio, sortConfig, mostrarNomeReal, dicionarioDiversos]);
+
+  const relatorioExibicao = useMemo(() => {
+    return relatorioOrdenado.filter(item => {
+      const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
+      const origemItem = item.origemItem || 'Geral';
+      const matchOrigem = filtroOrigem === 'TODOS' || origemItem === filtroOrigem;
+      return matchBusca && matchOrigem;
+    });
+  }, [relatorioOrdenado, termoBusca, filtroOrigem]);
+
+  const SortIcon = ({ sortKey }) => {
+    if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="#9ca3af" style={{ marginLeft: '6px' }} />;
+    return sortConfig.direction === 'asc' 
+      ? <ChevronUp size={14} color="#2563eb" style={{ marginLeft: '6px' }} />
+      : <ChevronDown size={14} color="#2563eb" style={{ marginLeft: '6px' }} />;
+  };
+
   const handleSetWinner = (idItem, fornecedorNome) => {
     setDecisaoCompra(prev => ({ ...prev, [idItem]: fornecedorNome }))
   }
 
   const toggleTroca = (idItem, fornecedorNome) => {
     const isAtivando = !aceitesTroca[idItem];
-
     setAceitesTroca(prev => ({ ...prev, [idItem]: isAtivando }));
 
     if (isAtivando) {
@@ -192,49 +240,48 @@ export default function CotacaoDetalhes() {
   const handleGerarPedidos = () => {
     const pedidosPorFornecedor = {}
 
-    Object.entries(decisaoCompra).forEach(([idItemStr, fornecedorNome]) => {
-      const idItem = Number(idItemStr);
-      if (fornecedorNome === 'Sem ofertas') return
+    // Percorre a lista ORDENADA em vez de Object.entries aleatórios
+    relatorioOrdenado.forEach(itemRelatorio => {
+      const idItem = itemRelatorio.idItem;
+      const fornecedorNome = decisaoCompra[idItem];
+
+      if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
 
       if (!pedidosPorFornecedor[fornecedorNome]) {
         pedidosPorFornecedor[fornecedorNome] = { fornecedorNome: fornecedorNome, itens: [], total: 0 }
       }
 
-      const itemRelatorio = relatorio.find((r) => r.idItem === idItem)
-      
-      if (itemRelatorio) {
-        const isTrocaAceita = aceitesTroca[idItem];
-        const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
+      const isTrocaAceita = aceitesTroca[idItem];
+      const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
 
-        let preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
-        let qtd = itemRelatorio.quantidade;
-        let nomeFinal;
-        let nomeOriginal = null;
+      let preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
+      let qtd = itemRelatorio.quantidade;
+      let nomeFinal;
+      let nomeOriginal = null;
 
-        if (isTrocaAceita && nomeSubstituto) {
-          preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
-          qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
-          nomeFinal = getNomeRealSempre(nomeSubstituto); 
-          nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
-        } else {
-          nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
-        }
-
-        if (preco <= 0) return;
-
-        pedidosPorFornecedor[fornecedorNome].itens.push({
-          idItem: idItem,
-          nomeProduto: nomeFinal,
-          nomeOriginal: nomeOriginal,
-          observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
-          quantidadePedida: qtd,
-          valorUnitarioPedido: preco,
-          subtotal: qtd * preco,
-          isExtra: false
-        })
-        pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
+      if (isTrocaAceita && nomeSubstituto) {
+        preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
+        qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
+        nomeFinal = getNomeRealSempre(nomeSubstituto); 
+        nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+      } else {
+        nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
       }
-    })
+
+      if (preco <= 0) return;
+
+      pedidosPorFornecedor[fornecedorNome].itens.push({
+        idItem: idItem,
+        nomeProduto: nomeFinal,
+        nomeOriginal: nomeOriginal,
+        observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
+        quantidadePedida: qtd,
+        valorUnitarioPedido: preco,
+        subtotal: qtd * preco,
+        isExtra: false
+      })
+      pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
+    });
 
     const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0)
     
@@ -254,12 +301,13 @@ export default function CotacaoDetalhes() {
     }
 
     const itensComprados = [];
-    Object.keys(checklist).forEach(idItemStr => {
-      const idItem = Number(idItemStr);
+
+    // Percorre a lista ORDENADA em vez de Object.keys aleatórios
+    relatorioOrdenado.forEach(itemRelatorio => {
+      const idItem = itemRelatorio.idItem;
       const chk = checklist[idItem];
       
-      if (chk.comprado && chk.qtd > 0) {
-        const itemRelatorio = relatorio.find(r => r.idItem === idItem);
+      if (chk && chk.comprado && chk.qtd > 0) {
         itensComprados.push({
           itemCotacaoId: idItem,
           quantidadePedida: chk.qtd,
@@ -353,19 +401,19 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  const baixarRelatorioGeral = async (idCotacao) => {
+  const baixarRelatorioGeral = async () => {
     try {
-      const doc = new jsPDF()
-      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`)
-      const itens = response.data
+      // O Relatório PDF usa a lista ORDENADA, ignorando apenas o visual do filtro de texto
+      const itens = relatorioOrdenado;
 
       if (!itens || itens.length === 0) {
         alert('Essa cotação ainda não tem itens processados.')
         return
       }
 
+      const doc = new jsPDF()
       doc.setFontSize(18)
-      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20)
+      doc.text(`Relatório de Fechamento - Cotação #${id}`, 14, 20)
       doc.setFontSize(12)
       doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
 
@@ -409,7 +457,7 @@ export default function CotacaoDetalhes() {
         headStyles: { fillColor: [22, 163, 74] },
       })
 
-      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`)
+      doc.save(`Relatorio_Geral_Cotacao_${id}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
       alert('Erro ao gerar o relatório.')
@@ -459,16 +507,23 @@ export default function CotacaoDetalhes() {
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={{ ...styles.th, width: '120px' }}>Origem</th>
-              <th style={styles.th}>Produto</th>
-              <th style={{ ...styles.th, textAlign: 'center', width: '100px' }}>Qtd Comprada</th>
+              <th style={{ ...styles.th, width: '120px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
+              </th>
+              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => requestSort('nomeProduto')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
+              </th>
+              <th style={{ ...styles.th, textAlign: 'center', width: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div>
+              </th>
               <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Custo Final (R$)</th>
               <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Subtotal</th>
               <th style={{ ...styles.th, textAlign: 'center', width: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
             </tr>
           </thead>
           <tbody>
-            {relatorio.map((item) => {
+            {/* O MAP É FEITO NO ARRAY DE EXIBIÇÃO (FILTRADO) */}
+            {relatorioExibicao.map((item) => {
               const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0 };
               const cores = getCorOrigem(item.origemItem || 'Geral');
               
@@ -559,21 +614,35 @@ export default function CotacaoDetalhes() {
         <table style={styles.table}>
           <thead>
             <tr>
-              <th style={styles.th}>Produto</th>
-              <th style={styles.th}>Qtd. Solicitada</th>
-              <th style={styles.th}>Estoque Atual</th>
+              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
+              </th>
+              
+              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
+              </th>
+              
+              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
+              </th>
               
               {isItens && (
                 <>
-                  <th style={styles.th}>Vendido no Mês</th>
-                  <th style={styles.th}>Vendido pós Últ. Compra</th>
+                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoNoMes')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
+                  </th>
+                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoAposUltCompra')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Vendido pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
+                  </th>
                   <th style={styles.th}>Data Últ. Compra</th>
                   <th style={styles.th}>Qtd. Últ. Compra</th>
                   <th style={styles.th}>Data Últ. Venda</th>
                 </>
               )}
 
-              <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right' }}>Preço Últ. Compra</th>
+              <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('ultimoPreco')}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
+              </th>
 
               {isComparativo && fornecedores.map((f) => (
                 <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb' }}>
@@ -584,8 +653,8 @@ export default function CotacaoDetalhes() {
             </tr>
           </thead>
           <tbody>
-            {relatorio.map((item) => {
-              // --- APLICANDO A COR NA TABELA PRINCIPAL TAMBÉM ---
+            {/* O MAP É FEITO NO ARRAY DE EXIBIÇÃO (FILTRADO) */}
+            {relatorioExibicao.map((item) => {
               const cores = getCorOrigem(item.origemItem || 'Geral');
 
               return (
@@ -780,6 +849,9 @@ export default function CotacaoDetalhes() {
           <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
             <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos
           </button>
+          <button style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={baixarRelatorioGeral}>
+            <FileText size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Baixar PDF
+          </button>
           <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
       </div>
@@ -791,6 +863,34 @@ export default function CotacaoDetalhes() {
         <button style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
           <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
         </button>
+      </div>
+
+      {/* --- BARRA DE FILTROS --- */}
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
+        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+          <Search size={18} color="#6b7280" />
+          <input 
+            type="text" 
+            placeholder="Filtrar por produto..." 
+            value={termoBusca} 
+            onChange={e => setTermoBusca(e.target.value)}
+            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
+          />
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>Origem:</span>
+          <select 
+            value={filtroOrigem} 
+            onChange={e => setFiltroOrigem(e.target.value)}
+            style={{ padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', fontSize: '14px', cursor: 'pointer' }}
+          >
+            <option value="TODOS">Todas as Origens</option>
+            <option value="Falta Manual">Falta Manual</option>
+            <option value="Sugestão">Sugestão</option>
+            <option value="Falta e Sugestão">Falta e Sugestão</option>
+            <option value="Geral">Geral</option>
+          </select>
+        </div>
       </div>
 
       {loading ? <p>Carregando dados...</p> : (
