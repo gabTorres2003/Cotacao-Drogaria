@@ -419,24 +419,21 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
 
+  const getCorOrigem = (origem) => {
+    if (origem === 'Falta Manual') return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' };
+    if (origem === 'Sugestão') return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd' };
+    if (origem === 'Falta e Sugestão') return { bg: '#fae8ff', color: '#7e22ce', border: '#d8b4fe' };
+    return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
+  };
+
   const RenderChecklistManual = () => {
-    
     const totalComprado = Object.keys(checklist).reduce((acc, key) => {
       const item = checklist[key];
       return item.comprado ? acc + (item.qtd * item.preco) : acc;
     }, 0);
 
-    const getCorOrigem = (origem) => {
-      if (origem === 'Falta Manual') return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' };
-      if (origem === 'Sugestão') return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd' };
-      if (origem === 'Falta e Sugestão') return { bg: '#fae8ff', color: '#6d28d9', border: '#d8b4fe' };
-      return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
-    };
-
     return (
       <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
-        
-        {/* Painel de Controle Superior */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Fornecedor da Compra</label>
@@ -459,7 +456,6 @@ export default function CotacaoDetalhes() {
           </div>
         </div>
 
-        {/* Tabela do Checklist */}
         <table style={styles.table}>
           <thead>
             <tr>
@@ -481,8 +477,6 @@ export default function CotacaoDetalhes() {
 
               return (
                 <tr key={item.idItem} style={rowStyle}>
-                  
-                  {/* Badge de Origem */}
                   <td style={styles.td}>
                     <span style={{ 
                       fontSize: '11px', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', 
@@ -492,14 +486,12 @@ export default function CotacaoDetalhes() {
                     </span>
                   </td>
 
-                  {/* Nome do Produto */}
                   <td style={styles.td}>
                     <span style={{ ...textStyle, fontSize: '14px' }}>
                       {getNomeExibicao(item.nomeProduto)}
                     </span>
                   </td>
 
-                  {/* Input Quantidade */}
                   <td style={{ ...styles.td, textAlign: 'center' }}>
                     <input 
                       type="number" 
@@ -511,7 +503,6 @@ export default function CotacaoDetalhes() {
                     />
                   </td>
 
-                  {/* Input Preço */}
                   <td style={{ ...styles.td, textAlign: 'right' }}>
                     <input 
                       type="number" 
@@ -524,12 +515,10 @@ export default function CotacaoDetalhes() {
                     />
                   </td>
 
-                  {/* Subtotal da Linha */}
                   <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#374151' }}>
                     {fMoney(chk.qtd * chk.preco)}
                   </td>
 
-                  {/* O Checkbox Gigante */}
                   <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
                     <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
                       <input 
@@ -550,7 +539,6 @@ export default function CotacaoDetalhes() {
           </tbody>
         </table>
 
-        {/* Botão Flutuante de Salvar no Final */}
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
             <Save size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
@@ -596,15 +584,28 @@ export default function CotacaoDetalhes() {
             </tr>
           </thead>
           <tbody>
-            {relatorio.map((item) => (
+            {relatorio.map((item) => {
+              // --- APLICANDO A COR NA TABELA PRINCIPAL TAMBÉM ---
+              const cores = getCorOrigem(item.origemItem || 'Geral');
+
+              return (
               <tr key={item.idItem}>
                 <td style={styles.td}>
                   {editandoItem === item.idItem ? (
                     <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                   ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                       <strong>{getNomeExibicao(item.nomeProduto)}</strong>
-                      <span style={{ fontSize: '10px', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '8px', width: 'fit-content', color: '#6b7280' }}>
+                      <span style={{ 
+                        fontSize: '10px', 
+                        backgroundColor: cores.bg, 
+                        color: cores.color, 
+                        border: `1px solid ${cores.border}`,
+                        padding: '2px 8px', 
+                        borderRadius: '10px', 
+                        width: 'fit-content',
+                        fontWeight: 'bold' 
+                      }}>
                         {item.origemItem || 'Geral'}
                       </span>
                     </div>
@@ -708,7 +709,7 @@ export default function CotacaoDetalhes() {
                   </td>
                 )}
               </tr>
-            ))}
+            )})}
           </tbody>
         </table>
 
@@ -787,7 +788,6 @@ export default function CotacaoDetalhes() {
         <button style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
         
-        {/* --- NOVO BOTÃO DA ÁREA DE TRABALHO MANUAL --- */}
         <button style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
           <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
         </button>
