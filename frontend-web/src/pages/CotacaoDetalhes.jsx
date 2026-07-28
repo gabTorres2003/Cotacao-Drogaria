@@ -37,6 +37,7 @@ export default function CotacaoDetalhes() {
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
+
   const [copiadoId, setCopiadoId] = useState(null)
 
   useEffect(() => {
@@ -532,7 +533,8 @@ export default function CotacaoDetalhes() {
     return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
   };
 
-  const RenderChecklistManual = () => {
+  // --- Transformado em função normal (começando com minúscula) ---
+  const renderChecklistManual = () => {
     const totalComprado = Object.keys(checklist).reduce((acc, key) => {
       const item = checklist[key];
       return (item.comprado && !item.bloqueado) ? acc + (item.qtd * item.preco) : acc;
@@ -562,7 +564,6 @@ export default function CotacaoDetalhes() {
           </div>
         </div>
 
-        {/* --- CONTAINER COM SCROLL PARA CONGELAR O CABEÇALHO --- */}
         <div style={styles.tableContainer}>
           <table style={styles.table}>
             <thead>
@@ -612,9 +613,13 @@ export default function CotacaoDetalhes() {
                         <span style={{ ...textStyle, fontSize: '14px' }}>
                           {getNomeExibicao(item.nomeProduto)}
                         </span>
-                        {/* --- BOTÃO DE COPIAR --- */}
                         <button 
-                          onClick={() => copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem)} 
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem);
+                          }} 
                           title="Copiar Nome do Produto" 
                           style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}
                         >
@@ -657,6 +662,7 @@ export default function CotacaoDetalhes() {
                             Já Pedido
                           </span>
                           <button 
+                            type="button"
                             onClick={() => reatribuirItem(item.idItem)} 
                             style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
                           >
@@ -686,7 +692,7 @@ export default function CotacaoDetalhes() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
+          <button type="button" onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
             <Save size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
             {salvandoPedidos ? 'Registrando...' : 'Finalizar Registro e Gerar Pedidos'}
           </button>
@@ -696,13 +702,13 @@ export default function CotacaoDetalhes() {
     );
   };
 
-  const RenderTabela = () => {
+  // --- Transformado em função normal (começando com minúscula) ---
+  const renderTabela = () => {
     const isComparativo = modoVisualizacao === 'comparativo';
     const isItens = modoVisualizacao === 'itens';
 
     return (
       <div style={styles.card}>
-        {/* --- CONTAINER COM SCROLL PARA CONGELAR O CABEÇALHO --- */}
         <div style={styles.tableContainer}>
           <table style={styles.table}>
             <thead>
@@ -761,9 +767,13 @@ export default function CotacaoDetalhes() {
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <strong style={textStyle}>{getNomeExibicao(item.nomeProduto)}</strong>
-                          {/* --- BOTÃO DE COPIAR --- */}
                           <button 
-                            onClick={() => copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem)} 
+                            type="button"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem);
+                            }} 
                             title="Copiar Nome do Produto" 
                             style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}
                           >
@@ -798,6 +808,7 @@ export default function CotacaoDetalhes() {
                                 ✓ Pedido Gerado
                               </span>
                               <button 
+                                type="button"
                                 onClick={() => reatribuirItem(item.idItem)} 
                                 title="Permitir comprar este item novamente"
                                 style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
@@ -902,13 +913,13 @@ export default function CotacaoDetalhes() {
                     <td style={{ ...styles.td, textAlign: 'center' }}>
                       {editandoItem === item.idItem ? (
                         <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                          <button onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
-                          <button onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
+                          <button type="button" onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
+                          <button type="button" onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
                         </div>
                       ) : (
                         <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                          <button onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
-                          <button onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                          <button type="button" onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                          <button type="button" onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
                         </div>
                       )}
                     </td>
@@ -948,7 +959,6 @@ export default function CotacaoDetalhes() {
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' },
     
-    // --- ESTILO DO CONTÊINER COM ROLAGEM ---
     tableContainer: { 
       maxHeight: 'calc(100vh - 280px)', 
       overflowY: 'auto', 
@@ -959,7 +969,6 @@ export default function CotacaoDetalhes() {
     
     table: { width: '100%', borderCollapse: 'collapse', marginTop: 0 },
     
-    // --- ADICIONADO POSITION STICKY E ZINDEX NO CABEÇALHO ---
     th: { 
       textAlign: 'left', 
       padding: '12px', 
@@ -1007,21 +1016,21 @@ export default function CotacaoDetalhes() {
             </span>
           </label>
 
-          <button style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
+          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
             <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos
           </button>
-          <button style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={baixarRelatorioGeral}>
+          <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={baixarRelatorioGeral}>
             <FileText size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Baixar PDF
           </button>
-          <button style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
+          <button type="button" style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
       </div>
 
       <div style={styles.toggleContainer}>
-        <button style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
-        <button style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
+        <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
+        <button type="button" style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
         
-        <button style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
+        <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
           <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
         </button>
       </div>
@@ -1055,7 +1064,7 @@ export default function CotacaoDetalhes() {
 
       {loading ? <p>Carregando dados...</p> : (
         <>
-          {modoVisualizacao === 'manual' ? <RenderChecklistManual /> : <RenderTabela />}
+          {modoVisualizacao === 'manual' ? renderChecklistManual() : renderTabela()}
         </>
       )}
 
@@ -1064,7 +1073,7 @@ export default function CotacaoDetalhes() {
           <div style={styles.modalContent}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
               <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Resumo de Pedidos</h2>
-              <button onClick={() => setShowModal(false)} style={styles.btnIcon}><X size={24} color="#4b5563" /></button>
+              <button type="button" onClick={() => setShowModal(false)} style={styles.btnIcon}><X size={24} color="#4b5563" /></button>
             </div>
             
             {pedidosGerados.map((pedido, index) => {
@@ -1116,7 +1125,7 @@ export default function CotacaoDetalhes() {
                           <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
                           <td style={styles.td}>{fMoney(item.subtotal)}</td>
                           <td style={{...styles.td, textAlign: 'center'}}>
-                            <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
+                            <button type="button" onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
                               <Trash2 size={16} />
                             </button>
                           </td>
@@ -1136,7 +1145,7 @@ export default function CotacaoDetalhes() {
                       <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#166534', fontWeight: '600' }}>Fornecedor ofereceu itens extras. Incluir no pedido?</p>
                       <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                         {promosNaoAdicionadas.map(promo => (
-                          <button key={promo.id} onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
+                          <button type="button" key={promo.id} onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
                             <Plus size={14} /> Add {getNomeRealSempre(promo.nomeProduto)} ({fMoney(promo.preco)})
                           </button>
                         ))}
@@ -1148,8 +1157,8 @@ export default function CotacaoDetalhes() {
             })}
             
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
-              <button onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
-              <button onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
+              <button type="button" onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
+              <button type="button" onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
                 {salvandoPedidos ? 'Salvando...' : 'Salvar Pedidos no Sistema'}
               </button>
             </div>
