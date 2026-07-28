@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -37,6 +37,7 @@ export default function CotacaoDetalhes() {
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
+  const [copiadoId, setCopiadoId] = useState(null)
 
   useEffect(() => {
     carregarRelatorio()
@@ -52,7 +53,6 @@ export default function CotacaoDetalhes() {
       const comprados = []
       pedidos.forEach(p => {
         p.itens.forEach(item => {
-          // Correção do mapeamento do JSON que vem do Spring Boot
           const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
           if (idItemCotacao) {
             comprados.push(idItemCotacao)
@@ -134,6 +134,15 @@ export default function CotacaoDetalhes() {
       return getNomeRealSempre(nomeProduto);
     }
     return nomeProduto;
+  }
+
+  const copiarParaAreaTransferencia = (texto, idItem) => {
+    navigator.clipboard.writeText(texto).then(() => {
+      setCopiadoId(idItem);
+      setTimeout(() => setCopiadoId(null), 2000); 
+    }).catch(err => {
+      console.error('Falha ao copiar:', err);
+    });
   }
 
   const carregarRelatorio = async () => {
@@ -382,7 +391,6 @@ export default function CotacaoDetalhes() {
       try {
         await api.post('/api/pedidos/registro-manual', payload);
         alert('Pedido manual registrado com sucesso!');
-        // Atualiza a tela para bloquear os novos itens sem precisar sair
         carregarPedidosDaCotacao();
         setFornecedorManual('');
       } catch (error) {
@@ -554,116 +562,128 @@ export default function CotacaoDetalhes() {
           </div>
         </div>
 
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={{ ...styles.th, width: '120px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
-              </th>
-              <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => requestSort('nomeProduto')}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
-              </th>
-              <th style={{ ...styles.th, textAlign: 'center', width: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div>
-              </th>
-              <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Custo Final (R$)</th>
-              <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Subtotal</th>
-              <th style={{ ...styles.th, textAlign: 'center', width: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {relatorioExibicao.map((item) => {
-              const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
-              const cores = getCorOrigem(item.origemItem || 'Geral');
-              
-              // Estilo Visual de Bloqueio/Riscado
-              const rowStyle = chk.bloqueado 
-                ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
-                : chk.comprado 
-                  ? { backgroundColor: '#f0fdf4', opacity: 0.85 } 
-                  : {};
+        {/* --- CONTAINER COM SCROLL PARA CONGELAR O CABEÇALHO --- */}
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ ...styles.th, width: '120px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
+                </th>
+                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => requestSort('nomeProduto')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
+                </th>
+                <th style={{ ...styles.th, textAlign: 'center', width: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div>
+                </th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Custo Final (R$)</th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Subtotal</th>
+                <th style={{ ...styles.th, textAlign: 'center', width: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {relatorioExibicao.map((item) => {
+                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
+                const cores = getCorOrigem(item.origemItem || 'Geral');
+                
+                const rowStyle = chk.bloqueado 
+                  ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
+                  : chk.comprado 
+                    ? { backgroundColor: '#f0fdf4', opacity: 0.85 } 
+                    : {};
 
-              const textStyle = chk.bloqueado || chk.comprado 
-                ? { textDecoration: 'line-through', color: '#9ca3af' } 
-                : { fontWeight: '600', color: '#1f2937' };
+                const textStyle = chk.bloqueado || chk.comprado 
+                  ? { textDecoration: 'line-through', color: '#9ca3af' } 
+                  : { fontWeight: '600', color: '#1f2937' };
 
-              return (
-                <tr key={item.idItem} style={rowStyle}>
-                  <td style={styles.td}>
-                    <span style={{ 
-                      fontSize: '11px', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', 
-                      backgroundColor: cores.bg, color: cores.color, border: `1px solid ${cores.border}` 
-                    }}>
-                      {item.origemItem || 'Geral'}
-                    </span>
-                  </td>
+                return (
+                  <tr key={item.idItem} style={rowStyle}>
+                    <td style={styles.td}>
+                      <span style={{ 
+                        fontSize: '11px', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', 
+                        backgroundColor: cores.bg, color: cores.color, border: `1px solid ${cores.border}` 
+                      }}>
+                        {item.origemItem || 'Geral'}
+                      </span>
+                    </td>
 
-                  <td style={styles.td}>
-                    <span style={{ ...textStyle, fontSize: '14px' }}>
-                      {getNomeExibicao(item.nomeProduto)}
-                    </span>
-                  </td>
-
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
-                    <input 
-                      type="number" 
-                      min="0" 
-                      value={chk.qtd} 
-                      onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
-                      style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
-                      disabled={chk.comprado || chk.bloqueado}
-                    />
-                  </td>
-
-                  <td style={{ ...styles.td, textAlign: 'right' }}>
-                    <input 
-                      type="number" 
-                      step="0.01"
-                      min="0" 
-                      value={chk.preco} 
-                      onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
-                      style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
-                      disabled={chk.comprado || chk.bloqueado}
-                    />
-                  </td>
-
-                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: (chk.comprado && !chk.bloqueado) ? '#166534' : '#6b7280' }}>
-                    {fMoney(chk.qtd * chk.preco)}
-                  </td>
-
-                  <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
-                    {chk.bloqueado ? (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280' }}>
-                          Já Pedido
+                    <td style={styles.td}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ ...textStyle, fontSize: '14px' }}>
+                          {getNomeExibicao(item.nomeProduto)}
                         </span>
+                        {/* --- BOTÃO DE COPIAR --- */}
                         <button 
-                          onClick={() => reatribuirItem(item.idItem)} 
-                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                          onClick={() => copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem)} 
+                          title="Copiar Nome do Produto" 
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}
                         >
-                          <RefreshCcw size={10} /> Reatribuir
+                          {copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                       </div>
-                    ) : (
-                      <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
-                        <input 
-                          type="checkbox" 
-                          checked={chk.comprado}
-                          onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
-                          style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
-                        />
-                        <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                          {chk.comprado ? 'Marcado' : 'Marcar'}
-                        </span>
-                      </label>
-                    )}
-                  </td>
+                    </td>
 
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                      <input 
+                        type="number" 
+                        min="0" 
+                        value={chk.qtd} 
+                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
+                        style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
+                        disabled={chk.comprado || chk.bloqueado}
+                      />
+                    </td>
+
+                    <td style={{ ...styles.td, textAlign: 'right' }}>
+                      <input 
+                        type="number" 
+                        step="0.01"
+                        min="0" 
+                        value={chk.preco} 
+                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
+                        style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
+                        disabled={chk.comprado || chk.bloqueado}
+                      />
+                    </td>
+
+                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: (chk.comprado && !chk.bloqueado) ? '#166534' : '#6b7280' }}>
+                      {fMoney(chk.qtd * chk.preco)}
+                    </td>
+
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
+                      {chk.bloqueado ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>
+                            Já Pedido
+                          </span>
+                          <button 
+                            onClick={() => reatribuirItem(item.idItem)} 
+                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                          >
+                            <RefreshCcw size={10} /> Reatribuir
+                          </button>
+                        </div>
+                      ) : (
+                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={chk.comprado}
+                            onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
+                            style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                          />
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                            {chk.comprado ? 'Marcado' : 'Marcar'}
+                          </span>
+                        </label>
+                      )}
+                    </td>
+
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
@@ -682,208 +702,222 @@ export default function CotacaoDetalhes() {
 
     return (
       <div style={styles.card}>
-        <table style={styles.table}>
-          <thead>
-            <tr>
-              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
-              </th>
-              
-              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
-              </th>
-              
-              <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
-              </th>
-              
-              {isItens && (
-                <>
-                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoNoMes')}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
-                  </th>
-                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoAposUltCompra')}>
-                    <div style={{ display: 'flex', alignItems: 'center' }}>Vendido pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
-                  </th>
-                  <th style={styles.th}>Data Últ. Compra</th>
-                  <th style={styles.th}>Qtd. Últ. Compra</th>
-                  <th style={styles.th}>Data Últ. Venda</th>
-                </>
-              )}
-
-              <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('ultimoPreco')}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
-              </th>
-
-              {isComparativo && fornecedores.map((f) => (
-                <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb' }}>
-                  {f}
+        {/* --- CONTAINER COM SCROLL PARA CONGELAR O CABEÇALHO --- */}
+        <div style={styles.tableContainer}>
+          <table style={styles.table}>
+            <thead>
+              <tr>
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
-              ))}
-              {isItens && <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>}
-            </tr>
-          </thead>
-          <tbody>
-            {relatorioExibicao.map((item) => {
-              const cores = getCorOrigem(item.origemItem || 'Geral');
-              const isBloqueado = itensJaComprados.includes(item.idItem);
-              const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
-
-              return (
-              <tr key={item.idItem}>
-                <td style={styles.td}>
-                  {editandoItem === item.idItem ? (
-                    <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <strong style={textStyle}>{getNomeExibicao(item.nomeProduto)}</strong>
-                      
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                        <span style={{ 
-                          fontSize: '10px', 
-                          backgroundColor: cores.bg, 
-                          color: cores.color, 
-                          border: `1px solid ${cores.border}`,
-                          padding: '2px 8px', 
-                          borderRadius: '10px', 
-                          fontWeight: 'bold' 
-                        }}>
-                          {item.origemItem || 'Geral'}
-                        </span>
-
-                        {isBloqueado && (
-                          <>
-                            <span style={{ 
-                              fontSize: '10px', 
-                              backgroundColor: '#dcfce7', 
-                              color: '#166534', 
-                              border: '1px solid #86efac', 
-                              padding: '2px 8px', 
-                              borderRadius: '10px', 
-                              fontWeight: 'bold' 
-                            }}>
-                              ✓ Pedido Gerado
-                            </span>
-                            <button 
-                              onClick={() => reatribuirItem(item.idItem)} 
-                              title="Permitir comprar este item novamente"
-                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
-                            >
-                              <RefreshCcw size={10} /> Reatribuir
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </td>
-                <td style={styles.td}>
-                  {editandoItem === item.idItem ? (
-                    <input type="number" style={{ ...styles.inputEdicao, width: '60px' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} />
-                  ) : (
-                    <span style={textStyle}>{item.quantidade} un</span>
-                  )}
-                </td>
-                <td style={styles.td}>
-                  <span style={textStyle}>{item.estoque ?? '-'}</span>
-                </td>
-
+                
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
+                </th>
+                
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>
+                  <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
+                </th>
+                
                 {isItens && (
                   <>
-                    <td style={styles.td}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>
-                    <td style={styles.td}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>
-                    <td style={styles.td}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>
-                    <td style={styles.td}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>
-                    <td style={styles.td}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>
+                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoNoMes')}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
+                    </th>
+                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoAposUltCompra')}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>Vendido pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
+                    </th>
+                    <th style={styles.th}>Data Últ. Compra</th>
+                    <th style={styles.th}>Qtd. Últ. Compra</th>
+                    <th style={styles.th}>Data Últ. Venda</th>
                   </>
                 )}
 
-                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
-                  <span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span>
-                </td>
+                <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('ultimoPreco')}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
+                </th>
 
-                {isComparativo && fornecedores.map((f) => {
-                  const precoOriginal = item.precosPorFornecedor[f]
-                  const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
-                  const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade
-                  const obs = item.observacoesPorFornecedor?.[f]
-                  const substituto = item.substitutosPorFornecedor?.[f]
-                  
-                  const isWinner = decisaoCompra[item.idItem] === f
-                  const isTrocaAceita = aceitesTroca[item.idItem]
-                  const isEmFaltaOriginal = precoOriginal <= 0; 
+                {isComparativo && fornecedores.map((f) => (
+                  <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb' }}>
+                    {f}
+                  </th>
+                ))}
+                {isItens && <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>}
+              </tr>
+            </thead>
+            <tbody>
+              {relatorioExibicao.map((item) => {
+                const cores = getCorOrigem(item.origemItem || 'Geral');
+                const isBloqueado = itensJaComprados.includes(item.idItem);
+                const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
-                  return (
-                    <td
-                      key={f}
-                      onClick={() => !isBloqueado && handleSetWinner(item.idItem, f)}
-                      style={{
-                        ...styles.td,
-                        backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
-                        textAlign: 'center',
-                        borderLeft: '1px solid #f3f4f6',
-                        border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
-                        cursor: isBloqueado ? 'not-allowed' : 'pointer',
-                        verticalAlign: 'top',
-                        position: 'relative',
-                        opacity: isBloqueado ? 0.6 : 1
-                      }}
-                    >
-                      {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
-
-                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>
-                        {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
-                      </div>
-                      
-                      {substituto && (
-                        <div 
-                          onClick={(e) => { e.stopPropagation(); if(!isBloqueado) toggleTroca(item.idItem, f); }} 
-                          style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}
-                        >
-                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={isTrocaAceita && isWinner} 
-                              onChange={() => !isBloqueado && toggleTroca(item.idItem, f)} 
-                              style={{ marginTop: '2px' }}
-                              disabled={isBloqueado}
-                            />
-                            <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
-                              <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                              <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
-                            </div>
-                          </label>
-                        </div>
-                      )}
-                      
-                      {obs && (
-                        <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>
-                          Obs: {obs}
-                        </div>
-                      )}
-                    </td>
-                  )
-                })}
-
-                {isItens && (
-                  <td style={{ ...styles.td, textAlign: 'center' }}>
+                return (
+                <tr key={item.idItem}>
+                  <td style={styles.td}>
                     {editandoItem === item.idItem ? (
-                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
-                        <button onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
-                      </div>
+                      <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                     ) : (
-                      <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
-                        <button onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <strong style={textStyle}>{getNomeExibicao(item.nomeProduto)}</strong>
+                          {/* --- BOTÃO DE COPIAR --- */}
+                          <button 
+                            onClick={() => copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem)} 
+                            title="Copiar Nome do Produto" 
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}
+                          >
+                            {copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}
+                          </button>
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                          <span style={{ 
+                            fontSize: '10px', 
+                            backgroundColor: cores.bg, 
+                            color: cores.color, 
+                            border: `1px solid ${cores.border}`,
+                            padding: '2px 8px', 
+                            borderRadius: '10px', 
+                            fontWeight: 'bold' 
+                          }}>
+                            {item.origemItem || 'Geral'}
+                          </span>
+
+                          {isBloqueado && (
+                            <>
+                              <span style={{ 
+                                fontSize: '10px', 
+                                backgroundColor: '#dcfce7', 
+                                color: '#166534', 
+                                border: '1px solid #86efac', 
+                                padding: '2px 8px', 
+                                borderRadius: '10px', 
+                                fontWeight: 'bold' 
+                              }}>
+                                ✓ Pedido Gerado
+                              </span>
+                              <button 
+                                onClick={() => reatribuirItem(item.idItem)} 
+                                title="Permitir comprar este item novamente"
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
+                              >
+                                <RefreshCcw size={10} /> Reatribuir
+                              </button>
+                            </>
+                          )}
+                        </div>
                       </div>
                     )}
                   </td>
-                )}
-              </tr>
-            )})}
-          </tbody>
-        </table>
+                  <td style={styles.td}>
+                    {editandoItem === item.idItem ? (
+                      <input type="number" style={{ ...styles.inputEdicao, width: '60px' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} />
+                    ) : (
+                      <span style={textStyle}>{item.quantidade} un</span>
+                    )}
+                  </td>
+                  <td style={styles.td}>
+                    <span style={textStyle}>{item.estoque ?? '-'}</span>
+                  </td>
+
+                  {isItens && (
+                    <>
+                      <td style={styles.td}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>
+                      <td style={styles.td}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>
+                      <td style={styles.td}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>
+                      <td style={styles.td}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>
+                      <td style={styles.td}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>
+                    </>
+                  )}
+
+                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
+                    <span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span>
+                  </td>
+
+                  {isComparativo && fornecedores.map((f) => {
+                    const precoOriginal = item.precosPorFornecedor[f]
+                    const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
+                    const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade
+                    const obs = item.observacoesPorFornecedor?.[f]
+                    const substituto = item.substitutosPorFornecedor?.[f]
+                    
+                    const isWinner = decisaoCompra[item.idItem] === f
+                    const isTrocaAceita = aceitesTroca[item.idItem]
+                    const isEmFaltaOriginal = precoOriginal <= 0; 
+
+                    return (
+                      <td
+                        key={f}
+                        onClick={() => !isBloqueado && handleSetWinner(item.idItem, f)}
+                        style={{
+                          ...styles.td,
+                          backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
+                          textAlign: 'center',
+                          borderLeft: '1px solid #f3f4f6',
+                          border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
+                          cursor: isBloqueado ? 'not-allowed' : 'pointer',
+                          verticalAlign: 'top',
+                          position: 'relative',
+                          opacity: isBloqueado ? 0.6 : 1
+                        }}
+                      >
+                        {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
+
+                        <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>
+                          {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
+                        </div>
+                        
+                        {substituto && (
+                          <div 
+                            onClick={(e) => { e.stopPropagation(); if(!isBloqueado) toggleTroca(item.idItem, f); }} 
+                            style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}
+                          >
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={isTrocaAceita && isWinner} 
+                                onChange={() => !isBloqueado && toggleTroca(item.idItem, f)} 
+                                style={{ marginTop: '2px' }}
+                                disabled={isBloqueado}
+                              />
+                              <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
+                                <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
+                                <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
+                              </div>
+                            </label>
+                          </div>
+                        )}
+                        
+                        {obs && (
+                          <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>
+                            Obs: {obs}
+                          </div>
+                        )}
+                      </td>
+                    )
+                  })}
+
+                  {isItens && (
+                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                      {editandoItem === item.idItem ? (
+                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                          <button onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
+                          <button onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                          <button onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                          <button onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                        </div>
+                      )}
+                    </td>
+                  )}
+                </tr>
+              )})}
+            </tbody>
+          </table>
+        </div>
 
         {isComparativo && promocoes.length > 0 && (
           <div style={{ marginTop: '30px', borderTop: '2px dashed #e5e7eb', paddingTop: '20px' }}>
@@ -912,9 +946,33 @@ export default function CotacaoDetalhes() {
     container: { padding: '20px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
     header: { marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
-    card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap' },
+    card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' },
+    
+    // --- ESTILO DO CONTÊINER COM ROLAGEM ---
+    tableContainer: { 
+      maxHeight: 'calc(100vh - 280px)', 
+      overflowY: 'auto', 
+      overflowX: 'auto', 
+      border: '1px solid #e5e7eb', 
+      borderRadius: '8px' 
+    },
+    
+    table: { width: '100%', borderCollapse: 'collapse', marginTop: 0 },
+    
+    // --- ADICIONADO POSITION STICKY E ZINDEX NO CABEÇALHO ---
+    th: { 
+      textAlign: 'left', 
+      padding: '12px', 
+      borderBottom: '2px solid #e5e7eb', 
+      color: '#4b5563', 
+      fontSize: '13px', 
+      whiteSpace: 'nowrap',
+      position: 'sticky',
+      top: 0,
+      backgroundColor: '#ffffff',
+      zIndex: 10
+    },
+    
     td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
     toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' },
