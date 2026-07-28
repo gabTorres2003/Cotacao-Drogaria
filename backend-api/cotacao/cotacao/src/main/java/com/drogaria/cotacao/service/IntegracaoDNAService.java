@@ -65,13 +65,18 @@ public class IntegracaoDNAService {
     public List<ItemCotacao> buscarSugestoes(List<String> gruposSelecionados, LocalDate dataInicial, LocalDate dataFinal, int diasSuprir) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
-                "DESCRICAOPRODUTO AS DESCRICAO, " +
-                "MAX(ESTOQUEATUAL) AS ESTOQUE, " +
-                "MAX(CUSTOATUAL) AS PRECOCUSTO, " +
-                "MAX(GRUPO) AS GRUPO, " +
-                "SUM(QTDEVENDIDA) AS TOTAL_VENDIDO " +
-                "FROM A_VENDAS " +
-                "WHERE DATA >= :dataInicial AND DATA <= :dataFinal"
+                "p.DESCRICAO, " +
+                "MAX(p.QUANTIDADE) AS ESTOQUE, " +
+                "MAX(p.PRECOCUSTO) AS PRECOCUSTO, " +
+                "MAX(g.NOME) AS GRUPO, " +
+                "MAX(p.DTULTCOMPRA) AS ULTCOMPRA_DATA, " +
+                "MAX(p.QTDEULTCOMPRA) AS ULTCOMPRA_QTDE, " +
+                "MAX(p.DTULTVENDA) AS ULTVENDA_DATA, " +
+                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "FROM A_VENDAS v " +
+                "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
+                "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
+                "WHERE v.DATA >= :dataInicial AND v.DATA <= :dataFinal"
         );
 
         MapSqlParameterSource parametros = new MapSqlParameterSource();
@@ -82,11 +87,11 @@ public class IntegracaoDNAService {
             List<String> gruposUpper = gruposSelecionados.stream()
                     .map(String::toUpperCase)
                     .collect(Collectors.toList());
-            sql.append(" AND UPPER(TRIM(GRUPO)) IN (:gruposSelecionados)");
+            sql.append(" AND UPPER(TRIM(g.NOME)) IN (:gruposSelecionados)");
             parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
-        sql.append(" GROUP BY DESCRICAOPRODUTO");
+        sql.append(" GROUP BY p.DESCRICAO");
 
         long diasPeriodo = ChronoUnit.DAYS.between(dataInicial, dataFinal) + 1;
         if (diasPeriodo <= 0) diasPeriodo = 1; 
@@ -96,6 +101,7 @@ public class IntegracaoDNAService {
         List<ItemCotacao> sugestoesBrutas = dnaNamedJdbcTemplate.query(sql.toString(), parametros, (rs, rowNum) -> {
             double totalVendido = rs.getDouble("TOTAL_VENDIDO");
             double estoque = rs.getDouble("ESTOQUE");
+            
             double mediaDiaria = totalVendido / finalDiasPeriodo;
             int sugestao = (int) Math.ceil((mediaDiaria * diasSuprir) - estoque);
             
@@ -107,6 +113,13 @@ public class IntegracaoDNAService {
                 item.setEstoque(estoque);
                 item.setGrupo(rs.getString("GRUPO"));
                 item.setOrigemItem("Sugestão");
+                Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
+                if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
+                
+                item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
+                
+                Date ultVenda = rs.getDate("ULTVENDA_DATA");
+                if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
                 
                 return item;
             }

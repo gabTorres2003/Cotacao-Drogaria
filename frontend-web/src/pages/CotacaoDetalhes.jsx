@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -52,8 +52,10 @@ export default function CotacaoDetalhes() {
       const comprados = []
       pedidos.forEach(p => {
         p.itens.forEach(item => {
-          if (item.itemCotacaoId) {
-            comprados.push(item.itemCotacaoId)
+          // Correção do mapeamento do JSON que vem do Spring Boot
+          const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
+          if (idItemCotacao) {
+            comprados.push(idItemCotacao)
           }
         })
       })
@@ -89,7 +91,6 @@ export default function CotacaoDetalhes() {
           }
           changed = true
         } else if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
-          // Atualiza caso o item tenha acabado de ser comprado e bloqueado
           newChecklist[item.idItem].comprado = true
           newChecklist[item.idItem].bloqueado = true
           changed = true
@@ -273,6 +274,20 @@ export default function CotacaoDetalhes() {
     }
   }
 
+  const reatribuirItem = (idItem) => {
+    if (window.confirm("Deseja reatribuir este item para comprar novamente? (O pedido existente NÃO será apagado do sistema)")) {
+      setItensJaComprados(prev => prev.filter(id => id !== idItem));
+      setChecklist(prev => {
+        const newChecklist = { ...prev };
+        if (newChecklist[idItem]) {
+          newChecklist[idItem].bloqueado = false;
+          newChecklist[idItem].comprado = false;
+        }
+        return newChecklist;
+      });
+    }
+  };
+
   const handleGerarPedidos = () => {
     const pedidosPorFornecedor = {}
 
@@ -341,7 +356,6 @@ export default function CotacaoDetalhes() {
       const idItem = itemRelatorio.idItem;
       const chk = checklist[idItem];
       
-      // Filtra apenas os que estão sendo comprados AGORA e não os que já foram bloqueados historicamente
       if (chk && chk.comprado && !chk.bloqueado && chk.qtd > 0) {
         itensComprados.push({
           itemCotacaoId: idItem,
@@ -368,7 +382,9 @@ export default function CotacaoDetalhes() {
       try {
         await api.post('/api/pedidos/registro-manual', payload);
         alert('Pedido manual registrado com sucesso!');
-        navigate('/pedidos');
+        // Atualiza a tela para bloquear os novos itens sem precisar sair
+        carregarPedidosDaCotacao();
+        setFornecedorManual('');
       } catch (error) {
         alert('Erro ao registrar pedido manual: ' + (error.response?.data?.message || error.message));
       } finally {
@@ -509,7 +525,6 @@ export default function CotacaoDetalhes() {
   };
 
   const RenderChecklistManual = () => {
-    // Ignora no total os itens que já haviam sido bloqueados (comprados no passado)
     const totalComprado = Object.keys(checklist).reduce((acc, key) => {
       const item = checklist[key];
       return (item.comprado && !item.bloqueado) ? acc + (item.qtd * item.preco) : acc;
@@ -561,7 +576,7 @@ export default function CotacaoDetalhes() {
               const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
               const cores = getCorOrigem(item.origemItem || 'Geral');
               
-              // Estilo Visual: Bloqueados ficam cinza. Marcados agora ficam verde.
+              // Estilo Visual de Bloqueio/Riscado
               const rowStyle = chk.bloqueado 
                 ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
                 : chk.comprado 
@@ -569,7 +584,7 @@ export default function CotacaoDetalhes() {
                   : {};
 
               const textStyle = chk.bloqueado || chk.comprado 
-                ? { textDecoration: 'line-through', color: '#6b7280' } 
+                ? { textDecoration: 'line-through', color: '#9ca3af' } 
                 : { fontWeight: '600', color: '#1f2937' };
 
               return (
@@ -596,7 +611,7 @@ export default function CotacaoDetalhes() {
                       value={chk.qtd} 
                       onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
                       style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
-                      disabled={chk.comprado}
+                      disabled={chk.comprado || chk.bloqueado}
                     />
                   </td>
 
@@ -608,19 +623,27 @@ export default function CotacaoDetalhes() {
                       value={chk.preco} 
                       onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
                       style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
-                      disabled={chk.comprado}
+                      disabled={chk.comprado || chk.bloqueado}
                     />
                   </td>
 
-                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#374151' }}>
+                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: (chk.comprado && !chk.bloqueado) ? '#166534' : '#6b7280' }}>
                     {fMoney(chk.qtd * chk.preco)}
                   </td>
 
                   <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
                     {chk.bloqueado ? (
-                      <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>
-                        Já Pedido
-                      </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280' }}>
+                          Já Pedido
+                        </span>
+                        <button 
+                          onClick={() => reatribuirItem(item.idItem)} 
+                          style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                        >
+                          <RefreshCcw size={10} /> Reatribuir
+                        </button>
+                      </div>
                     ) : (
                       <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
                         <input 
@@ -630,7 +653,7 @@ export default function CotacaoDetalhes() {
                           style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
                         />
                         <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                          {chk.comprado ? 'Comprado' : 'Marcar'}
+                          {chk.comprado ? 'Marcado' : 'Marcar'}
                         </span>
                       </label>
                     )}
@@ -703,6 +726,8 @@ export default function CotacaoDetalhes() {
           <tbody>
             {relatorioExibicao.map((item) => {
               const cores = getCorOrigem(item.origemItem || 'Geral');
+              const isBloqueado = itensJaComprados.includes(item.idItem);
+              const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
               return (
               <tr key={item.idItem}>
@@ -711,9 +736,9 @@ export default function CotacaoDetalhes() {
                     <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <strong>{getNomeExibicao(item.nomeProduto)}</strong>
+                      <strong style={textStyle}>{getNomeExibicao(item.nomeProduto)}</strong>
                       
-                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <span style={{ 
                           fontSize: '10px', 
                           backgroundColor: cores.bg, 
@@ -726,18 +751,27 @@ export default function CotacaoDetalhes() {
                           {item.origemItem || 'Geral'}
                         </span>
 
-                        {itensJaComprados.includes(item.idItem) && (
-                          <span style={{ 
-                            fontSize: '10px', 
-                            backgroundColor: '#dcfce7', 
-                            color: '#166534', 
-                            border: '1px solid #86efac', 
-                            padding: '2px 8px', 
-                            borderRadius: '10px', 
-                            fontWeight: 'bold' 
-                          }}>
-                            ✓ Pedido Gerado
-                          </span>
+                        {isBloqueado && (
+                          <>
+                            <span style={{ 
+                              fontSize: '10px', 
+                              backgroundColor: '#dcfce7', 
+                              color: '#166534', 
+                              border: '1px solid #86efac', 
+                              padding: '2px 8px', 
+                              borderRadius: '10px', 
+                              fontWeight: 'bold' 
+                            }}>
+                              ✓ Pedido Gerado
+                            </span>
+                            <button 
+                              onClick={() => reatribuirItem(item.idItem)} 
+                              title="Permitir comprar este item novamente"
+                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
+                            >
+                              <RefreshCcw size={10} /> Reatribuir
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
@@ -747,22 +781,26 @@ export default function CotacaoDetalhes() {
                   {editandoItem === item.idItem ? (
                     <input type="number" style={{ ...styles.inputEdicao, width: '60px' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} />
                   ) : (
-                    `${item.quantidade} un`
+                    <span style={textStyle}>{item.quantidade} un</span>
                   )}
                 </td>
-                <td style={styles.td}>{item.estoque ?? '-'}</td>
+                <td style={styles.td}>
+                  <span style={textStyle}>{item.estoque ?? '-'}</span>
+                </td>
 
                 {isItens && (
                   <>
-                    <td style={styles.td}>{item.vendidoNoMes ?? '-'}</td>
-                    <td style={styles.td}>{item.vendidoAposUltCompra ?? '-'}</td>
-                    <td style={styles.td}>{fData(item.ultCompraData)}</td>
-                    <td style={styles.td}>{item.ultCompraQtde ?? '-'}</td>
-                    <td style={styles.td}>{fData(item.ultVendaData)}</td>
+                    <td style={styles.td}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>
+                    <td style={styles.td}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>
+                    <td style={styles.td}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>
+                    <td style={styles.td}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>
+                    <td style={styles.td}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>
                   </>
                 )}
 
-                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</td>
+                <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
+                  <span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span>
+                </td>
 
                 {isComparativo && fornecedores.map((f) => {
                   const precoOriginal = item.precosPorFornecedor[f]
@@ -778,37 +816,39 @@ export default function CotacaoDetalhes() {
                   return (
                     <td
                       key={f}
-                      onClick={() => handleSetWinner(item.idItem, f)}
+                      onClick={() => !isBloqueado && handleSetWinner(item.idItem, f)}
                       style={{
                         ...styles.td,
                         backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
                         textAlign: 'center',
                         borderLeft: '1px solid #f3f4f6',
                         border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
-                        cursor: 'pointer',
+                        cursor: isBloqueado ? 'not-allowed' : 'pointer',
                         verticalAlign: 'top',
-                        position: 'relative'
+                        position: 'relative',
+                        opacity: isBloqueado ? 0.6 : 1
                       }}
                     >
                       {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
 
-                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151' }}>
+                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>
                         {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
                       </div>
                       
                       {substituto && (
                         <div 
-                          onClick={(e) => e.stopPropagation()} 
+                          onClick={(e) => { e.stopPropagation(); if(!isBloqueado) toggleTroca(item.idItem, f); }} 
                           style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}
                         >
-                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#111827' }}>
+                          <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
                             <input 
                               type="checkbox" 
                               checked={isTrocaAceita && isWinner} 
-                              onChange={() => toggleTroca(item.idItem, f)} 
+                              onChange={() => !isBloqueado && toggleTroca(item.idItem, f)} 
                               style={{ marginTop: '2px' }}
+                              disabled={isBloqueado}
                             />
-                            <div>
+                            <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
                               <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
                               <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
                             </div>
@@ -834,8 +874,8 @@ export default function CotacaoDetalhes() {
                       </div>
                     ) : (
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }}><Edit2 size={18} /></button>
-                        <button onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }}><Trash2 size={18} /></button>
+                        <button onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
+                        <button onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
                       </div>
                     )}
                   </td>
