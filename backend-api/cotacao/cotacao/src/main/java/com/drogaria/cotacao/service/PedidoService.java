@@ -208,4 +208,8 @@ public class PedidoService {
         Pedido pedido = buscarPorId(id);
         pedidoRepository.delete(pedido);
     }
+
+    public List<Pedido> buscarPorFornecedorId(Long fornecedorId) {
+        return pedidoRepository.findByFornecedorId(fornecedorId);
+    }
 }

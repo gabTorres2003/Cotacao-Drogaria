@@ -36,6 +36,11 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.buscarPorCotacao(cotacaoId));
     }
 
+    @GetMapping("/fornecedor/{fornecedorId}")
+    public ResponseEntity<List<Pedido>> buscarPorFornecedorId(@PathVariable Long fornecedorId) {
+        return ResponseEntity.ok(pedidoService.buscarPorFornecedorId(fornecedorId));
+    }
+
     @PostMapping("/gerar")
     public ResponseEntity<Pedido> gerarPedido(@RequestBody GerarPedidoRequestDTO requestDTO) {
         Pedido pedidoSalvo = pedidoService.gerarPedidoEmLote(requestDTO);
