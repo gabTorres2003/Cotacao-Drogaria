@@ -48,7 +48,10 @@ public class IntegracaoDNAService {
             item.setGrupo(rs.getString("GRUPO"));
             item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
             item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
-            item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+            
+            if (rs.getObject("VENDIDO_APOS_ULTCOMPRA") != null) {
+                item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+            }
             
             item.setOrigemItem("Falta Manual");
 
@@ -65,14 +68,24 @@ public class IntegracaoDNAService {
     public List<ItemCotacao> buscarSugestoes(List<String> gruposSelecionados, LocalDate dataInicial, LocalDate dataFinal, int diasSuprir) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
+                "p.CODIGO, " +
                 "p.DESCRICAO, " +
                 "MAX(p.QUANTIDADE) AS ESTOQUE, " +
                 "MAX(p.PRECOCUSTO) AS PRECOCUSTO, " +
                 "MAX(g.NOME) AS GRUPO, " +
-                "MAX(p.DTULTCOMPRA) AS ULTCOMPRA_DATA, " +
+                "p.DTULTCOMPRA AS ULTCOMPRA_DATA, " +
                 "MAX(p.QTDEULTCOMPRA) AS ULTCOMPRA_QTDE, " +
                 "MAX(p.DTULTVENDA) AS ULTVENDA_DATA, " +
-                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO, " +
+                
+                "(COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL WHERE ti.CODPRODUTO = p.CODIGO AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' AND t.VENDAFINALIZADA = 'S' AND t.DATA > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND t.DATA <= CURRENT_DATE), 0) + " +
+                "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO WHERE fi.CODPRODUTO = p.CODIGO AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) AND f.DTEMISSAO > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND f.DTEMISSAO <= CURRENT_DATE), 0)) AS VENDIDO_NO_MES, " +
+                
+                "(CASE WHEN p.DTULTCOMPRA IS NULL THEN NULL ELSE " +
+                "COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL WHERE ti.CODPRODUTO = p.CODIGO AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' AND t.VENDAFINALIZADA = 'S' AND t.DATA >= p.DTULTCOMPRA), 0) + " +
+                "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO WHERE fi.CODPRODUTO = p.CODIGO AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) AND f.DTEMISSAO >= p.DTULTCOMPRA), 0) " +
+                "END) AS VENDIDO_APOS_ULTCOMPRA " +
+
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
                 "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
@@ -91,7 +104,7 @@ public class IntegracaoDNAService {
             parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
-        sql.append(" GROUP BY p.DESCRICAO");
+        sql.append(" GROUP BY p.CODIGO, p.DESCRICAO, p.DTULTCOMPRA");
 
         long diasPeriodo = ChronoUnit.DAYS.between(dataInicial, dataFinal) + 1;
         if (diasPeriodo <= 0) diasPeriodo = 1; 
@@ -113,6 +126,12 @@ public class IntegracaoDNAService {
                 item.setEstoque(estoque);
                 item.setGrupo(rs.getString("GRUPO"));
                 item.setOrigemItem("Sugestão");
+                item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
+                
+                if (rs.getObject("VENDIDO_APOS_ULTCOMPRA") != null) {
+                    item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+                }
+                
                 Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
                 if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
                 
