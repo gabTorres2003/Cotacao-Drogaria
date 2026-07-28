@@ -2,14 +2,10 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import {
-  Lock,
   ArrowLeft,
   CheckCircle,
-  AlertCircle,
-  Ban,
   Plus,
   Trash2,
-  Tag,
   RefreshCw,
   Loader2,
 } from 'lucide-react'
@@ -374,7 +370,6 @@ export default function ResponderCotacao() {
           <ArrowLeft size={18} /> Voltar
         </button>
 
-        {/* Agrupamento da Logo com o Título */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img
             src="/assets/logo-torres.png"
@@ -444,6 +439,7 @@ export default function ResponderCotacao() {
                       max={item.quantidade}
                       style={mobileStyles.inputFieldItem}
                       value={qtdNaTela}
+                      onWheel={(e) => e.target.blur()} 
                       onChange={(e) =>
                         handleQtdChange(
                           item.idItem,
@@ -467,6 +463,7 @@ export default function ResponderCotacao() {
                           ? precos[item.idItem]
                           : ''
                       }
+                      onWheel={(e) => e.target.blur()} 
                       onChange={(e) =>
                         handlePrecoChange(item.idItem, e.target.value)
                       }
@@ -560,6 +557,7 @@ export default function ResponderCotacao() {
                                 ? qtdSubstituto[item.idItem]
                                 : item.quantidade
                             }
+                            onWheel={(e) => e.target.blur()}
                             onChange={(e) =>
                               setQtdSubstituto((prev) => ({
                                 ...prev,
@@ -585,6 +583,7 @@ export default function ResponderCotacao() {
                                 ? precoSubstituto[item.idItem]
                                 : ''
                             }
+                            onWheel={(e) => e.target.blur()}
                             onChange={(e) =>
                               setPrecoSubstituto((prev) => ({
                                 ...prev,
@@ -727,6 +726,7 @@ export default function ResponderCotacao() {
                       placeholder="Preço R$ *"
                       style={mobileStyles.inputFieldItem}
                       value={sug.preco}
+                      onWheel={(e) => e.target.blur()}
                       onChange={(e) =>
                         handleSugestaoChange(
                           sug.tempId,
@@ -741,6 +741,7 @@ export default function ResponderCotacao() {
                       placeholder="Qtd Mínima *"
                       style={mobileStyles.inputFieldItem}
                       value={sug.qtdMinima}
+                      onWheel={(e) => e.target.blur()}
                       onChange={(e) =>
                         handleSugestaoChange(
                           sug.tempId,
@@ -768,7 +769,6 @@ export default function ResponderCotacao() {
             ))}
           </div>
 
-          {/* BOTÃO DE ENVIAR COM ESTADO DE LOADING */}
           <button
             style={{
               ...mobileStyles.submitButton,
@@ -793,7 +793,7 @@ export default function ResponderCotacao() {
         </div>
       )}
 
-      {/* Classe CSS para rodar a animação do loader */}
+      {/* Estilo do Loader Spin isolado */}
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }

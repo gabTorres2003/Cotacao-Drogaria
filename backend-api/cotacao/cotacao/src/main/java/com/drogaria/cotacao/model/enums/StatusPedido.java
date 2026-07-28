@@ -2,6 +2,7 @@ package com.drogaria.cotacao.model.enums;
 
 public enum StatusPedido {
     PENDENTE_ENTREGA,
+    CONFIRMADO_FORNECEDOR,
     ENTREGUE_SUCESSO,
     ENTREGUE_COM_FALTA,
     DIVERGENCIA, 
