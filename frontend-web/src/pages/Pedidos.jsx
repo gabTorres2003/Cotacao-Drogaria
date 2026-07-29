@@ -44,7 +44,7 @@ export default function Pedidos() {
         setPedidos(data)
         setResumo({
           total: data.length,
-          pendentes: data.filter((p) => p.status === 'PENDENTE_ENTREGA').length,
+          pendentes: data.filter((p) => p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR').length,
           entregues: data.filter((p) => p.status === 'ENTREGUE_SUCESSO' || p.status === 'ENTREGUE_COM_FALTA').length,
           devolucoes: data.filter((p) => p.status === 'PENDENTE_DEVOLUCAO').length,
         })
@@ -102,7 +102,10 @@ export default function Pedidos() {
     
     switch (status) {
       case 'PENDENTE_ENTREGA': 
-        return { texto: 'Aguardando', style: { ...baseStyle, backgroundColor: '#ffedd5', color: '#c2410c' } };
+        return { texto: 'Aguard. Fornecedor', style: { ...baseStyle, backgroundColor: '#ffedd5', color: '#c2410c' } };
+      case 'CONFIRMADO_FORNECEDOR': 
+        // TEXTO ATUALIZADO AQUI
+        return { texto: 'Confirmado na Fábrica', style: { ...baseStyle, backgroundColor: '#cffafe', color: '#1d4ed8' } };
       case 'ENTREGUE_SUCESSO': 
         return { texto: 'Entregue', style: { ...baseStyle, backgroundColor: '#dcfce7', color: '#15803d' } };
       case 'ENTREGUE_COM_FALTA': 
@@ -168,7 +171,9 @@ export default function Pedidos() {
               onChange={(e) => setFiltroStatus(e.target.value)}
             >
               <option value="TODOS">Todos os Status</option>
-              <option value="PENDENTE_ENTREGA">Pendente de Entrega</option>
+              <option value="PENDENTE_ENTREGA">Aguardando Fornecedor</option>
+              {/* OPÇÃO DE FILTRO ATUALIZADA AQUI */}
+              <option value="CONFIRMADO_FORNECEDOR">Confirmado na Fábrica</option>
               <option value="ENTREGUE_SUCESSO">Entregue com Sucesso</option>
               <option value="ENTREGUE_COM_FALTA">Entregue com Falta</option>
               <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
@@ -230,8 +235,8 @@ export default function Pedidos() {
                             <Eye size={18} />
                           </button>
                           
-                          {p.status === 'PENDENTE_ENTREGA' && (
-                            <button className="btn-icon" title="Conferir Entrega" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
+                          {(p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR') && (
+                            <button className="btn-icon" title="Conferir Recebimento" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
                               <CheckCircle size={18} color="#16a34a" />
                             </button>
                           )}
@@ -242,7 +247,6 @@ export default function Pedidos() {
                             </button>
                           )}
 
-                          {/* --- NOVO BOTÃO DE EXCLUIR --- */}
                           <button 
                             className="btn-icon" 
                             title="Excluir Pedido" 

@@ -53,7 +53,6 @@ export default function FornecedorDashboard() {
   }
 
   const handleLogout = async () => {
-    // REGISTRO DE AUDITORIA: LOGOUT
     try {
       await api.post('/api/auditoria/registrar', {
         nomeUsuario: nomeUsuario,
@@ -67,8 +66,9 @@ export default function FornecedorDashboard() {
     navigate('/')
   }
 
-  const handleConfirmarSeparacao = async (pedidoId) => {
-    if(window.confirm("Confirmar a separação e envio deste pedido? O status será atualizado para a Drogaria Torres.")) {
+  // TEXTOS DE CONFIRMAÇÃO ATUALIZADOS AQUI
+  const handleConfirmarFabrica = async (pedidoId) => {
+    if(window.confirm("Confirmar o processamento deste pedido na fábrica/distribuidora? A farmácia será notificada e ficará aguardando a entrega.")) {
       try {
         await api.patch(`/api/pedidos/${pedidoId}/status`, { status: "CONFIRMADO_FORNECEDOR" })
         
@@ -77,11 +77,11 @@ export default function FornecedorDashboard() {
             nomeUsuario: nomeUsuario,
             tipoUsuario: 'FORNECEDOR',
             acao: 'CONFIRMACAO_PEDIDO',
-            detalhes: `Fornecedor confirmou a separação e envio do Pedido #${pedidoId}.`
+            detalhes: `Fornecedor confirmou o processamento na fábrica do Pedido #${pedidoId}.`
           });
         } catch(e) {}
 
-        alert("Pedido confirmado com sucesso!")
+        alert("Pedido marcado como CONFIRMADO com sucesso!")
         fetchDados()
       } catch(error) {
         alert("Erro ao confirmar o pedido.")
@@ -118,6 +118,19 @@ export default function FornecedorDashboard() {
       alignItems: 'center',
       gap: '8px'
     })
+  }
+
+  const getBadgeFornecedor = (status) => {
+    if (status === 'PENDENTE_ENTREGA') return null;
+    if (status === 'CONFIRMADO_FORNECEDOR') {
+      return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={14} /> CONFIRMADO NA FÁBRICA</span>;
+    }
+
+    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) {
+      return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={14} /> ENTREGUE NA FARMÁCIA</span>;
+    }
+
+    return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>{status}</span>;
   }
 
   return (
@@ -257,7 +270,7 @@ export default function FornecedorDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {pedidos.map((pedido) => {
-                  const isConfirmado = pedido.status === 'CONFIRMADO_FORNECEDOR' || pedido.status === 'ENTREGUE_SUCESSO'
+                  const badge = getBadgeFornecedor(pedido.status);
 
                   return (
                     <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -268,12 +281,14 @@ export default function FornecedorDashboard() {
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                           <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
-                          {!isConfirmado ? (
-                            <button onClick={() => handleConfirmarSeparacao(pedido.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
-                              <CheckCircle size={16} /> Confirmar Separação
+                          
+                          {badge === null ? (
+                            // BOTÃO DO FORNECEDOR ATUALIZADO AQUI
+                            <button onClick={() => handleConfirmarFabrica(pedido.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                              <CheckCircle size={16} /> Confirmar Pedido
                             </button>
                           ) : (
-                            <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca' }}>MARCADO COMO SEPARADO</span>
+                            badge
                           )}
                         </div>
                       </div>

@@ -46,6 +46,12 @@ export default function PedidoDetalhes() {
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
+    const getStatusExibicao = (status) => {
+        if (status === 'CONFIRMADO_FORNECEDOR') return 'CONFIRMADO NA FÁBRICA (AGUARDANDO ENTREGA)';
+        if (status === 'PENDENTE_ENTREGA') return 'AGUARDANDO FORNECEDOR';
+        return status;
+    };
+
     if (loading) return <div className="layout"><Sidebar /><main className="main-content"><p>Carregando...</p></main></div>;
     if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
@@ -62,7 +68,6 @@ export default function PedidoDetalhes() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        {/* NOVO BOTÃO: Excluir Pedido */}
                         <button 
                             style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} 
                             onClick={handleExcluirPedido}
@@ -81,22 +86,24 @@ export default function PedidoDetalhes() {
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge}>{pedido.status}</span></p>
+                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge}>{getStatusExibicao(pedido.status)}</span></p>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
                             {pedido.valorTotalReal != null && (
                                 <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
                             )}
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
-                            {pedido.status === 'PENDENTE_ENTREGA' && (
+                            
+                            {(pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR') && (
                                 <button 
                                     onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} 
                                     style={styles.btnConferir}
                                 >
                                     <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                    Conferir Entrega
+                                    Conferir Recebimento (Loja)
                                 </button>
                             )}
+
                             {pedido.status === 'PENDENTE_DEVOLUCAO' && (
                                 <button 
                                     onClick={() => setIsDevolucaoModalOpen(true)} 
