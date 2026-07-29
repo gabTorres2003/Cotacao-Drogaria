@@ -14,6 +14,22 @@ export default function FornecedorDashboard() {
   const usuarioId = localStorage.getItem('usuarioId')
 
   useEffect(() => {
+    const registrarNavegacao = async () => {
+      if (nomeUsuario && nomeUsuario !== 'Fornecedor') {
+        try {
+          await api.post('/api/auditoria/registrar', {
+            nomeUsuario: nomeUsuario,
+            tipoUsuario: 'FORNECEDOR',
+            acao: 'NAVEGACAO',
+            detalhes: `Acessou o Painel do Fornecedor (Aba: ${activeTab.toUpperCase()})`
+          });
+        } catch (error) { console.error("Erro ao registrar navegação", error); }
+      }
+    };
+    registrarNavegacao();
+  }, [activeTab, nomeUsuario]);
+
+  useEffect(() => {
     fetchDados()
   }, [usuarioId, activeTab])
 
@@ -36,7 +52,17 @@ export default function FornecedorDashboard() {
     }
   }
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    // REGISTRO DE AUDITORIA: LOGOUT
+    try {
+      await api.post('/api/auditoria/registrar', {
+        nomeUsuario: nomeUsuario,
+        tipoUsuario: 'FORNECEDOR',
+        acao: 'LOGOUT',
+        detalhes: 'Fornecedor encerrou a sessão no sistema.'
+      });
+    } catch (error) { console.error(error); }
+
     localStorage.clear()
     navigate('/')
   }
@@ -45,6 +71,16 @@ export default function FornecedorDashboard() {
     if(window.confirm("Confirmar a separação e envio deste pedido? O status será atualizado para a Drogaria Torres.")) {
       try {
         await api.patch(`/api/pedidos/${pedidoId}/status`, { status: "CONFIRMADO_FORNECEDOR" })
+        
+        try {
+          await api.post('/api/auditoria/registrar', {
+            nomeUsuario: nomeUsuario,
+            tipoUsuario: 'FORNECEDOR',
+            acao: 'CONFIRMACAO_PEDIDO',
+            detalhes: `Fornecedor confirmou a separação e envio do Pedido #${pedidoId}.`
+          });
+        } catch(e) {}
+
         alert("Pedido confirmado com sucesso!")
         fetchDados()
       } catch(error) {
@@ -59,16 +95,9 @@ export default function FornecedorDashboard() {
     if (isNaN(data.getTime())) return dataIso
 
     return (
-      data.toLocaleDateString('pt-BR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-      }) +
+      data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) +
       ' às ' +
-      data.toLocaleTimeString('pt-BR', {
-        hour: '2-digit',
-        minute: '2-digit',
-      })
+      data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
     )
   }
 
@@ -92,15 +121,7 @@ export default function FornecedorDashboard() {
   }
 
   return (
-    <div
-      style={{
-        minHeight: '100vh',
-        backgroundColor: '#f8fafc',
-        display: 'flex',
-        flexDirection: 'column',
-        fontFamily: "'Segoe UI', sans-serif",
-      }}
-    >
+    <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', fontFamily: "'Segoe UI', sans-serif" }}>
       <style>{`
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
@@ -109,73 +130,25 @@ export default function FornecedorDashboard() {
           .mobile-cards { display: flex !important; flex-direction: column; gap: 12px; }
           .pedido-scroll { overflow-x: auto; }
         }
-        @media (min-width: 769px) {
-          .mobile-cards { display: none !important; }
-        }
+        @media (min-width: 769px) { .mobile-cards { display: none !important; } }
       `}</style>
 
-      <header
-        className="dash-header"
-        style={{
-          backgroundColor: 'white',
-          borderBottom: '1px solid #e2e8f0',
-          padding: '16px 32px',
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxSizing: 'border-box',
-        }}
-      >
+      <header className="dash-header" style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-          <img
-            src="/assets/logo-torres.png"
-            alt="Drogaria Torres Farma"
-            style={{ height: '32px' }}
-          />
-          <h1
-            style={{
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: '#1e293b',
-              margin: 0,
-            }}
-          >
-            Portal do Fornecedor
-          </h1>
+          <img src="/assets/logo-torres.png" alt="Drogaria Torres Farma" style={{ height: '32px' }} />
+          <h1 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>Portal do Fornecedor</h1>
         </div>
 
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '24px',
-            flexWrap: 'wrap',
-          }}
-        >
-          <span
-            style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}
-          >
+        <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '14px', color: '#64748b', fontWeight: '500' }}>
             Olá, <strong style={{ color: '#0f172a' }}>{nomeUsuario}</strong>
           </span>
-          <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px',
-              background: 'none',
-              border: 'none',
-              color: '#ef4444',
-              fontWeight: '600',
-              cursor: 'pointer',
-            }}
-          >
+          <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: '#ef4444', fontWeight: '600', cursor: 'pointer' }}>
             <LogOut size={18} /> Sair
           </button>
         </div>
       </header>
 
-      {/* --- NAVEGAÇÃO DE ABAS --- */}
       <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '0 32px' }}>
         <div style={{ display: 'flex', gap: '20px', maxWidth: '1200px', margin: '0 auto', overflowX: 'auto' }}>
           <button style={styles.tabButton(activeTab === 'cotacoes')} onClick={() => setActiveTab('cotacoes')}>
@@ -187,99 +160,32 @@ export default function FornecedorDashboard() {
         </div>
       </div>
 
-      <main
-        className="dash-main"
-        style={{
-          flex: 1,
-          padding: '32px',
-          maxWidth: '1200px',
-          margin: '0 auto',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}
-      >
+      <main className="dash-main" style={{ flex: 1, padding: '32px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
         <div style={{ marginBottom: '24px' }}>
-          <h2
-            style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#1e293b',
-              margin: '0 0 8px 0',
-            }}
-          >
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 8px 0' }}>
             {activeTab === 'cotacoes' ? 'Cotações Ativas' : 'Meus Pedidos'}
           </h2>
           <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>
-            {activeTab === 'cotacoes' 
-              ? 'Visualize as cotações enviadas pela Drogaria Torres Farma para você.' 
-              : 'Gerencie os pedidos gerados a partir das cotações e confirme as entregas.'}
+            {activeTab === 'cotacoes' ? 'Visualize as cotações enviadas pela Drogaria Torres Farma para você.' : 'Gerencie os pedidos gerados a partir das cotações e confirme as entregas.'}
           </p>
         </div>
 
         {loading ? (
-          <div
-            style={{
-              backgroundColor: 'white',
-              borderRadius: '12px',
-              border: '1px solid #e2e8f0',
-              padding: '40px',
-              textAlign: 'center',
-              color: '#64748b',
-            }}
-          >
+          <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px', textAlign: 'center', color: '#64748b' }}>
             Buscando dados...
           </div>
         ) : (
-          
-          /* =========================================
-             ABA 1: COTAÇÕES
-             ========================================= */
           activeTab === 'cotacoes' ? (
             cotacoes.length === 0 ? (
-              <div
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  padding: '40px 24px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                }}
-              >
-                <FileText
-                  size={48}
-                  color="#cbd5e1"
-                  style={{ marginBottom: '16px' }}
-                />
-                <p style={{ margin: 0, fontSize: '16px' }}>
-                  Nenhuma cotação ativa enviada para você no momento.
-                </p>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px 24px', textAlign: 'center', color: '#64748b' }}>
+                <FileText size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
+                <p style={{ margin: 0, fontSize: '16px' }}>Nenhuma cotação ativa enviada para você no momento.</p>
               </div>
             ) : (
               <>
-                {/* TABELA DESKTOP */}
-                <div
-                  className="table-container"
-                  style={{
-                    backgroundColor: 'white',
-                    borderRadius: '12px',
-                    border: '1px solid #e2e8f0',
-                    overflow: 'hidden',
-                  }}
-                >
-                  <table
-                    style={{
-                      width: '100%',
-                      borderCollapse: 'collapse',
-                      textAlign: 'left',
-                    }}
-                  >
-                    <thead
-                      style={{
-                        backgroundColor: '#f8fafc',
-                        borderBottom: '1px solid #e2e8f0',
-                      }}
-                    >
+                <div className="table-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                    <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>ID Cotação</th>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', textTransform: 'uppercase' }}>Data de Envio</th>
@@ -304,10 +210,7 @@ export default function FornecedorDashboard() {
                               </span>
                             </td>
                             <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                              <button
-                                onClick={() => navigate(`/responder-cotacao/${idCotacao}`)}
-                                style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}
-                              >
+                              <button onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
                                 {isRespondida ? 'Ver / Editar' : 'Responder'}
                               </button>
                             </td>
@@ -318,7 +221,6 @@ export default function FornecedorDashboard() {
                   </table>
                 </div>
 
-                {/* CARDS MOBILE RESTAURADOS */}
                 <div className="mobile-cards">
                   {cotacoes.map((vinculo) => {
                     const idCotacao = vinculo.cotacao ? vinculo.cotacao.id : vinculo.id
@@ -327,54 +229,16 @@ export default function FornecedorDashboard() {
                     const isRespondida = status === 'RESPONDIDA'
 
                     return (
-                      <div
-                        key={vinculo.id}
-                        style={{
-                          backgroundColor: 'white',
-                          borderRadius: '12px',
-                          border: '1px solid #e2e8f0',
-                          padding: '16px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          gap: '12px',
-                          boxSizing: 'border-box',
-                        }}
-                      >
+                      <div key={vinculo.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxSizing: 'border-box' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#1e293b' }}>
-                            Cotação #{idCotacao}
-                          </span>
-                          <span
-                            style={{
-                              padding: '4px 10px',
-                              borderRadius: '9999px',
-                              fontSize: '12px',
-                              fontWeight: '600',
-                              backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7',
-                              color: isRespondida ? '#15803d' : '#b45309',
-                            }}
-                          >
+                          <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#1e293b' }}>Cotação #{idCotacao}</span>
+                          <span style={{ padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7', color: isRespondida ? '#15803d' : '#b45309' }}>
                             {isRespondida ? 'Respondida' : 'Pendente'}
                           </span>
                         </div>
-                        <div style={{ fontSize: '13px', color: '#64748b' }}>
-                          Enviada em: {formatarDataHora(dataEnvio)}
-                        </div>
+                        <div style={{ fontSize: '13px', color: '#64748b' }}>Enviada em: {formatarDataHora(dataEnvio)}</div>
                         <div>
-                          <button
-                            onClick={() => navigate(`/responder-cotacao/${idCotacao}`)}
-                            style={{
-                              width: '100%',
-                              backgroundColor: isRespondida ? '#2563eb' : '#16a34a',
-                              color: 'white',
-                              padding: '10px',
-                              borderRadius: '6px',
-                              border: 'none',
-                              fontWeight: '600',
-                              cursor: 'pointer',
-                              textAlign: 'center',
-                            }}
-                          >
+                          <button onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ width: '100%', backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '10px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', textAlign: 'center' }}>
                             {isRespondida ? 'Ver / Editar Proposta' : 'Responder Cotação'}
                           </button>
                         </div>
@@ -385,28 +249,10 @@ export default function FornecedorDashboard() {
               </>
             )
           ) : (
-            /* =========================================
-               ABA 2: PEDIDOS
-               ========================================= */
             pedidos.length === 0 ? (
-              <div
-                style={{
-                  backgroundColor: 'white',
-                  borderRadius: '12px',
-                  border: '1px solid #e2e8f0',
-                  padding: '40px 24px',
-                  textAlign: 'center',
-                  color: '#64748b',
-                }}
-              >
-                <PackageSearch
-                  size={48}
-                  color="#cbd5e1"
-                  style={{ marginBottom: '16px' }}
-                />
-                <p style={{ margin: 0, fontSize: '16px' }}>
-                  A farmácia ainda não aprovou nenhum pedido de compra para você.
-                </p>
+              <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px 24px', textAlign: 'center', color: '#64748b' }}>
+                <PackageSearch size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
+                <p style={{ margin: 0, fontSize: '16px' }}>A farmácia ainda não aprovou nenhum pedido de compra para você.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -421,20 +267,13 @@ export default function FornecedorDashboard() {
                           <span style={{ fontSize: '13px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>
-                            {fMoney(pedido.valorTotalPedido)}
-                          </span>
+                          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
                           {!isConfirmado ? (
-                            <button
-                              onClick={() => handleConfirmarSeparacao(pedido.id)}
-                              style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}
-                            >
+                            <button onClick={() => handleConfirmarSeparacao(pedido.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
                               <CheckCircle size={16} /> Confirmar Separação
                             </button>
                           ) : (
-                            <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca' }}>
-                              MARCADO COMO SEPARADO
-                            </span>
+                            <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca' }}>MARCADO COMO SEPARADO</span>
                           )}
                         </div>
                       </div>

@@ -39,6 +39,7 @@ function App() {
         <Route path="/pedidos/:id/conferir" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
         <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
+        <Route path="/auditoria" element={<RotaPrivada><Auditoria /></RotaPrivada>} />
         <Route
           path="/responder-cotacao/:idCotacao"
           element={

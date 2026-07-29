@@ -11,7 +11,8 @@ import {
   Menu,
   X,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  ShieldAlert,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -22,7 +23,9 @@ export default function Sidebar() {
   const [showFirstAccessModal, setShowFirstAccessModal] = useState(false)
   const [novoPin, setNovoPin] = useState('')
   const [loadingModal, setLoadingModal] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(localStorage.getItem('sidebarCollapsed') === 'true')
+  const [isCollapsed, setIsCollapsed] = useState(
+    localStorage.getItem('sidebarCollapsed') === 'true',
+  )
   const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   useEffect(() => {
@@ -56,7 +59,8 @@ export default function Sidebar() {
     }
   }
 
-  const isActive = (basePath) => location.pathname.startsWith(basePath) ? 'menu-item active' : 'menu-item'
+  const isActive = (basePath) =>
+    location.pathname.startsWith(basePath) ? 'menu-item active' : 'menu-item'
 
   return (
     <>
@@ -152,83 +156,138 @@ export default function Sidebar() {
           TOPBAR MOBILE (Aparece apenas em telas pequenas)
           ========================================= */}
       <div className="mobile-topbar">
-        <button 
-          onClick={() => setIsMobileOpen(true)} 
-          style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', padding: 0 }}
+        <button
+          onClick={() => setIsMobileOpen(true)}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: '#374151',
+            cursor: 'pointer',
+            padding: 0,
+          }}
         >
           <Menu size={28} />
         </button>
-        <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '28px' }} />
-        <div style={{ width: '28px' }}></div> {/* Espaçador invisível para centralizar a logo */}
+        <img
+          src="/assets/logo-torres.png"
+          alt="Torres Farma"
+          style={{ height: '28px' }}
+        />
+        <div style={{ width: '28px' }}></div>{' '}
+        {/* Espaçador invisível para centralizar a logo */}
       </div>
 
       {/* =========================================
           OVERLAY MOBILE (Fundo escuro ao abrir gaveta)
           ========================================= */}
-      <div 
-        className={`sidebar-overlay ${isMobileOpen ? 'active' : ''}`} 
+      <div
+        className={`sidebar-overlay ${isMobileOpen ? 'active' : ''}`}
         onClick={() => setIsMobileOpen(false)}
       ></div>
 
       {/* =========================================
           SIDEBAR PRINCIPAL
           ========================================= */}
-      <aside className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}>
-        
+      <aside
+        className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
+      >
         {/* LOGO */}
-        <div className="logo-container" style={{ display: 'flex', alignItems: 'center', gap: '10px', padding: '20px', marginBottom: '10px' }}>
-          <img src="/assets/logo-torres.png" alt="Logo" style={{ height: '32px', minWidth: '32px' }} />
-          <span className="hide-on-collapse" style={{ fontWeight: 'bold', fontSize: '18px', color: '#1d4ed8' }}>
+        <div
+          className="logo-container"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+            padding: '20px',
+            marginBottom: '10px',
+          }}
+        >
+          <img
+            src="/assets/logo-torres.png"
+            alt="Logo"
+            style={{ height: '32px', minWidth: '32px' }}
+          />
+          <span
+            className="hide-on-collapse"
+            style={{ fontWeight: 'bold', fontSize: '18px', color: '#1d4ed8' }}
+          >
             Torres Farma
           </span>
-          
+
           {/* Botão de Fechar Apenas no Mobile */}
           {isMobileOpen && (
-            <button onClick={() => setIsMobileOpen(false)} style={{ marginLeft: 'auto', background: 'none', border: 'none', color: '#64748b' }}>
+            <button
+              onClick={() => setIsMobileOpen(false)}
+              style={{
+                marginLeft: 'auto',
+                background: 'none',
+                border: 'none',
+                color: '#64748b',
+              }}
+            >
               <X size={24} />
             </button>
           )}
         </div>
 
         {/* NAVEGAÇÃO */}
-        <nav style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }} onClick={() => setIsMobileOpen(false)}>
+        <nav
+          style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}
+          onClick={() => setIsMobileOpen(false)}
+        >
           <Link to="/cotacoes" className={isActive('/cotacoes')}>
-            <LayoutDashboard size={20} style={{ minWidth: '20px' }} /> 
+            <LayoutDashboard size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Cotação</span>
           </Link>
 
           <Link to="/pedidos" className={isActive('/pedidos')}>
-            <ShoppingCart size={20} style={{ minWidth: '20px' }} /> 
+            <ShoppingCart size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Pedidos</span>
           </Link>
 
           <Link to="/fornecedores" className={isActive('/fornecedores')}>
-            <Users size={20} style={{ minWidth: '20px' }} /> 
+            <Users size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Fornecedores</span>
           </Link>
-          
+
           <Link to="/usuarios" className={isActive('/usuarios')}>
-            <UserCog size={20} style={{ minWidth: '20px' }} /> 
+            <UserCog size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Usuários</span>
           </Link>
 
           <Link to="/relatorios" className={isActive('/relatorios')}>
-            <FileSpreadsheet size={20} style={{ minWidth: '20px' }} /> 
+            <FileSpreadsheet size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Relatórios</span>
           </Link>
 
+          <Link to="/auditoria" className={isActive('/auditoria')}>
+            <ShieldAlert size={20} style={{ minWidth: '20px' }} />
+            <span className="hide-on-collapse">Auditoria</span>
+          </Link>
+
           <div className="menu-item" style={{ cursor: 'pointer' }}>
-            <Settings size={20} style={{ minWidth: '20px' }} /> 
+            <Settings size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Configurações</span>
           </div>
         </nav>
 
         {/* AÇÕES DE RODAPÉ */}
-        <div style={{ padding: '12px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          
+        <div
+          style={{
+            padding: '12px',
+            borderTop: '1px solid #e2e8f0',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+          }}
+        >
           {/* Botão de Recolher/Expandir (Some no Mobile) */}
           <button className="desktop-toggle-btn" onClick={toggleCollapse}>
-            {isCollapsed ? <ChevronRight size={20} style={{ minWidth: '20px' }} /> : <ChevronLeft size={20} style={{ minWidth: '20px' }} />}
+            {isCollapsed ? (
+              <ChevronRight size={20} style={{ minWidth: '20px' }} />
+            ) : (
+              <ChevronLeft size={20} style={{ minWidth: '20px' }} />
+            )}
             <span className="hide-on-collapse">Recolher Menu</span>
           </button>
 
@@ -236,11 +295,20 @@ export default function Sidebar() {
           <button
             onClick={handleLogout}
             style={{
-              display: 'flex', alignItems: 'center', gap: '12px', width: '100%',
-              padding: '12px 16px', backgroundColor: '#fee2e2', color: '#dc2626',
-              border: 'none', borderRadius: '8px', cursor: 'pointer',
-              fontWeight: '600', fontSize: '15px', transition: '0.2s',
-              justifyContent: isCollapsed ? 'center' : 'flex-start'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '12px',
+              width: '100%',
+              padding: '12px 16px',
+              backgroundColor: '#fee2e2',
+              color: '#dc2626',
+              border: 'none',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontSize: '15px',
+              transition: '0.2s',
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
             }}
           >
             <LogOut size={20} style={{ minWidth: '20px' }} />
@@ -253,31 +321,121 @@ export default function Sidebar() {
           MODAL DE PRIMEIRO ACESSO
           ========================================= */}
       {showFirstAccessModal && (
-        <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0, 0, 0, 0.85)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div style={{ backgroundColor: 'white', padding: '32px', borderRadius: '12px', width: '90%', maxWidth: '400px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '24px' }}>
-              <div style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '50%', color: '#3b82f6', marginBottom: '16px' }}>
+        <div
+          style={{
+            position: 'fixed',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            zIndex: 9999,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'white',
+              padding: '32px',
+              borderRadius: '12px',
+              width: '90%',
+              maxWidth: '400px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                marginBottom: '24px',
+              }}
+            >
+              <div
+                style={{
+                  backgroundColor: '#eff6ff',
+                  padding: '12px',
+                  borderRadius: '50%',
+                  color: '#3b82f6',
+                  marginBottom: '16px',
+                }}
+              >
                 <Lock size={32} />
               </div>
-              <h2 style={{ margin: '0 0 8px 0', color: '#1e293b', fontSize: '20px' }}>Bem-vindo(a)!</h2>
-              <p style={{ margin: 0, color: '#64748b', textAlign: 'center', fontSize: '14px' }}>
-                Por questões de segurança, você precisa cadastrar um novo PIN de acesso para continuar.
+              <h2
+                style={{
+                  margin: '0 0 8px 0',
+                  color: '#1e293b',
+                  fontSize: '20px',
+                }}
+              >
+                Bem-vindo(a)!
+              </h2>
+              <p
+                style={{
+                  margin: 0,
+                  color: '#64748b',
+                  textAlign: 'center',
+                  fontSize: '14px',
+                }}
+              >
+                Por questões de segurança, você precisa cadastrar um novo PIN de
+                acesso para continuar.
               </p>
             </div>
 
             <form onSubmit={handleAlterarPin}>
               <div style={{ marginBottom: '24px' }}>
-                <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '8px' }}>Novo PIN</label>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '14px',
+                    fontWeight: '500',
+                    color: '#334155',
+                    marginBottom: '8px',
+                  }}
+                >
+                  Novo PIN
+                </label>
                 <input
-                  type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6} required autoFocus
-                  value={novoPin} onChange={(e) => setNovoPin(e.target.value.replace(/\D/g, ''))}
-                  style={{ width: '100%', padding: '12px', borderRadius: '8px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontSize: '16px' }}
+                  type="password"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  required
+                  autoFocus
+                  value={novoPin}
+                  onChange={(e) =>
+                    setNovoPin(e.target.value.replace(/\D/g, ''))
+                  }
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    border: '1px solid #cbd5e1',
+                    outline: 'none',
+                    boxSizing: 'border-box',
+                    fontSize: '16px',
+                  }}
                   placeholder="Mínimo 4 dígitos"
                 />
               </div>
               <button
-                type="submit" disabled={novoPin.length < 4 || loadingModal}
-                style={{ width: '100%', padding: '14px', borderRadius: '8px', border: 'none', backgroundColor: '#3b82f6', color: 'white', fontWeight: '600', fontSize: '16px', cursor: novoPin.length < 4 || loadingModal ? 'not-allowed' : 'pointer', opacity: novoPin.length < 4 || loadingModal ? 0.7 : 1 }}
+                type="submit"
+                disabled={novoPin.length < 4 || loadingModal}
+                style={{
+                  width: '100%',
+                  padding: '14px',
+                  borderRadius: '8px',
+                  border: 'none',
+                  backgroundColor: '#3b82f6',
+                  color: 'white',
+                  fontWeight: '600',
+                  fontSize: '16px',
+                  cursor:
+                    novoPin.length < 4 || loadingModal
+                      ? 'not-allowed'
+                      : 'pointer',
+                  opacity: novoPin.length < 4 || loadingModal ? 0.7 : 1,
+                }}
               >
                 {loadingModal ? 'Salvando...' : 'Salvar Novo PIN'}
               </button>
