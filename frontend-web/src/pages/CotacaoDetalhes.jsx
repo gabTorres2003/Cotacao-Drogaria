@@ -633,6 +633,7 @@ export default function CotacaoDetalhes() {
                         min="0" 
                         value={chk.qtd} 
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
+                        onFocus={(e) => e.target.select()}
                         style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
                         disabled={chk.comprado || chk.bloqueado}
                       />
@@ -645,6 +646,7 @@ export default function CotacaoDetalhes() {
                         min="0" 
                         value={chk.preco} 
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
+                        onFocus={(e) => e.target.select()}
                         style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
                         disabled={chk.comprado || chk.bloqueado}
                       />
@@ -764,7 +766,7 @@ export default function CotacaoDetalhes() {
                         value={formEdicao.nome} 
                         onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} 
                         onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
-                        autoFocus
+                        onFocus={(e) => e.target.select()}
                       />
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -833,6 +835,8 @@ export default function CotacaoDetalhes() {
                         value={formEdicao.qtd} 
                         onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} 
                         onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                        onFocus={(e) => e.target.select()}
+                        autoFocus
                       />
                     ) : (
                       <span style={textStyle}>{item.quantidade} un</span>
@@ -985,7 +989,6 @@ export default function CotacaoDetalhes() {
       borderBottom: '2px solid #e5e7eb', 
       color: '#4b5563', 
       fontSize: '13px', 
-      // whiteSpace: 'nowrap', // Removido para permitir quebra de texto
       position: 'sticky',
       top: 0,
       backgroundColor: '#ffffff',
@@ -997,8 +1000,8 @@ export default function CotacaoDetalhes() {
       borderBottom: '1px solid #e5e7eb', 
       color: '#374151', 
       fontSize: '13px',
-      wordBreak: 'break-word', // Adicionado para quebrar palavras grandes se necessário
-      whiteSpace: 'normal'     // Garante que o texto possa envolver
+      wordBreak: 'break-word', 
+      whiteSpace: 'normal'     
     },
 
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
@@ -1126,6 +1129,7 @@ export default function CotacaoDetalhes() {
                           <td style={{...styles.td, textAlign: 'center'}}>
                             <input 
                               type="number" min="1" value={item.quantidadePedida}
+                              onFocus={(e) => e.target.select()}
                               onChange={(e) => {
                                 const q = Number(e.target.value) || 1;
                                 setPedidosGerados(prev => prev.map(p => {
