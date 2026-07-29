@@ -40,6 +40,8 @@ export default function CotacaoDetalhes() {
 
   const [copiadoId, setCopiadoId] = useState(null)
 
+  const [avisosDuplicidade, setAvisosDuplicidade] = useState({})
+
   useEffect(() => {
     carregarRelatorio()
     carregarDicionarioDiversos() 
@@ -125,8 +127,8 @@ export default function CotacaoDetalhes() {
 
   const getNomeRealSempre = (nomeProduto) => {
     if (!nomeProduto) return '';
-    const codigoLimpo = nomeProduto.toUpperCase().replace(/\s/g, '');
-    return dicionarioDiversos[codigoLimpo] || nomeProduto; 
+    const codigoLimpo = String(nomeProduto).toUpperCase().replace(/\s/g, '');
+    return dicionarioDiversos[codigoLimpo] || String(nomeProduto); 
   }
 
   const getNomeExibicao = (nomeProduto) => {
@@ -298,7 +300,30 @@ export default function CotacaoDetalhes() {
     }
   };
 
-  const handleGerarPedidos = () => {
+  const mapearDuplicatas = async () => {
+    try {
+      const response = await api.get('/api/pedidos');
+      const pendentes = response.data.filter(p => p.status === 'PENDENTE_ENTREGA' && (p.cotacao?.id !== Number(id) && p.cotacaoId !== Number(id)));
+
+      const mapa = {};
+      pendentes.forEach(p => {
+        const cId = p.cotacao?.id || p.cotacaoId || '?';
+        p.itens.forEach(i => {
+          const nomeNormalizado = getNomeRealSempre(i.nomeProduto).toUpperCase().trim();
+          if (!mapa[nomeNormalizado]) {
+            mapa[nomeNormalizado] = new Set();
+          }
+          mapa[nomeNormalizado].add(cId);
+        });
+      });
+      return mapa;
+    } catch (error) {
+      console.error("Erro ao buscar duplicatas:", error);
+      return {};
+    }
+  };
+
+  const handleGerarPedidos = async () => {
     const pedidosPorFornecedor = {}
 
     relatorioOrdenado.forEach(itemRelatorio => {
@@ -350,6 +375,9 @@ export default function CotacaoDetalhes() {
       return
     }
 
+    const mapaDuplicatas = await mapearDuplicatas();
+    setAvisosDuplicidade(mapaDuplicatas);
+
     setPedidosGerados(pedidosArray)
     setShowModal(true)
   }
@@ -381,15 +409,29 @@ export default function CotacaoDetalhes() {
       return;
     }
 
-    const payload = [{
-      cotacaoId: Number(id),
-      fornecedorNome: fornecedorManual,
-      itens: itensComprados
-    }];
+    const mapaDuplicatas = await mapearDuplicatas();
+    const itensDuplicados = itensComprados.filter(i => mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]);
 
-    if (window.confirm(`Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}?`)) {
+    let mensagemConfirmacao = `Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}?`;
+
+    if (itensDuplicados.length > 0) {
+      mensagemConfirmacao = `⚠️ AVISO DE DUPLICIDADE ⚠️\n\nOs seguintes itens já possuem pedidos pendentes em outras cotações:\n`;
+      itensDuplicados.forEach(i => {
+        const cots = Array.from(mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]).join(', ');
+        mensagemConfirmacao += `- ${i.nomeProduto} (Cotações: ${cots})\n`;
+      });
+      mensagemConfirmacao += `\nDeseja gerar o pedido mesmo assim?`;
+    }
+
+    if (window.confirm(mensagemConfirmacao)) {
       setSalvandoPedidos(true);
       try {
+        const payload = [{
+          cotacaoId: Number(id),
+          fornecedorNome: fornecedorManual,
+          itens: itensComprados
+        }];
+        
         await api.post('/api/pedidos/registro-manual', payload);
         alert('Pedido manual registrado com sucesso!');
         carregarPedidosDaCotacao();
@@ -567,7 +609,6 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                {/* Adicionado minWidth em todos os cabeçalhos para prevenir esmagamento no mobile */}
                 <th style={{ ...styles.th, width: '120px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
                 </th>
@@ -714,7 +755,6 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                {/* Adicionado minWidth em todas as colunas */}
                 <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
@@ -745,7 +785,6 @@ export default function CotacaoDetalhes() {
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
                 </th>
 
-                {/* Fornecedores com minWidth forte para nunca espremer */}
                 {isComparativo && fornecedores.map((f) => (
                   <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
                     {f}
@@ -991,7 +1030,7 @@ export default function CotacaoDetalhes() {
       borderBottom: '2px solid #e5e7eb', 
       color: '#4b5563', 
       fontSize: '13px', 
-      whiteSpace: 'nowrap', // Restaurado para não quebrar títulos feios no mobile
+      whiteSpace: 'nowrap', 
       position: 'sticky',
       top: 0,
       backgroundColor: '#ffffff',
@@ -1121,41 +1160,53 @@ export default function CotacaoDetalhes() {
                       </tr>
                     </thead>
                     <tbody>
-                      {pedido.itens.map((item, idx) => (
-                        <tr key={idx} style={{ backgroundColor: item.isExtra ? '#eff6ff' : 'white' }}>
-                          <td style={styles.td}>
-                            <span style={{ fontWeight: '500', color: '#111827', display: 'block' }}>{item.nomeProduto}</span>
-                            {item.nomeOriginal && <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Troca de: {item.nomeOriginal}</span>}
-                            {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Oferta Extra</span>}
-                            {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
-                          </td>
-                          <td style={{...styles.td, textAlign: 'center'}}>
-                            <input 
-                              type="number" min="1" value={item.quantidadePedida}
-                              onFocus={(e) => e.target.select()}
-                              onChange={(e) => {
-                                const q = Number(e.target.value) || 1;
-                                setPedidosGerados(prev => prev.map(p => {
-                                  if (p.fornecedorNome === pedido.fornecedorNome) {
-                                    const nitens = [...p.itens];
-                                    nitens[idx] = { ...nitens[idx], quantidadePedida: q, subtotal: q * nitens[idx].valorUnitarioPedido };
-                                    return { ...p, itens: nitens, total: nitens.reduce((a, b) => a + b.subtotal, 0) };
-                                  }
-                                  return p;
-                                }));
-                              }}
-                              style={{ ...styles.inputEdicao, width: '60px', textAlign: 'center' }}
-                            />
-                          </td>
-                          <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
-                          <td style={styles.td}>{fMoney(item.subtotal)}</td>
-                          <td style={{...styles.td, textAlign: 'center'}}>
-                            <button type="button" onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
-                              <Trash2 size={16} />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
+                      {pedido.itens.map((item, idx) => {
+                        const nomeProdutoBusca = getNomeRealSempre(item.nomeProduto).toUpperCase().trim();
+                        const duplicatasSet = avisosDuplicidade[nomeProdutoBusca];
+
+                        return (
+                          <tr key={idx} style={{ backgroundColor: item.isExtra ? '#eff6ff' : 'white' }}>
+                            <td style={styles.td}>
+                              <span style={{ fontWeight: '500', color: '#111827', display: 'block' }}>{item.nomeProduto}</span>
+                              {item.nomeOriginal && <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Troca de: {item.nomeOriginal}</span>}
+                              {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Oferta Extra</span>}
+                              {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
+                              
+                              {/* ALERTA DE DUPLICIDADE (Exibido apenas no Modal) */}
+                              {duplicatasSet && duplicatasSet.size > 0 && (
+                                <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>
+                                  ⚠️ Já pedido na(s) Cotação(ões): {Array.from(duplicatasSet).join(', ')}
+                                </span>
+                              )}
+                            </td>
+                            <td style={{...styles.td, textAlign: 'center'}}>
+                              <input 
+                                type="number" min="1" value={item.quantidadePedida}
+                                onFocus={(e) => e.target.select()}
+                                onChange={(e) => {
+                                  const q = Number(e.target.value) || 1;
+                                  setPedidosGerados(prev => prev.map(p => {
+                                    if (p.fornecedorNome === pedido.fornecedorNome) {
+                                      const nitens = [...p.itens];
+                                      nitens[idx] = { ...nitens[idx], quantidadePedida: q, subtotal: q * nitens[idx].valorUnitarioPedido };
+                                      return { ...p, itens: nitens, total: nitens.reduce((a, b) => a + b.subtotal, 0) };
+                                    }
+                                    return p;
+                                  }));
+                                }}
+                                style={{ ...styles.inputEdicao, width: '60px', textAlign: 'center' }}
+                              />
+                            </td>
+                            <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
+                            <td style={styles.td}>{fMoney(item.subtotal)}</td>
+                            <td style={{...styles.td, textAlign: 'center'}}>
+                              <button type="button" onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
+                                <Trash2 size={16} />
+                              </button>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                     <tfoot>
                       <tr>
