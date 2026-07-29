@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -36,10 +36,23 @@ export default function CotacaoDetalhes() {
 
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
+  const [filtroPropostas, setFiltroPropostas] = useState('TODOS') 
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
 
   const [copiadoId, setCopiadoId] = useState(null)
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({})
+
+  const [showColunasDropdown, setShowColunasDropdown] = useState(false)
+  const [colunasVisiveis, setColunasVisiveis] = useState({
+    quantidade: true,
+    estoque: true,
+    vendidoNoMes: true,
+    vendidoAposUltCompra: true,
+    ultCompraData: true,
+    ultCompraQtde: true,
+    ultVendaData: true,
+    ultimoPreco: true
+  })
 
   useEffect(() => {
     carregarRelatorio()
@@ -216,9 +229,16 @@ export default function CotacaoDetalhes() {
       const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
       const origemItem = item.origemItem || 'Geral';
       const matchOrigem = filtroOrigem === 'TODOS' || origemItem === filtroOrigem;
-      return matchBusca && matchOrigem;
+      const precos = Object.values(item.precosPorFornecedor || {});
+      const temPropostaValida = precos.some(p => p > 0);
+      const matchPropostas = 
+        filtroPropostas === 'TODOS' || 
+        (filtroPropostas === 'COM_PROPOSTAS' && temPropostaValida) || 
+        (filtroPropostas === 'SEM_PROPOSTAS' && !temPropostaValida);
+
+      return matchBusca && matchOrigem && matchPropostas;
     });
-  }, [relatorioOrdenado, termoBusca, filtroOrigem]);
+  }, [relatorioOrdenado, termoBusca, filtroOrigem, filtroPropostas]);
 
   const SortIcon = ({ sortKey }) => {
     if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="#9ca3af" style={{ marginLeft: '6px' }} />;
@@ -229,8 +249,24 @@ export default function CotacaoDetalhes() {
 
   const handleSetWinner = (idItem, fornecedorNome) => {
     setDecisaoCompra(prev => {
-      // REGRA NOVA: Permite desmarcar a célula ao clicar nela novamente
       if (prev[idItem] === fornecedorNome) {
+        const itemRelatorio = relatorio.find(r => r.idItem === idItem);
+        if (itemRelatorio) {
+          let menorPreco = Infinity;
+          let melhorFornecedor = 'Sem ofertas';
+
+          Object.entries(itemRelatorio.precosPorFornecedor || {}).forEach(([fNome, p]) => {
+            if (p > 0 && p < menorPreco) {
+              menorPreco = p;
+              melhorFornecedor = fNome;
+            }
+          });
+
+          if (fornecedorNome !== melhorFornecedor && melhorFornecedor !== 'Sem ofertas') {
+            return { ...prev, [idItem]: melhorFornecedor };
+          }
+        }
+        
         const novoEstado = { ...prev };
         delete novoEstado[idItem];
         return novoEstado;
@@ -244,7 +280,6 @@ export default function CotacaoDetalhes() {
     setAceitesTroca(prev => ({ ...prev, [idItem]: isAtivando }));
 
     if (isAtivando) {
-      // Não sobrescreve se clicar para desmarcar
       setDecisaoCompra(prev => ({ ...prev, [idItem]: fornecedorNome }));
     } else {
       const itemRelatorio = relatorio.find(r => r.idItem === idItem);
@@ -336,6 +371,9 @@ export default function CotacaoDetalhes() {
 
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
+      
+      if (itensJaComprados.includes(idItem)) return;
+
       const fornecedorNome = decisaoCompra[idItem];
 
       if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
@@ -372,7 +410,7 @@ export default function CotacaoDetalhes() {
         valorUnitarioPedido: preco,
         subtotal: qtd * preco,
         isExtra: false,
-        todosDadosItem: itemRelatorio // Necessário para a função de trocar fornecedor no modal
+        todosDadosItem: itemRelatorio 
       })
       pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
     });
@@ -823,36 +861,45 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                {/* 1. REGRA: CONGELAR A PRIMEIRA COLUNA (PRODUTO) */}
                 <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, zIndex: 20, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('quantidade')}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
-                </th>
+                {colunasVisiveis.quantidade && (
+                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('quantidade')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
+                  </th>
+                )}
                 
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('estoque')}>
-                  <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
-                </th>
+                {colunasVisiveis.estoque && (
+                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('estoque')}>
+                    <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
+                  </th>
+                )}
                 
                 {isItens && (
                   <>
-                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '140px' }} onClick={() => requestSort('vendidoNoMes')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
-                    </th>
-                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '160px' }} onClick={() => requestSort('vendidoAposUltCompra')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
-                    </th>
-                    <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Compra</th>
-                    <th style={{...styles.th, minWidth: '130px'}}>Qtd. Últ. Compra</th>
-                    <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Venda</th>
+                    {colunasVisiveis.vendidoNoMes && (
+                      <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '140px' }} onClick={() => requestSort('vendidoNoMes')}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
+                      </th>
+                    )}
+                    {colunasVisiveis.vendidoAposUltCompra && (
+                      <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '160px' }} onClick={() => requestSort('vendidoAposUltCompra')}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
+                      </th>
+                    )}
+                    {colunasVisiveis.ultCompraData && <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Compra</th>}
+                    {colunasVisiveis.ultCompraQtde && <th style={{...styles.th, minWidth: '130px'}}>Qtd. Últ. Compra</th>}
+                    {colunasVisiveis.ultVendaData && <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Venda</th>}
                   </>
                 )}
 
-                <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
-                </th>
+                {colunasVisiveis.ultimoPreco && (
+                  <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
+                  </th>
+                )}
 
                 {isComparativo && fornecedores.map((f) => (
                   <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
@@ -870,7 +917,6 @@ export default function CotacaoDetalhes() {
 
                 return (
                 <tr key={item.idItem} style={{ backgroundColor: '#ffffff' }}>
-                  {/* TD DO PRODUTO CONGELADO */}
                   <td style={{ ...styles.td, position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                     {editandoItem === item.idItem ? (
                       <input 
@@ -938,38 +984,44 @@ export default function CotacaoDetalhes() {
                       </div>
                     )}
                   </td>
-                  <td style={styles.td}>
-                    {editandoItem === item.idItem ? (
-                      <input 
-                        type="number" 
-                        style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center' }} 
-                        value={formEdicao.qtd} 
-                        onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} 
-                        onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
-                        onFocus={(e) => e.target.select()}
-                        autoFocus
-                      />
-                    ) : (
-                      <span style={textStyle}>{item.quantidade} un</span>
-                    )}
-                  </td>
-                  <td style={styles.td}>
-                    <span style={textStyle}>{item.estoque ?? '-'}</span>
-                  </td>
+                  
+                  {colunasVisiveis.quantidade && (
+                    <td style={styles.td}>
+                      {editandoItem === item.idItem ? (
+                        <input 
+                          type="number" 
+                          style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center' }} 
+                          value={formEdicao.qtd} 
+                          onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} 
+                          onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                          onFocus={(e) => e.target.select()}
+                          autoFocus
+                        />
+                      ) : (
+                        <span style={textStyle}>{item.quantidade} un</span>
+                      )}
+                    </td>
+                  )}
+                  
+                  {colunasVisiveis.estoque && (
+                    <td style={styles.td}><span style={textStyle}>{item.estoque ?? '-'}</span></td>
+                  )}
 
                   {isItens && (
                     <>
-                      <td style={styles.td}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>
-                      <td style={styles.td}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>
-                      <td style={styles.td}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>
-                      <td style={styles.td}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>
-                      <td style={styles.td}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>
+                      {colunasVisiveis.vendidoNoMes && <td style={styles.td}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
+                      {colunasVisiveis.vendidoAposUltCompra && <td style={styles.td}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
+                      {colunasVisiveis.ultCompraData && <td style={styles.td}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
+                      {colunasVisiveis.ultCompraQtde && <td style={styles.td}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
+                      {colunasVisiveis.ultVendaData && <td style={styles.td}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
                     </>
                   )}
 
-                  <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
-                    <span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span>
-                  </td>
+                  {colunasVisiveis.ultimoPreco && (
+                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500' }}>
+                      <span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span>
+                    </td>
+                  )}
 
                   {isComparativo && fornecedores.map((f) => {
                     const precoOriginal = item.precosPorFornecedor[f]
@@ -1122,7 +1174,10 @@ export default function CotacaoDetalhes() {
     inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '85vh', overflowY: 'auto' }
+    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '85vh', overflowY: 'auto' },
+    
+    // ESTILOS MENU DE COLUNAS
+    menuColunas: { position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '10px' }
   }
 
   return (
@@ -1179,6 +1234,7 @@ export default function CotacaoDetalhes() {
             style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
           />
         </div>
+        
         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>Origem:</span>
           <select 
@@ -1192,6 +1248,54 @@ export default function CotacaoDetalhes() {
             <option value="Falta e Sugestão">Falta e Sugestão</option>
             <option value="Geral">Geral</option>
           </select>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>Status (Propostas):</span>
+          <select 
+            value={filtroPropostas} 
+            onChange={e => setFiltroPropostas(e.target.value)}
+            style={{ padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', fontSize: '14px', cursor: 'pointer' }}
+          >
+            <option value="TODOS">Todos os Produtos</option>
+            <option value="COM_PROPOSTAS">Com Propostas</option>
+            <option value="SEM_PROPOSTAS">Sem Propostas (Falta Geral)</option>
+          </select>
+        </div>
+
+        <div style={{ position: 'relative' }}>
+          <button 
+            onClick={() => setShowColunasDropdown(!showColunasDropdown)}
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: showColunasDropdown ? '#f1f5f9' : 'white', cursor: 'pointer', fontWeight: '600', color: '#4b5563', fontSize: '14px' }}
+          >
+            <Settings2 size={16} /> Colunas
+          </button>
+          
+          {showColunasDropdown && (
+            <div style={styles.menuColunas}>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Exibir na Tabela</div>
+              {Object.entries({
+                quantidade: 'Qtd. Solicitada',
+                estoque: 'Estoque Atual',
+                vendidoNoMes: 'Vendido no Mês',
+                vendidoAposUltCompra: 'Vend. pós Últ. Compra',
+                ultCompraData: 'Data Últ. Compra',
+                ultCompraQtde: 'Qtd. Últ. Compra',
+                ultVendaData: 'Data Últ. Venda',
+                ultimoPreco: 'Preço Últ. Compra'
+              }).map(([key, label]) => (
+                <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={colunasVisiveis[key]}
+                    onChange={(e) => setColunasVisiveis(prev => ({ ...prev, [key]: e.target.checked }))}
+                    style={{ transform: 'scale(1.1)' }}
+                  />
+                  {label}
+                </label>
+              ))}
+            </div>
+          )}
         </div>
       </div>
 
@@ -1226,6 +1330,7 @@ export default function CotacaoDetalhes() {
                         <th style={{...styles.th, textAlign: 'center'}}>Qtd</th>
                         <th style={styles.th}>Preço Unit.</th>
                         <th style={styles.th}>Subtotal</th>
+                        
                         <th style={{...styles.th, textAlign: 'center', minWidth: '150px'}}>Mover / Trocar</th>
                         
                         <th style={styles.th}></th>
@@ -1270,6 +1375,7 @@ export default function CotacaoDetalhes() {
                             </td>
                             <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
                             <td style={styles.td}>{fMoney(item.subtotal)}</td>
+                            
                             <td style={{...styles.td, textAlign: 'center'}}>
                               {!item.isExtra && (
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
