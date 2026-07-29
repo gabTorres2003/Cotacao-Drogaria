@@ -541,13 +541,13 @@ export default function CotacaoDetalhes() {
 
     return (
       <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Fornecedor da Compra</label>
             <select 
               value={fornecedorManual} 
               onChange={(e) => setFornecedorManual(e.target.value)}
-              style={{ width: '300px', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb', fontSize: '14px' }}
+              style={{ width: '100%', minWidth: '300px', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb', fontSize: '14px' }}
             >
               <option value="">-- Selecione o Fornecedor --</option>
               {fornecedoresLista.map(f => (
@@ -567,18 +567,19 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, width: '120px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
+                {/* Adicionado minWidth em todos os cabeçalhos para prevenir esmagamento no mobile */}
+                <th style={{ ...styles.th, width: '120px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
                 </th>
                 <th style={{ ...styles.th, cursor: 'pointer', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
-                <th style={{ ...styles.th, textAlign: 'center', width: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
+                <th style={{ ...styles.th, textAlign: 'center', width: '100px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div>
                 </th>
-                <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Custo Final (R$)</th>
-                <th style={{ ...styles.th, textAlign: 'right', width: '120px' }}>Subtotal</th>
-                <th style={{ ...styles.th, textAlign: 'center', width: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '120px', minWidth: '120px' }}>Custo Final (R$)</th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '120px', minWidth: '120px' }}>Subtotal</th>
+                <th style={{ ...styles.th, textAlign: 'center', width: '130px', minWidth: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -713,42 +714,44 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
+                {/* Adicionado minWidth em todas as colunas */}
                 <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('quantidade')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
                 </th>
                 
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('estoque')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div>
                 </th>
                 
                 {isItens && (
                   <>
-                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoNoMes')}>
+                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '140px' }} onClick={() => requestSort('vendidoNoMes')}>
                       <div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div>
                     </th>
-                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('vendidoAposUltCompra')}>
-                      <div style={{ display: 'flex', alignItems: 'center' }}>Vendido pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
+                    <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '160px' }} onClick={() => requestSort('vendidoAposUltCompra')}>
+                      <div style={{ display: 'flex', alignItems: 'center' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div>
                     </th>
-                    <th style={styles.th}>Data Últ. Compra</th>
-                    <th style={styles.th}>Qtd. Últ. Compra</th>
-                    <th style={styles.th}>Data Últ. Venda</th>
+                    <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Compra</th>
+                    <th style={{...styles.th, minWidth: '130px'}}>Qtd. Últ. Compra</th>
+                    <th style={{...styles.th, minWidth: '130px'}}>Data Últ. Venda</th>
                   </>
                 )}
 
-                <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('ultimoPreco')}>
+                <th style={{ ...styles.th, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
                 </th>
 
+                {/* Fornecedores com minWidth forte para nunca espremer */}
                 {isComparativo && fornecedores.map((f) => (
-                  <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb' }}>
+                  <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
                     {f}
                   </th>
                 ))}
-                {isItens && <th style={{ ...styles.th, textAlign: 'center' }}>Ações</th>}
+                {isItens && <th style={{ ...styles.th, textAlign: 'center', minWidth: '100px' }}>Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -766,7 +769,6 @@ export default function CotacaoDetalhes() {
                         value={formEdicao.nome} 
                         onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} 
                         onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
-                        onFocus={(e) => e.target.select()}
                       />
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -969,7 +971,7 @@ export default function CotacaoDetalhes() {
 
   const styles = {
     container: { padding: '20px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
-    header: { marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+    header: { marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' },
     title: { fontSize: '24px', fontWeight: 'bold', color: '#1f2937' },
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' },
     
@@ -989,6 +991,7 @@ export default function CotacaoDetalhes() {
       borderBottom: '2px solid #e5e7eb', 
       color: '#4b5563', 
       fontSize: '13px', 
+      whiteSpace: 'nowrap', // Restaurado para não quebrar títulos feios no mobile
       position: 'sticky',
       top: 0,
       backgroundColor: '#ffffff',
@@ -1004,8 +1007,8 @@ export default function CotacaoDetalhes() {
       whiteSpace: 'normal'     
     },
 
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
-    toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' },
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' },
+    toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
     toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
     inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
@@ -1018,7 +1021,7 @@ export default function CotacaoDetalhes() {
       <div style={styles.header}>
         <h1 style={styles.title}>Cotação #{id}</h1>
         
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           
           <label style={{
             display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
@@ -1037,11 +1040,11 @@ export default function CotacaoDetalhes() {
             </span>
           </label>
 
-          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
-            <ShoppingCart size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Gerar Pedidos
+          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
+            <ShoppingCart size={18} /> Gerar Pedidos
           </button>
-          <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'inline-block' }} onClick={baixarRelatorioGeral}>
-            <FileText size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> Baixar PDF
+          <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
+            <FileText size={18} /> Baixar PDF
           </button>
           <button type="button" style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
@@ -1056,8 +1059,8 @@ export default function CotacaoDetalhes() {
         </button>
       </div>
 
-      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center' }}>
-        <div style={{ flex: 1, display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+      <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center', flexWrap: 'wrap' }}>
+        <div style={{ flex: 1, minWidth: '200px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
           <Search size={18} color="#6b7280" />
           <input 
             type="text" 
@@ -1102,12 +1105,12 @@ export default function CotacaoDetalhes() {
               const promosNaoAdicionadas = promosDesteFornecedor.filter(p => !pedido.itens.some(i => i.isExtra && i.promocaoId === p.id));
 
               return (
-                <div key={index} style={{ marginBottom: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb' }}>
+                <div key={index} style={{ marginBottom: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb', overflowX: 'auto' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                     <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>{pedido.fornecedorNome}</h3>
                   </div>
                   
-                  <table style={{ ...styles.table, backgroundColor: 'white' }}>
+                  <table style={{ ...styles.table, backgroundColor: 'white', minWidth: '600px' }}>
                     <thead>
                       <tr>
                         <th style={styles.th}>Produto</th>
