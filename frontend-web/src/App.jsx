@@ -10,16 +10,14 @@ import Usuarios from './pages/Usuarios'
 import FornecedorDashboard from './pages/FornecedorDashboard' 
 import Pedidos from './pages/Pedidos' 
 import PedidoDetalhes from './pages/PedidoDetalhes'
+import PedidoConferencia from './pages/PedidoConferencia'
+import Auditoria from './pages/Auditoria'
 import SessionTimeout from './components/SessionTimeout'
-import PedidoConferencia from './pages/PedidoConferencia';
 import './App.css'
 
-// Componente que protege as rotas e guarda a intenção de redirecionamento
 const RotaPrivada = ({ children }) => {
   const isLogado = localStorage.getItem('token')
   const location = useLocation()
-  
-  // Se não estiver logado, manda para o Login, mas salva a rota atual no state
   return isLogado ? children : <Navigate to="/" state={{ from: location.pathname }} replace />
 }
 
