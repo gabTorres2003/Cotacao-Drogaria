@@ -13,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
+  RotateCcw, 
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -64,16 +65,11 @@ export default function Sidebar() {
 
   return (
     <>
-      {/* =========================================================
-          INJEÇÃO DE CSS GLOBAL (Torna o sistema inteiro responsivo)
-          ========================================================= */}
       <style>{`
-        /* Reset e Base do Layout */
         body { margin: 0; padding: 0; overflow-x: hidden; }
         .layout { display: flex; min-height: 100vh; background-color: #f8fafc; flex-direction: row; width: 100%; }
         .main-content { flex: 1; padding: 32px; overflow-y: auto; width: 100%; max-width: 100vw; box-sizing: border-box; transition: padding 0.3s; }
         
-        /* Sidebar Desktop Base */
         .sidebar { 
           width: 260px; background: white; border-right: 1px solid #e2e8f0; 
           transition: width 0.3s ease, transform 0.3s ease; 
@@ -81,13 +77,11 @@ export default function Sidebar() {
           position: sticky; top: 0; z-index: 50; 
         }
         
-        /* Estados do Collapse (Desktop) */
         .sidebar.collapsed { width: 80px; }
         .sidebar.collapsed .hide-on-collapse { display: none; }
         .sidebar.collapsed .menu-item { justify-content: center; padding: 12px; }
         .sidebar.collapsed .logo-container { justify-content: center; padding: 20px 0; }
         
-        /* Estilos dos Menus */
         .menu-item {
           display: flex; align-items: center; gap: 12px; padding: 12px 16px;
           color: #64748b; text-decoration: none; border-radius: 8px;
@@ -96,7 +90,6 @@ export default function Sidebar() {
         .menu-item:hover { background-color: #f1f5f9; color: #1e293b; }
         .menu-item.active { background-color: #eff6ff; color: #2563eb; }
         
-        /* Botões de Ação do Menu */
         .desktop-toggle-btn { 
           display: flex; align-items: center; gap: 12px; padding: 12px 16px; 
           width: 100%; border: none; background: transparent; color: #64748b; 
@@ -104,7 +97,6 @@ export default function Sidebar() {
         }
         .desktop-toggle-btn:hover { background-color: #f1f5f9; }
         
-        /* Topbar Mobile (Escondida no Desktop) */
         .mobile-topbar { 
           display: none; background: white; padding: 16px 20px; 
           border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; 
@@ -112,19 +104,14 @@ export default function Sidebar() {
           box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;
         }
 
-        /* Ajustes Globais de Tabelas para não quebrarem a tela */
         .table-container { overflow-x: auto; width: 100%; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
         .table-container table { width: 100%; min-width: 700px; border-collapse: collapse; }
         
-        /* =========================================
-           RESPONSIVIDADE (MOBILE)
-           ========================================= */
         @media (max-width: 768px) {
           .layout { flex-direction: column; }
           .mobile-topbar { display: flex; }
           .desktop-toggle-btn { display: none !important; }
           
-          /* Comportamento da Gaveta (Drawer) */
           .sidebar { 
             position: fixed; left: 0; top: 0; transform: translateX(-100%); 
             width: 280px !important; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); 
@@ -134,14 +121,12 @@ export default function Sidebar() {
           .sidebar .menu-item { justify-content: flex-start !important; padding: 12px 20px !important; }
           .sidebar .logo-container { justify-content: flex-start !important; padding: 20px !important; }
 
-          /* Fundo Escuro ao abrir o menu no celular */
           .sidebar-overlay { 
             position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; 
             opacity: 0; visibility: hidden; transition: 0.3s; 
           }
           .sidebar-overlay.active { opacity: 1; visibility: visible; }
           
-          /* Ajustes de Elementos Internos das Telas */
           .main-content { padding: 16px; }
           .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
           .filters-bar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
@@ -152,9 +137,6 @@ export default function Sidebar() {
         }
       `}</style>
 
-      {/* =========================================
-          TOPBAR MOBILE (Aparece apenas em telas pequenas)
-          ========================================= */}
       <div className="mobile-topbar">
         <button
           onClick={() => setIsMobileOpen(true)}
@@ -173,25 +155,17 @@ export default function Sidebar() {
           alt="Torres Farma"
           style={{ height: '28px' }}
         />
-        <div style={{ width: '28px' }}></div>{' '}
-        {/* Espaçador invisível para centralizar a logo */}
+        <div style={{ width: '28px' }}></div>
       </div>
 
-      {/* =========================================
-          OVERLAY MOBILE (Fundo escuro ao abrir gaveta)
-          ========================================= */}
       <div
         className={`sidebar-overlay ${isMobileOpen ? 'active' : ''}`}
         onClick={() => setIsMobileOpen(false)}
       ></div>
 
-      {/* =========================================
-          SIDEBAR PRINCIPAL
-          ========================================= */}
       <aside
         className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
       >
-        {/* LOGO */}
         <div
           className="logo-container"
           style={{
@@ -214,7 +188,6 @@ export default function Sidebar() {
             Torres Farma
           </span>
 
-          {/* Botão de Fechar Apenas no Mobile */}
           {isMobileOpen && (
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -230,7 +203,6 @@ export default function Sidebar() {
           )}
         </div>
 
-        {/* NAVEGAÇÃO */}
         <nav
           style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}
           onClick={() => setIsMobileOpen(false)}
@@ -260,6 +232,11 @@ export default function Sidebar() {
             <span className="hide-on-collapse">Relatórios</span>
           </Link>
 
+          <Link to="/devolucoes" className={isActive('/devolucoes')}>
+            <RotateCcw size={20} style={{ minWidth: '20px' }} />
+            <span className="hide-on-collapse">Devoluções</span>
+          </Link>
+
           <Link to="/auditoria" className={isActive('/auditoria')}>
             <ShieldAlert size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Auditoria</span>
@@ -271,7 +248,6 @@ export default function Sidebar() {
           </div>
         </nav>
 
-        {/* AÇÕES DE RODAPÉ */}
         <div
           style={{
             padding: '12px',
@@ -281,7 +257,6 @@ export default function Sidebar() {
             gap: '8px',
           }}
         >
-          {/* Botão de Recolher/Expandir (Some no Mobile) */}
           <button className="desktop-toggle-btn" onClick={toggleCollapse}>
             {isCollapsed ? (
               <ChevronRight size={20} style={{ minWidth: '20px' }} />
@@ -291,7 +266,6 @@ export default function Sidebar() {
             <span className="hide-on-collapse">Recolher Menu</span>
           </button>
 
-          {/* Botão de Sair */}
           <button
             onClick={handleLogout}
             style={{
@@ -317,9 +291,6 @@ export default function Sidebar() {
         </div>
       </aside>
 
-      {/* =========================================
-          MODAL DE PRIMEIRO ACESSO
-          ========================================= */}
       {showFirstAccessModal && (
         <div
           style={{
