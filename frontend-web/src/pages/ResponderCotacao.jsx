@@ -361,6 +361,13 @@ export default function ResponderCotacao() {
           justifyContent: 'space-between',
           alignItems: 'center',
           marginBottom: '20px',
+          position: 'sticky',
+          top: 0,
+          backgroundColor: '#f3f4f6', 
+          zIndex: 100,
+          padding: '12px 0', 
+          marginTop: '-12px',
+          borderBottom: '1px solid #e5e7eb'
         }}
       >
         <button
