@@ -533,7 +533,6 @@ export default function CotacaoDetalhes() {
     return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
   };
 
-  // --- Transformado em função normal (começando com minúscula) ---
   const renderChecklistManual = () => {
     const totalComprado = Object.keys(checklist).reduce((acc, key) => {
       const item = checklist[key];
@@ -571,7 +570,7 @@ export default function CotacaoDetalhes() {
                 <th style={{ ...styles.th, width: '120px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
                 </th>
-                <th style={{ ...styles.th, cursor: 'pointer' }} onClick={() => requestSort('nomeProduto')}>
+                <th style={{ ...styles.th, cursor: 'pointer', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 <th style={{ ...styles.th, textAlign: 'center', width: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
@@ -702,7 +701,6 @@ export default function CotacaoDetalhes() {
     );
   };
 
-  // --- Transformado em função normal (começando com minúscula) ---
   const renderTabela = () => {
     const isComparativo = modoVisualizacao === 'comparativo';
     const isItens = modoVisualizacao === 'itens';
@@ -713,7 +711,7 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 
@@ -761,7 +759,13 @@ export default function CotacaoDetalhes() {
                 <tr key={item.idItem}>
                   <td style={styles.td}>
                     {editandoItem === item.idItem ? (
-                      <input style={styles.inputEdicao} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} />
+                      <input 
+                        style={{ ...styles.inputEdicao, width: '100%', minWidth: '200px' }} 
+                        value={formEdicao.nome} 
+                        onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} 
+                        onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                        autoFocus
+                      />
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         
@@ -823,7 +827,13 @@ export default function CotacaoDetalhes() {
                   </td>
                   <td style={styles.td}>
                     {editandoItem === item.idItem ? (
-                      <input type="number" style={{ ...styles.inputEdicao, width: '60px' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} />
+                      <input 
+                        type="number" 
+                        style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center' }} 
+                        value={formEdicao.qtd} 
+                        onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} 
+                        onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                      />
                     ) : (
                       <span style={textStyle}>{item.quantidade} un</span>
                     )}
@@ -975,14 +985,22 @@ export default function CotacaoDetalhes() {
       borderBottom: '2px solid #e5e7eb', 
       color: '#4b5563', 
       fontSize: '13px', 
-      whiteSpace: 'nowrap',
+      // whiteSpace: 'nowrap', // Removido para permitir quebra de texto
       position: 'sticky',
       top: 0,
       backgroundColor: '#ffffff',
       zIndex: 10
     },
     
-    td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
+    td: { 
+      padding: '12px', 
+      borderBottom: '1px solid #e5e7eb', 
+      color: '#374151', 
+      fontSize: '13px',
+      wordBreak: 'break-word', // Adicionado para quebrar palavras grandes se necessário
+      whiteSpace: 'normal'     // Garante que o texto possa envolver
+    },
+
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500' },
     toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' },
     toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),

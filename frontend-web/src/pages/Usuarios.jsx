@@ -75,13 +75,13 @@ export default function Usuarios() {
   };
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh', backgroundColor: '#f8fafc' }}>
+    <div className="layout">
       
       {/* MENU LATERAL INCLUÍDO AQUI */}
       <Sidebar />
 
       {/* ÁREA PRINCIPAL DA TELA */}
-      <div style={{ flex: 1, padding: '32px', overflowY: 'auto' }}>
+      <main className="main-content">
         
         {/* CABEÇALHO PADRÃO DO SISTEMA */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '32px' }}>
@@ -220,7 +220,7 @@ export default function Usuarios() {
                   <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '8px' }}>PIN de Acesso</label>
                   <input
                     type="password" inputMode="numeric" pattern="[0-9]*" maxLength={6}
-                    required={!editingUser} // Obrigatório apenas ao criar
+                    required={!editingUser} 
                     value={formData.pin}
                     onChange={e => setFormData({ ...formData, pin: e.target.value.replace(/\D/g, '') })}
                     style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }}
@@ -246,7 +246,7 @@ export default function Usuarios() {
             </div>
           </div>
         )}
-      </div>
+      </main>
     </div>
   );
 }

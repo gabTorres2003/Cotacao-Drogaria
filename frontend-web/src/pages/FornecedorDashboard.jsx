@@ -25,7 +25,6 @@ export default function FornecedorDashboard() {
           const response = await api.get(`/api/cotacao-fornecedor/fornecedor/${usuarioId}`)
           setCotacoes(response.data)
         } else {
-          // Buscando os pedidos deste fornecedor na nova rota
           const response = await api.get(`/api/pedidos/fornecedor/${usuarioId}`)
           setPedidos(response.data)
         }
@@ -106,9 +105,9 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .table-container { overflow-x: auto; }
-          .desktop-table { display: none !important; }
+          .table-container { display: none !important; }
           .mobile-cards { display: flex !important; flex-direction: column; gap: 12px; }
+          .pedido-scroll { overflow-x: auto; }
         }
         @media (min-width: 769px) {
           .mobile-cards { display: none !important; }
@@ -178,7 +177,7 @@ export default function FornecedorDashboard() {
 
       {/* --- NAVEGAÇÃO DE ABAS --- */}
       <div style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '0 32px' }}>
-        <div style={{ display: 'flex', gap: '20px', maxWidth: '1200px', margin: '0 auto' }}>
+        <div style={{ display: 'flex', gap: '20px', maxWidth: '1200px', margin: '0 auto', overflowX: 'auto' }}>
           <button style={styles.tabButton(activeTab === 'cotacoes')} onClick={() => setActiveTab('cotacoes')}>
             <FileText size={18} /> Cotações
           </button>
@@ -258,6 +257,7 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <>
+                {/* TABELA DESKTOP */}
                 <div
                   className="table-container"
                   style={{
@@ -268,7 +268,6 @@ export default function FornecedorDashboard() {
                   }}
                 >
                   <table
-                    className="desktop-table"
                     style={{
                       width: '100%',
                       borderCollapse: 'collapse',
@@ -319,7 +318,70 @@ export default function FornecedorDashboard() {
                   </table>
                 </div>
 
-                {/* CARDS MOBILE OMITIDOS PARA BREVIDADE, MAS O COMPORTAMENTO DEVE SER O MESMO */}
+                {/* CARDS MOBILE RESTAURADOS */}
+                <div className="mobile-cards">
+                  {cotacoes.map((vinculo) => {
+                    const idCotacao = vinculo.cotacao ? vinculo.cotacao.id : vinculo.id
+                    const dataEnvio = vinculo.cotacao ? vinculo.cotacao.dataCriacao || vinculo.dataEnvio : vinculo.dataEnvio
+                    const status = vinculo.status || 'PENDENTE'
+                    const isRespondida = status === 'RESPONDIDA'
+
+                    return (
+                      <div
+                        key={vinculo.id}
+                        style={{
+                          backgroundColor: 'white',
+                          borderRadius: '12px',
+                          border: '1px solid #e2e8f0',
+                          padding: '16px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '12px',
+                          boxSizing: 'border-box',
+                        }}
+                      >
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          <span style={{ fontWeight: 'bold', fontSize: '16px', color: '#1e293b' }}>
+                            Cotação #{idCotacao}
+                          </span>
+                          <span
+                            style={{
+                              padding: '4px 10px',
+                              borderRadius: '9999px',
+                              fontSize: '12px',
+                              fontWeight: '600',
+                              backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7',
+                              color: isRespondida ? '#15803d' : '#b45309',
+                            }}
+                          >
+                            {isRespondida ? 'Respondida' : 'Pendente'}
+                          </span>
+                        </div>
+                        <div style={{ fontSize: '13px', color: '#64748b' }}>
+                          Enviada em: {formatarDataHora(dataEnvio)}
+                        </div>
+                        <div>
+                          <button
+                            onClick={() => navigate(`/responder-cotacao/${idCotacao}`)}
+                            style={{
+                              width: '100%',
+                              backgroundColor: isRespondida ? '#2563eb' : '#16a34a',
+                              color: 'white',
+                              padding: '10px',
+                              borderRadius: '6px',
+                              border: 'none',
+                              fontWeight: '600',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                            }}
+                          >
+                            {isRespondida ? 'Ver / Editar Proposta' : 'Responder Cotação'}
+                          </button>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
               </>
             )
           ) : (
@@ -377,8 +439,8 @@ export default function FornecedorDashboard() {
                         </div>
                       </div>
                       
-                      <div style={{ padding: '16px 24px' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                      <div className="pedido-scroll" style={{ padding: '16px 24px' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                           <thead>
                             <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
                               <th style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>Produto Solicitado</th>
