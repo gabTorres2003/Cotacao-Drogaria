@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -39,7 +39,6 @@ export default function CotacaoDetalhes() {
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
 
   const [copiadoId, setCopiadoId] = useState(null)
-
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({})
 
   useEffect(() => {
@@ -229,7 +228,15 @@ export default function CotacaoDetalhes() {
   };
 
   const handleSetWinner = (idItem, fornecedorNome) => {
-    setDecisaoCompra(prev => ({ ...prev, [idItem]: fornecedorNome }))
+    setDecisaoCompra(prev => {
+      // REGRA NOVA: Permite desmarcar a célula ao clicar nela novamente
+      if (prev[idItem] === fornecedorNome) {
+        const novoEstado = { ...prev };
+        delete novoEstado[idItem];
+        return novoEstado;
+      }
+      return { ...prev, [idItem]: fornecedorNome };
+    });
   }
 
   const toggleTroca = (idItem, fornecedorNome) => {
@@ -237,7 +244,8 @@ export default function CotacaoDetalhes() {
     setAceitesTroca(prev => ({ ...prev, [idItem]: isAtivando }));
 
     if (isAtivando) {
-      handleSetWinner(idItem, fornecedorNome);
+      // Não sobrescreve se clicar para desmarcar
+      setDecisaoCompra(prev => ({ ...prev, [idItem]: fornecedorNome }));
     } else {
       const itemRelatorio = relatorio.find(r => r.idItem === idItem);
       if (itemRelatorio) {
@@ -254,7 +262,7 @@ export default function CotacaoDetalhes() {
             }
           });
           
-          handleSetWinner(idItem, vencedorOriginal);
+          setDecisaoCompra(prev => ({ ...prev, [idItem]: vencedorOriginal }));
         }
       }
     }
@@ -363,7 +371,8 @@ export default function CotacaoDetalhes() {
         quantidadePedida: qtd,
         valorUnitarioPedido: preco,
         subtotal: qtd * preco,
-        isExtra: false
+        isExtra: false,
+        todosDadosItem: itemRelatorio // Necessário para a função de trocar fornecedor no modal
       })
       pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
     });
@@ -381,6 +390,65 @@ export default function CotacaoDetalhes() {
     setPedidosGerados(pedidosArray)
     setShowModal(true)
   }
+
+  const moverItemParaFornecedor = (fornecedorOrigem, indexItem, fornecedorDestino) => {
+    if (fornecedorOrigem === fornecedorDestino) return;
+
+    setPedidosGerados(prev => {
+      let newState = prev.map(p => ({ ...p, itens: [...p.itens] })); 
+
+      const pedOrigem = newState.find(p => p.fornecedorNome === fornecedorOrigem);
+      if (!pedOrigem) return prev;
+
+      const itemToMove = pedOrigem.itens.splice(indexItem, 1)[0];
+      pedOrigem.total = pedOrigem.itens.reduce((acc, it) => acc + it.subtotal, 0);
+
+      let pedDestino = newState.find(p => p.fornecedorNome === fornecedorDestino);
+      if (!pedDestino) {
+        pedDestino = { fornecedorNome: fornecedorDestino, itens: [], total: 0 };
+        newState.push(pedDestino);
+      }
+
+      const precos = itemToMove.todosDadosItem?.precosPorFornecedor || {};
+      let novoPreco = precos[fornecedorDestino] || 0;
+      
+      if (novoPreco > 0) {
+          itemToMove.valorUnitarioPedido = novoPreco;
+          itemToMove.subtotal = itemToMove.quantidadePedida * novoPreco;
+      } else {
+          alert(`Aviso: O fornecedor ${fornecedorDestino} informou o preço como R$ 0,00 ou falta para este produto.`);
+          itemToMove.valorUnitarioPedido = 0;
+          itemToMove.subtotal = 0;
+      }
+
+      pedDestino.itens.push(itemToMove);
+      pedDestino.total = pedDestino.itens.reduce((acc, it) => acc + it.subtotal, 0);
+
+      return newState.filter(p => p.itens.length > 0);
+    });
+  };
+
+  const irParaProximoMenorPreco = (fornecedorOrigem, indexItem) => {
+    const pedOrigem = pedidosGerados.find(p => p.fornecedorNome === fornecedorOrigem);
+    const item = pedOrigem.itens[indexItem];
+    const precos = item.todosDadosItem?.precosPorFornecedor || {};
+
+    let menorPreco = Infinity;
+    let fornecedorVencedor = null;
+
+    Object.entries(precos).forEach(([fNome, p]) => {
+      if (p > 0 && p < menorPreco && fNome !== fornecedorOrigem) {
+        menorPreco = p;
+        fornecedorVencedor = fNome;
+      }
+    });
+
+    if (fornecedorVencedor) {
+      moverItemParaFornecedor(fornecedorOrigem, indexItem, fornecedorVencedor);
+    } else {
+      alert('Não há outro fornecedor com preço cadastrado e disponível para este produto.');
+    }
+  };
 
   const handleSalvarRegistroManual = async () => {
     if (!fornecedorManual) {
@@ -632,7 +700,7 @@ export default function CotacaoDetalhes() {
                   ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
                   : chk.comprado 
                     ? { backgroundColor: '#f0fdf4', opacity: 0.85 } 
-                    : {};
+                    : { backgroundColor: '#ffffff' };
 
                 const textStyle = chk.bloqueado || chk.comprado 
                   ? { textDecoration: 'line-through', color: '#9ca3af' } 
@@ -755,7 +823,8 @@ export default function CotacaoDetalhes() {
           <table style={styles.table}>
             <thead>
               <tr>
-                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
+                {/* 1. REGRA: CONGELAR A PRIMEIRA COLUNA (PRODUTO) */}
+                <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, zIndex: 20, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 
@@ -800,8 +869,9 @@ export default function CotacaoDetalhes() {
                 const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
                 return (
-                <tr key={item.idItem}>
-                  <td style={styles.td}>
+                <tr key={item.idItem} style={{ backgroundColor: '#ffffff' }}>
+                  {/* TD DO PRODUTO CONGELADO */}
+                  <td style={{ ...styles.td, position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                     {editandoItem === item.idItem ? (
                       <input 
                         style={{ ...styles.inputEdicao, width: '100%', minWidth: '200px' }} 
@@ -918,7 +988,7 @@ export default function CotacaoDetalhes() {
                         onClick={() => !isBloqueado && handleSetWinner(item.idItem, f)}
                         style={{
                           ...styles.td,
-                          backgroundColor: isWinner ? '#ecfdf5' : 'transparent',
+                          backgroundColor: isWinner ? '#ecfdf5' : 'inherit',
                           textAlign: 'center',
                           borderLeft: '1px solid #f3f4f6',
                           border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
@@ -1052,7 +1122,7 @@ export default function CotacaoDetalhes() {
     inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '900px', maxHeight: '85vh', overflowY: 'auto' }
+    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '85vh', overflowY: 'auto' }
   }
 
   return (
@@ -1156,6 +1226,8 @@ export default function CotacaoDetalhes() {
                         <th style={{...styles.th, textAlign: 'center'}}>Qtd</th>
                         <th style={styles.th}>Preço Unit.</th>
                         <th style={styles.th}>Subtotal</th>
+                        <th style={{...styles.th, textAlign: 'center', minWidth: '150px'}}>Mover / Trocar</th>
+                        
                         <th style={styles.th}></th>
                       </tr>
                     </thead>
@@ -1172,7 +1244,6 @@ export default function CotacaoDetalhes() {
                               {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Oferta Extra</span>}
                               {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
                               
-                              {/* ALERTA DE DUPLICIDADE (Exibido apenas no Modal) */}
                               {duplicatasSet && duplicatasSet.size > 0 && (
                                 <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>
                                   ⚠️ Já pedido na(s) Cotação(ões): {Array.from(duplicatasSet).join(', ')}
@@ -1200,6 +1271,33 @@ export default function CotacaoDetalhes() {
                             <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
                             <td style={styles.td}>{fMoney(item.subtotal)}</td>
                             <td style={{...styles.td, textAlign: 'center'}}>
+                              {!item.isExtra && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <ArrowRightLeft size={12} color="#64748b" />
+                                    <select 
+                                      style={{...styles.inputEdicao, width: '130px', fontSize: '11px', padding: '2px 4px'}}
+                                      value={pedido.fornecedorNome}
+                                      onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, idx, e.target.value)}
+                                    >
+                                      {fornecedores.map(f => (
+                                        <option key={f} value={f}>{f}</option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <button 
+                                    type="button" 
+                                    onClick={() => irParaProximoMenorPreco(pedido.fornecedorNome, idx)}
+                                    title="Busca o próximo fornecedor mais barato"
+                                    style={{ fontSize: '10px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}
+                                  >
+                                    Próximo Menor $
+                                  </button>
+                                </div>
+                              )}
+                            </td>
+
+                            <td style={{...styles.td, textAlign: 'center'}}>
                               <button type="button" onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
                                 <Trash2 size={16} />
                               </button>
@@ -1211,7 +1309,7 @@ export default function CotacaoDetalhes() {
                     <tfoot>
                       <tr>
                         <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
-                        <td colSpan="2" style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a', fontSize: '16px' }}>{fMoney(pedido.total)}</td>
+                        <td colSpan="3" style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a', fontSize: '16px' }}>{fMoney(pedido.total)}</td>
                       </tr>
                     </tfoot>
                   </table>

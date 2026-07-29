@@ -58,7 +58,6 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     }
   };
 
-  // ENVIO INDIVIDUAL
   const enviarZap = async (fornecedor) => {
     if (!vinculados.includes(fornecedor.id)) {
       setVinculados(prev => [...prev, fornecedor.id]); 
@@ -69,7 +68,12 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
     const mensagem = `Olá, ${fornecedor.nome}! \n\nJá liberamos a nossa nova cotação e aguardo a sua proposta. Por favor, acesse o link abaixo para preencher os valores:\n\n🔗 ${link}\n\n🔒 *Acesso rápido: utilize seu login e senha.*`;
     
-    const url = `https://api.whatsapp.com/send?phone=${fornecedor.telefone}&text=${encodeURIComponent(mensagem)}`;
+    let telefoneLimpo = fornecedor.telefone ? fornecedor.telefone.replace(/\D/g, '') : '';
+    if (telefoneLimpo.length === 10 || telefoneLimpo.length === 11) {
+      telefoneLimpo = `55${telefoneLimpo}`;
+    }
+
+    const url = `https://api.whatsapp.com/send?phone=${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');
   };
 
@@ -82,7 +86,6 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
     const mensagem = `Olá, parceiros! Aqui é ${nomeUsuario} da Drogaria Torres Farma.\n\nAcabamos de liberar uma nova cotação. Aguardamos as melhores propostas de vocês!\n\n🔗 Acesse o link para preencher: ${link}\n\n🔒 *Acesso rápido: utilizem o login e senha já cadastrados.*`;
-    
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');
   };
