@@ -55,8 +55,10 @@ export default function CotacaoDetalhes() {
   })
   
   const [fornecedoresVisiveis, setFornecedoresVisiveis] = useState({})
+
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
+  
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' })
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
@@ -107,30 +109,39 @@ export default function CotacaoDetalhes() {
 
   useEffect(() => {
     if (relatorio.length > 0) {
-      const newChecklist = { ...checklist }
-      let changed = false
+      setChecklist(prevChecklist => {
+        const newChecklist = { ...prevChecklist };
+        let changed = false;
 
-      relatorio.forEach(item => {
-        const isBloqueado = itensJaComprados.includes(item.idItem)
-        
-        if (!newChecklist[item.idItem]) {
-          newChecklist[item.idItem] = {
-            comprado: isBloqueado,
-            qtd: item.quantidade || 1,
-            preco: item.ultimoPreco || 0,
-            bloqueado: isBloqueado
+        relatorio.forEach(item => {
+          const isBloqueado = itensJaComprados.includes(item.idItem);
+          const qtdRelatorio = item.quantidade || 1;
+
+          if (!newChecklist[item.idItem]) {
+            newChecklist[item.idItem] = {
+              comprado: isBloqueado,
+              qtd: qtdRelatorio,
+              preco: item.ultimoPreco || 0,
+              bloqueado: isBloqueado
+            };
+            changed = true;
+          } else {
+            // Se o item já existia no state, garante que o status de bloqueio está sincronizado
+            if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
+              newChecklist[item.idItem].comprado = true;
+              newChecklist[item.idItem].bloqueado = true;
+              changed = true;
+            }
+            // SINCRONIZA A QUANTIDADE: Se o usuário alterou na outra tela, repassa para o checklist
+            if (!newChecklist[item.idItem].comprado && newChecklist[item.idItem].qtd !== qtdRelatorio) {
+              newChecklist[item.idItem].qtd = qtdRelatorio;
+              changed = true;
+            }
           }
-          changed = true
-        } else if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
-          newChecklist[item.idItem].comprado = true
-          newChecklist[item.idItem].bloqueado = true
-          changed = true
-        }
-      })
+        });
 
-      if (changed) {
-        setChecklist(newChecklist)
-      }
+        return changed ? newChecklist : prevChecklist;
+      });
     }
   }, [relatorio, itensJaComprados])
 
@@ -222,7 +233,6 @@ export default function CotacaoDetalhes() {
       alert('Produto adicionado com sucesso!');
       setIsAddItemModalOpen(false);
       
-      // Reseta mantendo a origem nova
       setNovoItemManual({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' });
       carregarRelatorio();
     } catch (error) {
@@ -268,7 +278,6 @@ export default function CotacaoDetalhes() {
       const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
       const origemItem = item.origemItem || 'Geral';
       
-      // Permite buscar também pelas novas origens no filtro suspenso se o usuário quiser
       const matchOrigem = filtroOrigem === 'TODOS' || origemItem.includes(filtroOrigem);
       
       const precos = Object.values(item.precosPorFornecedor || {});
@@ -713,6 +722,7 @@ export default function CotacaoDetalhes() {
 
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
+
   const getCorOrigem = (origem) => {
     if (!origem) return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: 'Geral' };
     
