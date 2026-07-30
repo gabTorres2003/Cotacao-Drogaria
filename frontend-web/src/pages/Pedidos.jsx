@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2 } from 'lucide-react'
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -15,6 +15,9 @@ export default function Pedidos() {
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
+  const [ordenacao, setOrdenacao] = useState('RECENTES')
+  const [dataInicio, setDataInicio] = useState('')
+  const [dataFim, setDataFim] = useState('')
 
   const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
@@ -24,7 +27,7 @@ export default function Pedidos() {
   }, [])
 
   const carregarPedidos = async () => {
-    setLoading(true) 
+    setLoading(true)
     try {
       const response = await api.get('/api/pedidos')
       const data = response.data
@@ -63,15 +66,42 @@ export default function Pedidos() {
 
   const fMoney = (valor) => valor != null ? Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
 
-  const pedidosFiltrados = pedidos.filter((p) => {
-    const textoBusca = busca.toLowerCase()
-    const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
-    const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
-    const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca) || idCotacaoStr.includes(textoBusca)
-    const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
-    
-    return matchTexto && matchStatus
-  })
+  const pedidosProcessados = pedidos
+    .filter((p) => {
+      const textoBusca = busca.toLowerCase()
+      const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
+      const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
+      const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca) || idCotacaoStr.includes(textoBusca)
+      const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
+      let matchData = true;
+      if (dataInicio || dataFim) {
+        const dataPedido = new Date(p.dataCriacao);
+        dataPedido.setHours(0, 0, 0, 0);
+
+        if (dataInicio) {
+          const dInicio = new Date(dataInicio + 'T00:00:00');
+          if (dataPedido < dInicio) matchData = false;
+        }
+        if (dataFim) {
+          const dFim = new Date(dataFim + 'T00:00:00');
+          if (dataPedido > dFim) matchData = false;
+        }
+      }
+
+      return matchTexto && matchStatus && matchData;
+    })
+    .sort((a, b) => {
+      if (ordenacao === 'RECENTES') {
+        return new Date(b.dataCriacao) - new Date(a.dataCriacao);
+      } else if (ordenacao === 'ANTIGOS') {
+        return new Date(a.dataCriacao) - new Date(b.dataCriacao);
+      } else if (ordenacao === 'MAIOR_VALOR') {
+        return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
+      } else if (ordenacao === 'MENOR_VALOR') {
+        return (a.valorTotalPedido || 0) - (b.valorTotalPedido || 0);
+      }
+      return 0;
+    });
 
   const formatarDataBR = (dataIso) => {
     if (!dataIso) return '--/--/--'
@@ -128,20 +158,29 @@ export default function Pedidos() {
           </div>
         </div>
 
-        <div className="filters-bar">
-          <div className="search-input-container">
+        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          
+          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar por Pedido, Cotação ou Empresa..."
+              placeholder="Buscar Pedido, Cotação ou Empresa..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
+              style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Filter size={18} color="#6b7280" />
-            <select className="filter-select" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '6px' }}>
+             <Calendar size={16} color="#6b7280" />
+             <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }} title="Data Inicial" />
+             <span style={{ color: '#9ca3af', fontSize: '13px' }}>até</span>
+             <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }} title="Data Final" />
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+            <Filter size={16} color="#6b7280" />
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
               <option value="TODOS">Todos os Status</option>
               <option value="PENDENTE_ENTREGA">Aguardando Fornecedor</option>
               <option value="CONFIRMADO_FORNECEDOR">Confirmado na Fábrica</option>
@@ -152,6 +191,25 @@ export default function Pedidos() {
               <option value="PENDENTE_DEVOLUCAO">Pendente de Devolução</option>
             </select>
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+            <ArrowUpDown size={16} color="#6b7280" />
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
+              <option value="RECENTES">Mais Recentes</option>
+              <option value="ANTIGOS">Mais Antigos</option>
+              <option value="MAIOR_VALOR">Maior Valor Previsto</option>
+              <option value="MENOR_VALOR">Menor Valor Previsto</option>
+            </select>
+          </div>
+
+          {(busca || filtroStatus !== 'TODOS' || dataInicio || dataFim || ordenacao !== 'RECENTES') && (
+            <button 
+              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setDataInicio(''); setDataFim(''); setOrdenacao('RECENTES'); }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Limpar Filtros
+            </button>
+          )}
         </div>
 
         <div className="table-container">
@@ -178,14 +236,14 @@ export default function Pedidos() {
                     </div>
                   </td>
                 </tr>
-              ) : pedidosFiltrados.length === 0 ? (
+              ) : pedidosProcessados.length === 0 ? (
                 <tr>
                   <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado.
                   </td>
                 </tr>
               ) : (
-                pedidosFiltrados.map((p) => {
+                pedidosProcessados.map((p) => {
                   const statusInfo = getStatusFormatado(p.status)
                   const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || 'N/A'
                   const idCotacao = p.cotacao?.id || p.cotacaoId || '-';
@@ -200,7 +258,7 @@ export default function Pedidos() {
                   return (
                     <tr key={p.id}>
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
-                
+                      
                       <td>
                         <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                           #{idCotacao}
