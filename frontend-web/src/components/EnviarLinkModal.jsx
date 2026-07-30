@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { X, Send, Users, CheckCircle, Clock, AlertTriangle } from 'lucide-react';
+import { X, Send, Users, CheckCircle, Clock, AlertTriangle, User } from 'lucide-react';
 import api from '../services/api';
 
 export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) {
