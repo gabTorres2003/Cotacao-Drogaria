@@ -11,6 +11,7 @@ export default function PedidoDetalhes() {
     const [pedido, setPedido] = useState(null);
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
     const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '' });
     const [salvandoItem, setSalvandoItem] = useState(false);
@@ -91,7 +92,7 @@ export default function PedidoDetalhes() {
         if (status === 'CONFIRMADO_FORNECEDOR') return 'CONFIRMADO NA FÁBRICA (AGUARDANDO ENTREGA)';
         if (status === 'PENDENTE_ENTREGA') return 'AGUARDANDO FORNECEDOR';
 
-        if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status)) {
+        if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status)) {
             let faltas = 0, avarias = 0, incorretos = 0;
             
             pedidoObj.itens?.forEach(item => {
@@ -105,7 +106,14 @@ export default function PedidoDetalhes() {
             if (avarias > 0) detalhes.push(`${avarias} Avariado(s)`);
             if (incorretos > 0) detalhes.push(`${incorretos} Incorreto(s)`);
 
-            if (detalhes.length > 0) return `DIVERGÊNCIA (${detalhes.join(' | ')})`;
+            let textoDivergencia = detalhes.length > 0 ? `(${detalhes.join(' | ')})` : '';
+
+            // Se a devolução já foi gerada, exibe o aviso que está em andamento, mantendo o motivo.
+            if (status === 'PENDENTE_DEVOLUCAO') {
+                return `DEVOLUÇÃO EM TRATATIVA ${textoDivergencia}`;
+            }
+
+            if (detalhes.length > 0) return `DIVERGÊNCIA ${textoDivergencia}`;
             if (status === 'VALORES_INCOMPATIVEIS') return 'DIVERGÊNCIA DE VALORES (IMPOSTOS/NF)';
             return 'DIVERGÊNCIA IDENTIFICADA';
         }
@@ -119,9 +127,11 @@ export default function PedidoDetalhes() {
     const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
     
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
-    const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(pedido.status);
+    
+    // ATUALIZADO: Inclui PENDENTE_DEVOLUCAO para não esconder os botões.
+    const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
-    const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; // Permite adicionar itens apenas se o fornecedor ainda não processou.
+    const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
 
     return (
         <div className="layout">
@@ -158,14 +168,17 @@ export default function PedidoDetalhes() {
                                     <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Conferir Recebimento (Loja)
                                 </button>
                             )}
-                            {temDivergencia && (
+                            
+                            {temDivergencia && pedido.status !== 'PENDENTE_DEVOLUCAO' && (
                                 <button onClick={aceitarDivergenciaValor} style={{ ...styles.btnConferir, backgroundColor: '#059669' }}>
                                     <CheckSquare size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Aceitar Diferenças (Concluir)
                                 </button>
                             )}
+                            
                             {podeDevolver && (
                                 <button onClick={() => setIsDevolucaoModalOpen(true)} style={styles.btnDevolucao}>
-                                    <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Gerar / Ver Devolução
+                                    <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> 
+                                    {pedido.status === 'PENDENTE_DEVOLUCAO' ? 'Gerenciar Devolução' : 'Gerar / Ver Devolução'}
                                 </button>
                             )}
                         </div>
@@ -176,7 +189,6 @@ export default function PedidoDetalhes() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                         <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>Itens do Pedido</h3>
                         
-                        {/* NOVO: Botão para abrir o modal de adicionar produto manual */}
                         {podeAdicionarProduto && (
                             <button onClick={() => setIsAddItemModalOpen(true)} style={styles.btnAddItem}>
                                 <Plus size={16} style={{ marginRight: '6px' }} /> Adicionar Produto Extra
@@ -226,7 +238,6 @@ export default function PedidoDetalhes() {
                     />
                 )}
 
-                {/* NOVO: Modal para Adicionar Produto Manualmente */}
                 {isAddItemModalOpen && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -279,7 +290,7 @@ const styles = {
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnAddItem: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', fontSize: '13px' },
     inputModal: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' },
-    statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status) ? '#dc2626' : '#2563eb' }),
+    statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) ? '#dc2626' : '#2563eb' }),
     itemStatus: (status, qtdReal, qtdPedida) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
         const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta;

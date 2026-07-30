@@ -20,16 +20,13 @@ export default function Devolucoes() {
   const [devolucoes, setDevolucoes] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Estados para o Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoParaEditar, setDevolucaoParaEditar] = useState(null);
   const [modoLeitura, setModoLeitura] = useState(false);
 
-  // Filtros
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
 
-  // Resumo
   const [resumo, setResumo] = useState({
     total: 0,
     aguardandoRecolhimento: 0,
@@ -97,8 +94,9 @@ export default function Devolucoes() {
     const textoBusca = busca.toLowerCase();
     const fornecedorNome = d.fornecedor?.nome || d.fornecedor?.empresa || '';
     const nf = d.nfOrigem || '';
+    const pedidoIdStr = d.pedido?.id ? d.pedido.id.toString() : '';
     
-    const matchBusca = fornecedorNome.toLowerCase().includes(textoBusca) || nf.toLowerCase().includes(textoBusca) || d.id.toString().includes(textoBusca);
+    const matchBusca = fornecedorNome.toLowerCase().includes(textoBusca) || nf.toLowerCase().includes(textoBusca) || d.id.toString().includes(textoBusca) || pedidoIdStr.includes(textoBusca);
     const matchStatus = filtroStatus === 'TODOS' || d.status === filtroStatus;
     
     return matchBusca && matchStatus;
@@ -173,7 +171,7 @@ export default function Devolucoes() {
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar por Fornecedor, NF ou ID..."
+              placeholder="Buscar Fornecedor, NF, ID ou Pedido..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
             />
@@ -200,9 +198,10 @@ export default function Devolucoes() {
             <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID / NF</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Origem</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Fornecedor</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitada</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>  
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Protocolo(s)</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>Valor Total</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Status</th>
@@ -211,9 +210,9 @@ export default function Devolucoes() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
               ) : devolucoesFiltradas.length === 0 ? (
-                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada.</td></tr>
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada.</td></tr>
               ) : (
                 devolucoesFiltradas.map((dev) => (
                   <tr key={dev.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -222,6 +221,21 @@ export default function Devolucoes() {
                       <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>NF: {dev.nfOrigem || 'Não inf.'}</div>
                     </td>
                     
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      {dev.pedido?.id ? (
+                        <button 
+                          onClick={() => navigate(`/pedidos/${dev.pedido.id}`)}
+                          style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                        >
+                          Pedido #{dev.pedido.id}
+                        </button>
+                      ) : (
+                        <span style={{ backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+                          Manual
+                        </span>
+                      )}
+                    </td>
+
                     <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
                       {dev.fornecedor?.empresa || dev.fornecedor?.nome || 'Fornecedor Excluído'}
                     </td>
@@ -270,7 +284,6 @@ export default function Devolucoes() {
         </div>
       </main>
 
-      {/* Renderiza o Modal com a prop readOnly */}
       {modalAberto && (
         <DevolucaoModal 
           devolucaoId={devolucaoParaEditar} 

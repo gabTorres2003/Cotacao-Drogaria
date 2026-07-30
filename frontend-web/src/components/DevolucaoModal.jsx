@@ -86,7 +86,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     } catch (error) { console.error(error); }
   };
 
-  // FUNÇÃO REESCRITA COM A INTELIGÊNCIA LOGÍSTICA
   const aplicarFiltroSelecao = (dadosPedido, tipo) => {
     const selecao = {};
     
@@ -108,7 +107,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
           motivoPadrao = 'Falta na Caixa (Gerar Crédito)';
           qtdSugerida = i.quantidadePedida;
           maxPermitido = i.quantidadePedida;
-          isApenasFinanceiro = true; 
+          isApenasFinanceiro = true;
       } else if (isAvariado) {
           motivoPadrao = 'Produto Avariado';
           qtdSugerida = i.quantidadeReal; 
@@ -201,6 +200,15 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         await api.put(`/api/devolucoes/${internalDevId}`, payload);
       } else {
         await api.post('/api/devolucoes', payload);
+      }
+
+      const idPedVinculado = pedidoId || form.pedido?.id;
+      if (idPedVinculado) {
+          let novoStatusPedido = 'PENDENTE_DEVOLUCAO';
+          if (form.status === 'CONCLUIDA' || form.status === 'CANCELADA') {
+              novoStatusPedido = 'ENTREGUE_SUCESSO';
+          }
+          await api.patch(`/api/pedidos/${idPedVinculado}/status`, { status: novoStatusPedido });
       }
 
       onSuccess();
