@@ -2,6 +2,7 @@ package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
+import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.model.enums.TipoAcao;
@@ -28,6 +29,7 @@ public class PedidoController {
     private final PedidoService pedidoService;
     private final LogAuditoriaService logAuditoriaService;
     private final HttpServletRequest request;
+    
     private String getUsuarioLogado() {
         String nome = request.getHeader("X-Usuario-Nome");
         if (nome != null && !nome.isEmpty()) {
@@ -82,6 +84,18 @@ public class PedidoController {
         );
 
         return ResponseEntity.status(HttpStatus.CREATED).body(pedidosSalvos);
+    }
+
+    @PostMapping("/{id}/itens")
+    public ResponseEntity<Pedido> adicionarItemManual(@PathVariable Long id, @RequestBody ItemPedido novoItem) {
+        Pedido pedidoAtualizado = pedidoService.adicionarItemManual(id, novoItem);
+        
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            "Adicionou o produto extra manualmente: " + novoItem.getNomeProduto()
+        );
+
+        return ResponseEntity.ok(pedidoAtualizado);
     }
 
     @PutMapping("/{id}/receber")

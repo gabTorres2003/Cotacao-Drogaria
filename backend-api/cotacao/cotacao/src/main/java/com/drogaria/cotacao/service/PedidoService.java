@@ -1,5 +1,4 @@
 package com.drogaria.cotacao.service;
-
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
@@ -211,5 +210,27 @@ public class PedidoService {
 
     public List<Pedido> buscarPorFornecedorId(Long fornecedorId) {
         return pedidoRepository.findByFornecedorId(fornecedorId);
+    }
+
+    @Transactional
+    public Pedido adicionarItemManual(Long pedidoId, ItemPedido novoItem) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+        
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA) {
+            throw new RuntimeException("Não é possível adicionar itens a um pedido que já foi processado pelo fornecedor ou entregue.");
+        }
+
+        novoItem.setPedido(pedido);
+        
+        pedido.getItens().add(novoItem);
+
+        double total = pedido.getItens().stream()
+                .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0) * 
+                                  (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
+                .sum();
+                
+        pedido.setValorTotalPedido(total);
+        return pedidoRepository.save(pedido);
     }
 }

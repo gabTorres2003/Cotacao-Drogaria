@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -11,6 +11,9 @@ export default function PedidoDetalhes() {
     const [pedido, setPedido] = useState(null);
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
+    const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '' });
+    const [salvandoItem, setSalvandoItem] = useState(false);
 
     const carregarPedido = async () => {
         try {
@@ -35,7 +38,6 @@ export default function PedidoDetalhes() {
                 alert('Pedido excluído com sucesso!');
                 navigate('/pedidos');
             } catch (error) {
-                console.error('Erro ao excluir pedido:', error);
                 alert(`Erro ao excluir pedido. Motivo: ${error.response?.data?.message || error.message}`);
             }
         }
@@ -50,6 +52,30 @@ export default function PedidoDetalhes() {
             } catch (error) {
                 alert('Erro ao atualizar o pedido.');
             }
+        }
+    };
+
+    const handleSalvarNovoItem = async () => {
+        if (!novoItem.nomeProduto || !novoItem.quantidadePedida || !novoItem.valorUnitarioPedido) {
+            alert('Preencha todos os campos do produto.');
+            return;
+        }
+
+        setSalvandoItem(true);
+        try {
+            await api.post(`/api/pedidos/${id}/itens`, {
+                nomeProduto: novoItem.nomeProduto,
+                quantidadePedida: Number(novoItem.quantidadePedida),
+                valorUnitarioPedido: Number(novoItem.valorUnitarioPedido)
+            });
+            alert('Produto adicionado com sucesso!');
+            setIsAddItemModalOpen(false);
+            setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '' });
+            carregarPedido();
+        } catch (error) {
+            alert('Erro ao adicionar produto: ' + (error.response?.data?.message || error.message));
+        } finally {
+            setSalvandoItem(false);
         }
     };
 
@@ -79,9 +105,7 @@ export default function PedidoDetalhes() {
             if (avarias > 0) detalhes.push(`${avarias} Avariado(s)`);
             if (incorretos > 0) detalhes.push(`${incorretos} Incorreto(s)`);
 
-            if (detalhes.length > 0) {
-                return `DIVERGÊNCIA (${detalhes.join(' | ')})`;
-            }
+            if (detalhes.length > 0) return `DIVERGÊNCIA (${detalhes.join(' | ')})`;
             if (status === 'VALORES_INCOMPATIVEIS') return 'DIVERGÊNCIA DE VALORES (IMPOSTOS/NF)';
             return 'DIVERGÊNCIA IDENTIFICADA';
         }
@@ -97,6 +121,7 @@ export default function PedidoDetalhes() {
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
+    const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; // Permite adicionar itens apenas se o fornecedor ainda não processou.
 
     return (
         <div className="layout">
@@ -109,17 +134,11 @@ export default function PedidoDetalhes() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px' }}>
-                        <button 
-                            style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} 
-                            onClick={handleExcluirPedido}
-                        >
-                            <Trash2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                            Excluir Pedido
+                        <button style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} onClick={handleExcluirPedido}>
+                            <Trash2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Excluir Pedido
                         </button>
-
                         <button style={styles.btnVoltar} onClick={() => navigate('/pedidos')}>
-                            <ArrowLeft size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                            Voltar aos Pedidos
+                            <ArrowLeft size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Voltar aos Pedidos
                         </button>
                     </div>
                 </header>
@@ -134,34 +153,19 @@ export default function PedidoDetalhes() {
                             )}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                            
                             {podeConferir && (
-                                <button 
-                                    onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} 
-                                    style={styles.btnConferir}
-                                >
-                                    <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                    Conferir Recebimento (Loja)
+                                <button onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} style={styles.btnConferir}>
+                                    <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Conferir Recebimento (Loja)
                                 </button>
                             )}
-
                             {temDivergencia && (
-                                <button 
-                                    onClick={aceitarDivergenciaValor} 
-                                    style={{ ...styles.btnConferir, backgroundColor: '#059669' }}
-                                >
-                                    <CheckSquare size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                    Aceitar Diferenças (Concluir)
+                                <button onClick={aceitarDivergenciaValor} style={{ ...styles.btnConferir, backgroundColor: '#059669' }}>
+                                    <CheckSquare size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Aceitar Diferenças (Concluir)
                                 </button>
                             )}
-
                             {podeDevolver && (
-                                <button 
-                                    onClick={() => setIsDevolucaoModalOpen(true)} 
-                                    style={styles.btnDevolucao}
-                                >
-                                    <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                    Gerar / Ver Devolução
+                                <button onClick={() => setIsDevolucaoModalOpen(true)} style={styles.btnDevolucao}>
+                                    <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Gerar / Ver Devolução
                                 </button>
                             )}
                         </div>
@@ -169,7 +173,17 @@ export default function PedidoDetalhes() {
                 </div>
 
                 <div style={styles.card}>
-                    <h3 style={{ fontSize: '18px', fontWeight: '600', marginBottom: '16px', color: '#1f2937' }}>Itens do Pedido</h3>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>Itens do Pedido</h3>
+                        
+                        {/* NOVO: Botão para abrir o modal de adicionar produto manual */}
+                        {podeAdicionarProduto && (
+                            <button onClick={() => setIsAddItemModalOpen(true)} style={styles.btnAddItem}>
+                                <Plus size={16} style={{ marginRight: '6px' }} /> Adicionar Produto Extra
+                            </button>
+                        )}
+                    </div>
+
                     <table style={styles.table}>
                         <thead>
                             <tr>
@@ -188,14 +202,8 @@ export default function PedidoDetalhes() {
                                         <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
                                     </td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadePedida} un</td>
-                                    
-                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#16a34a' }}>
-                                        {fMoney(item.valorUnitarioPedido)}
-                                    </td>
-                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#374151' }}>
-                                        {fMoney((item.valorUnitarioPedido || 0) * (item.quantidadePedida || 0))}
-                                    </td>
-
+                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#16a34a' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#374151' }}>{fMoney((item.valorUnitarioPedido || 0) * (item.quantidadePedida || 0))}</td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadeReal !== null ? `${item.quantidadeReal} un` : '-'}</td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>
                                         <span style={styles.itemStatus(item.statusRecebimento, item.quantidadeReal, item.quantidadePedida)}>
@@ -214,11 +222,46 @@ export default function PedidoDetalhes() {
                     <DevolucaoModal 
                         pedidoId={pedido.id} 
                         onClose={() => setIsDevolucaoModalOpen(false)} 
-                        onSuccess={() => {
-                            setIsDevolucaoModalOpen(false);
-                            carregarPedido();
-                        }}
+                        onSuccess={() => { setIsDevolucaoModalOpen(false); carregarPedido(); }}
                     />
+                )}
+
+                {/* NOVO: Modal para Adicionar Produto Manualmente */}
+                {isAddItemModalOpen && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
+                                <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                <div>
+                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
+                                    <input type="text" style={styles.inputModal} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
+                                </div>
+                                
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd. Pedida</label>
+                                        <input type="number" min="1" style={styles.inputModal} value={novoItem.quantidadePedida} onChange={e => setNovoItem({...novoItem, quantidadePedida: e.target.value})} onFocus={e => e.target.select()}/>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
+                                        <input type="number" step="0.01" style={styles.inputModal} value={novoItem.valorUnitarioPedido} onChange={e => setNovoItem({...novoItem, valorUnitarioPedido: e.target.value})} onFocus={e => e.target.select()}/>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={handleSalvarNovoItem} 
+                                    disabled={salvandoItem}
+                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                >
+                                    <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItem ? 'Adicionando...' : 'Confirmar e Adicionar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 )}
             </main>
         </div>
@@ -234,6 +277,8 @@ const styles = {
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', transition: '0.2s' },
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
+    btnAddItem: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', fontSize: '13px' },
+    inputModal: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' },
     statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status) ? '#dc2626' : '#2563eb' }),
     itemStatus: (status, qtdReal, qtdPedida) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
