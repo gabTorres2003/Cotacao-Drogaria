@@ -1,10 +1,14 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { X, Plus, Trash2, Save } from 'lucide-react';
+import { X, Plus, Trash2, Save, CheckSquare, ListX } from 'lucide-react';
 
 export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly }) {
+  const navigate = useNavigate();
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [internalDevId, setInternalDevId] = useState(devolucaoId);
+  const [pedidoOriginal, setPedidoOriginal] = useState(null);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -18,18 +22,20 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     dataRecolhimento: '',
     formaAbatimento: 'PENDENTE',
     observacaoAbatimento: '',
-    status: 'AGUARDANDO_RECOLHIMENTO'
+    status: 'AGUARDANDO_RECOLHIMENTO',
+    pedido: null
   });
 
   const [itens, setItens] = useState([]);
   const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
+  const [selecaoPedido, setSelecaoPedido] = useState({});
 
   useEffect(() => {
     carregarListas();
     if (devolucaoId) {
       carregarDevolucaoExistente(devolucaoId);
     } else if (pedidoId) {
-      preencherViaPedido(pedidoId);
+      iniciarViaPedido(pedidoId);
     }
   }, [devolucaoId, pedidoId]);
 
@@ -43,6 +49,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
   const carregarDevolucaoExistente = async (id) => {
     try {
       const { data } = await api.get(`/api/devolucoes/${id}`);
+      setInternalDevId(data.id);
       setForm({
         fornecedorId: data.fornecedor?.id || '',
         nfOrigem: data.nfOrigem || '',
@@ -53,28 +60,57 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         dataRecolhimento: data.dataRecolhimento || '',
         formaAbatimento: data.formaAbatimento || 'PENDENTE',
         observacaoAbatimento: data.observacaoAbatimento || '',
-        status: data.status || 'AGUARDANDO_RECOLHIMENTO'
+        status: data.status || 'AGUARDANDO_RECOLHIMENTO',
+        pedido: data.pedido
       });
       setItens(data.itens || []);
     } catch (error) { alert("Erro ao carregar devolução"); }
   };
 
-  const preencherViaPedido = async (idPed) => {
+  const iniciarViaPedido = async (idPed) => {
     try {
+      const resDev = await api.get(`/api/devolucoes/pedido/${idPed}`);
+      if (resDev.data && resDev.data.length > 0) {
+        carregarDevolucaoExistente(resDev.data[0].id);
+        return;
+      }
+
       const { data } = await api.get(`/api/pedidos/${idPed}`);
-      setForm(prev => ({ ...prev, fornecedorId: data.fornecedor?.id }));
+      setPedidoOriginal(data);
+      setForm(prev => ({ ...prev, fornecedorId: data.fornecedor?.id, pedido: data }));
       
-      const itensDivergentes = data.itens
-        .filter(i => i.statusRecebimento === 'AVARIADO' || i.statusRecebimento === 'INCORRETO')
-        .map(i => ({
-          nomeProduto: i.nomeProduto,
-          quantidade: i.quantidadePedida - (i.quantidadeReal || 0),
-          valorUnitario: i.valorUnitarioPedido
-        }));
-      
-      if(itensDivergentes.length > 0) setItens(itensDivergentes);
+      aplicarFiltroSelecao(data, 'DIVERGENCIAS'); 
 
     } catch (error) { console.error(error); }
+  };
+
+  const aplicarFiltroSelecao = (dadosPedido, tipo) => {
+    const selecao = {};
+    dadosPedido.itens.forEach(i => {
+      const isDivergente = ['AVARIADO', 'INCORRETO', 'FALTA'].includes(i.statusRecebimento);
+      const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
+      
+      let motivoPadrao = '';
+      if (i.statusRecebimento === 'AVARIADO') motivoPadrao = 'Produto Avariado';
+      if (i.statusRecebimento === 'INCORRETO') motivoPadrao = 'Produto Incorreto';
+      
+      selecao[i.id] = {
+        selected: isSelected,
+        nomeProduto: i.nomeProduto,
+        valorUnitario: i.valorUnitarioPedido || 0,
+        qtdMax: i.quantidadePedida,
+        qtd: isDivergente ? Math.max(1, i.quantidadePedida - (i.quantidadeReal || 0)) : i.quantidadePedida,
+        motivo: isSelected ? motivoPadrao : ''
+      };
+    });
+    setSelecaoPedido(selecao);
+  };
+
+  const updateSelecao = (itemId, field, value) => {
+    setSelecaoPedido(prev => ({
+      ...prev,
+      [itemId]: { ...prev[itemId], [field]: value }
+    }));
   };
 
   const handleAddItem = () => {
@@ -91,7 +127,20 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
   const handleSalvar = async () => {
     if (!form.fornecedorId) return alert('Selecione um Fornecedor.');
-    if (itens.length === 0) return alert('Adicione pelo menos um produto na devolução.');
+
+    let itensParaSalvar = itens;
+
+    if (pedidoOriginal && !internalDevId) {
+      itensParaSalvar = Object.values(selecaoPedido)
+        .filter(s => s.selected && s.qtd > 0)
+        .map(s => ({
+           nomeProduto: s.motivo.trim() !== '' ? `${s.nomeProduto} - Motivo: ${s.motivo}` : s.nomeProduto,
+           quantidade: s.qtd,
+           valorUnitario: s.valorUnitario
+        }));
+    }
+
+    if (itensParaSalvar.length === 0) return alert('Você não selecionou/adicionou nenhum produto para devolver.');
 
     setLoading(true);
     try {
@@ -107,11 +156,11 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         formaAbatimento: form.formaAbatimento,
         observacaoAbatimento: form.observacaoAbatimento,
         status: form.status,
-        itens: itens
+        itens: itensParaSalvar
       };
 
-      if (devolucaoId) {
-        await api.put(`/api/devolucoes/${devolucaoId}`, payload);
+      if (internalDevId) {
+        await api.put(`/api/devolucoes/${internalDevId}`, payload);
       } else {
         await api.post('/api/devolucoes', payload);
       }
@@ -125,21 +174,47 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     }
   };
 
-  const calcTotal = itens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
+  const calcTotal = () => {
+    if (pedidoOriginal && !internalDevId) {
+      return Object.values(selecaoPedido)
+        .filter(s => s.selected)
+        .reduce((acc, s) => acc + (s.qtd * s.valorUnitario), 0);
+    }
+    return itens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
+  };
 
   const mostrarDataRecolhimento = form.status === 'AGUARDANDO_CREDITO' || form.status === 'CONCLUIDA' || (readOnly && form.dataRecolhimento);
+  const idPedVinculado = pedidoId || form.pedido?.id;
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
         
         {/* HEADER MODAL */}
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: '12px 12px 0 0' }}>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>
-            {readOnly ? `Detalhes da Devolução #${devolucaoId}` : (devolucaoId ? `Editar Devolução #${devolucaoId}` : 'Registrar Devolução')}
-          </h2>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: '12px 12px 0 0' }}>
+          <div>
+            <h2 style={{ margin: 0, fontSize: '22px', color: '#1e293b' }}>
+              {readOnly ? `Detalhes da Devolução #${internalDevId}` : (internalDevId ? `Editar Devolução #${internalDevId}` : 'Registrar Nova Devolução')}
+            </h2>
+            
+            {/* BADGE DE ORIGEM (Vinculado ou Manual) */}
+            {idPedVinculado ? (
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px' }}>
+                        Vinculado ao Pedido #{idPedVinculado}
+                    </span>
+                    <button type="button" onClick={() => { onClose(); navigate(`/pedidos/${idPedVinculado}`); }} style={{ fontSize: '11px', background: 'white', border: '1px solid #c7d2fe', color: '#4f46e5', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                        Ir para Pedido
+                    </button>
+                </div>
+            ) : (
+                <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '4px', marginTop: '8px', display: 'inline-block' }}>
+                    Registro Manual Avulso
+                </span>
+            )}
+          </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
-            <X size={24} />
+            <X size={26} />
           </button>
         </div>
 
@@ -147,11 +222,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            
             {/* Bloco 1: Básicos */}
             <div>
               <label style={styles.label}>Fornecedor *</label>
-              <select style={styles.input} value={form.fornecedorId} onChange={e => setForm({...form, fornecedorId: e.target.value})} disabled={!!pedidoId || readOnly}>
+              <select style={styles.input} value={form.fornecedorId} onChange={e => setForm({...form, fornecedorId: e.target.value})} disabled={!!idPedVinculado || readOnly}>
                 <option value="">Selecione...</option>
                 {fornecedores.map(f => <option key={f.id} value={f.id}>{f.empresa || f.nome}</option>)}
               </select>
@@ -221,66 +295,142 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
           <hr style={{ borderTop: '1px dashed #cbd5e1', margin: '24px 0' }} />
 
-          {/* LISTA DE PRODUTOS DEVOLVIDOS */}
-          <h3 style={{ fontSize: '16px', color: '#1e293b', marginBottom: '16px' }}>Produtos Devolvidos</h3>
-          
-          {!readOnly && (
-            <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px', backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px' }}>
-              <div style={{ flex: 2 }}>
-                <label style={styles.label}>Nome do Produto</label>
-                <input type="text" style={styles.input} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} />
+          {/* SESSÃO DOS PRODUTOS: Se for Criação via Pedido vs Manual/Edição */}
+          {pedidoOriginal && !internalDevId ? (
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <h3 style={{ fontSize: '16px', color: '#1e293b', margin: 0 }}>Selecione os Produtos e Motivos</h3>
+                
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button onClick={() => aplicarFiltroSelecao(pedidoOriginal, 'TOTAL')} style={{...styles.btnFiltro, color: '#166534', backgroundColor: '#dcfce7'}}><CheckSquare size={14}/> Devolução Total</button>
+                  <button onClick={() => aplicarFiltroSelecao(pedidoOriginal, 'DIVERGENCIAS')} style={{...styles.btnFiltro, color: '#9a3412', backgroundColor: '#ffedd5'}}><ListX size={14}/> Apenas Divergências</button>
+                </div>
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={styles.label}>Qtd.</label>
-                <input type="number" min="1" style={styles.input} value={novoItem.quantidade} onChange={e => setNovoItem({...novoItem, quantidade: Number(e.target.value)})} onFocus={e => e.target.select()} />
+
+              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <thead style={{ backgroundColor: '#f8fafc' }}>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                      <th style={{ padding: '12px', fontSize: '13px', width: '40px', textAlign: 'center' }}></th>
+                      <th style={{ padding: '12px', fontSize: '13px' }}>Produto</th>
+                      <th style={{ padding: '12px', fontSize: '13px', width: '100px', textAlign: 'center' }}>Qtd Devolver</th>
+                      <th style={{ padding: '12px', fontSize: '13px' }}>Motivo da Devolução</th>
+                      <th style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pedidoOriginal.itens.map(item => {
+                      const sel = selecaoPedido[item.id];
+                      if(!sel) return null;
+
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? '#f0fdf4' : 'white', opacity: sel.selected ? 1 : 0.6 }}>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={sel.selected} 
+                              onChange={(e) => updateSelecao(item.id, 'selected', e.target.checked)} 
+                              style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px', color: '#1e293b', fontWeight: '500', fontSize: '14px' }}>
+                            {sel.nomeProduto}
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              max={sel.qtdMax}
+                              value={sel.qtd} 
+                              onChange={(e) => updateSelecao(item.id, 'qtd', Number(e.target.value))} 
+                              disabled={!sel.selected}
+                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <input 
+                              type="text" 
+                              placeholder="Ex: Vencimento próximo, avariado..." 
+                              value={sel.motivo} 
+                              onChange={(e) => updateSelecao(item.id, 'motivo', e.target.value)} 
+                              disabled={!sel.selected}
+                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? '#16a34a' : '#9ca3af' }}>
+                            R$ {(sel.qtd * sel.valorUnitario).toFixed(2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
               </div>
-              <div style={{ flex: 1 }}>
-                <label style={styles.label}>Vlr Unit. (R$)</label>
-                <input type="number" step="0.01" style={styles.input} value={novoItem.valorUnitario} onChange={e => setNovoItem({...novoItem, valorUnitario: Number(e.target.value)})} onFocus={e => e.target.select()} />
-              </div>
-              <button onClick={handleAddItem} style={{ height: '38px', padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
-                <Plus size={16} /> Adicionar
-              </button>
+            </div>
+          ) : (
+            <div>
+              <h3 style={{ fontSize: '16px', color: '#1e293b', marginBottom: '16px' }}>Produtos Devolvidos</h3>
+              
+              {!readOnly && (
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px', backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px' }}>
+                  <div style={{ flex: 2 }}>
+                    <label style={styles.label}>Nome do Produto / Motivo</label>
+                    <input type="text" style={styles.input} placeholder="Nome do produto - Motivo" value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>Qtd.</label>
+                    <input type="number" min="1" style={styles.input} value={novoItem.quantidade} onChange={e => setNovoItem({...novoItem, quantidade: Number(e.target.value)})} onFocus={e => e.target.select()} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={styles.label}>Vlr Unit. (R$)</label>
+                    <input type="number" step="0.01" style={styles.input} value={novoItem.valorUnitario} onChange={e => setNovoItem({...novoItem, valorUnitario: Number(e.target.value)})} onFocus={e => e.target.select()} />
+                  </div>
+                  <button onClick={handleAddItem} style={{ height: '38px', padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                    <Plus size={16} /> Adicionar
+                  </button>
+                </div>
+              )}
+
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
+                    <th style={{ padding: '8px 0', fontSize: '13px' }}>Produto / Motivo</th>
+                    <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'center' }}>Qtd</th>
+                    <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Unitário</th>
+                    <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
+                    {!readOnly && <th style={{ padding: '8px 0', width: '40px' }}></th>}
+                  </tr>
+                </thead>
+                <tbody>
+                  {itens.length === 0 && (
+                    <tr><td colSpan={readOnly ? "4" : "5"} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Nenhum produto adicionado.</td></tr>
+                  )}
+                  {itens.map((item, idx) => (
+                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td style={{ padding: '12px 0', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
+                      <td style={{ padding: '12px 0', textAlign: 'center' }}>{item.quantidade}</td>
+                      <td style={{ padding: '12px 0', textAlign: 'right' }}>R$ {item.valorUnitario.toFixed(2)}</td>
+                      <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>R$ {(item.quantidade * item.valorUnitario).toFixed(2)}</td>
+                      {!readOnly && (
+                        <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                          <button onClick={() => handleRemoverItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                            <Trash2 size={16} />
+                          </button>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
             </div>
           )}
 
-          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-            <thead>
-              <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
-                <th style={{ padding: '8px 0', fontSize: '13px' }}>Produto</th>
-                <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'center' }}>Qtd</th>
-                <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Unitário</th>
-                <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
-                {!readOnly && <th style={{ padding: '8px 0', width: '40px' }}></th>}
-              </tr>
-            </thead>
-            <tbody>
-              {itens.length === 0 && (
-                <tr><td colSpan={readOnly ? "4" : "5"} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Nenhum produto adicionado.</td></tr>
-              )}
-              {itens.map((item, idx) => (
-                <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                  <td style={{ padding: '12px 0', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'center' }}>{item.quantidade}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'right' }}>R$ {item.valorUnitario.toFixed(2)}</td>
-                  <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>R$ {(item.quantidade * item.valorUnitario).toFixed(2)}</td>
-                  {!readOnly && (
-                    <td style={{ padding: '12px 0', textAlign: 'right' }}>
-                      <button onClick={() => handleRemoverItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                        <Trash2 size={16} />
-                      </button>
-                    </td>
-                  )}
-                </tr>
-              ))}
-            </tbody>
-          </table>
         </div>
 
         {/* FOOTER MODAL */}
         <div style={{ padding: '20px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '18px', color: '#1e293b' }}>
-            Total a Ressarcir: <strong style={{ color: '#16a34a', fontSize: '22px' }}>R$ {calcTotal.toFixed(2)}</strong>
+            Total a Ressarcir: <strong style={{ color: '#16a34a', fontSize: '24px' }}>R$ {calcTotal().toFixed(2)}</strong>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
             <button onClick={onClose} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#475569' }}>
@@ -304,5 +454,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
 const styles = {
   label: { display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px' },
-  input: { width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' }
+  input: { width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' },
+  btnFiltro: { display: 'flex', alignItems: 'center', gap: '4px', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }
 };

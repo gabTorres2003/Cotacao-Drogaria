@@ -46,9 +46,33 @@ export default function PedidoDetalhes() {
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
-    const getStatusExibicao = (status) => {
+    const getStatusExibicao = (pedidoObj) => {
+        if (!pedidoObj) return '';
+        const status = pedidoObj.status;
+        
         if (status === 'CONFIRMADO_FORNECEDOR') return 'CONFIRMADO NA FÁBRICA (AGUARDANDO ENTREGA)';
         if (status === 'PENDENTE_ENTREGA') return 'AGUARDANDO FORNECEDOR';
+
+        if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status)) {
+            let faltas = 0, avarias = 0, incorretos = 0;
+            
+            pedidoObj.itens?.forEach(item => {
+                if (item.statusRecebimento === 'FALTA') faltas++;
+                if (item.statusRecebimento === 'AVARIADO') avarias++;
+                if (item.statusRecebimento === 'INCORRETO') incorretos++;
+            });
+            
+            let detalhes = [];
+            if (faltas > 0) detalhes.push(`${faltas} Falta(s)`);
+            if (avarias > 0) detalhes.push(`${avarias} Avariado(s)`);
+            if (incorretos > 0) detalhes.push(`${incorretos} Incorreto(s)`);
+
+            if (detalhes.length > 0) {
+                return `DIVERGÊNCIA (${detalhes.join(' | ')})`;
+            }
+            return 'DIVERGÊNCIA IDENTIFICADA';
+        }
+
         return status;
     };
 
@@ -56,6 +80,8 @@ export default function PedidoDetalhes() {
     if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
     const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
+    const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
+    const podeDevolver = !podeConferir;
 
     return (
         <div className="layout">
@@ -86,7 +112,7 @@ export default function PedidoDetalhes() {
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge}>{getStatusExibicao(pedido.status)}</span></p>
+                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status)}>{getStatusExibicao(pedido)}</span></p>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
                             {pedido.valorTotalReal != null && (
                                 <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
@@ -94,7 +120,7 @@ export default function PedidoDetalhes() {
                         </div>
                         <div style={{ display: 'flex', gap: '10px' }}>
                             
-                            {(pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR') && (
+                            {podeConferir && (
                                 <button 
                                     onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} 
                                     style={styles.btnConferir}
@@ -104,13 +130,13 @@ export default function PedidoDetalhes() {
                                 </button>
                             )}
 
-                            {pedido.status === 'PENDENTE_DEVOLUCAO' && (
+                            {podeDevolver && (
                                 <button 
                                     onClick={() => setIsDevolucaoModalOpen(true)} 
                                     style={styles.btnDevolucao}
                                 >
                                     <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                                    Gerenciar Devolução
+                                    Gerar / Ver Devolução
                                 </button>
                             )}
                         </div>
@@ -180,14 +206,14 @@ const styles = {
     td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '14px' },
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', transition: '0.2s' },
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
-    btnDevolucao: { padding: '10px 20px', backgroundColor: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
-    statusBadge: { fontWeight: '600', color: '#2563eb' },
+    btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
+    statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status) ? '#dc2626' : '#2563eb' }),
     itemStatus: (status) => ({
         padding: '4px 8px',
         borderRadius: '4px',
         fontSize: '12px',
         fontWeight: '600',
-        backgroundColor: status === 'AVARIADO' ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6',
-        color: status === 'AVARIADO' ? '#991b1b' : status === 'OK' ? '#166534' : '#374151'
+        backgroundColor: ['AVARIADO', 'INCORRETO', 'FALTA'].includes(status) ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6',
+        color: ['AVARIADO', 'INCORRETO', 'FALTA'].includes(status) ? '#991b1b' : status === 'OK' ? '#166534' : '#374151'
     })
 };
