@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -108,11 +108,7 @@ export default function PedidoDetalhes() {
 
             let textoDivergencia = detalhes.length > 0 ? `(${detalhes.join(' | ')})` : '';
 
-            // Se a devolução já foi gerada, exibe o aviso que está em andamento, mantendo o motivo.
-            if (status === 'PENDENTE_DEVOLUCAO') {
-                return `DEVOLUÇÃO EM TRATATIVA ${textoDivergencia}`;
-            }
-
+            if (status === 'PENDENTE_DEVOLUCAO') return `DEVOLUÇÃO EM TRATATIVA ${textoDivergencia}`;
             if (detalhes.length > 0) return `DIVERGÊNCIA ${textoDivergencia}`;
             if (status === 'VALORES_INCOMPATIVEIS') return 'DIVERGÊNCIA DE VALORES (IMPOSTOS/NF)';
             return 'DIVERGÊNCIA IDENTIFICADA';
@@ -127,8 +123,6 @@ export default function PedidoDetalhes() {
     const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
     
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
-    
-    // ATUALIZADO: Inclui PENDENTE_DEVOLUCAO para não esconder os botões.
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
@@ -200,32 +194,87 @@ export default function PedidoDetalhes() {
                         <thead>
                             <tr>
                                 <th style={styles.th}>Produto</th>
-                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Solicitada</th>
-                                <th style={{ ...styles.th, textAlign: 'right' }}>Valor Unit.</th>
-                                <th style={{ ...styles.th, textAlign: 'right' }}>Subtotal</th>
-                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Real (NF)</th>
+                                <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f9fafb' }}>Qtd Pedida</th>
+                                <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f0fdf4' }}>Qtd Real (NF)</th>
+                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Vlr Unit. (Prev)</th>
+                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Vlr Unit. (NF)</th>
+                                <th style={{ ...styles.th, textAlign: 'center' }}>% Imposto</th>
+                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
+                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {pedido.itens?.map(item => (
-                                <tr key={item.id}>
-                                    <td style={styles.td}>
-                                        <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
-                                    </td>
-                                    <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadePedida} un</td>
-                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#16a34a' }}>{fMoney(item.valorUnitarioPedido)}</td>
-                                    <td style={{ ...styles.td, textAlign: 'right', fontWeight: '500', color: '#374151' }}>{fMoney((item.valorUnitarioPedido || 0) * (item.quantidadePedida || 0))}</td>
-                                    <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadeReal !== null ? `${item.quantidadeReal} un` : '-'}</td>
-                                    <td style={{ ...styles.td, textAlign: 'center' }}>
-                                        <span style={styles.itemStatus(item.statusRecebimento, item.quantidadeReal, item.quantidadePedida)}>
-                                            {item.quantidadeReal !== null && item.quantidadeReal < item.quantidadePedida && item.statusRecebimento === 'OK' 
-                                                ? 'FALTA PARCIAL' 
-                                                : (item.statusRecebimento || 'AGUARDANDO')}
-                                        </span>
-                                    </td>
-                                </tr>
-                            ))}
+                            {pedido.itens?.map(item => {
+                                const qtdPedida = item.quantidadePedida || 0;
+                                const qtdReal = item.quantidadeReal;
+                                const vlrPrevisto = item.valorUnitarioPedido || 0;
+                                const vlrReal = item.valorUnitarioReal;
+
+                                // Lógica de cálculo do imposto cobrado
+                                let pctImposto = 0;
+                                let alertImposto = false;
+                                if (vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
+                                    pctImposto = ((vlrReal - vlrPrevisto) / vlrPrevisto) * 100;
+                                    if (pctImposto > 5) alertImposto = true;
+                                }
+
+                                return (
+                                    <tr key={item.id}>
+                                        <td style={styles.td}>
+                                            <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                        </td>
+                                        
+                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>{qtdPedida} un</td>
+                                        
+                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
+                                            {qtdReal !== null ? `${qtdReal} un` : '-'}
+                                        </td>
+                                        
+                                        <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
+                                            {fMoney(vlrPrevisto)}
+                                        </td>
+                                        
+                                        <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                            {vlrReal !== null ? fMoney(vlrReal) : '-'}
+                                        </td>
+
+                                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                                            {(() => {
+                                                if (vlrReal !== null && vlrPrevisto > 0) {
+                                                    if (vlrReal > vlrPrevisto) {
+                                                        return (
+                                                            <span style={{ color: alertImposto ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                                                {alertImposto && <AlertTriangle size={14} />} +{pctImposto.toFixed(1)}%
+                                                            </span>
+                                                        );
+                                                    } else if (vlrReal < vlrPrevisto) {
+                                                        const pctNeg = ((vlrPrevisto - vlrReal) / vlrPrevisto) * 100;
+                                                        return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>-{pctNeg.toFixed(1)}%</span>;
+                                                    }
+                                                }
+                                                return <span style={{ color: '#9ca3af' }}>-</span>;
+                                            })()}
+                                        </td>
+
+                                        <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
+                                            {fMoney(vlrPrevisto * qtdPedida)}
+                                        </td>
+
+                                        <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                            {qtdReal !== null && vlrReal !== null ? fMoney(vlrReal * qtdReal) : '-'}
+                                        </td>
+
+                                        <td style={{ ...styles.td, textAlign: 'center' }}>
+                                            <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida)}>
+                                                {qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
+                                                    ? 'FALTA PARCIAL' 
+                                                    : (item.statusRecebimento || 'AGUARDANDO')}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
                 </div>
@@ -283,8 +332,8 @@ const styles = {
     card: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
     infoCard: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', marginBottom: '20px' },
     table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
-    td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '14px' },
+    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '12px' },
+    td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', transition: '0.2s' },
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
@@ -297,10 +346,11 @@ const styles = {
         return {
             padding: '4px 8px',
             borderRadius: '4px',
-            fontSize: '12px',
+            fontSize: '11px',
             fontWeight: '600',
             backgroundColor: isError ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6',
-            color: isError ? '#991b1b' : status === 'OK' ? '#166534' : '#374151'
+            color: isError ? '#991b1b' : status === 'OK' ? '#166534' : '#374151',
+            whiteSpace: 'nowrap'
         }
     }
 };
