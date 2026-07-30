@@ -18,6 +18,7 @@ public class ItemDevolucao {
 
     @ManyToOne
     @JoinColumn(name = "devolucao_id", nullable = false)
+    @JsonIgnore
     private Devolucao devolucao;
 
     @Column(nullable = false)

@@ -2,6 +2,7 @@ package com.drogaria.cotacao.model;
 
 import com.drogaria.cotacao.model.enums.FormaAbatimento;
 import com.drogaria.cotacao.model.enums.StatusDevolucao;
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -22,10 +23,12 @@ public class Devolucao {
 
     @ManyToOne
     @JoinColumn(name = "fornecedor_id", nullable = false)
+    @JsonIgnoreProperties({"pedidos", "cotacoes"})
     private Fornecedor fornecedor;
 
     @ManyToOne
     @JoinColumn(name = "pedido_id")
+    @JsonIgnoreProperties({"itens", "cotacao", "fornecedor"})
     private Pedido pedido;
 
     private String nfOrigem;
