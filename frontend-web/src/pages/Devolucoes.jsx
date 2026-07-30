@@ -12,7 +12,8 @@ import {
   Clock,
   Banknote,
   CheckCircle,
-  Plus
+  Plus,
+  Eye
 } from 'lucide-react';
 
 export default function Devolucoes() {
@@ -22,6 +23,7 @@ export default function Devolucoes() {
   // Estados para o Modal
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoParaEditar, setDevolucaoParaEditar] = useState(null);
+  const [modoLeitura, setModoLeitura] = useState(false);
 
   // Filtros
   const [busca, setBusca] = useState('');
@@ -75,11 +77,19 @@ export default function Devolucoes() {
 
   const abrirModalNova = () => {
     setDevolucaoParaEditar(null);
+    setModoLeitura(false);
     setModalAberto(true);
   };
 
   const abrirModalEdicao = (id) => {
     setDevolucaoParaEditar(id);
+    setModoLeitura(false);
+    setModalAberto(true);
+  };
+
+  const abrirModalVisualizacao = (id) => {
+    setDevolucaoParaEditar(id);
+    setModoLeitura(true);
     setModalAberto(true);
   };
 
@@ -191,7 +201,8 @@ export default function Devolucoes() {
               <tr>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID / NF</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Fornecedor</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitação</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitada</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>  
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Protocolo(s)</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>Valor Total</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Status</th>
@@ -200,9 +211,9 @@ export default function Devolucoes() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
               ) : devolucoesFiltradas.length === 0 ? (
-                <tr><td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada.</td></tr>
+                <tr><td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada.</td></tr>
               ) : (
                 devolucoesFiltradas.map((dev) => (
                   <tr key={dev.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -217,6 +228,10 @@ export default function Devolucoes() {
                     
                     <td style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
                       {formatarData(dev.dataSolicitacao)}
+                    </td>
+
+                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+                      {formatarData(dev.dataRecolhimento)}
                     </td>
 
                     <td style={{ padding: '16px' }}>
@@ -236,7 +251,10 @@ export default function Devolucoes() {
 
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => abrirModalEdicao(dev.id)} title="Editar / Ver Detalhes" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button onClick={() => abrirModalVisualizacao(dev.id)} title="Ver Detalhes" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <Eye size={18} />
+                        </button>
+                        <button onClick={() => abrirModalEdicao(dev.id)} title="Editar" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Edit2 size={18} />
                         </button>
                         <button onClick={() => deletarDevolucao(dev.id)} title="Excluir" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
@@ -252,10 +270,11 @@ export default function Devolucoes() {
         </div>
       </main>
 
-      {/* Renderiza o Modal se estiver aberto */}
+      {/* Renderiza o Modal com a prop readOnly */}
       {modalAberto && (
         <DevolucaoModal 
           devolucaoId={devolucaoParaEditar} 
+          readOnly={modoLeitura}
           onClose={() => setModalAberto(false)} 
           onSuccess={() => {
             setModalAberto(false);
