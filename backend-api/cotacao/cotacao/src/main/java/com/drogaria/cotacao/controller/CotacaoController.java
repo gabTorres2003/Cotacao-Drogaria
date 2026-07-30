@@ -27,6 +27,7 @@ import java.sql.Statement;
 
 @RestController
 @RequestMapping("/api/cotacao")
+@CrossOrigin(origins = {"https://cotacaotorresfarma.netlify.app", "http://localhost:5173"})
 public class CotacaoController {
 
     @Autowired
@@ -91,6 +92,28 @@ public class CotacaoController {
         }
     }
 
+    @PostMapping("/{id}/importar-dna")
+    public ResponseEntity<String> atualizarCotacaoDna(@PathVariable Long id, @RequestBody ImportacaoDNARequestDTO request) {
+        try {
+            Cotacao cotacao = cotacaoService.atualizarCotacaoDNA(id, request);
+            return ResponseEntity.ok("Cotação atualizada com sucesso! Total de itens: " + cotacao.getItens().size());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Erro ao atualizar cotação: " + e.getMessage());
+        }
+    }
+
+    // NOVA ROTA: Adicionar item manual à cotação
+    @PostMapping("/{id}/item")
+    public ResponseEntity<ItemCotacao> adicionarItemManual(@PathVariable Long id, @RequestBody ItemCotacao dados) {
+        try {
+            ItemCotacao novoItem = cotacaoService.adicionarItemManual(id, dados);
+            return ResponseEntity.ok(novoItem);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     @PutMapping("/{id}/status")
     public ResponseEntity<String> atualizarStatus(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String novoStatus = payload.get("status");
@@ -141,24 +164,20 @@ public class CotacaoController {
 
     @GetMapping("/teste-firebird")
     public ResponseEntity<String> testarConexaoFirebird() {
-
         String url = "jdbc:firebirdsql://192.168.18.205:3050/C:/DNA/Pharmacy/Dados/COMERCIO.FDB?charSet=WIN1252";
         String user = "SYSDBA";
         String password = "masterkey";
 
         try (Connection conn = DriverManager.getConnection(url, user, password)) {
-
             try (Statement stmt = conn.createStatement();
                     ResultSet rs = stmt.executeQuery("SELECT CURRENT_TIMESTAMP FROM RDB$DATABASE")) {
 
                 if (rs.next()) {
                     String dataServidor = rs.getString(1);
-                    return ResponseEntity
-                            .ok("Sucesso! Conectado ao banco COMERCIO.FDB. Data no servidor: " + dataServidor);
+                    return ResponseEntity.ok("Sucesso! Conectado ao banco COMERCIO.FDB. Data no servidor: " + dataServidor);
                 }
             }
             return ResponseEntity.ok("Conectou, mas não conseguiu ler a data.");
-
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.internalServerError().body("Falha na conexão: " + e.getMessage());

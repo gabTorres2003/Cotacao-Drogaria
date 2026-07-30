@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
-import UploadModal from '../components/layout/UploadModal' 
+import UploadModal from '../components/layout/UploadModal'
 import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
@@ -57,7 +57,7 @@ export default function CotacaoDetalhes() {
   const [fornecedoresVisiveis, setFornecedoresVisiveis] = useState({})
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
-  const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Falta Manual' })
+  const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' })
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
   useEffect(() => {
@@ -221,7 +221,9 @@ export default function CotacaoDetalhes() {
       });
       alert('Produto adicionado com sucesso!');
       setIsAddItemModalOpen(false);
-      setNovoItemManual({ nomeProduto: '', quantidade: 1, origemItem: 'Falta Manual' });
+      
+      // Reseta mantendo a origem nova
+      setNovoItemManual({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' });
       carregarRelatorio();
     } catch (error) {
       alert('Erro ao adicionar produto.');
@@ -265,7 +267,10 @@ export default function CotacaoDetalhes() {
     return relatorioOrdenado.filter(item => {
       const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
       const origemItem = item.origemItem || 'Geral';
-      const matchOrigem = filtroOrigem === 'TODOS' || origemItem === filtroOrigem;
+      
+      // Permite buscar também pelas novas origens no filtro suspenso se o usuário quiser
+      const matchOrigem = filtroOrigem === 'TODOS' || origemItem.includes(filtroOrigem);
+      
       const precos = Object.values(item.precosPorFornecedor || {});
       const temPropostaValida = precos.some(p => p > 0);
       const matchPropostas = 
@@ -708,12 +713,18 @@ export default function CotacaoDetalhes() {
 
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
   const fData = (data) => data ? data : '-'; 
-
   const getCorOrigem = (origem) => {
-    if (origem === 'Falta Manual') return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74' };
-    if (origem === 'Sugestão') return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd' };
-    if (origem === 'Falta e Sugestão') return { bg: '#fae8ff', color: '#7e22ce', border: '#d8b4fe' };
-    return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db' };
+    if (!origem) return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: 'Geral' };
+    
+    const orig = origem.toUpperCase();
+    
+    if (orig.includes('EXTRA MANUAL')) return { bg: '#fce7f3', color: '#be185d', border: '#fbcfe8', label: '➕ Inserido Manualmente' };
+    if (orig.includes('NOVA IMPORTAÇÃO') || orig.includes('ATUALIZAÇÃO')) return { bg: '#f3e8ff', color: '#7e22ce', border: '#e9d5ff', label: '🔄 Atualização DNA' };
+    if (orig.includes('SUGESTÃO') && orig.includes('FALTA')) return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74', label: origem };
+    if (orig.includes('SUGESTÃO')) return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd', label: origem };
+    if (orig.includes('FALTA')) return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74', label: origem };
+    
+    return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: origem }; 
   };
 
   const renderChecklistManual = () => {
@@ -767,7 +778,7 @@ export default function CotacaoDetalhes() {
             <tbody>
               {relatorioExibicao.map((item) => {
                 const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
-                const cores = getCorOrigem(item.origemItem || 'Geral');
+                const cores = getCorOrigem(item.origemItem);
                 
                 const rowStyle = chk.bloqueado 
                   ? { backgroundColor: '#f3f4f6', opacity: 0.6 } 
@@ -784,9 +795,9 @@ export default function CotacaoDetalhes() {
                     <td style={styles.td}>
                       <span style={{ 
                         fontSize: '11px', padding: '4px 8px', borderRadius: '12px', fontWeight: 'bold', 
-                        backgroundColor: cores.bg, color: cores.color, border: `1px solid ${cores.border}` 
+                        backgroundColor: cores.bg, color: cores.color, border: `1px solid ${cores.border}`, whiteSpace: 'nowrap' 
                       }}>
-                        {item.origemItem || 'Geral'}
+                        {cores.label}
                       </span>
                     </td>
 
@@ -936,7 +947,6 @@ export default function CotacaoDetalhes() {
                   </th>
                 )}
 
-                {/* NOVO: Aplicação do filtro de colunas para fornecedores */}
                 {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => (
                   <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
                     {f}
@@ -947,7 +957,7 @@ export default function CotacaoDetalhes() {
             </thead>
             <tbody>
               {relatorioExibicao.map((item) => {
-                const cores = getCorOrigem(item.origemItem || 'Geral');
+                const cores = getCorOrigem(item.origemItem);
                 const isBloqueado = itensJaComprados.includes(item.idItem);
                 const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
@@ -988,9 +998,10 @@ export default function CotacaoDetalhes() {
                             border: `1px solid ${cores.border}`,
                             padding: '2px 8px', 
                             borderRadius: '10px', 
-                            fontWeight: 'bold' 
+                            fontWeight: 'bold',
+                            whiteSpace: 'nowrap'
                           }}>
-                            {item.origemItem || 'Geral'}
+                            {cores.label}
                           </span>
 
                           {isBloqueado && (
@@ -1059,7 +1070,6 @@ export default function CotacaoDetalhes() {
                     </td>
                   )}
 
-                  {/* NOVO: Aplicação do filtro de colunas para fornecedores na tabela */}
                   {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
                     const precoOriginal = item.precosPorFornecedor[f]
                     const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
@@ -1222,7 +1232,6 @@ export default function CotacaoDetalhes() {
         
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           
-          {/* NOVOS BOTÕES ADICIONADOS AQUI */}
           <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#8b5cf6' }} onClick={() => setIsAddItemModalOpen(true)}>
             <Plus size={18} /> Adicionar Produto Extra
           </button>
@@ -1287,6 +1296,8 @@ export default function CotacaoDetalhes() {
             style={{ padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', fontSize: '14px', cursor: 'pointer' }}
           >
             <option value="TODOS">Todas as Origens</option>
+            <option value="Extra Manual">Extra Manual</option>
+            <option value="Nova Importação">Atualização DNA</option>
             <option value="Falta Manual">Falta Manual</option>
             <option value="Sugestão">Sugestão</option>
             <option value="Falta e Sugestão">Falta e Sugestão</option>
@@ -1339,7 +1350,6 @@ export default function CotacaoDetalhes() {
                 </label>
               ))}
 
-              {/* NOVO: Menu para selecionar fornecedores */}
               <div style={{ borderTop: '1px solid #e5e7eb', margin: '8px 0' }}></div>
               <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
               {fornecedores.map(f => (

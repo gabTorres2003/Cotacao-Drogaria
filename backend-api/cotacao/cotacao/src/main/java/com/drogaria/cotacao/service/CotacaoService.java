@@ -4,6 +4,7 @@ import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
+import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -21,6 +22,9 @@ public class CotacaoService {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
+
+    @Autowired
+    private ItemCotacaoRepository itemCotacaoRepository;
 
     @Autowired
     private IntegracaoDNAService integracaoDNAService;
@@ -60,9 +64,7 @@ public class CotacaoService {
         return cotacoes;
     }
 
-    @Transactional
-    public Cotacao criarCotacaoDNA(ImportacaoDNARequestDTO request) {
-        
+    private List<ItemCotacao> obterItensDoDNA(ImportacaoDNARequestDTO request) {
         List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
         Map<String, ItemCotacao> mapaItens = new HashMap<>();
         
@@ -86,7 +88,6 @@ public class CotacaoService {
                     
                     if (mapaItens.containsKey(chave)) {
                         ItemCotacao itemExistente = mapaItens.get(chave);
-                        // Adota a maior quantidade sugerida x falta manual
                         if (itemSugestao.getQuantidade() > itemExistente.getQuantidade()) {
                             itemExistente.setQuantidade(itemSugestao.getQuantidade());
                         }
@@ -98,7 +99,12 @@ public class CotacaoService {
             }
         }
 
-        List<ItemCotacao> itensFinais = new ArrayList<>(mapaItens.values());
+        return new ArrayList<>(mapaItens.values());
+    }
+
+    @Transactional
+    public Cotacao criarCotacaoDNA(ImportacaoDNARequestDTO request) {
+        List<ItemCotacao> itensFinais = obterItensDoDNA(request);
 
         if (itensFinais.isEmpty()) {
             throw new RuntimeException("Nenhum produto encontrado nas Faltas ou Sugestões para os filtros selecionados.");
@@ -118,6 +124,59 @@ public class CotacaoService {
         novaCotacao.setItens(itensFinais);
         
         return cotacaoRepository.save(novaCotacao);
+    }
+
+    @Transactional
+    public Cotacao atualizarCotacaoDNA(Long cotacaoId, ImportacaoDNARequestDTO request) {
+        Cotacao cotacao = cotacaoRepository.findById(cotacaoId)
+                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+
+        List<ItemCotacao> itensDoDna = obterItensDoDNA(request);
+        Map<String, ItemCotacao> itensExistentes = cotacao.getItens().stream()
+                .collect(Collectors.toMap(
+                        i -> i.getNomeProduto().toUpperCase().trim(),
+                        i -> i,
+                        (existente, substituto) -> existente
+                ));
+
+        boolean houveAlteracao = false;
+
+        for (ItemCotacao itemDna : itensDoDna) {
+            String chave = itemDna.getNomeProduto().toUpperCase().trim();
+            
+            if (itensExistentes.containsKey(chave)) {
+                ItemCotacao existente = itensExistentes.get(chave);
+                if (itemDna.getQuantidade() > existente.getQuantidade()) {
+                    existente.setQuantidade(itemDna.getQuantidade());
+                    houveAlteracao = true;
+                }
+            } else {
+                itemDna.setCotacao(cotacao);
+                itemDna.setOrigemItem("Nova Importação");
+                cotacao.getItens().add(itemDna);
+                houveAlteracao = true;
+            }
+        }
+
+        if (houveAlteracao) {
+            return cotacaoRepository.save(cotacao);
+        }
+        
+        return cotacao;
+    }
+
+    @Transactional
+    public ItemCotacao adicionarItemManual(Long cotacaoId, ItemCotacao novoItem) {
+        Cotacao cotacao = cotacaoRepository.findById(cotacaoId)
+                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+
+        novoItem.setCotacao(cotacao);
+        
+        if (novoItem.getOrigemItem() == null || novoItem.getOrigemItem().isEmpty()) {
+            novoItem.setOrigemItem("Extra Manual");
+        }
+        
+        return itemCotacaoRepository.save(novoItem);
     }
 
     @Transactional
