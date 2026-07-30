@@ -6,7 +6,7 @@ const GRUPOS_DISPONIVEIS = [
   "Alimentos", "Etico", "Etico Anti", "Similar", "Gen Antibi", "Generico", "Generico 2", "Liberados", "Oficinais", "Perfumaria"
 ];
 
-export default function UploadModal({ onClose, onSuccess }) {
+export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
   const [gruposSelecionados, setGruposSelecionados] = useState([]);
   const [loading, setLoading] = useState(false);
   const [incluirSugestao, setIncluirSugestao] = useState(false);
@@ -51,8 +51,14 @@ export default function UploadModal({ onClose, onSuccess }) {
         diasSuprir: incluirSugestao ? Number(diasSuprir) : null
       };
 
-      await api.post('/api/cotacao/importar-dna', payload);
-      alert('Cotação importada com sucesso!');
+      if (cotacaoId) {
+        await api.post(`/api/cotacao/${cotacaoId}/importar-dna`, payload);
+        alert('Cotação atualizada com novos produtos do DNA com sucesso!');
+      } else {
+        await api.post('/api/cotacao/importar-dna', payload);
+        alert('Nova cotação importada com sucesso!');
+      }
+      
       onSuccess();
       onClose();
     } catch (error) {
@@ -67,7 +73,9 @@ export default function UploadModal({ onClose, onSuccess }) {
       <div className="modal-content" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto' }}>
         
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ margin: 0, fontSize: '20px', color: '#1f2937' }}>Importar Faltas do DNA</h3>
+          <h3 style={{ margin: 0, fontSize: '20px', color: '#1f2937' }}>
+            {cotacaoId ? 'Atualizar Cotação Ativa (DNA)' : 'Importar Faltas do DNA'}
+          </h3>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} color="#6b7280" /></button>
         </div>
 
@@ -105,7 +113,6 @@ export default function UploadModal({ onClose, onSuccess }) {
             </div>
           </label>
 
-          {/* PAINEL CONDICIONAL DE DATAS E DIAS */}
           {incluirSugestao && (
             <div style={{ marginTop: '15px', padding: '15px', backgroundColor: '#fff', border: '1px solid #bfdbfe', borderRadius: '8px', borderLeft: '4px solid #3b82f6', animation: 'fadeIn 0.3s' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', color: '#1e40af', fontWeight: '500', fontSize: '13px' }}>
@@ -153,7 +160,7 @@ export default function UploadModal({ onClose, onSuccess }) {
             Cancelar
           </button>
           <button onClick={handleImportarDNA} disabled={loading} style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#2563eb', color: 'white', fontWeight: '600', cursor: loading ? 'not-allowed' : 'pointer', opacity: loading ? 0.7 : 1 }}>
-            {loading ? 'Importando e Calculando...' : 'Gerar Cotação Mesclada'}
+            {loading ? 'Importando...' : (cotacaoId ? 'Atualizar Cotação' : 'Gerar Cotação Mesclada')}
           </button>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import UploadModal from '../components/layout/UploadModal' 
 import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
@@ -14,7 +15,6 @@ export default function CotacaoDetalhes() {
   const [loading, setLoading] = useState(true)
   
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
-  
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [aceitesTroca, setAceitesTroca] = useState({})
 
@@ -36,7 +36,7 @@ export default function CotacaoDetalhes() {
 
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
-  const [filtroPropostas, setFiltroPropostas] = useState('TODOS') 
+  const [filtroPropostas, setFiltroPropostas] = useState('TODOS')
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
 
   const [copiadoId, setCopiadoId] = useState(null)
@@ -53,6 +53,12 @@ export default function CotacaoDetalhes() {
     ultVendaData: true,
     ultimoPreco: true
   })
+  
+  const [fornecedoresVisiveis, setFornecedoresVisiveis] = useState({})
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
+  const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Falta Manual' })
+  const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
   useEffect(() => {
     carregarRelatorio()
@@ -60,6 +66,16 @@ export default function CotacaoDetalhes() {
     carregarFornecedores()
     carregarPedidosDaCotacao()
   }, [id])
+
+  useEffect(() => {
+    setFornecedoresVisiveis(prev => {
+        const novoEstado = { ...prev };
+        fornecedores.forEach(f => {
+            if (novoEstado[f] === undefined) novoEstado[f] = true;
+        });
+        return novoEstado;
+    });
+  }, [fornecedores]);
 
   const carregarPedidosDaCotacao = async () => {
     try {
@@ -161,6 +177,7 @@ export default function CotacaoDetalhes() {
   }
 
   const carregarRelatorio = async () => {
+    setLoading(true)
     try {
       const response = await api.get(`/api/comparativo/relatorio/${id}`)
       setRelatorio(response.data)
@@ -192,6 +209,26 @@ export default function CotacaoDetalhes() {
       setLoading(false)
     }
   }
+
+  const handleSalvarItemManual = async () => {
+    if (!novoItemManual.nomeProduto) return alert('O nome do produto é obrigatório.');
+    setSalvandoItemManual(true);
+    try {
+      await api.post(`/api/cotacao/${id}/item`, {
+        nomeProduto: novoItemManual.nomeProduto,
+        quantidade: novoItemManual.quantidade,
+        origemItem: novoItemManual.origemItem
+      });
+      alert('Produto adicionado com sucesso!');
+      setIsAddItemModalOpen(false);
+      setNovoItemManual({ nomeProduto: '', quantidade: 1, origemItem: 'Falta Manual' });
+      carregarRelatorio();
+    } catch (error) {
+      alert('Erro ao adicionar produto.');
+    } finally {
+      setSalvandoItemManual(false);
+    }
+  };
 
   const requestSort = (key) => {
     let direction = 'asc';
@@ -371,11 +408,9 @@ export default function CotacaoDetalhes() {
 
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
-      
       if (itensJaComprados.includes(idItem)) return;
 
       const fornecedorNome = decisaoCompra[idItem];
-
       if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
 
       if (!pedidosPorFornecedor[fornecedorNome]) {
@@ -901,7 +936,8 @@ export default function CotacaoDetalhes() {
                   </th>
                 )}
 
-                {isComparativo && fornecedores.map((f) => (
+                {/* NOVO: Aplicação do filtro de colunas para fornecedores */}
+                {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => (
                   <th key={f} style={{ ...styles.th, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
                     {f}
                   </th>
@@ -1023,7 +1059,8 @@ export default function CotacaoDetalhes() {
                     </td>
                   )}
 
-                  {isComparativo && fornecedores.map((f) => {
+                  {/* NOVO: Aplicação do filtro de colunas para fornecedores na tabela */}
+                  {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
                     const precoOriginal = item.precosPorFornecedor[f]
                     const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
                     const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade
@@ -1175,9 +1212,7 @@ export default function CotacaoDetalhes() {
     btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
     modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '85vh', overflowY: 'auto' },
-    
-    // ESTILOS MENU DE COLUNAS
-    menuColunas: { position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '10px' }
+    menuColunas: { position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '220px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }
   }
 
   return (
@@ -1187,6 +1222,15 @@ export default function CotacaoDetalhes() {
         
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           
+          {/* NOVOS BOTÕES ADICIONADOS AQUI */}
+          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#8b5cf6' }} onClick={() => setIsAddItemModalOpen(true)}>
+            <Plus size={18} /> Adicionar Produto Extra
+          </button>
+          
+          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#3b82f6' }} onClick={() => setIsUploadModalOpen(true)}>
+            <RefreshCcw size={18} /> Atualizar Importação DNA
+          </button>
+
           <label style={{
             display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
             backgroundColor: 'white', padding: '8px 12px', borderRadius: '6px',
@@ -1294,6 +1338,21 @@ export default function CotacaoDetalhes() {
                   {label}
                 </label>
               ))}
+
+              {/* NOVO: Menu para selecionar fornecedores */}
+              <div style={{ borderTop: '1px solid #e5e7eb', margin: '8px 0' }}></div>
+              <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
+              {fornecedores.map(f => (
+                  <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#374151' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={fornecedoresVisiveis[f] ?? true} 
+                      onChange={(e) => setFornecedoresVisiveis(prev => ({ ...prev, [f]: e.target.checked }))} 
+                      style={{ transform: 'scale(1.1)' }} 
+                    />
+                    {f}
+                  </label>
+              ))}
             </div>
           )}
         </div>
@@ -1303,6 +1362,45 @@ export default function CotacaoDetalhes() {
         <>
           {modoVisualizacao === 'manual' ? renderChecklistManual() : renderTabela()}
         </>
+      )}
+
+      {isAddItemModalOpen && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
+                      <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                  </div>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                      <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
+                          <input type="text" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={novoItemManual.nomeProduto} onChange={e => setNovoItemManual({...novoItemManual, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
+                      </div>
+                      
+                      <div>
+                          <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Quantidade a cotar</label>
+                          <input type="number" min="1" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={novoItemManual.quantidade} onChange={e => setNovoItemManual({...novoItemManual, quantidade: Number(e.target.value)})} onFocus={e => e.target.select()}/>
+                      </div>
+
+                      <button 
+                          onClick={handleSalvarItemManual} 
+                          disabled={salvandoItemManual}
+                          style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                      >
+                          <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItemManual ? 'Adicionando...' : 'Confirmar e Adicionar'}
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {isUploadModalOpen && (
+        <UploadModal 
+          cotacaoId={id} 
+          onClose={() => setIsUploadModalOpen(false)} 
+          onSuccess={carregarRelatorio} 
+        />
       )}
 
       {showModal && (
