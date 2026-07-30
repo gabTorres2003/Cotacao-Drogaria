@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -41,6 +41,18 @@ export default function PedidoDetalhes() {
         }
     };
 
+    const aceitarDivergenciaValor = async () => {
+        if (window.confirm('Confirmar o recebimento ignorando as diferenças de valores/impostos? O pedido será marcado como Concluído.')) {
+            try {
+                await api.patch(`/api/pedidos/${id}/status`, { status: 'ENTREGUE_SUCESSO' });
+                alert('Divergência aceita. Pedido concluído!');
+                carregarPedido();
+            } catch (error) {
+                alert('Erro ao atualizar o pedido.');
+            }
+        }
+    };
+
     const fMoney = (valor) => {
         if (valor == null) return '-';
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -57,7 +69,7 @@ export default function PedidoDetalhes() {
             let faltas = 0, avarias = 0, incorretos = 0;
             
             pedidoObj.itens?.forEach(item => {
-                if (item.statusRecebimento === 'FALTA') faltas++;
+                if (item.statusRecebimento === 'FALTA' || (item.quantidadeReal !== null && item.quantidadeReal < item.quantidadePedida)) faltas++;
                 if (item.statusRecebimento === 'AVARIADO') avarias++;
                 if (item.statusRecebimento === 'INCORRETO') incorretos++;
             });
@@ -70,6 +82,7 @@ export default function PedidoDetalhes() {
             if (detalhes.length > 0) {
                 return `DIVERGÊNCIA (${detalhes.join(' | ')})`;
             }
+            if (status === 'VALORES_INCOMPATIVEIS') return 'DIVERGÊNCIA DE VALORES (IMPOSTOS/NF)';
             return 'DIVERGÊNCIA IDENTIFICADA';
         }
 
@@ -80,8 +93,10 @@ export default function PedidoDetalhes() {
     if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
     const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
+    
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
-    const podeDevolver = !podeConferir;
+    const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(pedido.status);
+    const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
 
     return (
         <div className="layout">
@@ -118,7 +133,7 @@ export default function PedidoDetalhes() {
                                 <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
                             )}
                         </div>
-                        <div style={{ display: 'flex', gap: '10px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                             
                             {podeConferir && (
                                 <button 
@@ -127,6 +142,16 @@ export default function PedidoDetalhes() {
                                 >
                                     <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
                                     Conferir Recebimento (Loja)
+                                </button>
+                            )}
+
+                            {temDivergencia && (
+                                <button 
+                                    onClick={aceitarDivergenciaValor} 
+                                    style={{ ...styles.btnConferir, backgroundColor: '#059669' }}
+                                >
+                                    <CheckSquare size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                    Aceitar Diferenças (Concluir)
                                 </button>
                             )}
 
@@ -152,7 +177,7 @@ export default function PedidoDetalhes() {
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Solicitada</th>
                                 <th style={{ ...styles.th, textAlign: 'right' }}>Valor Unit.</th>
                                 <th style={{ ...styles.th, textAlign: 'right' }}>Subtotal</th>
-                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Real</th>
+                                <th style={{ ...styles.th, textAlign: 'center' }}>Qtd Real (NF)</th>
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
                             </tr>
                         </thead>
@@ -173,8 +198,10 @@ export default function PedidoDetalhes() {
 
                                     <td style={{ ...styles.td, textAlign: 'center' }}>{item.quantidadeReal !== null ? `${item.quantidadeReal} un` : '-'}</td>
                                     <td style={{ ...styles.td, textAlign: 'center' }}>
-                                        <span style={styles.itemStatus(item.statusRecebimento)}>
-                                            {item.statusRecebimento || 'AGUARDANDO'}
+                                        <span style={styles.itemStatus(item.statusRecebimento, item.quantidadeReal, item.quantidadePedida)}>
+                                            {item.quantidadeReal !== null && item.quantidadeReal < item.quantidadePedida && item.statusRecebimento === 'OK' 
+                                                ? 'FALTA PARCIAL' 
+                                                : (item.statusRecebimento || 'AGUARDANDO')}
                                         </span>
                                     </td>
                                 </tr>
@@ -208,12 +235,16 @@ const styles = {
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA'].includes(status) ? '#dc2626' : '#2563eb' }),
-    itemStatus: (status) => ({
-        padding: '4px 8px',
-        borderRadius: '4px',
-        fontSize: '12px',
-        fontWeight: '600',
-        backgroundColor: ['AVARIADO', 'INCORRETO', 'FALTA'].includes(status) ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6',
-        color: ['AVARIADO', 'INCORRETO', 'FALTA'].includes(status) ? '#991b1b' : status === 'OK' ? '#166534' : '#374151'
-    })
+    itemStatus: (status, qtdReal, qtdPedida) => {
+        const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
+        const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta;
+        return {
+            padding: '4px 8px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            fontWeight: '600',
+            backgroundColor: isError ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6',
+            color: isError ? '#991b1b' : status === 'OK' ? '#166534' : '#374151'
+        }
+    }
 };

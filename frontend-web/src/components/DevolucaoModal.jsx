@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { X, Plus, Trash2, Save, CheckSquare, ListX } from 'lucide-react';
+import { X, Plus, Trash2, Save, CheckSquare, ListX, AlertCircle } from 'lucide-react';
 
 export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly }) {
   const navigate = useNavigate();
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(false);
+
   const [internalDevId, setInternalDevId] = useState(devolucaoId);
   const [pedidoOriginal, setPedidoOriginal] = useState(null);
 
@@ -28,6 +29,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
   const [itens, setItens] = useState([]);
   const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
+
   const [selecaoPedido, setSelecaoPedido] = useState({});
 
   useEffect(() => {
@@ -84,33 +86,69 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     } catch (error) { console.error(error); }
   };
 
+  // FUNÇÃO REESCRITA COM A INTELIGÊNCIA LOGÍSTICA
   const aplicarFiltroSelecao = (dadosPedido, tipo) => {
     const selecao = {};
+    
     dadosPedido.itens.forEach(i => {
-      const isDivergente = ['AVARIADO', 'INCORRETO', 'FALTA'].includes(i.statusRecebimento);
+      const isFaltaTotal = i.quantidadeReal === 0 || i.quantidadeReal === null;
+      const isFaltaParcial = i.quantidadeReal > 0 && i.quantidadeReal < i.quantidadePedida;
+      const isAvariado = i.statusRecebimento === 'AVARIADO';
+      const isIncorreto = i.statusRecebimento === 'INCORRETO';
+
+      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
-      
-      let motivoPadrao = '';
-      if (i.statusRecebimento === 'AVARIADO') motivoPadrao = 'Produto Avariado';
-      if (i.statusRecebimento === 'INCORRETO') motivoPadrao = 'Produto Incorreto';
-      
+
+      let motivoPadrao = 'Devolução Padrão';
+      let qtdSugerida = i.quantidadePedida;
+      let isApenasFinanceiro = false;
+      let maxPermitido = i.quantidadePedida;
+
+      if (isFaltaTotal) {
+          motivoPadrao = 'Falta na Caixa (Gerar Crédito)';
+          qtdSugerida = i.quantidadePedida;
+          maxPermitido = i.quantidadePedida;
+          isApenasFinanceiro = true; 
+      } else if (isAvariado) {
+          motivoPadrao = 'Produto Avariado';
+          qtdSugerida = i.quantidadeReal; 
+          maxPermitido = i.quantidadeReal;
+      } else if (isIncorreto) {
+          motivoPadrao = 'Produto Incorreto/Invertido';
+          qtdSugerida = i.quantidadeReal; 
+          maxPermitido = i.quantidadeReal;
+      } else if (isFaltaParcial && !isAvariado && !isIncorreto) {
+          motivoPadrao = 'Falta Parcial (Gerar Crédito)';
+          qtdSugerida = i.quantidadePedida - i.quantidadeReal;
+          maxPermitido = i.quantidadePedida - i.quantidadeReal;
+          isApenasFinanceiro = true;
+      }
+
       selecao[i.id] = {
         selected: isSelected,
         nomeProduto: i.nomeProduto,
         valorUnitario: i.valorUnitarioPedido || 0,
-        qtdMax: i.quantidadePedida,
-        qtd: isDivergente ? Math.max(1, i.quantidadePedida - (i.quantidadeReal || 0)) : i.quantidadePedida,
-        motivo: isSelected ? motivoPadrao : ''
+        qtdMax: maxPermitido,
+        qtd: qtdSugerida > 0 ? qtdSugerida : 1,
+        motivo: isSelected ? motivoPadrao : '',
+        isApenasFinanceiro: isApenasFinanceiro
       };
     });
     setSelecaoPedido(selecao);
   };
 
   const updateSelecao = (itemId, field, value) => {
-    setSelecaoPedido(prev => ({
-      ...prev,
-      [itemId]: { ...prev[itemId], [field]: value }
-    }));
+    setSelecaoPedido(prev => {
+        let valFinal = value;
+        if (field === 'qtd') {
+            if (valFinal > prev[itemId].qtdMax) valFinal = prev[itemId].qtdMax;
+            if (valFinal < 1) valFinal = 1;
+        }
+        return {
+            ...prev,
+            [itemId]: { ...prev[itemId], [field]: valFinal }
+        }
+    });
   };
 
   const handleAddItem = () => {
@@ -190,14 +228,12 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
       <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
         
-        {/* HEADER MODAL */}
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: '12px 12px 0 0' }}>
           <div>
             <h2 style={{ margin: 0, fontSize: '22px', color: '#1e293b' }}>
-              {readOnly ? `Detalhes da Devolução #${internalDevId}` : (internalDevId ? `Editar Devolução #${internalDevId}` : 'Registrar Nova Devolução')}
+              {readOnly ? `Detalhes da Devolução #${internalDevId}` : (internalDevId ? `Editar Devolução #${internalDevId}` : 'Registrar Nova Devolução/Falta')}
             </h2>
             
-            {/* BADGE DE ORIGEM (Vinculado ou Manual) */}
             {idPedVinculado ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px' }}>
@@ -218,11 +254,9 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
           </button>
         </div>
 
-        {/* CORPO MODAL (SCROLL) */}
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', marginBottom: '24px' }}>
-            {/* Bloco 1: Básicos */}
             <div>
               <label style={styles.label}>Fornecedor *</label>
               <select style={styles.input} value={form.fornecedorId} onChange={e => setForm({...form, fornecedorId: e.target.value})} disabled={!!idPedVinculado || readOnly}>
@@ -251,7 +285,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
               <input type="date" style={styles.input} value={form.dataSolicitacao} onChange={e => setForm({...form, dataSolicitacao: e.target.value})} disabled={readOnly} />
             </div>
             
-            {/* Bloco 2: Protocolos e Recolhimento */}
             <div>
               <label style={styles.label}>Protocolo (Geral)</label>
               <input type="text" style={styles.input} value={form.protocolo} onChange={e => setForm({...form, protocolo: e.target.value})} disabled={readOnly} />
@@ -274,7 +307,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
               </div>
             )}
 
-            {/* Bloco 3: Financeiro / Resolução */}
             <div>
               <label style={styles.label}>Como será abatido?</label>
               <select style={styles.input} value={form.formaAbatimento} onChange={e => setForm({...form, formaAbatimento: e.target.value})} disabled={readOnly}>
@@ -295,7 +327,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
           <hr style={{ borderTop: '1px dashed #cbd5e1', margin: '24px 0' }} />
 
-          {/* SESSÃO DOS PRODUTOS: Se for Criação via Pedido vs Manual/Edição */}
           {pedidoOriginal && !internalDevId ? (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -313,8 +344,8 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
                       <th style={{ padding: '12px', fontSize: '13px', width: '40px', textAlign: 'center' }}></th>
                       <th style={{ padding: '12px', fontSize: '13px' }}>Produto</th>
-                      <th style={{ padding: '12px', fontSize: '13px', width: '100px', textAlign: 'center' }}>Qtd Devolver</th>
-                      <th style={{ padding: '12px', fontSize: '13px' }}>Motivo da Devolução</th>
+                      <th style={{ padding: '12px', fontSize: '13px', width: '100px', textAlign: 'center' }}>Qtd Abater</th>
+                      <th style={{ padding: '12px', fontSize: '13px' }}>Motivo</th>
                       <th style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
                     </tr>
                   </thead>
@@ -324,7 +355,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                       if(!sel) return null;
 
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? '#f0fdf4' : 'white', opacity: sel.selected ? 1 : 0.6 }}>
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? (sel.isApenasFinanceiro ? '#fef3c7' : '#f0fdf4') : 'white', opacity: sel.selected ? 1 : 0.6 }}>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <input 
                               type="checkbox" 
@@ -334,7 +365,14 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                             />
                           </td>
                           <td style={{ padding: '12px', color: '#1e293b', fontWeight: '500', fontSize: '14px' }}>
-                            {sel.nomeProduto}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {sel.nomeProduto}
+                                {sel.selected && sel.isApenasFinanceiro && (
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }} title="Não há produto físico para devolver. Gera apenas crédito.">
+                                        <AlertCircle size={10} /> FALTA (Crédito)
+                                    </span>
+                                )}
+                            </div>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <input 
@@ -350,7 +388,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                           <td style={{ padding: '12px' }}>
                             <input 
                               type="text" 
-                              placeholder="Ex: Vencimento próximo, avariado..." 
                               value={sel.motivo} 
                               onChange={(e) => updateSelecao(item.id, 'motivo', e.target.value)} 
                               disabled={!sel.selected}
@@ -369,7 +406,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
             </div>
           ) : (
             <div>
-              <h3 style={{ fontSize: '16px', color: '#1e293b', marginBottom: '16px' }}>Produtos Devolvidos</h3>
+              <h3 style={{ fontSize: '16px', color: '#1e293b', marginBottom: '16px' }}>Produtos Informados</h3>
               
               {!readOnly && (
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px', backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px' }}>
@@ -427,7 +464,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
         </div>
 
-        {/* FOOTER MODAL */}
         <div style={{ padding: '20px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div style={{ fontSize: '18px', color: '#1e293b' }}>
             Total a Ressarcir: <strong style={{ color: '#16a34a', fontSize: '24px' }}>R$ {calcTotal().toFixed(2)}</strong>
@@ -438,7 +474,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
             </button>
             {!readOnly && (
               <button onClick={handleSalvar} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Save size={18} /> {loading ? 'Salvando...' : 'Salvar Devolução'}
+                <Save size={18} /> {loading ? 'Salvando...' : 'Salvar Devolução/Crédito'}
               </button>
             )}
           </div>
