@@ -228,7 +228,7 @@ export default function Cotacoes() {
                     <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => navigate(`/cotacoes/${cotacao.id}`)} title="Abrir Cotação" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                        <button onClick={() => navigate(`/cotacao/${cotacao.id}`)} title="Abrir Cotação" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
                           <Eye size={16} /> Abrir
                         </button>
                         

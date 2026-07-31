@@ -38,7 +38,6 @@ export default function CotacaoDetalhes() {
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
   const [fornecedoresLista, setFornecedoresLista] = useState([])
-  const [fornecedorManual, setFornecedorManual] = useState('')
   const [checklist, setChecklist] = useState({})
 
   const [itensJaComprados, setItensJaComprados] = useState({}) 
@@ -154,8 +153,8 @@ export default function CotacaoDetalhes() {
         let changed = false;
 
         relatorio.forEach(item => {
-          const idPedidoVinculado = itensJaComprados[item.idItem];
-          const isBloqueado = !!idPedidoVinculado;
+          const dadosComprado = itensJaComprados[item.idItem];
+          const isBloqueado = !!dadosComprado;
           const qtdRelatorio = item.quantidade || 1;
 
           if (!newChecklist[item.idItem]) {
@@ -164,7 +163,8 @@ export default function CotacaoDetalhes() {
               qtd: qtdRelatorio,
               preco: item.ultimoPreco || 0,
               bloqueado: isBloqueado,
-              falta: false
+              falta: false,
+              fornecedor: isBloqueado ? dadosComprado.fornecedor : '' // REGRA DO FORNECEDOR NA LINHA
             };
             changed = true;
           } else {
@@ -172,6 +172,7 @@ export default function CotacaoDetalhes() {
               newChecklist[item.idItem].comprado = true;
               newChecklist[item.idItem].falta = false;
               newChecklist[item.idItem].bloqueado = true;
+              newChecklist[item.idItem].fornecedor = dadosComprado.fornecedor;
               changed = true;
             }
             if (!newChecklist[item.idItem].comprado && newChecklist[item.idItem].qtd !== qtdRelatorio) {
@@ -643,53 +644,73 @@ export default function CotacaoDetalhes() {
     }
   };
 
+  // REGRA DE AGRUPAMENTO DE PEDIDOS MANUAIS
   const handlePrepararRegistroManual = async () => {
-    if (!fornecedorManual) {
-      alert('Por favor, selecione um Fornecedor no topo da tela para vincular as compras.');
-      return;
-    }
-
     const itensComprados = [];
+    let erroFornecedorFaltando = false;
 
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
       const chk = checklist[idItem];
       
       if (chk && chk.comprado && !chk.bloqueado && chk.qtd > 0) {
+        if (!chk.fornecedor) {
+          erroFornecedorFaltando = true;
+        }
         itensComprados.push({
           itemCotacaoId: idItem,
           quantidadePedida: chk.qtd,
           valorUnitarioPedido: chk.preco,
-          nomeProduto: getNomeRealSempre(itemRelatorio.nomeProduto)
+          nomeProduto: getNomeRealSempre(itemRelatorio.nomeProduto),
+          fornecedorNome: chk.fornecedor
         });
       }
     });
 
     if (itensComprados.length === 0) {
-      alert('Marque pelo menos um produto (que ainda não foi pedido) como "✅ Já Comprado" para gerar o registro.');
+      alert('Marque pelo menos um produto como "Comprar" e selecione o Fornecedor na tabela para gerar o registro.');
       return;
     }
+
+    if (erroFornecedorFaltando) {
+      alert('Atenção: Você marcou itens para compra, mas esqueceu de selecionar o Fornecedor em um ou mais deles na tabela.');
+      return;
+    }
+
+    // Agrupa os itens comprados por fornecedor para gerar os pedidos separadamente
+    const pedidosAgrupados = {};
+    itensComprados.forEach(item => {
+        if (!pedidosAgrupados[item.fornecedorNome]) {
+            pedidosAgrupados[item.fornecedorNome] = [];
+        }
+        pedidosAgrupados[item.fornecedorNome].push(item);
+    });
+
+    const payload = Object.keys(pedidosAgrupados).map(forn => ({
+        cotacaoId: Number(id),
+        fornecedorNome: forn,
+        itens: pedidosAgrupados[forn]
+    }));
 
     const mapaDuplicatas = await mapearDuplicatas();
     const itensDuplicados = itensComprados.filter(i => mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]);
 
-    let mensagemConfirmacao = `Confirma o registro do pedido com ${itensComprados.length} itens no fornecedor ${fornecedorManual}?`;
+    let mensagemConfirmacao = `Confirma o registro de pedidos manuais para ${Object.keys(pedidosAgrupados).length} fornecedor(es)?\n\n`;
+    Object.keys(pedidosAgrupados).forEach(f => {
+        mensagemConfirmacao += `- ${f}: ${pedidosAgrupados[f].length} item(ns)\n`;
+    });
 
     if (itensDuplicados.length > 0) {
-      mensagemConfirmacao = `⚠️ AVISO DE DUPLICIDADE ⚠️\n\nOs seguintes itens já possuem pedidos pendentes em outras cotações:\n`;
+      mensagemConfirmacao += `\n⚠️ AVISO DE DUPLICIDADE ⚠️\nOs seguintes itens já possuem pedidos pendentes em outras cotações:\n`;
       itensDuplicados.forEach(i => {
         const cots = Array.from(mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]).join(', ');
         mensagemConfirmacao += `- ${i.nomeProduto} (Cotações: ${cots})\n`;
       });
-      mensagemConfirmacao += `\nDeseja gerar o pedido mesmo assim?`;
+      mensagemConfirmacao += `\nDeseja gerar os pedidos mesmo assim?`;
     }
 
     setMensagemConfirmacaoManual(mensagemConfirmacao);
-    setPayloadManualData([{
-      cotacaoId: Number(id),
-      fornecedorNome: fornecedorManual,
-      itens: itensComprados
-    }]);
+    setPayloadManualData(payload);
     setConfirmManualModal(true);
   }
 
@@ -703,10 +724,9 @@ export default function CotacaoDetalhes() {
               setStatusCotacao('FINALIZADA');
           }
 
-          alert('Pedido manual registrado com sucesso!');
+          alert('Pedidos manuais registrados com sucesso!');
           setConfirmManualModal(false);
           carregarPedidosDaCotacao();
-          setFornecedorManual('');
           
           if (acaoPosPedido === 'ENCERRADA') navigate('/cotacoes');
       } catch (error) {
@@ -779,14 +799,38 @@ export default function CotacaoDetalhes() {
     }
   }
 
+  // REGRA DO PDF AGRUPADO POR FORNECEDOR
   const baixarRelatorioGeral = async () => {
     try {
-      const itens = relatorioOrdenado;
-
-      if (!itens || itens.length === 0) {
+      if (!relatorioOrdenado || relatorioOrdenado.length === 0) {
         alert('Essa cotação ainda não tem itens processados.')
         return
       }
+
+      const itensAgrupados = {};
+      let totalGeral = 0;
+
+      relatorioOrdenado.forEach(item => {
+        const comprado = itensJaComprados[item.idItem];
+        const vencedor = comprado ? comprado.fornecedor : (item.fornecedorVencedor || 'Sem Oferta');
+        const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0);
+        const qtd = comprado ? comprado.quantidade : (item.quantidade || 0);
+        const total = preco * qtd;
+        const nomeCorreto = getNomeRealSempre(item.nomeProduto);
+
+        if (!itensAgrupados[vencedor]) {
+          itensAgrupados[vencedor] = { itens: [], totalFornecedor: 0 };
+        }
+
+        itensAgrupados[vencedor].itens.push([
+          nomeCorreto,
+          qtd,
+          preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
+        ]);
+        itensAgrupados[vencedor].totalFornecedor += total;
+        totalGeral += total;
+      });
 
       const doc = new jsPDF()
       doc.setFontSize(18)
@@ -794,52 +838,37 @@ export default function CotacaoDetalhes() {
       doc.setFontSize(12)
       doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
 
-      const linhas = itens.map((item) => {
-        const comprado = itensJaComprados[item.idItem];
-        
-        const vencedor = comprado ? comprado.fornecedor : (item.fornecedorVencedor || 'Sem Oferta')
-        const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0)
-        const qtd = comprado ? comprado.quantidade : (item.quantidade || 0)
-        const total = preco * qtd
-        const nomeCorreto = getNomeRealSempre(item.nomeProduto);
+      let currentY = 40;
 
-        return [
-          nomeCorreto,
-          qtd,
-          vencedor,
-          preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        ]
-      })
+      Object.keys(itensAgrupados).sort().forEach(fornecedor => {
+         const data = itensAgrupados[fornecedor];
 
-      const totalGeral = itens.reduce((acc, item) => {
-        const comprado = itensJaComprados[item.idItem];
-        const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0);
-        const qtd = comprado ? comprado.quantidade : (item.quantidade || 0);
-        return acc + preco * qtd;
-      }, 0)
+         doc.setFontSize(14);
+         doc.setTextColor(22, 163, 74);
+         doc.text(`Fornecedor: ${fornecedor}`, 14, currentY);
+         currentY += 5;
 
-      autoTable(doc, {
-        startY: 40,
-        head: [['Produto', 'Qtd', 'Fornecedor Vencedor', 'Unitário', 'Total']],
-        body: linhas,
-        foot: [
-          [
-            '',
-            '',
-            '',
-            'TOTAL GERAL',
-            totalGeral.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }),
-          ],
-        ],
-        theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
-      })
+         autoTable(doc, {
+            startY: currentY,
+            head: [['Produto', 'Qtd', 'Unitário', 'Total']],
+            body: data.itens,
+            foot: [
+              ['', '', 'TOTAL FORNECEDOR', data.totalFornecedor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]
+            ],
+            theme: 'striped',
+            headStyles: { fillColor: [71, 85, 105] }, 
+            footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+            margin: { bottom: 20 }
+         });
 
-      doc.save(`Relatorio_Geral_Cotacao_${id}.pdf`)
+         currentY = doc.lastAutoTable.finalY + 15;
+      });
+
+      doc.setFontSize(14);
+      doc.setTextColor(0, 0, 0);
+      doc.text(`TOTAL GERAL DA COTAÇÃO: ${totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}`, 14, currentY);
+
+      doc.save(`Relatorio_Fechamento_Cotacao_${id}.pdf`)
     } catch (error) {
       console.error('Erro ao gerar PDF:', error)
       alert('Erro ao gerar o relatório.')
@@ -873,19 +902,8 @@ export default function CotacaoDetalhes() {
       <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb', flexWrap: 'wrap', gap: '15px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Fornecedor da Compra</label>
-            <select 
-              value={fornecedorManual} 
-              onChange={(e) => setFornecedorManual(e.target.value)}
-              disabled={isEncerrada}
-              style={{ width: '100%', minWidth: '300px', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb', fontSize: '14px' }}
-            >
-              <option value="">-- Selecione o Fornecedor --</option>
-              {fornecedoresLista.map(f => (
-                <option key={f.id} value={f.nome}>{f.nome}</option>
-              ))}
-            </select>
-            <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '6px' }}>Marque os itens abaixo à medida que for finalizando no site do fornecedor.</p>
+            <h3 style={{ margin: 0, fontSize: '18px', color: '#111827' }}>Registro de Pedidos Manuais</h3>
+            <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>Marque os itens, ajuste os preços e vincule o fornecedor para gerar o pedido espelho.</p>
           </div>
 
           <div style={{ textAlign: 'right' }}>
@@ -901,20 +919,26 @@ export default function CotacaoDetalhes() {
                 <th style={{ ...styles.th, width: '120px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div>
                 </th>
-                <th style={{ ...styles.th, cursor: 'pointer', minWidth: '250px' }} onClick={() => requestSort('nomeProduto')}>
+                <th style={{ ...styles.th, cursor: 'pointer', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
-                <th style={{ ...styles.th, textAlign: 'center', width: '100px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
+                
+                {/* NOVA COLUNA FORNECEDOR */}
+                <th style={{ ...styles.th, textAlign: 'center', width: '200px', minWidth: '180px' }}>
+                  Fornecedor
+                </th>
+
+                <th style={{ ...styles.th, textAlign: 'center', width: '90px', minWidth: '90px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div>
                 </th>
-                <th style={{ ...styles.th, textAlign: 'right', width: '120px', minWidth: '120px' }}>Custo Final (R$)</th>
-                <th style={{ ...styles.th, textAlign: 'right', width: '120px', minWidth: '120px' }}>Subtotal</th>
-                <th style={{ ...styles.th, textAlign: 'center', width: '130px', minWidth: '130px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '110px', minWidth: '110px' }}>Custo Final (R$)</th>
+                <th style={{ ...styles.th, textAlign: 'right', width: '110px', minWidth: '110px' }}>Subtotal</th>
+                <th style={{ ...styles.th, textAlign: 'center', width: '120px', minWidth: '120px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
               </tr>
             </thead>
             <tbody>
               {relatorioExibicao.map((item) => {
-                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false };
+                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false, fornecedor: '' };
                 const cores = getCorOrigem(item.origemItem);
                 
                 const rowStyle = chk.bloqueado 
@@ -940,7 +964,7 @@ export default function CotacaoDetalhes() {
 
                     <td style={styles.td}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ ...textStyle, fontSize: '14px' }}>
+                        <span style={{ ...textStyle, fontSize: '13px' }}>
                           {getNomeExibicao(item.nomeProduto)}
                         </span>
                         <button 
@@ -958,6 +982,21 @@ export default function CotacaoDetalhes() {
                       </div>
                     </td>
 
+                    {/* SELECT DO FORNECEDOR POR LINHA */}
+                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                      <select 
+                        value={chk.fornecedor || ''}
+                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, fornecedor: e.target.value } })}
+                        disabled={!chk.comprado || chk.bloqueado || isEncerrada}
+                        style={{ ...styles.inputEdicao, width: '100%', fontSize: '12px', padding: '6px' }}
+                      >
+                        <option value="">-- Selecionar --</option>
+                        {fornecedoresLista.map(f => (
+                          <option key={f.id} value={f.nome}>{f.nome}</option>
+                        ))}
+                      </select>
+                    </td>
+
                     <td style={{ ...styles.td, textAlign: 'center' }}>
                       <input 
                         type="number" 
@@ -965,8 +1004,8 @@ export default function CotacaoDetalhes() {
                         value={chk.qtd} 
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
                         onFocus={(e) => e.target.select()}
-                        style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
-                        disabled={chk.comprado || chk.bloqueado || isEncerrada}
+                        style={{ ...styles.inputEdicao, width: '60px', textAlign: 'center', fontWeight: 'bold' }}
+                        disabled={!chk.comprado || chk.bloqueado || isEncerrada}
                       />
                     </td>
 
@@ -978,8 +1017,8 @@ export default function CotacaoDetalhes() {
                         value={chk.preco} 
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
                         onFocus={(e) => e.target.select()}
-                        style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
-                        disabled={chk.comprado || chk.bloqueado || isEncerrada}
+                        style={{ ...styles.inputEdicao, width: '80px', textAlign: 'right', fontWeight: 'bold' }}
+                        disabled={!chk.comprado || chk.bloqueado || isEncerrada}
                       />
                     </td>
 
@@ -990,7 +1029,7 @@ export default function CotacaoDetalhes() {
                     <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
                       {chk.bloqueado ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>
+                          <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>
                             Já Pedido
                           </span>
                           {!isEncerrada && (
