@@ -189,6 +189,14 @@ public class CotacaoService {
             throw new RuntimeException("Cotação não encontrada!");
         }
 
+        entityManager.createNativeQuery("UPDATE tb_pedidos SET cotacao_id = NULL WHERE cotacao_id = :id")
+                     .setParameter("id", id)
+                     .executeUpdate();
+
+        entityManager.createNativeQuery("UPDATE tb_itens_pedido SET item_cotacao_id = NULL WHERE item_cotacao_id IN (SELECT id FROM tb_itens_cotacao WHERE cotacao_id = :id)")
+                     .setParameter("id", id)
+                     .executeUpdate();
+
         entityManager.createNativeQuery("DELETE FROM tb_sugestoes_promocao WHERE cotacao_id = :id")
                      .setParameter("id", id)
                      .executeUpdate();

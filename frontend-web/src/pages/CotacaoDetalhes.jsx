@@ -4,7 +4,7 @@ import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import UploadModal from '../components/layout/UploadModal'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, AlertTriangle } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -83,17 +83,21 @@ export default function CotacaoDetalhes() {
   useEffect(() => {
     setFornecedoresVisiveis(prev => {
         const novoEstado = { ...prev };
+        let changed = false;
         fornecedores.forEach(f => {
-            if (novoEstado[f] === undefined) novoEstado[f] = true;
+            if (novoEstado[f] === undefined) {
+                novoEstado[f] = true;
+                changed = true;
+            }
         });
-        return novoEstado;
+        return changed ? novoEstado : prev; 
     });
   }, [fornecedores]);
 
   const carregarCotacao = async () => {
       try {
           const res = await api.get(`/api/cotacao/${id}`);
-          setStatusCotacao(res.data.status);
+          if(res.data) setStatusCotacao(res.data.status || 'ABERTA');
       } catch (error) {
           console.error("Erro ao carregar status da cotação", error);
       }
@@ -102,11 +106,11 @@ export default function CotacaoDetalhes() {
   const carregarPedidosDaCotacao = async () => {
     try {
       const response = await api.get(`/api/pedidos/cotacao/${id}`)
-      const pedidos = response.data
+      const pedidos = Array.isArray(response.data) ? response.data : [];
       const mapComprados = {}
       pedidos.forEach(p => {
         if(p.status === 'CANCELADO') return; 
-        p.itens?.forEach(item => { // PROTEÇÃO CONTRA CRASH
+        (p.itens || []).forEach(item => {
           const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
           if (idItemCotacao) {
             mapComprados[idItemCotacao] = p.id;
@@ -122,7 +126,7 @@ export default function CotacaoDetalhes() {
   const carregarFornecedores = async () => {
     try {
       const response = await api.get('/api/fornecedor')
-      setFornecedoresLista(response.data)
+      setFornecedoresLista(Array.isArray(response.data) ? response.data : [])
     } catch (error) {
       console.error("Erro ao carregar lista de fornecedores gerais", error)
     }
@@ -168,7 +172,7 @@ export default function CotacaoDetalhes() {
     try {
       const response = await api.get('/api/diversos')
       const mapDiversos = {}
-      response.data.forEach(item => {
+      ;(Array.isArray(response.data) ? response.data : []).forEach(item => {
         if (item.codigoDiversos) {
           const codigoPuro = String(item.codigoDiversos).toUpperCase().replace(/\s/g, '')
           mapDiversos[codigoPuro] = item.produto
@@ -210,12 +214,13 @@ export default function CotacaoDetalhes() {
     setLoading(true)
     try {
       const response = await api.get(`/api/comparativo/relatorio/${id}`)
-      setRelatorio(response.data)
+      const data = Array.isArray(response.data) ? response.data : [];
+      setRelatorio(data)
 
       const nomes = new Set()
       const decisaoInicial = {}
 
-      response.data.forEach((item) => {
+      data.forEach((item) => {
         if (item.precosPorFornecedor) {
           Object.keys(item.precosPorFornecedor).forEach((n) => nomes.add(n))
         }
@@ -229,12 +234,12 @@ export default function CotacaoDetalhes() {
 
       try {
         const resPromos = await api.get(`/api/cotacao/sugestoes/${id}`);
-        setPromocoes(resPromos.data || []);
+        setPromocoes(Array.isArray(resPromos.data) ? resPromos.data : []);
       } catch (err) {
         console.warn('Sem promoções extras.');
       }
     } catch (error) {
-      alert('Erro ao carregar detalhes.')
+      console.error("Erro ao carregar detalhes", error);
     } finally {
       setLoading(false)
     }
@@ -302,8 +307,10 @@ export default function CotacaoDetalhes() {
       }
 
       const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
-      const origemItem = item.origemItem || 'Geral';
-      const matchOrigem = filtroOrigem === 'TODOS' || origemItem.includes(filtroOrigem);
+      
+      const origemSegura = String(item.origemItem || 'Geral').toUpperCase();
+      const filtroOrigemUpper = filtroOrigem.toUpperCase();
+      const matchOrigem = filtroOrigem === 'TODOS' || origemSegura.includes(filtroOrigemUpper);
       
       const precos = Object.values(item.precosPorFornecedor || {});
       const temPropostaValida = precos.some(p => p > 0);
@@ -362,7 +369,6 @@ export default function CotacaoDetalhes() {
     } else {
       const itemRelatorio = relatorio.find(r => r.idItem === idItem);
       if (itemRelatorio) {
-        // PROTEÇÃO CONTRA CRASH: Usando Optional Chaining para evitar ler de nulo
         const precoOriginal = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
         
         if (!precoOriginal || precoOriginal <= 0) {
@@ -430,12 +436,13 @@ export default function CotacaoDetalhes() {
   const mapearDuplicatas = async () => {
     try {
       const response = await api.get('/api/pedidos');
-      const pendentes = response.data.filter(p => p.status === 'PENDENTE_ENTREGA' && (p.cotacao?.id !== Number(id) && p.cotacaoId !== Number(id)));
+      const pendentes = (Array.isArray(response.data) ? response.data : []).filter(p => p.status === 'PENDENTE_ENTREGA' && (p.cotacao?.id !== Number(id) && p.cotacaoId !== Number(id)));
 
       const mapa = {};
       pendentes.forEach(p => {
         const cId = p.cotacao?.id || p.cotacaoId || '?';
-        p.itens?.forEach(i => { // PROTEÇÃO CONTRA CRASH
+        (p.itens || []).forEach(i => {
+          if (!i.nomeProduto) return;
           const nomeNormalizado = getNomeRealSempre(i.nomeProduto).toUpperCase().trim();
           if (!mapa[nomeNormalizado]) {
             mapa[nomeNormalizado] = new Set();
@@ -468,7 +475,7 @@ export default function CotacaoDetalhes() {
       const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
 
       let preco = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
-      let qtd = itemRelatorio.quantidade;
+      let qtd = itemRelatorio.quantidade || 0;
       let nomeFinal;
       let nomeOriginal = null;
 
@@ -724,7 +731,8 @@ export default function CotacaoDetalhes() {
       const linhas = itens.map((item) => {
         const vencedor = item.fornecedorVencedor || 'Sem Oferta'
         const preco = item.menorPrecoEncontrado || 0
-        const total = preco * item.quantidade
+        const qtd = item.quantidade || 0;
+        const total = preco * qtd
         const nomeCorreto = getNomeRealSempre(item.nomeProduto);
 
         return [
@@ -738,7 +746,8 @@ export default function CotacaoDetalhes() {
 
       const totalGeral = itens.reduce((acc, item) => {
         const preco = item.menorPrecoEncontrado || 0
-        return acc + preco * item.quantidade
+        const qtd = item.quantidade || 0;
+        return acc + preco * qtd
       }, 0)
 
       autoTable(doc, {
@@ -774,7 +783,7 @@ export default function CotacaoDetalhes() {
   const getCorOrigem = (origem) => {
     if (!origem) return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: 'Geral' };
     
-    const orig = origem.toUpperCase();
+    const orig = String(origem).toUpperCase();
     
     if (orig.includes('EXTRA MANUAL')) return { bg: '#fce7f3', color: '#be185d', border: '#fbcfe8', label: '➕ Inserido Manualmente' };
     if (orig.includes('NOVA IMPORTAÇÃO') || orig.includes('ATUALIZAÇÃO')) return { bg: '#f3e8ff', color: '#7e22ce', border: '#e9d5ff', label: '🔄 Atualização DNA' };
