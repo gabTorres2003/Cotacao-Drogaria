@@ -72,10 +72,18 @@ export default function Pedidos() {
       const isConcluido = p.status === 'ENTREGUE_SUCESSO' || p.status === 'ENTREGUE_COM_FALTA' || p.status === 'CANCELADO';
       if (abaAtiva === 'ANDAMENTO' && isConcluido) return false;
       if (abaAtiva === 'HISTORICO' && !isConcluido) return false;
+      
       const textoBusca = busca.toLowerCase()
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
       const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
-      const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || p.id.toString().includes(textoBusca) || idCotacaoStr.includes(textoBusca)
+      
+      const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
+
+      const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || 
+                         p.id.toString().includes(textoBusca) || 
+                         idCotacaoStr.includes(textoBusca) || 
+                         matchProduto;
+
       const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
 
       let matchData = true;
@@ -96,6 +104,7 @@ export default function Pedidos() {
       return matchTexto && matchStatus && matchData;
     })
     .sort((a, b) => {
+      // Ordenação robusta com fallback para datas nulas e desempate por ID
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
       if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao || 0) - new Date(b.dataCriacao || 0) || a.id - b.id;
       if (ordenacao === 'MAIOR_VALOR') return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
@@ -179,7 +188,7 @@ export default function Pedidos() {
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar Pedido, Cotação ou Empresa..."
+              placeholder="Buscar Pedido, Empresa ou Produto..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
