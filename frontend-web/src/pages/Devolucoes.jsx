@@ -13,7 +13,8 @@ import {
   Banknote,
   CheckCircle,
   Plus,
-  Eye
+  Eye,
+  ArrowUpDown
 } from 'lucide-react';
 
 export default function Devolucoes() {
@@ -26,6 +27,8 @@ export default function Devolucoes() {
 
   const [busca, setBusca] = useState('');
   const [filtroStatus, setFiltroStatus] = useState('TODOS');
+  const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO');
+  const [ordenacao, setOrdenacao] = useState('RECENTES');
 
   const [resumo, setResumo] = useState({
     total: 0,
@@ -91,6 +94,10 @@ export default function Devolucoes() {
   };
 
   const devolucoesFiltradas = devolucoes.filter((d) => {
+    const isEncerrada = d.status === 'CONCLUIDA' || d.status === 'CANCELADA';
+    if (abaAtiva === 'ANDAMENTO' && isEncerrada) return false;
+    if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
+
     const textoBusca = busca.toLowerCase();
     const fornecedorNome = d.fornecedor?.nome || d.fornecedor?.empresa || '';
     const nf = d.nfOrigem || '';
@@ -100,6 +107,12 @@ export default function Devolucoes() {
     const matchStatus = filtroStatus === 'TODOS' || d.status === filtroStatus;
     
     return matchBusca && matchStatus;
+  }).sort((a, b) => {
+    if (ordenacao === 'RECENTES') return new Date(b.dataSolicitacao || 0) - new Date(a.dataSolicitacao || 0) || b.id - a.id;
+    if (ordenacao === 'ANTIGOS') return new Date(a.dataSolicitacao || 0) - new Date(b.dataSolicitacao || 0) || a.id - b.id;
+    if (ordenacao === 'MAIOR_VALOR') return (b.valorTotal || 0) - (a.valorTotal || 0);
+    if (ordenacao === 'MENOR_VALOR') return (a.valorTotal || 0) - (b.valorTotal || 0);
+    return 0;
   });
 
   const formatarData = (dataIso) => {
@@ -166,14 +179,30 @@ export default function Devolucoes() {
           </div>
         </div>
 
-        <div className="filters-bar" style={{ marginBottom: '20px' }}>
-          <div className="search-input-container">
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+          <button 
+            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+          >
+            Devoluções em Andamento
+          </button>
+          <button 
+            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+          >
+            Histórico (Encerradas)
+          </button>
+        </div>
+
+        <div className="filters-bar" style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center' }}>
+          <div className="search-input-container" style={{ margin: 0, flex: '1 1 250px' }}>
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
               placeholder="Buscar Fornecedor, NF, ID ou Pedido..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
+              style={{ border: 'none', outline: 'none', width: '100%' }}
             />
           </div>
 
@@ -183,14 +212,46 @@ export default function Devolucoes() {
               className="filter-select"
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
+              style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}
             >
               <option value="TODOS">Todos os Status</option>
-              <option value="AGUARDANDO_RECOLHIMENTO">Aguardando Recolhimento</option>
-              <option value="AGUARDANDO_CREDITO">Aguardando Crédito</option>
-              <option value="CONCLUIDA">Concluídas</option>
-              <option value="CANCELADA">Canceladas</option>
+              {abaAtiva === 'ANDAMENTO' ? (
+                <>
+                  <option value="AGUARDANDO_RECOLHIMENTO">Aguardando Recolhimento</option>
+                  <option value="AGUARDANDO_CREDITO">Aguardando Crédito</option>
+                </>
+              ) : (
+                <>
+                  <option value="CONCLUIDA">Concluídas</option>
+                  <option value="CANCELADA">Canceladas</option>
+                </>
+              )}
             </select>
           </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+            <ArrowUpDown size={18} color="#6b7280" />
+            <select
+              className="filter-select"
+              value={ordenacao}
+              onChange={(e) => setOrdenacao(e.target.value)}
+              style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}
+            >
+              <option value="RECENTES">Mais Recentes</option>
+              <option value="ANTIGOS">Mais Antigas</option>
+              <option value="MAIOR_VALOR">Maior Valor</option>
+              <option value="MENOR_VALOR">Menor Valor</option>
+            </select>
+          </div>
+
+          {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES') && (
+            <button 
+              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Limpar Filtros
+            </button>
+          )}
         </div>
 
         <div className="table-container">
@@ -212,7 +273,7 @@ export default function Devolucoes() {
               {loading ? (
                 <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
               ) : devolucoesFiltradas.length === 0 ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada.</td></tr>
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada nesta aba.</td></tr>
               ) : (
                 devolucoesFiltradas.map((dev) => (
                   <tr key={dev.id} style={{ borderBottom: '1px solid #f1f5f9' }}>

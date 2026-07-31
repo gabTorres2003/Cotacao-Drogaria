@@ -12,6 +12,7 @@ export default function Pedidos() {
   const [modalDevolucaoAberto, setModalDevolucaoAberto] = useState(false)
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  
   const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
@@ -95,15 +96,10 @@ export default function Pedidos() {
       return matchTexto && matchStatus && matchData;
     })
     .sort((a, b) => {
-      if (ordenacao === 'RECENTES') {
-        return new Date(b.dataCriacao) - new Date(a.dataCriacao);
-      } else if (ordenacao === 'ANTIGOS') {
-        return new Date(a.dataCriacao) - new Date(b.dataCriacao);
-      } else if (ordenacao === 'MAIOR_VALOR') {
-        return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
-      } else if (ordenacao === 'MENOR_VALOR') {
-        return (a.valorTotalPedido || 0) - (b.valorTotalPedido || 0);
-      }
+      if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
+      if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao || 0) - new Date(b.dataCriacao || 0) || a.id - b.id;
+      if (ordenacao === 'MAIOR_VALOR') return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
+      if (ordenacao === 'MENOR_VALOR') return (a.valorTotalPedido || 0) - (b.valorTotalPedido || 0);
       return 0;
     });
 
@@ -164,13 +160,13 @@ export default function Pedidos() {
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
           <button 
-            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
+            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
             style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Pedidos em Andamento
           </button>
           <button 
-            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); }}
+            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
             style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Histórico (Concluídos)
@@ -192,14 +188,14 @@ export default function Pedidos() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '6px' }}>
              <Calendar size={16} color="#6b7280" />
-             <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }} title="Data Inicial" />
+             <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Inicial" />
              <span style={{ color: '#9ca3af', fontSize: '13px' }}>até</span>
-             <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }} title="Data Final" />
+             <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Final" />
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
             <Filter size={16} color="#6b7280" />
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="TODOS">Todos os Status</option>
               {abaAtiva === 'ANDAMENTO' ? (
                 <>
@@ -221,7 +217,7 @@ export default function Pedidos() {
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
             <ArrowUpDown size={16} color="#6b7280" />
-            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="RECENTES">Mais Recentes</option>
               <option value="ANTIGOS">Mais Antigos</option>
               <option value="MAIOR_VALOR">Maior Valor Previsto</option>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -9,6 +9,14 @@ export default function FornecedorDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('cotacoes') 
   
+  const [showPrimeiroAcesso, setShowPrimeiroAcesso] = useState(localStorage.getItem('primeiroAcesso') === 'true')
+  const [novaSenha, setNovaSenha] = useState('')
+  const [salvandoSenha, setSalvandoSenha] = useState(false)
+
+  const [pedidoConfirmacao, setPedidoConfirmacao] = useState(null)
+  const [checklistEstoque, setChecklistEstoque] = useState({})
+  const [salvandoConfirmacao, setSalvandoConfirmacao] = useState(false)
+
   const navigate = useNavigate()
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor'
   const usuarioId = localStorage.getItem('usuarioId')
@@ -66,26 +74,67 @@ export default function FornecedorDashboard() {
     navigate('/')
   }
 
-  // TEXTOS DE CONFIRMAÇÃO ATUALIZADOS AQUI
-  const handleConfirmarFabrica = async (pedidoId) => {
-    if(window.confirm("Confirmar o processamento deste pedido na fábrica/distribuidora? A farmácia será notificada e ficará aguardando a entrega.")) {
-      try {
-        await api.patch(`/api/pedidos/${pedidoId}/status`, { status: "CONFIRMADO_FORNECEDOR" })
+  const salvarNovaSenha = async () => {
+    if (!novaSenha) return alert("Digite a nova senha.");
+    setSalvandoSenha(true);
+    try {
+      await api.put(`/api/fornecedor/${usuarioId}/senha`, { senha: novaSenha });
+      localStorage.setItem('primeiroAcesso', 'false');
+      setShowPrimeiroAcesso(false);
+      alert("Senha de acesso atualizada com sucesso!");
+    } catch (error) {
+      alert("Erro ao atualizar a senha. Tente novamente.");
+    } finally {
+      setSalvandoSenha(false);
+    }
+  }
+
+  const abrirModalConfirmacao = (pedido) => {
+    setPedidoConfirmacao(pedido)
+    const checklistInicial = {}
+    pedido.itens.forEach(item => {
+      checklistInicial[item.id] = true
+    })
+    setChecklistEstoque(checklistInicial)
+  }
+
+  const processarConfirmacaoPedido = async () => {
+    setSalvandoConfirmacao(true)
+    
+    const itensEmFalta = pedidoConfirmacao.itens.filter(item => !checklistEstoque[item.id]);
+    const todosEmFalta = itensEmFalta.length === pedidoConfirmacao.itens.length;
+
+    try {
+      for (const item of itensEmFalta) {
+        try {
+          await api.delete(`/api/pedidos/item/${item.id}`);
+        } catch (e) { console.error("Erro ao remover item do pedido", e) }
+      }
+
+      if (todosEmFalta) {
+        await api.patch(`/api/pedidos/${pedidoConfirmacao.id}/status`, { status: "CANCELADO" });
+        alert("Como todos os produtos estavam em falta, o pedido foi CANCELADO.");
+      } else {
+        await api.patch(`/api/pedidos/${pedidoConfirmacao.id}/status`, { status: "CONFIRMADO_FORNECEDOR" })
         
         try {
           await api.post('/api/auditoria/registrar', {
             nomeUsuario: nomeUsuario,
             tipoUsuario: 'FORNECEDOR',
             acao: 'CONFIRMACAO_PEDIDO',
-            detalhes: `Fornecedor confirmou o processamento na fábrica do Pedido #${pedidoId}.`
+            detalhes: `Fornecedor confirmou processamento do Pedido #${pedidoConfirmacao.id}. Itens em falta informados: ${itensEmFalta.length}`
           });
         } catch(e) {}
 
-        alert("Pedido marcado como CONFIRMADO com sucesso!")
-        fetchDados()
-      } catch(error) {
-        alert("Erro ao confirmar o pedido.")
+        alert("Pedido confirmado com sucesso! A farmácia foi notificada sobre o andamento e as rupturas (se houver).")
       }
+      
+      setPedidoConfirmacao(null)
+      fetchDados()
+    } catch(error) {
+      alert("Erro ao processar o pedido.")
+    } finally {
+      setSalvandoConfirmacao(false)
     }
   }
 
@@ -117,7 +166,9 @@ export default function FornecedorDashboard() {
       display: 'flex',
       alignItems: 'center',
       gap: '8px'
-    })
+    }),
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
   const getBadgeFornecedor = (status) => {
@@ -283,8 +334,7 @@ export default function FornecedorDashboard() {
                           <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
                           
                           {badge === null ? (
-                            // BOTÃO DO FORNECEDOR ATUALIZADO AQUI
-                            <button onClick={() => handleConfirmarFabrica(pedido.id)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                            <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
                               <CheckCircle size={16} /> Confirmar Pedido
                             </button>
                           ) : (
@@ -323,6 +373,102 @@ export default function FornecedorDashboard() {
           )
         )}
       </main>
+
+      {/* MODAL PRIMEIRO ACESSO */}
+      {showPrimeiroAcesso && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContent, maxWidth: '400px', textAlign: 'center' }}>
+            <h2 style={{ margin: '0 0 10px 0', color: '#1e293b' }}>Bem-vindo!</h2>
+            <p style={{ color: '#4b5563', fontSize: '14px', lineHeight: '1.5' }}>
+              Como este é o seu primeiro acesso ao portal, por favor defina uma nova senha de segurança <strong>apenas com números</strong>.
+            </p>
+            <div style={{ marginTop: '20px', textAlign: 'left' }}>
+              <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nova Senha Numérica</label>
+              <input
+                type="password"
+                value={novaSenha}
+                // REGRA 1 APLICADA: REGEX PARA PERMITIR APENAS NÚMEROS
+                onChange={(e) => setNovaSenha(e.target.value.replace(/\D/g, ''))}
+                placeholder="Ex: 123456"
+                style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '16px', letterSpacing: '2px', boxSizing: 'border-box' }}
+              />
+            </div>
+            <button 
+              onClick={salvarNovaSenha} 
+              disabled={!novaSenha || salvandoSenha}
+              style={{ width: '100%', padding: '12px', marginTop: '24px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+            >
+              {salvandoSenha ? 'Salvando...' : 'Confirmar e Acessar Portal'}
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE ESTOQUE (FALTA) */}
+      {pedidoConfirmacao && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <h2 style={{ fontSize: '20px', fontWeight: 'bold', color: '#1f2937', margin: 0 }}>Confirmação de Estoque</h2>
+              <button onClick={() => setPedidoConfirmacao(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={24}/></button>
+            </div>
+            
+            <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '12px', borderRadius: '8px', display: 'flex', gap: '12px', alignItems: 'flex-start', marginBottom: '20px' }}>
+              <AlertTriangle color="#ea580c" size={24} style={{ flexShrink: 0 }} />
+              <p style={{ margin: 0, color: '#9a3412', fontSize: '13.5px', lineHeight: '1.4' }}>
+                Antes de aprovar o pedido <strong>#{pedidoConfirmacao.id}</strong>, verifique o estoque da sua distribuidora. 
+                Se você <strong>não possuir algum item</strong>, desmarque a caixa correspondente abaixo para avisar a farmácia da ruptura de estoque.
+              </p>
+            </div>
+
+            <div style={{ maxHeight: '40vh', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ backgroundColor: '#f8fafc', position: 'sticky', top: 0, zIndex: 10 }}>
+                  <tr>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', borderBottom: '1px solid #e2e8f0' }}>Produto</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>Qtd</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', borderBottom: '1px solid #e2e8f0', textAlign: 'center' }}>Tem Estoque?</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pedidoConfirmacao.itens.map(item => (
+                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: checklistEstoque[item.id] ? 'white' : '#fef2f2' }}>
+                      <td style={{ padding: '12px', color: checklistEstoque[item.id] ? '#1e293b' : '#991b1b', fontWeight: '500', fontSize: '13px' }}>
+                        <div style={{ textDecoration: checklistEstoque[item.id] ? 'none' : 'line-through' }}>{item.nomeProduto}</div>
+                        {!checklistEstoque[item.id] && <span style={{ fontSize: '11px', color: '#ef4444', fontWeight: 'bold' }}>Sinalizado como falta</span>}
+                      </td>
+                      <td style={{ padding: '12px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>{item.quantidadePedida} un</td>
+                      <td style={{ padding: '12px', textAlign: 'center' }}>
+                        <label style={{ display: 'inline-flex', alignItems: 'center', cursor: 'pointer' }}>
+                          <input 
+                            type="checkbox"
+                            checked={checklistEstoque[item.id]}
+                            onChange={(e) => setChecklistEstoque({ ...checklistEstoque, [item.id]: e.target.checked })}
+                            style={{ transform: 'scale(1.4)', cursor: 'pointer', accentColor: '#10b981' }}
+                          />
+                        </label>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px', gap: '12px' }}>
+              <button onClick={() => setPedidoConfirmacao(null)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontWeight: '600', color: '#475569' }}>
+                Cancelar
+              </button>
+              <button 
+                onClick={processarConfirmacaoPedido} 
+                disabled={salvandoConfirmacao}
+                style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                {salvandoConfirmacao ? 'Processando...' : <><CheckCircle size={18} /> Aprovar Envio do Pedido</>}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
