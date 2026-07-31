@@ -4,7 +4,7 @@ import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import UploadModal from '../components/layout/UploadModal'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, AlertTriangle } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, AlertTriangle, Loader2 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -50,6 +50,8 @@ export default function CotacaoDetalhes() {
   const [copiadoId, setCopiadoId] = useState(null)
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({})
 
+  const [isProcessandoPedidos, setIsProcessandoPedidos] = useState(false)
+
   const [showColunasDropdown, setShowColunasDropdown] = useState(false)
   const [colunasVisiveis, setColunasVisiveis] = useState({
     quantidade: true,
@@ -71,6 +73,13 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
   const isEncerrada = statusCotacao === 'FINALIZADA'
+
+  // Impede que o usuário fique preso na aba manual caso a cotação seja encerrada
+  useEffect(() => {
+    if (isEncerrada && modoVisualizacao === 'manual') {
+      setModoVisualizacao('itens');
+    }
+  }, [isEncerrada, modoVisualizacao]);
 
   useEffect(() => {
     carregarCotacao()
@@ -113,7 +122,12 @@ export default function CotacaoDetalhes() {
         (p.itens || []).forEach(item => {
           const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
           if (idItemCotacao) {
-            mapComprados[idItemCotacao] = p.id;
+            mapComprados[idItemCotacao] = {
+                id: p.id,
+                fornecedor: p.fornecedor?.nome || p.fornecedorNome || 'Pedido Manual',
+                preco: item.valorUnitarioPedido,
+                quantidade: item.quantidadePedida
+            };
           }
         })
       })
@@ -148,12 +162,14 @@ export default function CotacaoDetalhes() {
               comprado: isBloqueado,
               qtd: qtdRelatorio,
               preco: item.ultimoPreco || 0,
-              bloqueado: isBloqueado
+              bloqueado: isBloqueado,
+              falta: false
             };
             changed = true;
           } else {
             if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
               newChecklist[item.idItem].comprado = true;
+              newChecklist[item.idItem].falta = false;
               newChecklist[item.idItem].bloqueado = true;
               changed = true;
             }
@@ -244,6 +260,31 @@ export default function CotacaoDetalhes() {
       setLoading(false)
     }
   }
+
+  const alterarStatusCotacao = async (novoStatus) => {
+    const acao = novoStatus === 'FINALIZADA' ? 'encerrar' : 'reabrir';
+    if(window.confirm(`Deseja realmente ${acao} esta cotação?`)) {
+        try {
+            await api.put(`/api/cotacao/${id}/status`, { status: novoStatus });
+            setStatusCotacao(novoStatus);
+            
+            if (novoStatus === 'FINALIZADA') {
+                const itensRuptura = relatorio.filter(item => {
+                    const semProposta = !item.fornecedorVencedor || item.fornecedorVencedor === 'Sem ofertas';
+                    const compradoManual = itensJaComprados[item.idItem];
+                    const chk = checklist[item.idItem];
+                    const marcadoFalta = chk && chk.falta;
+                    return (semProposta && !compradoManual) || marcadoFalta;
+                });
+                console.log("Itens mapeados como Ruptura/Falta prontos para o futuro relatório:", itensRuptura);
+            }
+            
+            alert(`Cotação ${acao} com sucesso!`);
+        } catch (error) {
+            alert(`Erro ao ${acao} a cotação.`);
+        }
+    }
+  };
 
   const handleSalvarItemManual = async () => {
     if (!novoItemManual.nomeProduto) return alert('O nome do produto é obrigatório.');
@@ -397,7 +438,12 @@ export default function CotacaoDetalhes() {
     try {
       await api.put(`/api/cotacao/item/${idItem}`, { nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd })
       setEditandoItem(null)
-      carregarRelatorio()
+      // Atualiza o estado apenas localmente para evitar que o React desmonte a tabela e perca a rolagem
+      setRelatorio(prev => prev.map(item => 
+        item.idItem === idItem 
+          ? { ...item, nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd } 
+          : item
+      ))
     } catch (error) {
       alert('Erro ao atualizar produto.')
     }
@@ -458,64 +504,70 @@ export default function CotacaoDetalhes() {
   };
 
   const handleGerarPedidos = async () => {
-    const pedidosPorFornecedor = {}
-
-    relatorioOrdenado.forEach(itemRelatorio => {
-      const idItem = itemRelatorio.idItem;
-      if (itensJaComprados[idItem]) return; 
-
-      const fornecedorNome = decisaoCompra[idItem];
-      if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
-
-      if (!pedidosPorFornecedor[fornecedorNome]) {
-        pedidosPorFornecedor[fornecedorNome] = { fornecedorNome: fornecedorNome, itens: [], total: 0 }
-      }
-
-      const isTrocaAceita = aceitesTroca[idItem];
-      const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
-
-      let preco = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
-      let qtd = itemRelatorio.quantidade || 0;
-      let nomeFinal;
-      let nomeOriginal = null;
-
-      if (isTrocaAceita && nomeSubstituto) {
-        preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
-        qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
-        nomeFinal = getNomeRealSempre(nomeSubstituto); 
-        nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
-      } else {
-        nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
-      }
-
-      if (preco <= 0) return;
-
-      pedidosPorFornecedor[fornecedorNome].itens.push({
-        idItem: idItem,
-        nomeProduto: nomeFinal,
-        nomeOriginal: nomeOriginal,
-        observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
-        quantidadePedida: qtd,
-        valorUnitarioPedido: preco,
-        subtotal: qtd * preco,
-        isExtra: false,
-        todosDadosItem: itemRelatorio 
-      })
-      pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
-    });
-
-    const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0)
+    setIsProcessandoPedidos(true)
     
-    if (pedidosArray.length === 0) {
-      alert('Nenhum item válido para gerar pedido.')
-      return
-    }
+    setTimeout(async () => {
+      const pedidosPorFornecedor = {}
 
-    const mapaDuplicatas = await mapearDuplicatas();
-    setAvisosDuplicidade(mapaDuplicatas);
+      relatorioOrdenado.forEach(itemRelatorio => {
+        const idItem = itemRelatorio.idItem;
+        if (itensJaComprados[idItem]) return; 
 
-    setPedidosGerados(pedidosArray)
-    setShowModal(true)
+        const fornecedorNome = decisaoCompra[idItem];
+        if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
+
+        if (!pedidosPorFornecedor[fornecedorNome]) {
+          pedidosPorFornecedor[fornecedorNome] = { fornecedorNome: fornecedorNome, itens: [], total: 0 }
+        }
+
+        const isTrocaAceita = aceitesTroca[idItem];
+        const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
+
+        let preco = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
+        let qtd = itemRelatorio.quantidade || 0;
+        let nomeFinal;
+        let nomeOriginal = null;
+
+        if (isTrocaAceita && nomeSubstituto) {
+          preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
+          qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
+          nomeFinal = getNomeRealSempre(nomeSubstituto); 
+          nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+        } else {
+          nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
+        }
+
+        if (preco <= 0) return;
+
+        pedidosPorFornecedor[fornecedorNome].itens.push({
+          idItem: idItem,
+          nomeProduto: nomeFinal,
+          nomeOriginal: nomeOriginal,
+          observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
+          quantidadePedida: qtd,
+          valorUnitarioPedido: preco,
+          subtotal: qtd * preco,
+          isExtra: false,
+          todosDadosItem: itemRelatorio 
+        })
+        pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
+      });
+
+      const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0)
+      
+      if (pedidosArray.length === 0) {
+        alert('Nenhum item válido para gerar pedido.')
+        setIsProcessandoPedidos(false)
+        return
+      }
+
+      const mapaDuplicatas = await mapearDuplicatas();
+      setAvisosDuplicidade(mapaDuplicatas);
+
+      setPedidosGerados(pedidosArray)
+      setShowModal(true)
+      setIsProcessandoPedidos(false)
+    }, 100);
   }
 
   const moverItemParaFornecedor = (fornecedorOrigem, indexItem, fornecedorDestino) => {
@@ -729,15 +781,17 @@ export default function CotacaoDetalhes() {
       doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
 
       const linhas = itens.map((item) => {
-        const vencedor = item.fornecedorVencedor || 'Sem Oferta'
-        const preco = item.menorPrecoEncontrado || 0
-        const qtd = item.quantidade || 0;
+        const comprado = itensJaComprados[item.idItem];
+        
+        const vencedor = comprado ? comprado.fornecedor : (item.fornecedorVencedor || 'Sem Oferta')
+        const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0)
+        const qtd = comprado ? comprado.quantidade : (item.quantidade || 0)
         const total = preco * qtd
         const nomeCorreto = getNomeRealSempre(item.nomeProduto);
 
         return [
           nomeCorreto,
-          item.quantidade,
+          qtd,
           vencedor,
           preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
           total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
@@ -745,14 +799,15 @@ export default function CotacaoDetalhes() {
       })
 
       const totalGeral = itens.reduce((acc, item) => {
-        const preco = item.menorPrecoEncontrado || 0
-        const qtd = item.quantidade || 0;
-        return acc + preco * qtd
+        const comprado = itensJaComprados[item.idItem];
+        const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0);
+        const qtd = comprado ? comprado.quantidade : (item.quantidade || 0);
+        return acc + preco * qtd;
       }, 0)
 
       autoTable(doc, {
         startY: 40,
-        head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
+        head: [['Produto', 'Qtd', 'Fornecedor Vencedor', 'Unitário', 'Total']],
         body: linhas,
         foot: [
           [
@@ -845,7 +900,7 @@ export default function CotacaoDetalhes() {
             </thead>
             <tbody>
               {relatorioExibicao.map((item) => {
-                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
+                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false };
                 const cores = getCorOrigem(item.origemItem);
                 
                 const rowStyle = chk.bloqueado 
@@ -935,18 +990,30 @@ export default function CotacaoDetalhes() {
                           )}
                         </div>
                       ) : (
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer', height: '100%' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={chk.comprado}
-                            onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
-                            style={{ transform: 'scale(1.5)', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}
-                            disabled={isEncerrada}
-                          />
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                            {chk.comprado ? 'Marcado' : 'Marcar'}
-                          </span>
-                        </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={chk.comprado}
+                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked, falta: false } })}
+                              disabled={isEncerrada || chk.falta}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                              Comprar
+                            </span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={chk.falta}
+                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, falta: e.target.checked, comprado: false } })}
+                              disabled={isEncerrada || chk.comprado}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.falta ? '#dc2626' : '#6b7280' }}>
+                              Ruptura / Falta
+                            </span>
+                          </label>
+                        </div>
                       )}
                     </td>
 
@@ -1210,10 +1277,10 @@ export default function CotacaoDetalhes() {
                     <td style={{ ...styles.td, textAlign: 'center' }}>
                       {subAbaItens === 'comprados' ? (
                           <button 
-                            onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem]}`)}
+                            onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
                           >
-                            <Eye size={14}/> Pedido #{itensJaComprados[item.idItem]}
+                            <Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}
                           </button>
                       ) : (
                           editandoItem === item.idItem ? (
@@ -1346,13 +1413,31 @@ export default function CotacaoDetalhes() {
             </span>
           </label>
 
-          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 && !isEncerrada ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 && !isEncerrada ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0 || isEncerrada}>
-            <ShoppingCart size={18} /> Gerar Pedidos
-          </button>
+          {!isEncerrada && (
+            <button 
+              type="button" 
+              style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
+              onClick={handleGerarPedidos} 
+              disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
+            >
+              {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
+              {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
+            </button>
+          )}
           
           <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
             <FileText size={18} /> Baixar PDF
           </button>
+
+          {isEncerrada ? (
+            <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => alterarStatusCotacao('ABERTA')}>
+              <RefreshCcw size={18} /> Reabrir Cotação
+            </button>
+          ) : (
+            <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#dc2626' }} onClick={() => alterarStatusCotacao('FINALIZADA')}>
+              <Check size={18} /> Encerrar Cotação
+            </button>
+          )}
           
           <button type="button" style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
@@ -1362,9 +1447,11 @@ export default function CotacaoDetalhes() {
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
         
-        <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
-          <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
-        </button>
+        {!isEncerrada && (
+          <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}>
+            <ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)
+          </button>
+        )}
       </div>
 
       <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: 'white', padding: '15px', borderRadius: '8px', border: '1px solid #e5e7eb', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1701,6 +1788,11 @@ export default function CotacaoDetalhes() {
           </div>
         </div>
       )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
     </div>
   )
 }
