@@ -9,14 +9,14 @@ import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
   const navigate = useNavigate()
-  const [statusCotacao, setStatusCotacao] = useState('ABERTA') // NOVO: Controlar se está encerrada
+  const [statusCotacao, setStatusCotacao] = useState('ABERTA') 
   const [relatorio, setRelatorio] = useState([])
   const [fornecedores, setFornecedores] = useState([])
   const [promocoes, setPromocoes] = useState([])
   const [loading, setLoading] = useState(true)
   
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
-  const [subAbaItens, setSubAbaItens] = useState('pendentes') // NOVO: 'pendentes' ou 'comprados'
+  const [subAbaItens, setSubAbaItens] = useState('pendentes') 
 
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [aceitesTroca, setAceitesTroca] = useState({})
@@ -24,7 +24,7 @@ export default function CotacaoDetalhes() {
   const [showModal, setShowModal] = useState(false)
   const [pedidosGerados, setPedidosGerados] = useState([])
   const [salvandoPedidos, setSalvandoPedidos] = useState(false)
-  const [acaoPosPedido, setAcaoPosPedido] = useState('ABERTA') // NOVO: 'ABERTA' ou 'ENCERRADA'
+  const [acaoPosPedido, setAcaoPosPedido] = useState('ABERTA') 
 
   const [confirmManualModal, setConfirmManualModal] = useState(false)
   const [mensagemConfirmacaoManual, setMensagemConfirmacaoManual] = useState('')
@@ -40,7 +40,7 @@ export default function CotacaoDetalhes() {
   const [fornecedorManual, setFornecedorManual] = useState('')
   const [checklist, setChecklist] = useState({})
 
-  const [itensJaComprados, setItensJaComprados] = useState({}) // NOVO: Objeto { idItem: idPedido }
+  const [itensJaComprados, setItensJaComprados] = useState({}) 
 
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
@@ -105,8 +105,8 @@ export default function CotacaoDetalhes() {
       const pedidos = response.data
       const mapComprados = {}
       pedidos.forEach(p => {
-        if(p.status === 'CANCELADO') return; // Ignora pedidos cancelados
-        p.itens.forEach(item => {
+        if(p.status === 'CANCELADO') return; 
+        p.itens?.forEach(item => { // PROTEÇÃO CONTRA CRASH
           const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
           if (idItemCotacao) {
             mapComprados[idItemCotacao] = p.id;
@@ -296,7 +296,6 @@ export default function CotacaoDetalhes() {
     return relatorioOrdenado.filter(item => {
       const isComprado = !!itensJaComprados[item.idItem];
       
-      // Filtro para ocultar/mostrar itens já comprados na aba visual
       if (modoVisualizacao === 'itens' || modoVisualizacao === 'comparativo') {
           if (subAbaItens === 'pendentes' && isComprado) return false;
           if (subAbaItens === 'comprados' && !isComprado) return false;
@@ -363,13 +362,14 @@ export default function CotacaoDetalhes() {
     } else {
       const itemRelatorio = relatorio.find(r => r.idItem === idItem);
       if (itemRelatorio) {
-        const precoOriginal = itemRelatorio.precosPorFornecedor[fornecedorNome];
+        // PROTEÇÃO CONTRA CRASH: Usando Optional Chaining para evitar ler de nulo
+        const precoOriginal = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
         
         if (!precoOriginal || precoOriginal <= 0) {
           let menorPreco = Infinity;
           let vencedorOriginal = 'Sem ofertas';
           
-          Object.entries(itemRelatorio.precosPorFornecedor).forEach(([forn, p]) => {
+          Object.entries(itemRelatorio.precosPorFornecedor || {}).forEach(([forn, p]) => {
             if (p > 0 && p < menorPreco) {
               menorPreco = p;
               vencedorOriginal = forn;
@@ -435,7 +435,7 @@ export default function CotacaoDetalhes() {
       const mapa = {};
       pendentes.forEach(p => {
         const cId = p.cotacao?.id || p.cotacaoId || '?';
-        p.itens.forEach(i => {
+        p.itens?.forEach(i => { // PROTEÇÃO CONTRA CRASH
           const nomeNormalizado = getNomeRealSempre(i.nomeProduto).toUpperCase().trim();
           if (!mapa[nomeNormalizado]) {
             mapa[nomeNormalizado] = new Set();
@@ -455,7 +455,7 @@ export default function CotacaoDetalhes() {
 
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
-      if (itensJaComprados[idItem]) return; // Ignora se já tem ID de pedido
+      if (itensJaComprados[idItem]) return; 
 
       const fornecedorNome = decisaoCompra[idItem];
       if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
@@ -467,7 +467,7 @@ export default function CotacaoDetalhes() {
       const isTrocaAceita = aceitesTroca[idItem];
       const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
 
-      let preco = itemRelatorio.precosPorFornecedor[fornecedorNome];
+      let preco = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
       let qtd = itemRelatorio.quantidade;
       let nomeFinal;
       let nomeOriginal = null;
@@ -1135,7 +1135,7 @@ export default function CotacaoDetalhes() {
                   )}
 
                   {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
-                    const precoOriginal = item.precosPorFornecedor[f]
+                    const precoOriginal = item.precosPorFornecedor?.[f] || 0
                     const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal
                     const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade
                     const obs = item.observacoesPorFornecedor?.[f]
@@ -1512,7 +1512,6 @@ export default function CotacaoDetalhes() {
         />
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DO REGISTRO MANUAL */}
       {confirmManualModal && (
         <div style={styles.modalOverlay}>
             <div style={{ ...styles.modalContent, maxWidth: '500px' }}>

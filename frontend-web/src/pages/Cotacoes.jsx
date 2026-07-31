@@ -64,14 +64,13 @@ export default function Cotacoes() {
 
   const cotacoesFiltradas = cotacoes
     .filter(c => {
-      // 1. Filtro de Aba
       const isEncerrada = c.status === 'FINALIZADA' || c.status === 'CANCELADA';
       if (abaAtiva === 'ANDAMENTO' && isEncerrada) return false;
       if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
+
       const texto = busca.toLowerCase();
       const matchTexto = c.id.toString().includes(texto) || (c.descricao && c.descricao.toLowerCase().includes(texto));
       
-      // 3. Filtro de Status
       const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
 
       return matchTexto && matchStatus;
@@ -129,7 +128,6 @@ export default function Cotacoes() {
           </div>
         </div>
 
-        {/* NAVEGAÇÃO DE ABAS */}
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
           <button 
             onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
@@ -236,14 +234,13 @@ export default function Cotacoes() {
                           <Eye size={18} />
                         </button>
                         
-                        {/* Se for finalizada, esconde o botão de enviar link */}
                         {abaAtiva === 'ANDAMENTO' && (
                             <button onClick={() => setEnviarLinkModalId(cotacao.id)} title="Enviar / Cobrar Fornecedores" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                             <MessageCircle size={18} />
                             </button>
                         )}
                         
-                        <button onClick={() => deletarCotacao(cotacao.id)} title="Excluir Cotação" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', opacity: abaAtiva === 'HISTORICO' ? 0.5 : 1 }} disabled={abaAtiva === 'HISTORICO'}>
+                        <button onClick={() => deletarCotacao(cotacao.id)} title="Excluir Cotação" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Trash2 size={18} />
                         </button>
                       </div>
