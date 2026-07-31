@@ -294,7 +294,7 @@ public class ComparativoService {
         }
 
         if (todosResponderam && !todosVinculos.isEmpty()) {
-            cotacao.setStatus("FINALIZADA");
+            cotacao.setStatus("RESPONDIDA");
         } else {
             cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
         }

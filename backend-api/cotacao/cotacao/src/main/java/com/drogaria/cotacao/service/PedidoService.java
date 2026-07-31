@@ -233,4 +233,18 @@ public class PedidoService {
         pedido.setValorTotalPedido(total);
         return pedidoRepository.save(pedido);
     }
+
+    @Transactional
+    public void removerItem(Long idItem) {
+        ItemPedido item = itemPedidoRepository.findById(idItem)
+                .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
+        
+        Pedido pedido = item.getPedido();
+        
+        double valorSubtrair = item.getQuantidadePedida() * item.getValorUnitarioPedido();
+        pedido.setValorTotalPedido(pedido.getValorTotalPedido() - valorSubtrair);
+        
+        itemPedidoRepository.delete(item);
+        pedidoRepository.save(pedido);
+    }
 }

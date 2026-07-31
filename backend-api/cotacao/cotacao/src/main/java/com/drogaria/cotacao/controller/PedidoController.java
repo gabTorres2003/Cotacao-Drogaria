@@ -139,4 +139,16 @@ public class PedidoController {
 
         return ResponseEntity.noContent().build();
     }
+
+    @DeleteMapping("/item/{idItem}")
+    public ResponseEntity<Void> deletarItemPedido(@PathVariable Long idItem) {
+        pedidoService.removerItem(idItem);
+
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "FORNECEDOR", TipoAcao.EXCLUSAO, "ItemPedido", idItem, 
+            "Fornecedor sinalizou falta de estoque e o item foi removido do pedido."
+        );
+
+        return ResponseEntity.noContent().build();
+    }
 }
