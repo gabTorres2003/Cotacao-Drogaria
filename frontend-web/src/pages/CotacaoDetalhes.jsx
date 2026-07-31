@@ -162,14 +162,12 @@ export default function CotacaoDetalhes() {
               comprado: isBloqueado,
               qtd: qtdRelatorio,
               preco: item.ultimoPreco || 0,
-              bloqueado: isBloqueado,
-              falta: false
+              bloqueado: isBloqueado
             };
             changed = true;
           } else {
             if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
               newChecklist[item.idItem].comprado = true;
-              newChecklist[item.idItem].falta = false;
               newChecklist[item.idItem].bloqueado = true;
               changed = true;
             }
@@ -270,11 +268,8 @@ export default function CotacaoDetalhes() {
             
             if (novoStatus === 'FINALIZADA') {
                 const itensRuptura = relatorio.filter(item => {
-                    const semProposta = !item.fornecedorVencedor || item.fornecedorVencedor === 'Sem ofertas';
                     const compradoManual = itensJaComprados[item.idItem];
-                    const chk = checklist[item.idItem];
-                    const marcadoFalta = chk && chk.falta;
-                    return (semProposta && !compradoManual) || marcadoFalta;
+                    return !compradoManual; 
                 });
                 console.log("Itens mapeados como Ruptura/Falta prontos para o futuro relatório:", itensRuptura);
             }
@@ -900,7 +895,7 @@ export default function CotacaoDetalhes() {
             </thead>
             <tbody>
               {relatorioExibicao.map((item) => {
-                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false };
+                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
                 const cores = getCorOrigem(item.origemItem);
                 
                 const rowStyle = chk.bloqueado 
@@ -990,30 +985,18 @@ export default function CotacaoDetalhes() {
                           )}
                         </div>
                       ) : (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={chk.comprado}
-                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked, falta: false } })}
-                              disabled={isEncerrada || chk.falta}
-                            />
-                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                              Comprar
-                            </span>
-                          </label>
-                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
-                            <input 
-                              type="checkbox" 
-                              checked={chk.falta}
-                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, falta: e.target.checked, comprado: false } })}
-                              disabled={isEncerrada || chk.comprado}
-                            />
-                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.falta ? '#dc2626' : '#6b7280' }}>
-                              Ruptura / Falta
-                            </span>
-                          </label>
-                        </div>
+                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer', height: '100%' }}>
+                          <input 
+                            type="checkbox" 
+                            checked={chk.comprado}
+                            onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
+                            style={{ transform: 'scale(1.5)', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}
+                            disabled={isEncerrada}
+                          />
+                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                            {chk.comprado ? 'Marcado' : 'Marcar'}
+                          </span>
+                        </label>
                       )}
                     </td>
 
@@ -1470,9 +1453,9 @@ export default function CotacaoDetalhes() {
             <div style={{ display: 'flex', gap: '10px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', width: 'fit-content' }}>
                 <button 
                     onClick={() => setSubAbaItens('pendentes')} 
-                    style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}
+                    style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? (isEncerrada ? '#dc2626' : '#2563eb') : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}
                 >
-                    ⏳ Itens Pendentes
+                    {isEncerrada ? '🚨 Produtos em Falta' : '⏳ Itens Pendentes'}
                 </button>
                 <button 
                     onClick={() => setSubAbaItens('comprados')} 
