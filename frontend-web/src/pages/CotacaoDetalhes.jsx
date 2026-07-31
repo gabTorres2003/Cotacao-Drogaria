@@ -4,7 +4,8 @@ import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import UploadModal from '../components/layout/UploadModal'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, AlertTriangle, Loader2 } from 'lucide-react'
+import EnviarLinkModal from '../components/EnviarLinkModal'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, Loader2 } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -68,6 +69,7 @@ export default function CotacaoDetalhes() {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false)
+  const [isEnviarModalOpen, setIsEnviarModalOpen] = useState(false)
   
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' })
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
@@ -444,15 +446,20 @@ export default function CotacaoDetalhes() {
     }
 
     try {
-      await api.put(`/api/cotacao/item/${idItem}`, { nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd })
-      setEditandoItem(null)
+      const payloadNome = formEdicao.nome;
+      const payloadQtd = Number(formEdicao.qtd);
+      setEditandoItem(null);
+
+      await api.put(`/api/cotacao/item/${idItem}`, { nomeProduto: payloadNome, quantidade: payloadQtd })
+      
       setRelatorio(prev => prev.map(item => 
         item.idItem === idItem 
-          ? { ...item, nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd } 
+          ? { ...item, nomeProduto: payloadNome, quantidade: payloadQtd } 
           : item
       ))
     } catch (error) {
-      alert('Erro ao atualizar produto.')
+      alert('Erro ao atualizar produto.');
+      carregarRelatorio(); 
     }
   }
 
@@ -460,7 +467,7 @@ export default function CotacaoDetalhes() {
     if (window.confirm('Tem certeza que deseja remover este produto da cotação?')) {
       try {
         await api.delete(`/api/cotacao/item/${idItem}`)
-        carregarRelatorio()
+        setRelatorio(prev => prev.filter(item => item.idItem !== idItem));
       } catch (error) {
         alert('Erro ao remover produto.')
       }
@@ -1436,15 +1443,20 @@ export default function CotacaoDetalhes() {
           </label>
 
           {!isEncerrada && (
-            <button 
-              type="button" 
-              style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
-              onClick={handleGerarPedidos} 
-              disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
-            >
-              {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
-              {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
-            </button>
+            <>
+              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => setIsEnviarModalOpen(true)}>
+                <MessageCircle size={18} /> Enviar / Cobrar Fornecedores
+              </button>
+              <button 
+                type="button" 
+                style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
+                onClick={handleGerarPedidos} 
+                disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
+              >
+                {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
+                {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
+              </button>
+            </>
           )}
           
           <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
@@ -1627,6 +1639,14 @@ export default function CotacaoDetalhes() {
           cotacaoId={id} 
           onClose={() => setIsUploadModalOpen(false)} 
           onSuccess={carregarRelatorio} 
+        />
+      )}
+
+      {isEnviarModalOpen && (
+        <EnviarLinkModal 
+          idCotacao={id} 
+          onClose={() => setIsEnviarModalOpen(false)} 
+          onStatusUpdate={carregarCotacao}
         />
       )}
 

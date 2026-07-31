@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
-import EnviarLinkModal from '../components/EnviarLinkModal'
-import { Plus, Search, Filter, Eye, MessageCircle, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
+import { Plus, Search, Filter, Eye, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
 
 export default function Cotacoes() {
   const navigate = useNavigate()
@@ -19,7 +18,6 @@ export default function Cotacoes() {
   const [resumo, setResumo] = useState({ total: 0, emAberto: 0, aguardando: 0, finalizadas: 0 })
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
-  const [enviarLinkModalId, setEnviarLinkModalId] = useState(null)
 
   useEffect(() => {
     carregarCotacoes()
@@ -202,7 +200,7 @@ export default function Cotacoes() {
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '160px', textAlign: 'center' }}>Ações</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px', textAlign: 'center' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
@@ -230,15 +228,9 @@ export default function Cotacoes() {
                     <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => navigate(`/cotacao/${cotacao.id}`)} title="Ver Detalhes" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
-                          <Eye size={18} />
+                        <button onClick={() => navigate(`/cotacoes/${cotacao.id}`)} title="Abrir Cotação" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                          <Eye size={16} /> Abrir
                         </button>
-                        
-                        {abaAtiva === 'ANDAMENTO' && (
-                            <button onClick={() => setEnviarLinkModalId(cotacao.id)} title="Enviar / Cobrar Fornecedores" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
-                            <MessageCircle size={18} />
-                            </button>
-                        )}
                         
                         <button onClick={() => deletarCotacao(cotacao.id)} title="Excluir Cotação" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Trash2 size={18} />
@@ -257,14 +249,6 @@ export default function Cotacoes() {
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)} 
           onSuccess={carregarCotacoes} 
-        />
-      )}
-
-      {enviarLinkModalId && (
-        <EnviarLinkModal 
-          idCotacao={enviarLinkModalId} 
-          onClose={() => setEnviarLinkModalId(null)} 
-          onStatusUpdate={carregarCotacoes}
         />
       )}
 
