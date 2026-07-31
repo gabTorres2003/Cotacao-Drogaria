@@ -1,4 +1,5 @@
 package com.drogaria.cotacao.service;
+
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
@@ -15,6 +16,7 @@ import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -204,8 +206,13 @@ public class PedidoService {
 
     @Transactional
     public void deletarPedido(Long id) {
-        Pedido pedido = buscarPorId(id);
-        pedidoRepository.delete(pedido);
+        try {
+            Pedido pedido = buscarPorId(id);
+            pedidoRepository.delete(pedido);
+            pedidoRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new RuntimeException("Alerta de Segurança: Não é possível excluir este pedido, pois existe uma devolução vinculada a ele no histórico.");
+        }
     }
 
     public List<Pedido> buscarPorFornecedorId(Long fornecedorId) {

@@ -74,7 +74,6 @@ export default function CotacaoDetalhes() {
 
   const isEncerrada = statusCotacao === 'FINALIZADA'
 
-  // Impede que o usuário fique preso na aba manual caso a cotação seja encerrada
   useEffect(() => {
     if (isEncerrada && modoVisualizacao === 'manual') {
       setModoVisualizacao('itens');
@@ -162,12 +161,14 @@ export default function CotacaoDetalhes() {
               comprado: isBloqueado,
               qtd: qtdRelatorio,
               preco: item.ultimoPreco || 0,
-              bloqueado: isBloqueado
+              bloqueado: isBloqueado,
+              falta: false
             };
             changed = true;
           } else {
             if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
               newChecklist[item.idItem].comprado = true;
+              newChecklist[item.idItem].falta = false;
               newChecklist[item.idItem].bloqueado = true;
               changed = true;
             }
@@ -268,8 +269,11 @@ export default function CotacaoDetalhes() {
             
             if (novoStatus === 'FINALIZADA') {
                 const itensRuptura = relatorio.filter(item => {
+                    const semProposta = !item.fornecedorVencedor || item.fornecedorVencedor === 'Sem ofertas';
                     const compradoManual = itensJaComprados[item.idItem];
-                    return !compradoManual; 
+                    const chk = checklist[item.idItem];
+                    const marcadoFalta = chk && chk.falta;
+                    return (semProposta && !compradoManual) || marcadoFalta;
                 });
                 console.log("Itens mapeados como Ruptura/Falta prontos para o futuro relatório:", itensRuptura);
             }
@@ -424,16 +428,24 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  const iniciarEdicao = (item) => {
-    setEditandoItem(item.idItem)
-    setFormEdicao({ nome: item.nomeProduto, qtd: item.quantidade })
+  const iniciarEdicao = (item, campo) => {
+    const isBloqueado = !!itensJaComprados[item.idItem];
+    if (isBloqueado || isEncerrada) return;
+    setEditandoItem(`${item.idItem}-${campo}`);
+    setFormEdicao({ nome: item.nomeProduto, qtd: item.quantidade });
   }
 
   const salvarEdicao = async (idItem) => {
+    const itemOriginal = relatorio.find(i => i.idItem === idItem);
+    
+    if (itemOriginal && itemOriginal.nomeProduto === formEdicao.nome && itemOriginal.quantidade === formEdicao.qtd) {
+       setEditandoItem(null);
+       return;
+    }
+
     try {
       await api.put(`/api/cotacao/item/${idItem}`, { nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd })
       setEditandoItem(null)
-      // Atualiza o estado apenas localmente para evitar que o React desmonte a tabela e perca a rolagem
       setRelatorio(prev => prev.map(item => 
         item.idItem === idItem 
           ? { ...item, nomeProduto: formEdicao.nome, quantidade: formEdicao.qtd } 
@@ -895,7 +907,7 @@ export default function CotacaoDetalhes() {
             </thead>
             <tbody>
               {relatorioExibicao.map((item) => {
-                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false };
+                const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false };
                 const cores = getCorOrigem(item.origemItem);
                 
                 const rowStyle = chk.bloqueado 
@@ -985,18 +997,30 @@ export default function CotacaoDetalhes() {
                           )}
                         </div>
                       ) : (
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer', height: '100%' }}>
-                          <input 
-                            type="checkbox" 
-                            checked={chk.comprado}
-                            onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
-                            style={{ transform: 'scale(1.5)', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}
-                            disabled={isEncerrada}
-                          />
-                          <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
-                            {chk.comprado ? 'Marcado' : 'Marcar'}
-                          </span>
-                        </label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={chk.comprado}
+                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked, falta: false } })}
+                              disabled={isEncerrada || chk.falta}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
+                              Comprar
+                            </span>
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={chk.falta}
+                              onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, falta: e.target.checked, comprado: false } })}
+                              disabled={isEncerrada || chk.comprado}
+                            />
+                            <span style={{ fontSize: '12px', fontWeight: 'bold', color: chk.falta ? '#dc2626' : '#6b7280' }}>
+                              Ruptura / Falta
+                            </span>
+                          </label>
+                        </div>
                       )}
                     </td>
 
@@ -1085,18 +1109,29 @@ export default function CotacaoDetalhes() {
                 return (
                 <tr key={item.idItem} style={{ backgroundColor: '#ffffff' }}>
                   <td style={{ ...styles.td, position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
-                    {editandoItem === item.idItem ? (
+                    {editandoItem === `${item.idItem}-nome` ? (
                       <input 
                         style={{ ...styles.inputEdicao, width: '100%', minWidth: '200px' }} 
                         value={formEdicao.nome} 
                         onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} 
-                        onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') salvarEdicao(item.idItem);
+                          if (e.key === 'Escape') setEditandoItem(null);
+                        }}
+                        onBlur={() => salvarEdicao(item.idItem)}
+                        autoFocus
                       />
                     ) : (
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                         
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <strong style={textStyle}>{getNomeExibicao(item.nomeProduto)}</strong>
+                          <strong 
+                            style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada) ? '1px dashed #9ca3af' : 'none' }}
+                            onClick={() => iniciarEdicao(item, 'nome')}
+                            title={(!isBloqueado && !isEncerrada) ? "Clique para editar o nome" : ""}
+                          >
+                            {getNomeExibicao(item.nomeProduto)}
+                          </strong>
                           <button 
                             type="button"
                             onClick={(e) => {
@@ -1157,18 +1192,28 @@ export default function CotacaoDetalhes() {
                   
                   {colunasVisiveis.quantidade && (
                     <td style={styles.td}>
-                      {editandoItem === item.idItem ? (
+                      {editandoItem === `${item.idItem}-qtd` ? (
                         <input 
                           type="number" 
                           style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center' }} 
                           value={formEdicao.qtd} 
                           onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} 
-                          onKeyDown={(e) => e.key === 'Enter' && salvarEdicao(item.idItem)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') salvarEdicao(item.idItem);
+                            if (e.key === 'Escape') setEditandoItem(null);
+                          }}
+                          onBlur={() => salvarEdicao(item.idItem)}
                           onFocus={(e) => e.target.select()}
                           autoFocus
                         />
                       ) : (
-                        <span style={textStyle}>{item.quantidade} un</span>
+                        <span 
+                          style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }}
+                          onClick={() => iniciarEdicao(item, 'qtd')}
+                          title={(!isBloqueado && !isEncerrada) ? "Clique para editar a quantidade" : ""}
+                        >
+                          {item.quantidade} un
+                        </span>
                       )}
                     </td>
                   )}
@@ -1266,17 +1311,11 @@ export default function CotacaoDetalhes() {
                             <Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}
                           </button>
                       ) : (
-                          editandoItem === item.idItem ? (
-                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                              <button type="button" onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
-                              <button type="button" onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
-                            </div>
-                          ) : (
-                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                              <button type="button" onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado || isEncerrada}><Edit2 size={18} opacity={isBloqueado || isEncerrada ? 0.3 : 1}/></button>
-                              <button type="button" onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado || isEncerrada}><Trash2 size={18} opacity={isBloqueado || isEncerrada ? 0.3 : 1}/></button>
-                            </div>
-                          )
+                          <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                            <button type="button" onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado || isEncerrada} title="Remover Produto">
+                              <Trash2 size={18} opacity={isBloqueado || isEncerrada ? 0.3 : 1}/>
+                            </button>
+                          </div>
                       )}
                     </td>
                   )}
