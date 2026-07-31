@@ -4,23 +4,31 @@ import api from '../services/api'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import UploadModal from '../components/layout/UploadModal'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2 } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Edit2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
   const navigate = useNavigate()
+  const [statusCotacao, setStatusCotacao] = useState('ABERTA') // NOVO: Controlar se está encerrada
   const [relatorio, setRelatorio] = useState([])
   const [fornecedores, setFornecedores] = useState([])
   const [promocoes, setPromocoes] = useState([])
   const [loading, setLoading] = useState(true)
   
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
+  const [subAbaItens, setSubAbaItens] = useState('pendentes') // NOVO: 'pendentes' ou 'comprados'
+
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [aceitesTroca, setAceitesTroca] = useState({})
 
   const [showModal, setShowModal] = useState(false)
   const [pedidosGerados, setPedidosGerados] = useState([])
   const [salvandoPedidos, setSalvandoPedidos] = useState(false)
+  const [acaoPosPedido, setAcaoPosPedido] = useState('ABERTA') // NOVO: 'ABERTA' ou 'ENCERRADA'
+
+  const [confirmManualModal, setConfirmManualModal] = useState(false)
+  const [mensagemConfirmacaoManual, setMensagemConfirmacaoManual] = useState('')
+  const [payloadManualData, setPayloadManualData] = useState(null)
 
   const [editandoItem, setEditandoItem] = useState(null)
   const [formEdicao, setFormEdicao] = useState({ nome: '', qtd: 1 })
@@ -32,7 +40,7 @@ export default function CotacaoDetalhes() {
   const [fornecedorManual, setFornecedorManual] = useState('')
   const [checklist, setChecklist] = useState({})
 
-  const [itensJaComprados, setItensJaComprados] = useState([])
+  const [itensJaComprados, setItensJaComprados] = useState({}) // NOVO: Objeto { idItem: idPedido }
 
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
@@ -62,7 +70,10 @@ export default function CotacaoDetalhes() {
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' })
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
+  const isEncerrada = statusCotacao === 'FINALIZADA'
+
   useEffect(() => {
+    carregarCotacao()
     carregarRelatorio()
     carregarDicionarioDiversos() 
     carregarFornecedores()
@@ -79,20 +90,30 @@ export default function CotacaoDetalhes() {
     });
   }, [fornecedores]);
 
+  const carregarCotacao = async () => {
+      try {
+          const res = await api.get(`/api/cotacao/${id}`);
+          setStatusCotacao(res.data.status);
+      } catch (error) {
+          console.error("Erro ao carregar status da cotação", error);
+      }
+  };
+
   const carregarPedidosDaCotacao = async () => {
     try {
       const response = await api.get(`/api/pedidos/cotacao/${id}`)
       const pedidos = response.data
-      const comprados = []
+      const mapComprados = {}
       pedidos.forEach(p => {
+        if(p.status === 'CANCELADO') return; // Ignora pedidos cancelados
         p.itens.forEach(item => {
           const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
           if (idItemCotacao) {
-            comprados.push(idItemCotacao)
+            mapComprados[idItemCotacao] = p.id;
           }
         })
       })
-      setItensJaComprados(comprados)
+      setItensJaComprados(mapComprados)
     } catch (error) {
       console.error("Erro ao carregar pedidos da cotação", error)
     }
@@ -114,7 +135,8 @@ export default function CotacaoDetalhes() {
         let changed = false;
 
         relatorio.forEach(item => {
-          const isBloqueado = itensJaComprados.includes(item.idItem);
+          const idPedidoVinculado = itensJaComprados[item.idItem];
+          const isBloqueado = !!idPedidoVinculado;
           const qtdRelatorio = item.quantidade || 1;
 
           if (!newChecklist[item.idItem]) {
@@ -126,20 +148,17 @@ export default function CotacaoDetalhes() {
             };
             changed = true;
           } else {
-            // Se o item já existia no state, garante que o status de bloqueio está sincronizado
             if (isBloqueado && !newChecklist[item.idItem].bloqueado) {
               newChecklist[item.idItem].comprado = true;
               newChecklist[item.idItem].bloqueado = true;
               changed = true;
             }
-            // SINCRONIZA A QUANTIDADE: Se o usuário alterou na outra tela, repassa para o checklist
             if (!newChecklist[item.idItem].comprado && newChecklist[item.idItem].qtd !== qtdRelatorio) {
               newChecklist[item.idItem].qtd = qtdRelatorio;
               changed = true;
             }
           }
         });
-
         return changed ? newChecklist : prevChecklist;
       });
     }
@@ -275,9 +294,16 @@ export default function CotacaoDetalhes() {
 
   const relatorioExibicao = useMemo(() => {
     return relatorioOrdenado.filter(item => {
+      const isComprado = !!itensJaComprados[item.idItem];
+      
+      // Filtro para ocultar/mostrar itens já comprados na aba visual
+      if (modoVisualizacao === 'itens' || modoVisualizacao === 'comparativo') {
+          if (subAbaItens === 'pendentes' && isComprado) return false;
+          if (subAbaItens === 'comprados' && !isComprado) return false;
+      }
+
       const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
       const origemItem = item.origemItem || 'Geral';
-      
       const matchOrigem = filtroOrigem === 'TODOS' || origemItem.includes(filtroOrigem);
       
       const precos = Object.values(item.precosPorFornecedor || {});
@@ -289,7 +315,7 @@ export default function CotacaoDetalhes() {
 
       return matchBusca && matchOrigem && matchPropostas;
     });
-  }, [relatorioOrdenado, termoBusca, filtroOrigem, filtroPropostas]);
+  }, [relatorioOrdenado, termoBusca, filtroOrigem, filtroPropostas, itensJaComprados, modoVisualizacao, subAbaItens]);
 
   const SortIcon = ({ sortKey }) => {
     if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="#9ca3af" style={{ marginLeft: '6px' }} />;
@@ -299,6 +325,7 @@ export default function CotacaoDetalhes() {
   };
 
   const handleSetWinner = (idItem, fornecedorNome) => {
+    if (isEncerrada) return;
     setDecisaoCompra(prev => {
       if (prev[idItem] === fornecedorNome) {
         const itemRelatorio = relatorio.find(r => r.idItem === idItem);
@@ -327,6 +354,7 @@ export default function CotacaoDetalhes() {
   }
 
   const toggleTroca = (idItem, fornecedorNome) => {
+    if (isEncerrada) return;
     const isAtivando = !aceitesTroca[idItem];
     setAceitesTroca(prev => ({ ...prev, [idItem]: isAtivando }));
 
@@ -381,8 +409,13 @@ export default function CotacaoDetalhes() {
   }
 
   const reatribuirItem = (idItem) => {
+    if (isEncerrada) return;
     if (window.confirm("Deseja reatribuir este item para comprar novamente? (O pedido existente NÃO será apagado do sistema)")) {
-      setItensJaComprados(prev => prev.filter(id => id !== idItem));
+      setItensJaComprados(prev => {
+          const newMap = { ...prev };
+          delete newMap[idItem];
+          return newMap;
+      });
       setChecklist(prev => {
         const newChecklist = { ...prev };
         if (newChecklist[idItem]) {
@@ -422,7 +455,7 @@ export default function CotacaoDetalhes() {
 
     relatorioOrdenado.forEach(itemRelatorio => {
       const idItem = itemRelatorio.idItem;
-      if (itensJaComprados.includes(idItem)) return;
+      if (itensJaComprados[idItem]) return; // Ignora se já tem ID de pedido
 
       const fornecedorNome = decisaoCompra[idItem];
       if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
@@ -537,7 +570,7 @@ export default function CotacaoDetalhes() {
     }
   };
 
-  const handleSalvarRegistroManual = async () => {
+  const handlePrepararRegistroManual = async () => {
     if (!fornecedorManual) {
       alert('Por favor, selecione um Fornecedor no topo da tela para vincular as compras.');
       return;
@@ -578,26 +611,37 @@ export default function CotacaoDetalhes() {
       mensagemConfirmacao += `\nDeseja gerar o pedido mesmo assim?`;
     }
 
-    if (window.confirm(mensagemConfirmacao)) {
+    setMensagemConfirmacaoManual(mensagemConfirmacao);
+    setPayloadManualData([{
+      cotacaoId: Number(id),
+      fornecedorNome: fornecedorManual,
+      itens: itensComprados
+    }]);
+    setConfirmManualModal(true);
+  }
+
+  const processarRegistroManual = async () => {
       setSalvandoPedidos(true);
       try {
-        const payload = [{
-          cotacaoId: Number(id),
-          fornecedorNome: fornecedorManual,
-          itens: itensComprados
-        }];
-        
-        await api.post('/api/pedidos/registro-manual', payload);
-        alert('Pedido manual registrado com sucesso!');
-        carregarPedidosDaCotacao();
-        setFornecedorManual('');
+          await api.post('/api/pedidos/registro-manual', payloadManualData);
+          
+          if (acaoPosPedido === 'ENCERRADA') {
+              await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
+              setStatusCotacao('FINALIZADA');
+          }
+
+          alert('Pedido manual registrado com sucesso!');
+          setConfirmManualModal(false);
+          carregarPedidosDaCotacao();
+          setFornecedorManual('');
+          
+          if (acaoPosPedido === 'ENCERRADA') navigate('/cotacoes');
       } catch (error) {
-        alert('Erro ao registrar pedido manual: ' + (error.response?.data?.message || error.message));
+          alert('Erro ao registrar pedido manual: ' + (error.response?.data?.message || error.message));
       } finally {
-        setSalvandoPedidos(false);
+          setSalvandoPedidos(false);
       }
-    }
-  }
+  };
 
   const adicionarPromocaoAoPedido = (fornecedorNome, promo) => {
     setPedidosGerados(prev => prev.map(ped => {
@@ -647,6 +691,10 @@ export default function CotacaoDetalhes() {
         await api.post('/api/pedidos/gerar', payload)
       }
       
+      if (acaoPosPedido === 'ENCERRADA') {
+          await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
+      }
+
       alert('Pedidos gerados com sucesso!')
       setShowModal(false)
       navigate('/pedidos')
@@ -751,6 +799,7 @@ export default function CotacaoDetalhes() {
             <select 
               value={fornecedorManual} 
               onChange={(e) => setFornecedorManual(e.target.value)}
+              disabled={isEncerrada}
               style={{ width: '100%', minWidth: '300px', padding: '10px', borderRadius: '6px', border: '1px solid #d1d5db', outline: 'none', backgroundColor: '#f9fafb', fontSize: '14px' }}
             >
               <option value="">-- Selecione o Fornecedor --</option>
@@ -839,7 +888,7 @@ export default function CotacaoDetalhes() {
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, qtd: Number(e.target.value) } })}
                         onFocus={(e) => e.target.select()}
                         style={{ ...styles.inputEdicao, width: '70px', textAlign: 'center', fontWeight: 'bold' }}
-                        disabled={chk.comprado || chk.bloqueado}
+                        disabled={chk.comprado || chk.bloqueado || isEncerrada}
                       />
                     </td>
 
@@ -852,7 +901,7 @@ export default function CotacaoDetalhes() {
                         onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, preco: Number(e.target.value) } })}
                         onFocus={(e) => e.target.select()}
                         style={{ ...styles.inputEdicao, width: '90px', textAlign: 'right', fontWeight: 'bold' }}
-                        disabled={chk.comprado || chk.bloqueado}
+                        disabled={chk.comprado || chk.bloqueado || isEncerrada}
                       />
                     </td>
 
@@ -866,21 +915,24 @@ export default function CotacaoDetalhes() {
                           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>
                             Já Pedido
                           </span>
-                          <button 
-                            type="button"
-                            onClick={() => reatribuirItem(item.idItem)} 
-                            style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
-                          >
-                            <RefreshCcw size={10} /> Reatribuir
-                          </button>
+                          {!isEncerrada && (
+                              <button 
+                                type="button"
+                                onClick={() => reatribuirItem(item.idItem)} 
+                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer' }}
+                              >
+                                <RefreshCcw size={10} /> Reatribuir
+                              </button>
+                          )}
                         </div>
                       ) : (
-                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: 'pointer', height: '100%' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', cursor: isEncerrada ? 'not-allowed' : 'pointer', height: '100%' }}>
                           <input 
                             type="checkbox" 
                             checked={chk.comprado}
                             onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, comprado: e.target.checked } })}
-                            style={{ transform: 'scale(1.5)', cursor: 'pointer' }}
+                            style={{ transform: 'scale(1.5)', cursor: isEncerrada ? 'not-allowed' : 'pointer' }}
+                            disabled={isEncerrada}
                           />
                           <span style={{ fontSize: '13px', fontWeight: 'bold', color: chk.comprado ? '#166534' : '#6b7280' }}>
                             {chk.comprado ? 'Marcado' : 'Marcar'}
@@ -897,9 +949,9 @@ export default function CotacaoDetalhes() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button type="button" onClick={handleSalvarRegistroManual} disabled={salvandoPedidos} style={{ ...styles.btnVoltar, backgroundColor: '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
+          <button type="button" onClick={handlePrepararRegistroManual} disabled={salvandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
             <Save size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
-            {salvandoPedidos ? 'Registrando...' : 'Finalizar Registro e Gerar Pedidos'}
+            Finalizar Registro e Gerar Pedidos
           </button>
         </div>
 
@@ -968,7 +1020,7 @@ export default function CotacaoDetalhes() {
             <tbody>
               {relatorioExibicao.map((item) => {
                 const cores = getCorOrigem(item.origemItem);
-                const isBloqueado = itensJaComprados.includes(item.idItem);
+                const isBloqueado = !!itensJaComprados[item.idItem];
                 const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
                 return (
@@ -1027,14 +1079,16 @@ export default function CotacaoDetalhes() {
                               }}>
                                 ✓ Pedido Gerado
                               </span>
-                              <button 
-                                type="button"
-                                onClick={() => reatribuirItem(item.idItem)} 
-                                title="Permitir comprar este item novamente"
-                                style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
-                              >
-                                <RefreshCcw size={10} /> Reatribuir
-                              </button>
+                              {!isEncerrada && (
+                                  <button 
+                                    type="button"
+                                    onClick={() => reatribuirItem(item.idItem)} 
+                                    title="Permitir comprar este item novamente"
+                                    style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}
+                                  >
+                                    <RefreshCcw size={10} /> Reatribuir
+                                  </button>
+                              )}
                             </>
                           )}
                         </div>
@@ -1101,7 +1155,7 @@ export default function CotacaoDetalhes() {
                           textAlign: 'center',
                           borderLeft: '1px solid #f3f4f6',
                           border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb',
-                          cursor: isBloqueado ? 'not-allowed' : 'pointer',
+                          cursor: isBloqueado || isEncerrada ? 'not-allowed' : 'pointer',
                           verticalAlign: 'top',
                           position: 'relative',
                           opacity: isBloqueado ? 0.6 : 1
@@ -1118,13 +1172,13 @@ export default function CotacaoDetalhes() {
                             onClick={(e) => { e.stopPropagation(); if(!isBloqueado) toggleTroca(item.idItem, f); }} 
                             style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}
                           >
-                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
+                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
                               <input 
                                 type="checkbox" 
                                 checked={isTrocaAceita && isWinner} 
                                 onChange={() => !isBloqueado && toggleTroca(item.idItem, f)} 
                                 style={{ marginTop: '2px' }}
-                                disabled={isBloqueado}
+                                disabled={isBloqueado || isEncerrada}
                               />
                               <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
                                 <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
@@ -1145,16 +1199,25 @@ export default function CotacaoDetalhes() {
 
                   {isItens && (
                     <td style={{ ...styles.td, textAlign: 'center' }}>
-                      {editandoItem === item.idItem ? (
-                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                          <button type="button" onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
-                          <button type="button" onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
-                        </div>
+                      {subAbaItens === 'comprados' ? (
+                          <button 
+                            onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem]}`)}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}
+                          >
+                            <Eye size={14}/> Pedido #{itensJaComprados[item.idItem]}
+                          </button>
                       ) : (
-                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                          <button type="button" onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado}><Edit2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
-                          <button type="button" onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado}><Trash2 size={18} opacity={isBloqueado ? 0.3 : 1}/></button>
-                        </div>
+                          editandoItem === item.idItem ? (
+                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                              <button type="button" onClick={() => salvarEdicao(item.idItem)} style={{ ...styles.btnIcon, color: '#16a34a' }}><Save size={18} /></button>
+                              <button type="button" onClick={() => setEditandoItem(null)} style={{ ...styles.btnIcon, color: '#6b7280' }}><X size={18} /></button>
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                              <button type="button" onClick={() => iniciarEdicao(item)} style={{ ...styles.btnIcon, color: '#3b82f6' }} disabled={isBloqueado || isEncerrada}><Edit2 size={18} opacity={isBloqueado || isEncerrada ? 0.3 : 1}/></button>
+                              <button type="button" onClick={() => deletarItem(item.idItem)} style={{ ...styles.btnIcon, color: '#ef4444' }} disabled={isBloqueado || isEncerrada}><Trash2 size={18} opacity={isBloqueado || isEncerrada ? 0.3 : 1}/></button>
+                            </div>
+                          )
                       )}
                     </td>
                   )}
@@ -1238,17 +1301,24 @@ export default function CotacaoDetalhes() {
   return (
     <div style={styles.container}>
       <div style={styles.header}>
-        <h1 style={styles.title}>Cotação #{id}</h1>
+        <h1 style={styles.title}>
+          Cotação #{id}
+          {isEncerrada && <span style={{ marginLeft: '12px', fontSize: '14px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '4px 10px', borderRadius: '20px', verticalAlign: 'middle', fontWeight: 'bold' }}>ENCERRADA (Histórico)</span>}
+        </h1>
         
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
           
-          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#8b5cf6' }} onClick={() => setIsAddItemModalOpen(true)}>
-            <Plus size={18} /> Adicionar Produto Extra
-          </button>
-          
-          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#3b82f6' }} onClick={() => setIsUploadModalOpen(true)}>
-            <RefreshCcw size={18} /> Atualizar Importação DNA
-          </button>
+          {!isEncerrada && (
+            <>
+              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#8b5cf6' }} onClick={() => setIsAddItemModalOpen(true)}>
+                <Plus size={18} /> Adicionar Produto Extra
+              </button>
+              
+              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#3b82f6' }} onClick={() => setIsUploadModalOpen(true)}>
+                <RefreshCcw size={18} /> Atualizar Importação DNA
+              </button>
+            </>
+          )}
 
           <label style={{
             display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer',
@@ -1267,12 +1337,14 @@ export default function CotacaoDetalhes() {
             </span>
           </label>
 
-          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0}>
+          <button type="button" style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 && !isEncerrada ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 && !isEncerrada ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={handleGerarPedidos} disabled={Object.keys(decisaoCompra).length === 0 || isEncerrada}>
             <ShoppingCart size={18} /> Gerar Pedidos
           </button>
+          
           <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
             <FileText size={18} /> Baixar PDF
           </button>
+          
           <button type="button" style={styles.btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
         </div>
       </div>
@@ -1298,7 +1370,24 @@ export default function CotacaoDetalhes() {
           />
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+        {(modoVisualizacao === 'itens' || modoVisualizacao === 'comparativo') && (
+            <div style={{ display: 'flex', gap: '10px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', width: 'fit-content' }}>
+                <button 
+                    onClick={() => setSubAbaItens('pendentes')} 
+                    style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}
+                >
+                    ⏳ Itens Pendentes
+                </button>
+                <button 
+                    onClick={() => setSubAbaItens('comprados')} 
+                    style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'white' : 'transparent', color: subAbaItens === 'comprados' ? '#16a34a' : '#64748b', boxShadow: subAbaItens === 'comprados' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}
+                >
+                    ✅ Já Pedidos / Comprados
+                </button>
+            </div>
+        )}
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginLeft: 'auto' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#4b5563' }}>Origem:</span>
           <select 
             value={filtroOrigem} 
@@ -1421,6 +1510,35 @@ export default function CotacaoDetalhes() {
           onClose={() => setIsUploadModalOpen(false)} 
           onSuccess={carregarRelatorio} 
         />
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DO REGISTRO MANUAL */}
+      {confirmManualModal && (
+        <div style={styles.modalOverlay}>
+            <div style={{ ...styles.modalContent, maxWidth: '500px' }}>
+                <h3 style={{ marginTop: 0, fontSize: '18px', color: '#1f2937' }}>Confirmação de Pedido Manual</h3>
+                <p style={{ whiteSpace: 'pre-wrap', color: '#4b5563', lineHeight: '1.5', fontSize: '14px' }}>{mensagemConfirmacaoManual}</p>
+                
+                <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                    <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>Após gerar o pedido, o que deseja fazer com a cotação?</h4>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                        <input type="radio" name="acaoPosPedidoManual" value="ABERTA" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} />
+                        <span style={{ fontSize: '14px', color: '#4b5563' }}>Deixar em Aberto (Aguardando outros pedidos)</span>
+                    </label>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                        <input type="radio" name="acaoPosPedidoManual" value="ENCERRADA" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} />
+                        <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold' }}>Encerrar Cotação (Mover para o Histórico)</span>
+                    </label>
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '10px' }}>
+                    <button onClick={() => setConfirmManualModal(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#374151' }}>Voltar</button>
+                    <button onClick={processarRegistroManual} disabled={salvandoPedidos} style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>
+                        {salvandoPedidos ? 'Processando...' : 'Confirmar e Gerar Pedido'}
+                    </button>
+                </div>
+            </div>
+        </div>
       )}
 
       {showModal && (
@@ -1554,10 +1672,22 @@ export default function CotacaoDetalhes() {
               );
             })}
             
+            <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>Após gerar os pedidos, o que deseja fazer com a cotação?</h4>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
+                    <input type="radio" name="acaoPosPedidoAutomatico" value="ABERTA" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} />
+                    <span style={{ fontSize: '14px', color: '#4b5563' }}>Deixar em Aberto (Aguardando outros pedidos)</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
+                    <input type="radio" name="acaoPosPedidoAutomatico" value="ENCERRADA" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} />
+                    <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold' }}>Encerrar Cotação (Mover para o Histórico)</span>
+                </label>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
               <button type="button" onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
               <button type="button" onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
-                {salvandoPedidos ? 'Salvando...' : 'Salvar Pedidos no Sistema'}
+                {salvandoPedidos ? 'Salvando...' : 'Confirmar e Salvar Pedidos'}
               </button>
             </div>
           </div>
