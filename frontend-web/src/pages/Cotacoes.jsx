@@ -1,389 +1,250 @@
-import { useEffect, useState } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
-import {
-  Upload,
-  FileDown,
-  MessageCircle,
-  Eye,
-  Search,
-  Filter,
-  Trash2,
-  ArrowUpDown,
-} from 'lucide-react'
 import EnviarLinkModal from '../components/EnviarLinkModal'
-import jsPDF from 'jspdf'
-import autoTable from 'jspdf-autotable'
+import { Plus, Search, Filter, Eye, MessageCircle, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
 
 export default function Cotacoes() {
+  const navigate = useNavigate()
   const [cotacoes, setCotacoes] = useState([])
-  const [modalAberto, setModalAberto] = useState(false)
-  const [isDeleting, setIsDeleting] = useState(false)
+  const [loading, setLoading] = useState(true)
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
-  const [ordemData, setOrdemData] = useState('RECENTES') 
+  const [ordenacao, setOrdenacao] = useState('RECENTES')
+  const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
 
-  const [resumo, setResumo] = useState({
-    total: 0,
-    abertas: 0,
-    pendentes: 0,
-    finalizadas: 0,
-  })
-  const [cotacaoParaEnviar, setCotacaoParaEnviar] = useState(null)
-  const navigate = useNavigate()
+  const [resumo, setResumo] = useState({ total: 0, emAberto: 0, aguardando: 0, finalizadas: 0 })
+
+  const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [enviarLinkModalId, setEnviarLinkModalId] = useState(null)
 
   useEffect(() => {
     carregarCotacoes()
   }, [])
 
   const carregarCotacoes = async () => {
+    setLoading(true)
     try {
       const response = await api.get('/api/cotacao')
+      const data = response.data || []
+      setCotacoes(data)
 
-      if (Array.isArray(response.data)) {
-        setCotacoes(response.data)
-
-        setResumo({
-          total: response.data.length,
-          abertas: response.data.filter((c) => c.status === 'ABERTA').length,
-          pendentes: response.data.filter((c) => c.status === 'PENDENTE' || c.status === 'RESPONDIDA_PARCIALMENTE').length,
-          finalizadas: response.data.filter((c) => c.status === 'FINALIZADA').length,
-        })
-      } else {
-        setCotacoes([])
-      }
+      setResumo({
+        total: data.length,
+        emAberto: data.filter(c => c.status === 'ABERTA').length,
+        aguardando: data.filter(c => ['PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status)).length,
+        finalizadas: data.filter(c => c.status === 'FINALIZADA' || c.status === 'CANCELADA').length
+      })
     } catch (error) {
-      console.error('Erro ao carregar cotações:', error)
-      setCotacoes([])
+      console.error('Erro ao carregar cotações', error)
+    } finally {
+      setLoading(false)
     }
-  }
-
-  const cotacoesFiltradas = cotacoes
-    .filter((c) => {
-      const textoBusca = busca.toLowerCase()
-      const matchTexto =
-        c.descricao?.toLowerCase().includes(textoBusca) ||
-        c.id.toString().includes(textoBusca)
-
-      const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus
-
-      return matchTexto && matchStatus
-    })
-    .sort((a, b) => {
-      const dateA = new Date(a.dataCriacao)
-      const dateB = new Date(b.dataCriacao)
-      return ordemData === 'RECENTES' ? dateB - dateA : dateA - dateB
-    })
-
-  const formatarDataBR = (dataIso) => {
-    if (!dataIso) return '--/--/--'
-    return new Date(dataIso).toLocaleDateString('pt-BR', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    })
   }
 
   const deletarCotacao = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta cotação?')) {
-      setIsDeleting(true);
+    if (window.confirm('Tem certeza que deseja excluir esta cotação permanentemente?')) {
       try {
-        await api.delete(`/api/cotacao/${id}`);
-        setCotacoes(cotacoes.filter(c => c.id !== id));
-        alert('Cotação excluída com sucesso!');
+        await api.delete(`/api/cotacao/${id}`)
+        carregarCotacoes()
       } catch (error) {
-        console.error('Erro ao excluir:', error);
-        const mensagemErro = error.response?.data || 'Erro ao excluir cotação.';
-        alert(mensagemErro);
-      } finally {
-        setIsDeleting(false);
+        alert(error.response?.data || 'Erro ao excluir a cotação.')
       }
-    }
-  };
-
-  const baixarRelatorioGeral = async (idCotacao) => {
-    try {
-      const doc = new jsPDF()
-      const response = await api.get(`/api/comparativo/relatorio/${idCotacao}`)
-      const itens = response.data
-
-      if (!itens || itens.length === 0) {
-        alert('Essa cotação ainda não tem itens processados.')
-        return
-      }
-
-      doc.setFontSize(18)
-      doc.text(`Relatório de Fechamento - Cotação #${idCotacao}`, 14, 20)
-      doc.setFontSize(12)
-      doc.text(`Gerado em: ${new Date().toLocaleDateString()}`, 14, 30)
-
-      const linhas = itens.map((item) => {
-        const vencedor = item.fornecedorVencedor || 'Sem Oferta'
-        const preco = item.menorPrecoEncontrado || 0
-        const total = preco * item.quantidade
-
-        return [
-          item.nomeProduto,
-          item.quantidade,
-          vencedor,
-          preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-          total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-        ]
-      })
-
-      const totalGeral = itens.reduce((acc, item) => {
-        const preco = item.menorPrecoEncontrado || 0
-        return acc + preco * item.quantidade
-      }, 0)
-
-      autoTable(doc, {
-        startY: 40,
-        head: [['Produto', 'Qtd', 'Vencedor', 'Unitário', 'Total']],
-        body: linhas,
-        foot: [
-          [
-            '',
-            '',
-            '',
-            'TOTAL GERAL',
-            totalGeral.toLocaleString('pt-BR', {
-              style: 'currency',
-              currency: 'BRL',
-            }),
-          ],
-        ],
-        theme: 'striped',
-        headStyles: { fillColor: [22, 163, 74] },
-      })
-
-      doc.save(`Relatorio_Geral_Cotacao_${idCotacao}.pdf`)
-    } catch (error) {
-      console.error('Erro ao gerar PDF:', error)
-      alert('Erro ao gerar o relatório.')
     }
   }
 
-  const renderStatus = (cotacao) => {
-    let bg = '#f3f4f6', color = '#374151', label = cotacao.status;
+  const formatarData = (dataStr) => {
+    if (!dataStr) return '--/--/--'
+    const d = new Date(dataStr)
+    return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
+  }
 
-    if (cotacao.status === 'ABERTA') {
-      bg = '#dbeafe'; color = '#1e40af'; label = 'Em Aberto';
-    } else if (cotacao.status === 'PENDENTE') {
-      bg = '#ffedd5'; color = '#9a3412'; label = 'Aguard. Resposta';
-    } else if (cotacao.status === 'RESPONDIDA_PARCIALMENTE') {
-      bg = '#fef08a'; color = '#854d0e'; label = 'Resp. Parcial';
-    } else if (cotacao.status === 'FINALIZADA') {
-      bg = '#dcfce7'; color = '#166534'; label = 'Pronta p/ Fechar';
+  const cotacoesFiltradas = cotacoes
+    .filter(c => {
+      // 1. Filtro de Aba
+      const isEncerrada = c.status === 'FINALIZADA' || c.status === 'CANCELADA';
+      if (abaAtiva === 'ANDAMENTO' && isEncerrada) return false;
+      if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
+      const texto = busca.toLowerCase();
+      const matchTexto = c.id.toString().includes(texto) || (c.descricao && c.descricao.toLowerCase().includes(texto));
+      
+      // 3. Filtro de Status
+      const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
+
+      return matchTexto && matchStatus;
+    })
+    .sort((a, b) => {
+      if (ordenacao === 'RECENTES') return new Date(b.dataCriacao) - new Date(a.dataCriacao);
+      if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao) - new Date(b.dataCriacao);
+      return 0;
+    });
+
+  const getBadge = (status) => {
+    switch (status) {
+      case 'ABERTA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3' }}>Em Aberto</span>;
+      case 'PENDENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#ffedd5', color: '#c2410c' }}>Aguard. Resposta</span>;
+      case 'RESPONDIDA_PARCIALMENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fef3c7', color: '#b45309' }}>Resp. Parcial</span>;
+      case 'RESPONDIDA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d' }}>Pronta p/ Fechar</span>;
+      case 'FINALIZADA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>Encerrada</span>;
+      default: return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>{status}</span>;
     }
-
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', alignItems: 'flex-start' }}>
-        <span style={{
-          padding: '6px 12px',
-          borderRadius: '20px',
-          fontSize: '12px',
-          fontWeight: '700',
-          backgroundColor: bg,
-          color: color,
-          whiteSpace: 'nowrap'
-        }}>
-          {label}
-        </span>
-
-        {/* Lista de Fornecedores Pendentes */}
-        {cotacao.fornecedoresPendentes && cotacao.fornecedoresPendentes.length > 0 && (
-          <div style={{ fontSize: '11px', color: '#ef4444', fontWeight: '600', lineHeight: '1.4' }}>
-            ⏳ Faltam:<br/>
-            <span style={{ fontWeight: '400', color: '#6b7280' }}>
-              {cotacao.fornecedoresPendentes.join(', ')}
-            </span>
-          </div>
-        )}
-      </div>
-    );
   };
 
   return (
     <div className="layout">
       <Sidebar />
-
       <main className="main-content">
-        <header
-          style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: '30px',
-          }}
-        >
+        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
-            <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>
-              Painel de Cotações
-            </h1>
-            <p style={{ color: '#6b7280' }}>
-              Gerencie suas compras e fornecedores
-            </p>
+            <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Painel de Cotações</h1>
+            <p style={{ color: '#6b7280' }}>Gerencie suas compras e fornecedores</p>
           </div>
-
-          <button
-            className="btn-new-cotacao"
-            onClick={() => setModalAberto(true)}
+          <button 
+            onClick={() => setIsUploadModalOpen(true)}
+            style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
           >
-            <Upload size={20} /> Nova Cotação
+            <Plus size={20} /> Nova Cotação (Importar)
           </button>
         </header>
 
-        <div className="stats-grid">
+        <div className="stats-grid" style={{ marginBottom: '24px' }}>
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
-            <div className="stat-label">Total</div>
+            <div className="stat-label">Total Gerado</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#2563eb' }}>
-              {resumo.abertas}
-            </div>
-            <div className="stat-label">Em Aberto</div>
+            <div className="stat-value" style={{ color: '#3b82f6' }}>{resumo.emAberto}</div>
+            <div className="stat-label">Em Aberto (Sem Envio)</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316' }}>
-              {resumo.pendentes}
-            </div>
-            <div className="stat-label">Aguard. Resposta</div>
+            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.aguardando}</div>
+            <div className="stat-label">Aguardando Respostas</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>
-              {resumo.finalizadas}
-            </div>
-            <div className="stat-label">Finalizadas</div>
+            <div className="stat-value" style={{ color: '#16a34a' }}>{resumo.finalizadas}</div>
+            <div className="stat-label">Finalizadas / Histórico</div>
           </div>
         </div>
 
-        <div className="filters-bar">
-          <div className="search-input-container">
+        {/* NAVEGAÇÃO DE ABAS */}
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+          <button 
+            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+          >
+            Cotações em Andamento
+          </button>
+          <button 
+            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+          >
+            Histórico (Encerradas)
+          </button>
+        </div>
+
+        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          
+          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
               placeholder="Buscar por ID ou Descrição..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
+              style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Filter size={18} color="#6b7280" />
-            <select
-              className="filter-select"
-              value={filtroStatus}
-              onChange={(e) => setFiltroStatus(e.target.value)}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+            <Filter size={16} color="#6b7280" />
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
               <option value="TODOS">Todos os Status</option>
-              <option value="ABERTA">Aberta</option>
-              <option value="PENDENTE">Pendente</option>
-              <option value="RESPONDIDA_PARCIALMENTE">Parcial</option>
-              <option value="FINALIZADA">Pronta p/ Fechar</option>
+              {abaAtiva === 'ANDAMENTO' ? (
+                <>
+                  <option value="ABERTA">Em Aberto</option>
+                  <option value="PENDENTE">Aguard. Resposta</option>
+                  <option value="RESPONDIDA_PARCIALMENTE">Resp. Parcial</option>
+                  <option value="RESPONDIDA">Pronta p/ Fechar</option>
+                </>
+              ) : (
+                <>
+                  <option value="FINALIZADA">Finalizada / Encerrada</option>
+                  <option value="CANCELADA">Cancelada</option>
+                </>
+              )}
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ArrowUpDown size={18} color="#6b7280" />
-            <select
-              className="filter-select"
-              value={ordemData}
-              onChange={(e) => setOrdemData(e.target.value)}
-            >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
+            <ArrowUpDown size={16} color="#6b7280" />
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
               <option value="RECENTES">Mais Recentes</option>
-              <option value="ANTIGAS">Mais Antigas</option>
+              <option value="ANTIGOS">Mais Antigas</option>
             </select>
           </div>
+
+          {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES') && (
+            <button 
+              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+            >
+              Limpar Filtros
+            </button>
+          )}
         </div>
 
-        <div className="table-container">
-          <table>
-            <thead>
+        <div className="table-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
+            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
-                <th style={{ width: '80px' }}>ID</th>
-                <th>Descrição</th>
-                <th style={{ width: '120px' }}>Data</th>
-                <th>Status</th>
-                <th>Ações</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '160px', textAlign: 'center' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
-              {cotacoesFiltradas.length === 0 ? (
+              {loading ? (
                 <tr>
-                  <td
-                    colSpan="5"
-                    style={{
-                      textAlign: 'center',
-                      padding: '30px',
-                      color: '#6b7280',
-                    }}
-                  >
-                    Nenhuma cotação encontrada com os filtros atuais.
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                      <Loader2 size={32} className="animate-spin" color="#3b82f6" />
+                      <span style={{ fontWeight: '500' }}>Carregando cotações...</span>
+                    </div>
+                  </td>
+                </tr>
+              ) : cotacoesFiltradas.length === 0 ? (
+                <tr>
+                  <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                    Nenhuma cotação encontrada nesta aba.
                   </td>
                 </tr>
               ) : (
-                cotacoesFiltradas.map((c) => (
-                  <tr key={c.id}>
-                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
-                      <span style={{ fontWeight: 'bold', color: '#374151' }}>
-                        #{c.id}
-                      </span>
-                    </td>
-                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
-                      <span
-                        style={{
-                          fontWeight: '500',
-                          color: '#111827',
-                          fontSize: '15px',
-                        }}
-                      >
-                        {c.descricao || 'Cotação Sem Nome'}
-                      </span>
-                    </td>
-
-                    <td style={{ verticalAlign: 'top', paddingTop: '16px' }}>
-                      <span style={{ color: '#6b7280', fontSize: '14px' }}>
-                        {formatarDataBR(c.dataCriacao)}
-                      </span>
-                    </td>
-
-                    <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
-                      {renderStatus(c)}
-                    </td>
-                    
-                    <td style={{ verticalAlign: 'top', paddingTop: '12px' }}>
-                      <div style={{ display: 'flex', gap: '8px' }}>
-                        <button
-                          className="btn-icon"
-                          title="Ver Detalhes"
-                          onClick={() => navigate(`/cotacao/${c.id}`)}
-                        >
+                cotacoesFiltradas.map((cotacao) => (
+                  <tr key={cotacao.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '16px', fontWeight: 'bold', color: '#374151' }}>#{cotacao.id}</td>
+                    <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>{cotacao.descricao}</td>
+                    <td style={{ padding: '16px', color: '#6b7280', fontSize: '14px' }}>{formatarData(cotacao.dataCriacao)}</td>
+                    <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        <button onClick={() => navigate(`/cotacoes/${cotacao.id}`)} title="Ver Detalhes" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Eye size={18} />
                         </button>
-                        <button
-                          className="btn-icon"
-                          title="Enviar por WhatsApp"
-                          onClick={() => setCotacaoParaEnviar(c.id)}
-                        >
-                          <MessageCircle size={18} />
-                        </button>
-                        <button
-                          className="btn-icon"
-                          title="Baixar Relatório"
-                          onClick={() => baixarRelatorioGeral(c.id)}
-                        >
-                          <FileDown size={18} />
-                        </button>
-                        <button
-                          className="btn-icon"
-                          title="Excluir Cotação"
-                          onClick={() => deletarCotacao(c.id)}
-                        >
-                          <Trash2 size={18} color="#ef4444" />
+                        
+                        {/* Se for finalizada, esconde o botão de enviar link */}
+                        {abaAtiva === 'ANDAMENTO' && (
+                            <button onClick={() => setEnviarLinkModalId(cotacao.id)} title="Enviar / Cobrar Fornecedores" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                            <MessageCircle size={18} />
+                            </button>
+                        )}
+                        
+                        <button onClick={() => deletarCotacao(cotacao.id)} title="Excluir Cotação" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', opacity: abaAtiva === 'HISTORICO' ? 0.5 : 1 }} disabled={abaAtiva === 'HISTORICO'}>
+                          <Trash2 size={18} />
                         </button>
                       </div>
                     </td>
@@ -393,41 +254,27 @@ export default function Cotacoes() {
             </tbody>
           </table>
         </div>
-
-        {modalAberto && (
-          <UploadModal
-            onClose={() => setModalAberto(false)}
-            onSuccess={carregarCotacoes}
-          />
-        )}
-
-        {cotacaoParaEnviar && (
-          <EnviarLinkModal
-            idCotacao={cotacaoParaEnviar}
-            onClose={() => setCotacaoParaEnviar(null)}
-            onStatusUpdate={carregarCotacoes}
-          />
-        )}
-
-        {isDeleting && (
-          <div style={{
-            position: 'fixed',
-            top: 0, left: 0, width: '100vw', height: '100vh',
-            backgroundColor: 'rgba(0, 0, 0, 0.5)',
-            display: 'flex', justifyContent: 'center', alignItems: 'center',
-            zIndex: 9999
-          }}>
-            <div style={{
-              backgroundColor: '#fff', padding: '20px 40px',
-              borderRadius: '8px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-              textAlign: 'center'
-            }}>
-              <p style={{ fontWeight: 'bold', color: '#374151', margin: 0 }}>Excluindo cotação...</p>
-              <p style={{ fontSize: '14px', color: '#6b7280', marginTop: '8px' }}>Por favor, aguarde.</p>
-            </div>
-          </div>
-        )}
       </main>
+
+      {isUploadModalOpen && (
+        <UploadModal 
+          onClose={() => setIsUploadModalOpen(false)} 
+          onSuccess={carregarCotacoes} 
+        />
+      )}
+
+      {enviarLinkModalId && (
+        <EnviarLinkModal 
+          idCotacao={enviarLinkModalId} 
+          onClose={() => setEnviarLinkModalId(null)} 
+          onStatusUpdate={carregarCotacoes}
+        />
+      )}
+
+      <style>{`
+        @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        .animate-spin { animation: spin 1s linear infinite; }
+      `}</style>
     </div>
   )
 }

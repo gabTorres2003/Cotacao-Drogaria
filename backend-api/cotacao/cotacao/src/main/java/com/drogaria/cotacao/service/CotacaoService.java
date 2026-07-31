@@ -56,8 +56,12 @@ public class CotacaoService {
                         .collect(Collectors.toList());
                 cotacao.setFornecedoresRespondidosIds(respondidosIds);
             
-                if (pendentesNomes.isEmpty() && !"FINALIZADA".equals(cotacao.getStatus())) {
-                    cotacao.setStatus("FINALIZADA");
+                if (!"FINALIZADA".equals(cotacao.getStatus()) && !"CANCELADA".equals(cotacao.getStatus())) {
+                    if (pendentesNomes.isEmpty() && respondidosIds.size() > 0) {
+                        cotacao.setStatus("RESPONDIDA");
+                    } else if (!pendentesNomes.isEmpty() && respondidosIds.size() > 0) {
+                        cotacao.setStatus("RESPONDIDA_PARCIALMENTE");
+                    }
                 }
             }
         }
