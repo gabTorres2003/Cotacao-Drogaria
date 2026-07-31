@@ -164,7 +164,7 @@ export default function CotacaoDetalhes() {
               preco: item.ultimoPreco || 0,
               bloqueado: isBloqueado,
               falta: false,
-              fornecedor: isBloqueado ? dadosComprado.fornecedor : '' // REGRA DO FORNECEDOR NA LINHA
+              fornecedor: isBloqueado ? dadosComprado.fornecedor : ''
             };
             changed = true;
           } else {
@@ -644,7 +644,6 @@ export default function CotacaoDetalhes() {
     }
   };
 
-  // REGRA DE AGRUPAMENTO DE PEDIDOS MANUAIS
   const handlePrepararRegistroManual = async () => {
     const itensComprados = [];
     let erroFornecedorFaltando = false;
@@ -677,7 +676,6 @@ export default function CotacaoDetalhes() {
       return;
     }
 
-    // Agrupa os itens comprados por fornecedor para gerar os pedidos separadamente
     const pedidosAgrupados = {};
     itensComprados.forEach(item => {
         if (!pedidosAgrupados[item.fornecedorNome]) {
@@ -799,7 +797,6 @@ export default function CotacaoDetalhes() {
     }
   }
 
-  // REGRA DO PDF AGRUPADO POR FORNECEDOR
   const baixarRelatorioGeral = async () => {
     try {
       if (!relatorioOrdenado || relatorioOrdenado.length === 0) {
@@ -923,7 +920,6 @@ export default function CotacaoDetalhes() {
                   <div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div>
                 </th>
                 
-                {/* NOVA COLUNA FORNECEDOR */}
                 <th style={{ ...styles.th, textAlign: 'center', width: '200px', minWidth: '180px' }}>
                   Fornecedor
                 </th>
@@ -982,7 +978,6 @@ export default function CotacaoDetalhes() {
                       </div>
                     </td>
 
-                    {/* SELECT DO FORNECEDOR POR LINHA */}
                     <td style={{ ...styles.td, textAlign: 'center' }}>
                       <select 
                         value={chk.fornecedor || ''}
@@ -1079,7 +1074,7 @@ export default function CotacaoDetalhes() {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button type="button" onClick={handlePrepararRegistroManual} disabled={salvandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
-            <Save size={18} style={{ verticalAlign: 'middle', marginRight: '8px' }} /> 
+            {salvandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />}
             Finalizar Registro e Gerar Pedidos
           </button>
         </div>
@@ -1482,20 +1477,15 @@ export default function CotacaoDetalhes() {
           </label>
 
           {!isEncerrada && (
-            <>
-              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => setIsEnviarModalOpen(true)}>
-                <MessageCircle size={18} /> Enviar / Cobrar Fornecedores
-              </button>
-              <button 
-                type="button" 
-                style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
-                onClick={handleGerarPedidos} 
-                disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
-              >
-                {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
-                {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
-              </button>
-            </>
+            <button 
+              type="button" 
+              style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
+              onClick={handleGerarPedidos} 
+              disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
+            >
+              {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
+              {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
+            </button>
           )}
           
           <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
@@ -1709,8 +1699,8 @@ export default function CotacaoDetalhes() {
 
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '10px' }}>
                     <button onClick={() => setConfirmManualModal(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#374151' }}>Voltar</button>
-                    <button onClick={processarRegistroManual} disabled={salvandoPedidos} style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>
-                        {salvandoPedidos ? 'Processando...' : 'Confirmar e Gerar Pedido'}
+                    <button onClick={processarRegistroManual} disabled={salvandoPedidos} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', cursor: 'pointer', fontWeight: 'bold' }}>
+                        {salvandoPedidos ? <><Loader2 size={18} className="animate-spin" /> Processando...</> : 'Confirmar e Gerar Pedido'}
                     </button>
                 </div>
             </div>
@@ -1863,7 +1853,7 @@ export default function CotacaoDetalhes() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
               <button type="button" onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
               <button type="button" onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
-                {salvandoPedidos ? 'Salvando...' : 'Confirmar e Salvar Pedidos'}
+                {salvandoPedidos ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : 'Confirmar e Salvar Pedidos'}
               </button>
             </div>
           </div>
