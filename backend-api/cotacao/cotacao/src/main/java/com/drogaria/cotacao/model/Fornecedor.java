@@ -15,6 +15,9 @@ public class Fornecedor {
     @Column(name = "empresa")
     private String empresa;
 
+    @Column(name = "entregue_por")
+    private String entreguePor;
+
     private String email;
     private String telefone;
     private String login;
@@ -32,6 +35,9 @@ public class Fornecedor {
 
     public String getEmpresa() { return empresa; }
     public void setEmpresa(String empresa) { this.empresa = empresa; }
+
+    public String getEntreguePor() { return entreguePor; }
+    public void setEntreguePor(String entreguePor) { this.entreguePor = entreguePor; }
 
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }

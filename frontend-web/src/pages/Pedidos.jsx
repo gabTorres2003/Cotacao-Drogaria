@@ -76,7 +76,7 @@ export default function Pedidos() {
       const textoBusca = busca.toLowerCase()
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
       const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
-      const entreguePorTexto = p.entreguePor ? p.entreguePor.toLowerCase() : '';
+      const entreguePorTexto = p.fornecedor?.entreguePor ? p.fornecedor.entreguePor.toLowerCase() : '';
       
       const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
 
@@ -252,7 +252,7 @@ export default function Pedidos() {
                 <th style={{ width: '80px' }}>ID</th>
                 <th style={{ width: '90px' }}>Cotação</th>
                 <th>Empresa (Fornecedor)</th>
-                <th>Entregue Por (NF)</th>
+                <th>Entregue Por</th>
                 <th>Grupos</th>
                 <th>Valor Previsto</th>
                 <th style={{ width: '100px' }}>Data</th>
@@ -300,7 +300,7 @@ export default function Pedidos() {
                       </td>
 
                       <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
-                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.entreguePor || '-'}</span></td>
+                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.fornecedor?.entreguePor || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
                       <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>

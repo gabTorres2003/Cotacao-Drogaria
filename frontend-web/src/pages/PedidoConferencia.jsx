@@ -13,7 +13,6 @@ export default function PedidoConferencia() {
   const [salvando, setSalvando] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' });
   const [numeroNota, setNumeroNota] = useState('');
-  const [entreguePor, setEntreguePor] = useState('');
 
   useEffect(() => {
     carregarPedido();
@@ -91,9 +90,11 @@ export default function PedidoConferencia() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    if (!numeroNota.trim() || !entreguePor.trim()) {
-      alert('Por favor, preencha o Número da NF e o campo "Entregue por" antes de finalizar a conferência.');
-      return;
+    if (!numeroNota.trim()) {
+      alert(
+        'Por favor, preencha o Número da NF antes de finalizar a conferência.',
+      )
+      return
     }
     
     const itensPendentes = conferencia.filter(c => !c.conferido);
@@ -106,7 +107,6 @@ export default function PedidoConferencia() {
 
     const payload = {
       numeroNota: numeroNota.trim(),
-      entreguePor: entreguePor.trim(),
       itens: conferencia.map(item => ({
         id: item.id,
         quantidadeReal: Number(item.quantidadeReal),
@@ -172,17 +172,6 @@ export default function PedidoConferencia() {
                     placeholder="Ex: 895886"
                     value={numeroNota}
                     onChange={e => setNumeroNota(e.target.value)}
-                    style={styles.inputTexto}
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#475569' }}>Entregue por (Nome na Nota) *</label>
-                  <input 
-                    type="text" 
-                    required
-                    placeholder="Ex: Distribuidora Panpharma"
-                    value={entreguePor}
-                    onChange={e => setEntreguePor(e.target.value)}
                     style={styles.inputTexto}
                   />
                 </div>

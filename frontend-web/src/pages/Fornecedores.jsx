@@ -10,7 +10,7 @@ import {
   Pencil,
   KeyRound,
   MessageCircle,
-  Building2 
+  Building2,
 } from 'lucide-react'
 
 export default function Fornecedores() {
@@ -19,7 +19,7 @@ export default function Fornecedores() {
   const [form, setForm] = useState({
     id: null,
     nome: '',
-    empresa: '', 
+    empresa: '',
     telefone: '',
     login: '',
     email: '',
@@ -45,7 +45,7 @@ export default function Fornecedores() {
     setForm({
       id: null,
       nome: '',
-      empresa: '', 
+      empresa: '',
       telefone: '',
       login: '',
       email: '',
@@ -58,7 +58,7 @@ export default function Fornecedores() {
     setForm({
       id: fornecedor.id,
       nome: fornecedor.nome,
-      empresa: fornecedor.empresa || fornecedor.nomeEmpresa || '', 
+      empresa: fornecedor.empresa || fornecedor.nomeEmpresa || '',
       telefone: fornecedor.telefone || '',
       login: fornecedor.login || '',
       email: fornecedor.email || '',
@@ -120,12 +120,14 @@ export default function Fornecedores() {
     const telefoneFinal = numeroLimpo.startsWith('55')
       ? numeroLimpo
       : `55${numeroLimpo}`
-      
+
     const linkSistema = 'https://cotacaotorresfarma.netlify.app'
-    const empresaFormatada = fornecedor.empresa || fornecedor.nomeEmpresa;
-    const nomeApresentacao = empresaFormatada ? `${fornecedor.nome} (${empresaFormatada})` : fornecedor.nome;
+    const empresaFormatada = fornecedor.empresa || fornecedor.nomeEmpresa
+    const nomeApresentacao = empresaFormatada
+      ? `${fornecedor.nome} (${empresaFormatada})`
+      : fornecedor.nome
     const mensagem = `Olá, *${nomeApresentacao}*!\n\nSegue o seu acesso ao nosso novo Portal de Cotações da Drogaria Torres Farma:\n\n*Link:* ${linkSistema}\n*Login:* ${fornecedor.login || 'Não informado'}\n*Senha:* 0000\n\n*Atenção:* No seu primeiro acesso, o sistema pedirá para você criar uma senha própria de segurança.\n\nQualquer dúvida, estamos à disposição!`
-    
+
     const mensagemCodificada = encodeURIComponent(mensagem)
     const urlWhatsapp = `https://wa.me/${telefoneFinal}?text=${mensagemCodificada}`
 
@@ -136,7 +138,7 @@ export default function Fornecedores() {
     e.preventDefault()
     if (
       !form.nome ||
-      !form.empresa || 
+      !form.empresa ||
       !form.telefone ||
       !form.login ||
       (!form.id && !form.senha)
@@ -154,7 +156,7 @@ export default function Fornecedores() {
       const telefoneLimpo = form.telefone.replace(/\D/g, '')
       const payload = {
         nome: form.nome,
-        empresa: form.empresa, 
+        empresa: form.empresa,
         nomeEmpresa: form.empresa,
         telefone: telefoneLimpo,
         login: form.login,
@@ -178,13 +180,13 @@ export default function Fornecedores() {
   }
 
   const filtrados = fornecedores.filter((f) => {
-      const nomeDaEmpresa = f.empresa || f.nomeEmpresa || '';
-      return (
-        f.nome.toLowerCase().includes(busca.toLowerCase()) ||
-        (nomeDaEmpresa.toLowerCase().includes(busca.toLowerCase())) ||
-        (f.telefone && f.telefone.includes(busca)) ||
-        (f.login && f.login.toLowerCase().includes(busca.toLowerCase()))
-      )
+    const nomeDaEmpresa = f.empresa || f.nomeEmpresa || ''
+    return (
+      f.nome.toLowerCase().includes(busca.toLowerCase()) ||
+      nomeDaEmpresa.toLowerCase().includes(busca.toLowerCase()) ||
+      (f.telefone && f.telefone.includes(busca)) ||
+      (f.login && f.login.toLowerCase().includes(busca.toLowerCase()))
+    )
   })
 
   return (
@@ -283,7 +285,15 @@ export default function Fornecedores() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4b5563', fontWeight: '500' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: '#4b5563',
+                          fontWeight: '500',
+                        }}
+                      >
                         <Building2 size={16} color="#9ca3af" />
                         {f.empresa || f.nomeEmpresa || '-'}
                       </div>
@@ -337,7 +347,7 @@ export default function Fornecedores() {
                             background: 'none',
                             border: 'none',
                             cursor: 'pointer',
-                            color: '#25D366', 
+                            color: '#25D366',
                             marginRight: '12px',
                             padding: '4px',
                           }}
@@ -366,7 +376,9 @@ export default function Fornecedores() {
               style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
             >
               <div>
-                <label style={styles.label}>Nome do Vendedor / Representante *</label>
+                <label style={styles.label}>
+                  Nome do Vendedor / Representante *
+                </label>
                 <input
                   type="text"
                   style={styles.input}
@@ -384,8 +396,37 @@ export default function Fornecedores() {
                   style={styles.input}
                   required
                   value={form.empresa}
-                  onChange={(e) => setForm({ ...form, empresa: e.target.value })}
+                  onChange={(e) =>
+                    setForm({ ...form, empresa: e.target.value })
+                  }
                   placeholder="Ex: Distribuidora Santa Cruz"
+                />
+              </div>
+
+              <div>
+                <label
+                  style={{
+                    display: 'block',
+                    fontSize: '13px',
+                    fontWeight: 'bold',
+                    marginBottom: '6px',
+                  }}
+                >
+                  Entregue por (Logística/Distribuidora)
+                </label>
+                <input
+                  type="text"
+                  placeholder="Ex: Emefarma (Opcional)"
+                  value={form.entreguePor}
+                  onChange={(e) =>
+                    setForm({ ...form, entreguePor: e.target.value })
+                  }
+                  style={{
+                    width: '100%',
+                    padding: '10px',
+                    borderRadius: '6px',
+                    border: '1px solid #cbd5e1',
+                  }}
                 />
               </div>
 

@@ -100,10 +100,16 @@ export default function Devolucoes() {
 
     const textoBusca = busca.toLowerCase();
     const fornecedorNome = d.fornecedor?.nome || d.fornecedor?.empresa || '';
+    const entreguePorTexto = d.fornecedor?.entreguePor || '';
     const nf = d.nfOrigem || '';
     const pedidoIdStr = d.pedido?.id ? d.pedido.id.toString() : '';
     
-    const matchBusca = fornecedorNome.toLowerCase().includes(textoBusca) || nf.toLowerCase().includes(textoBusca) || d.id.toString().includes(textoBusca) || pedidoIdStr.includes(textoBusca);
+    const matchBusca = fornecedorNome.toLowerCase().includes(textoBusca) || 
+                       entreguePorTexto.toLowerCase().includes(textoBusca) ||
+                       nf.toLowerCase().includes(textoBusca) || 
+                       d.id.toString().includes(textoBusca) || 
+                       pedidoIdStr.includes(textoBusca);
+                       
     const matchStatus = filtroStatus === 'TODOS' || d.status === filtroStatus;
     
     return matchBusca && matchStatus;
@@ -260,7 +266,8 @@ export default function Devolucoes() {
               <tr>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID / NF</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Origem</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Fornecedor</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Pedido por</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Entregue por</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitada</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Protocolo(s)</th>
@@ -271,9 +278,9 @@ export default function Devolucoes() {
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
+                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
               ) : devolucoesFiltradas.length === 0 ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada nesta aba.</td></tr>
+                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada nesta aba.</td></tr>
               ) : (
                 devolucoesFiltradas.map((dev) => (
                   <tr key={dev.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
@@ -299,6 +306,10 @@ export default function Devolucoes() {
 
                     <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
                       {dev.fornecedor?.empresa || dev.fornecedor?.nome || 'Fornecedor Excluído'}
+                    </td>
+                    
+                    <td style={{ padding: '16px', fontWeight: '500', color: '#475569', fontSize: '13px' }}>
+                      {dev.fornecedor?.entreguePor || '-'}
                     </td>
                     
                     <td style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>

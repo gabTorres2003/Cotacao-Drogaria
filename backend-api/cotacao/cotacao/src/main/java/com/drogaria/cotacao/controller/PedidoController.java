@@ -102,7 +102,7 @@ public class PedidoController {
     public ResponseEntity<Pedido> processarRecebimento(
             @PathVariable Long id, 
             @RequestBody ReceberPedidoRequestDTO requestDTO) { 
-        Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO.getItens());
+        Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
         
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 

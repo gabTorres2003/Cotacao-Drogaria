@@ -64,7 +64,6 @@ public class PedidoService {
     public Pedido processarRecebimento(Long pedidoId, ReceberPedidoRequestDTO dto) {
         Pedido pedido = buscarPorId(pedidoId);
         pedido.setNumeroNota(dto.getNumeroNota());
-        pedido.setEntreguePor(dto.getEntreguePor());
         
         boolean temDivergenciaQuantidade = false;
         boolean temIncompatibilidadeValor = false;

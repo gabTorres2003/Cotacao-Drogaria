@@ -43,9 +43,6 @@ public class Pedido {
     @Column(name = "numero_nota")
     private String numeroNota;
 
-    @Column(name = "entregue_por")
-    private String entreguePor;
-
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;
