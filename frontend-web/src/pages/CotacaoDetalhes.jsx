@@ -982,7 +982,7 @@ export default function CotacaoDetalhes() {
                 </th>
                 <th style={{ ...styles.th, textAlign: 'right', width: '110px', minWidth: '110px' }}>Custo Final (R$)</th>
                 <th style={{ ...styles.th, textAlign: 'right', width: '110px', minWidth: '110px' }}>Subtotal</th>
-                <th style={{ ...styles.th, textAlign: 'center', width: '120px', minWidth: '120px', backgroundColor: '#f0fdf4', color: '#166534' }}>Status</th>
+                <th style={{ ...styles.th, textAlign: 'center', width: '120px', minWidth: '120px', backgroundColor: '#f0fdf4', color: '#166534', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Status</th>
               </tr>
             </thead>
             <tbody>
@@ -1093,7 +1093,7 @@ export default function CotacaoDetalhes() {
                       {fMoney(chk.qtd * chk.preco)}
                     </td>
 
-                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : 'transparent', borderLeft: '1px dashed #d1d5db' }}>
+                    <td style={{ ...styles.td, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : '#ffffff', borderLeft: '1px dashed #d1d5db', position: 'sticky', right: 0, zIndex: 10, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                       {chk.bloqueado ? (
                         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px' }}>
                           <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#4b5563' }}>
@@ -1215,7 +1215,7 @@ export default function CotacaoDetalhes() {
                     {f}
                   </th>
                 ))}
-                {isItens && <th style={{ ...styles.th, textAlign: 'center', minWidth: '100px' }}>Ações</th>}
+                {isItens && <th style={{ ...styles.th, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
               </tr>
             </thead>
             <tbody>
@@ -1420,7 +1420,7 @@ export default function CotacaoDetalhes() {
                   })}
 
                   {isItens && (
-                    <td style={{ ...styles.td, textAlign: 'center' }}>
+                    <td style={{ ...styles.td, textAlign: 'center', position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                       {subAbaItens === 'comprados' ? (
                           <button 
                             onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)}
