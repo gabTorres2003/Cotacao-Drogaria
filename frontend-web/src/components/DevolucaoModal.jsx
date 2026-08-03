@@ -79,7 +79,13 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
       const { data } = await api.get(`/api/pedidos/${idPed}`);
       setPedidoOriginal(data);
-      setForm(prev => ({ ...prev, fornecedorId: data.fornecedor?.id, pedido: data }));
+      
+      setForm(prev => ({ 
+        ...prev, 
+        fornecedorId: data.fornecedor?.id, 
+        nfOrigem: data.numeroNota || '', 
+        pedido: data 
+      }));
       
       aplicarFiltroSelecao(data, 'DIVERGENCIAS'); 
 

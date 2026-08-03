@@ -76,12 +76,14 @@ export default function Pedidos() {
       const textoBusca = busca.toLowerCase()
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
       const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
+      const entreguePorTexto = p.entreguePor ? p.entreguePor.toLowerCase() : '';
       
       const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
 
       const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || 
                          p.id.toString().includes(textoBusca) || 
                          idCotacaoStr.includes(textoBusca) || 
+                         entreguePorTexto.includes(textoBusca) ||
                          matchProduto;
 
       const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
@@ -104,7 +106,6 @@ export default function Pedidos() {
       return matchTexto && matchStatus && matchData;
     })
     .sort((a, b) => {
-      // Ordenação robusta com fallback para datas nulas e desempate por ID
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
       if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao || 0) - new Date(b.dataCriacao || 0) || a.id - b.id;
       if (ordenacao === 'MAIOR_VALOR') return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
@@ -188,7 +189,7 @@ export default function Pedidos() {
             <Search size={18} color="#9ca3af" />
             <input
               type="text"
-              placeholder="Buscar Pedido, Empresa ou Produto..."
+              placeholder="Buscar Pedido, Empresa, NF ou Produto..."
               value={busca}
               onChange={(e) => setBusca(e.target.value)}
               style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
@@ -251,6 +252,7 @@ export default function Pedidos() {
                 <th style={{ width: '80px' }}>ID</th>
                 <th style={{ width: '90px' }}>Cotação</th>
                 <th>Empresa (Fornecedor)</th>
+                <th>Entregue Por (NF)</th>
                 <th>Grupos</th>
                 <th>Valor Previsto</th>
                 <th style={{ width: '100px' }}>Data</th>
@@ -261,7 +263,7 @@ export default function Pedidos() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando pedidos...</span>
@@ -270,7 +272,7 @@ export default function Pedidos() {
                 </tr>
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado nesta aba.
                   </td>
                 </tr>
@@ -298,6 +300,7 @@ export default function Pedidos() {
                       </td>
 
                       <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
+                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.entreguePor || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
                       <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>

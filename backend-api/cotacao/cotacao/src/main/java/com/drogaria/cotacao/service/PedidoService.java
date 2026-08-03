@@ -3,6 +3,7 @@ package com.drogaria.cotacao.service;
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
+import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
@@ -60,15 +61,17 @@ public class PedidoService {
     }
 
     @Transactional
-    public Pedido processarRecebimento(Long pedidoId, List<ItemRecebidoDTO> itensConferidos) {
+    public Pedido processarRecebimento(Long pedidoId, ReceberPedidoRequestDTO dto) {
         Pedido pedido = buscarPorId(pedidoId);
+        pedido.setNumeroNota(dto.getNumeroNota());
+        pedido.setEntreguePor(dto.getEntreguePor());
         
         boolean temDivergenciaQuantidade = false;
         boolean temIncompatibilidadeValor = false;
         boolean temDevolucao = false;
         double valorTotalReal = 0.0;
 
-        for (ItemRecebidoDTO itemConferido : itensConferidos) {
+        for (ItemRecebidoDTO itemConferido : dto.getItens()) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
                     .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
             
@@ -209,7 +212,7 @@ public class PedidoService {
         try {
             Pedido pedido = buscarPorId(id);
             pedidoRepository.delete(pedido);
-            pedidoRepository.flush();
+            pedidoRepository.flush(); 
         } catch (DataIntegrityViolationException e) {
             throw new RuntimeException("Alerta de Segurança: Não é possível excluir este pedido, pois existe uma devolução vinculada a ele no histórico.");
         }

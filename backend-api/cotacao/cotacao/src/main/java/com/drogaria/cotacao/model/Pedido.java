@@ -39,6 +39,12 @@ public class Pedido {
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private StatusPedido status;
+    
+    @Column(name = "numero_nota")
+    private String numeroNota;
+
+    @Column(name = "entregue_por")
+    private String entreguePor;
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 

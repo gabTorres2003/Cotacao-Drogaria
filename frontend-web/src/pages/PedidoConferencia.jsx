@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText } from 'lucide-react';
 
 export default function PedidoConferencia() {
   const { id } = useParams();
@@ -12,6 +12,8 @@ export default function PedidoConferencia() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' });
+  const [numeroNota, setNumeroNota] = useState('');
+  const [entreguePor, setEntreguePor] = useState('');
 
   useEffect(() => {
     carregarPedido();
@@ -89,6 +91,11 @@ export default function PedidoConferencia() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     
+    if (!numeroNota.trim() || !entreguePor.trim()) {
+      alert('Por favor, preencha o Número da NF e o campo "Entregue por" antes de finalizar a conferência.');
+      return;
+    }
+    
     const itensPendentes = conferencia.filter(c => !c.conferido);
     if (itensPendentes.length > 0) {
       alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
@@ -98,6 +105,8 @@ export default function PedidoConferencia() {
     setSalvando(true);
 
     const payload = {
+      numeroNota: numeroNota.trim(),
+      entreguePor: entreguePor.trim(),
       itens: conferencia.map(item => ({
         id: item.id,
         quantidadeReal: Number(item.quantidadeReal),
@@ -150,6 +159,36 @@ export default function PedidoConferencia() {
           </div>
 
           <form onSubmit={handleSubmit}>
+            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={18} color="#3b82f6"/> Dados da Nota Fiscal Recebida
+              </h3>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#475569' }}>Número da NF *</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Ex: 895886"
+                    value={numeroNota}
+                    onChange={e => setNumeroNota(e.target.value)}
+                    style={styles.inputTexto}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#475569' }}>Entregue por (Nome na Nota) *</label>
+                  <input 
+                    type="text" 
+                    required
+                    placeholder="Ex: Distribuidora Panpharma"
+                    value={entreguePor}
+                    onChange={e => setEntreguePor(e.target.value)}
+                    style={styles.inputTexto}
+                  />
+                </div>
+              </div>
+            </div>
+
             <table style={styles.table}>
               <thead>
                 <tr>
@@ -273,6 +312,7 @@ const styles = {
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
   th: { textAlign: 'left', padding: '14px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
   td: { padding: '14px', color: '#374151', fontSize: '14px' },
+  inputTexto: { padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', width: '100%', outline: 'none', color: '#1e293b', boxSizing: 'border-box' },
   inputField: { padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', width: '100%', textAlign: 'center', outline: 'none', fontWeight: 'bold', color: '#166534', transition: 'all 0.2s' },
   btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
   btnCancelar: { padding: '12px 24px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
