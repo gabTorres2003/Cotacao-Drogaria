@@ -57,4 +57,10 @@ public class CotacaoFornecedorService {
     public List<CotacaoFornecedor> listarPorFornecedor(String loginFornecedor) {
         return repository.findByFornecedorLogin(loginFornecedor);
     }
+
+    @Transactional
+    public void desvincularFornecedor(Long idVinculo) {
+        repository.deleteById(idVinculo);
+        log.info("Vínculo ID {} removido com sucesso.", idVinculo);
+    }
 }

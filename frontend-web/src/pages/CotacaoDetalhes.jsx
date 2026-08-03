@@ -5,7 +5,7 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import UploadModal from '../components/layout/UploadModal'
 import EnviarLinkModal from '../components/EnviarLinkModal'
-import { MessageCircle, FileText, ShoppingCart, BarChart2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, Loader2 } from 'lucide-react'
+import { MessageCircle, FileText, ShoppingCart, BarChart2, Trash2, Save, X, List, Tag, Plus, ClipboardCheck, Search, ArrowUpDown, ChevronUp, ChevronDown, RefreshCcw, Copy, Check, ArrowRightLeft, Settings2, Eye, Loader2, ArrowDown, Users } from 'lucide-react'
 
 export default function CotacaoDetalhes() {
   const { id } = useParams()
@@ -73,6 +73,9 @@ export default function CotacaoDetalhes() {
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' })
   const [salvandoItemManual, setSalvandoItemManual] = useState(false)
 
+  const [vinculos, setVinculos] = useState([])
+  const [showVinculosModal, setShowVinculosModal] = useState(false)
+
   const isEncerrada = statusCotacao === 'FINALIZADA'
 
   useEffect(() => {
@@ -87,6 +90,7 @@ export default function CotacaoDetalhes() {
     carregarDicionarioDiversos() 
     carregarFornecedores()
     carregarPedidosDaCotacao()
+    carregarVinculos()
   }, [id])
 
   useEffect(() => {
@@ -110,6 +114,26 @@ export default function CotacaoDetalhes() {
       } catch (error) {
           console.error("Erro ao carregar status da cotação", error);
       }
+  };
+
+  const carregarVinculos = async () => {
+    try {
+        const res = await api.get(`/api/cotacao-fornecedor/cotacao/${id}`);
+        setVinculos(res.data || []);
+    } catch (error) {
+        console.error("Erro ao carregar vínculos", error);
+    }
+  }
+
+  const removerVinculo = async (idVinculo) => {
+    if (window.confirm("Remover o acesso deste fornecedor a esta cotação? Ele não poderá mais visualizar ou responder.")) {
+        try {
+            await api.delete(`/api/cotacao-fornecedor/${idVinculo}`);
+            carregarVinculos();
+        } catch (error) {
+            alert("Erro ao remover vínculo.");
+        }
+    }
   };
 
   const carregarPedidosDaCotacao = async () => {
@@ -644,6 +668,22 @@ export default function CotacaoDetalhes() {
     }
   };
 
+  const copiarFornecedorParaBaixo = (fornecedorNome, currentIndex) => {
+    if (!fornecedorNome) return;
+    setChecklist(prev => {
+        const newState = { ...prev };
+        relatorioExibicao.forEach((item, idx) => {
+            if (idx > currentIndex) {
+                const atual = newState[item.idItem] || { comprado: false, qtd: item.quantidade || 1, preco: item.ultimoPreco || 0, bloqueado: false, falta: false, fornecedor: '' };
+                if (!atual.bloqueado) { 
+                    newState[item.idItem] = { ...atual, fornecedor: fornecedorNome };
+                }
+            }
+        });
+        return newState;
+    });
+  };
+
   const handlePrepararRegistroManual = async () => {
     const itensComprados = [];
     let erroFornecedorFaltando = false;
@@ -933,7 +973,7 @@ export default function CotacaoDetalhes() {
               </tr>
             </thead>
             <tbody>
-              {relatorioExibicao.map((item) => {
+              {relatorioExibicao.map((item, index) => {
                 const chk = checklist[item.idItem] || { comprado: false, qtd: 1, preco: 0, bloqueado: false, falta: false, fornecedor: '' };
                 const cores = getCorOrigem(item.origemItem);
                 
@@ -979,17 +1019,36 @@ export default function CotacaoDetalhes() {
                     </td>
 
                     <td style={{ ...styles.td, textAlign: 'center' }}>
-                      <select 
-                        value={chk.fornecedor || ''}
-                        onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, fornecedor: e.target.value } })}
-                        disabled={!chk.comprado || chk.bloqueado || isEncerrada}
-                        style={{ ...styles.inputEdicao, width: '100%', fontSize: '12px', padding: '6px' }}
-                      >
-                        <option value="">-- Selecionar --</option>
-                        {fornecedoresLista.map(f => (
-                          <option key={f.id} value={f.nome}>{f.nome}</option>
-                        ))}
-                      </select>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <select 
+                          value={chk.fornecedor || ''}
+                          onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, fornecedor: e.target.value } })}
+                          disabled={!chk.comprado || chk.bloqueado || isEncerrada}
+                          style={{ ...styles.inputEdicao, width: '100%', fontSize: '12px', padding: '6px' }}
+                        >
+                          <option value="">-- Selecionar --</option>
+                          {fornecedoresLista.map(f => (
+                            <option key={f.id} value={f.nome}>{f.nome}</option>
+                          ))}
+                        </select>
+                        <button
+                          type="button"
+                          onClick={() => copiarFornecedorParaBaixo(chk.fornecedor, index)}
+                          disabled={!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada}
+                          title="Copiar fornecedor para os itens abaixo"
+                          style={{
+                            background: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#f3f4f6' : '#e0e7ff',
+                            color: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#9ca3af' : '#4f46e5',
+                            border: '1px solid',
+                            borderColor: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#d1d5db' : '#c7d2fe',
+                            borderRadius: '4px',
+                            padding: '4px',
+                            cursor: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? 'not-allowed' : 'pointer'
+                          }}
+                        >
+                          <ArrowDown size={14} />
+                        </button>
+                      </div>
                     </td>
 
                     <td style={{ ...styles.td, textAlign: 'center' }}>
@@ -1074,7 +1133,7 @@ export default function CotacaoDetalhes() {
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
           <button type="button" onClick={handlePrepararRegistroManual} disabled={salvandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
-            {salvandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />}
+            {salvandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />} 
             Finalizar Registro e Gerar Pedidos
           </button>
         </div>
@@ -1477,15 +1536,23 @@ export default function CotacaoDetalhes() {
           </label>
 
           {!isEncerrada && (
-            <button 
-              type="button" 
-              style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
-              onClick={handleGerarPedidos} 
-              disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
-            >
-              {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
-              {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
-            </button>
+            <>
+              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#64748b' }} onClick={() => setShowVinculosModal(true)}>
+                <Users size={18} /> Fornecedores Notificados
+              </button>
+              <button type="button" style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => setIsEnviarModalOpen(true)}>
+                <MessageCircle size={18} /> Enviar / Cobrar 
+              </button>
+              <button 
+                type="button" 
+                style={{ ...styles.btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
+                onClick={handleGerarPedidos} 
+                disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
+              >
+                {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
+                {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
+              </button>
+            </>
           )}
           
           <button type="button" style={{ ...styles.btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
@@ -1632,6 +1699,42 @@ export default function CotacaoDetalhes() {
         </>
       )}
 
+      {/* MODAL: FORNECEDORES VINCULADOS */}
+      {showVinculosModal && (
+        <div style={styles.modalOverlay}>
+          <div style={{ ...styles.modalContent, maxWidth: '500px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Fornecedores Notificados</h3>
+              <button onClick={() => setShowVinculosModal(false)} style={styles.btnIcon}><X size={20} color="#6b7280" /></button>
+            </div>
+
+            {vinculos.length === 0 ? (
+              <p style={{ color: '#6b7280', fontSize: '14px', textAlign: 'center' }}>Nenhum fornecedor foi notificado ainda.</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {vinculos.map(v => (
+                  <li key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
+                    <div>
+                      <strong style={{ display: 'block', fontSize: '14px', color: '#374151' }}>{v.fornecedor?.nome}</strong>
+                      <span style={{ fontSize: '12px', color: v.status === 'RESPONDIDA' ? '#16a34a' : '#b45309', fontWeight: 'bold' }}>
+                        {v.status === 'RESPONDIDA' ? 'Já Respondeu' : 'Aguardando Resposta'}
+                      </span>
+                    </div>
+                    <button 
+                      onClick={() => removerVinculo(v.id)}
+                      style={{ background: '#fee2e2', color: '#ef4444', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}
+                      title="Remover acesso deste fornecedor à cotação"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
+      )}
+
       {isAddItemModalOpen && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
               <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -1675,7 +1778,7 @@ export default function CotacaoDetalhes() {
         <EnviarLinkModal 
           idCotacao={id} 
           onClose={() => setIsEnviarModalOpen(false)} 
-          onStatusUpdate={carregarCotacao}
+          onStatusUpdate={() => { carregarCotacao(); carregarVinculos(); }}
         />
       )}
 
@@ -1853,7 +1956,7 @@ export default function CotacaoDetalhes() {
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
               <button type="button" onClick={() => setShowModal(false)} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
               <button type="button" onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
-                {salvandoPedidos ? <><Loader2 size={18} className="animate-spin" /> Salvando...</> : 'Confirmar e Salvar Pedidos'}
+                {salvandoPedidos ? 'Salvando...' : 'Confirmar e Salvar Pedidos'}
               </button>
             </div>
           </div>

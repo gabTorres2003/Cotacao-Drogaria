@@ -43,4 +43,10 @@ public class CotacaoFornecedorController {
     public ResponseEntity<List<CotacaoFornecedor>> buscarVinculosDaCotacao(@PathVariable Long idCotacao) {
         return ResponseEntity.ok(repository.findByCotacaoId(idCotacao));
     }
+
+    @DeleteMapping("/{idVinculo}")
+    public ResponseEntity<Void> desvincular(@PathVariable Long idVinculo) {
+        service.desvincularFornecedor(idVinculo);
+        return ResponseEntity.noContent().build();
+    }
 }
