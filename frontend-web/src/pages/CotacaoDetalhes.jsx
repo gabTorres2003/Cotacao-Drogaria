@@ -45,7 +45,9 @@ export default function CotacaoDetalhes() {
   const [termoBusca, setTermoBusca] = useState('')
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
   const [filtroPropostas, setFiltroPropostas] = useState('TODOS')
-  const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' })
+  
+  // ORDENAÇÃO FIXADA POR ID PARA NÃO PERDER A POSIÇÃO AO ALTERNAR OS NOMES
+  const [sortConfig, setSortConfig] = useState({ key: 'idItem', direction: 'asc' })
 
   const [copiadoId, setCopiadoId] = useState(null)
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({})
@@ -250,6 +252,8 @@ export default function CotacaoDetalhes() {
     return nomeProduto;
   }
 
+  const isDiversos = (nome) => nome && String(nome).toUpperCase().includes('DIVERSOS');
+
   const copiarParaAreaTransferencia = (texto, idItem) => {
     navigator.clipboard.writeText(texto).then(() => {
       setCopiadoId(idItem);
@@ -349,6 +353,7 @@ export default function CotacaoDetalhes() {
   };
 
   const getValorOrdenacao = (item, key) => {
+    if (key === 'idItem') return item.idItem || 0;
     if (key === 'nomeProduto') return getNomeExibicao(item.nomeProduto);
     if (key === 'origemItem') return item.origemItem || 'Geral';
     return item[key] ?? 0;
@@ -1016,6 +1021,11 @@ export default function CotacaoDetalhes() {
                         <span style={{ ...textStyle, fontSize: '13px' }}>
                           {getNomeExibicao(item.nomeProduto)}
                         </span>
+                        {isDiversos(item.nomeProduto) && !mostrarNomeReal && (
+                          <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>
+                            Genérico
+                          </span>
+                        )}
                         <button 
                           type="button"
                           onClick={(e) => {
@@ -1250,6 +1260,11 @@ export default function CotacaoDetalhes() {
                           >
                             {getNomeExibicao(item.nomeProduto)}
                           </strong>
+                          {isDiversos(item.nomeProduto) && !mostrarNomeReal && (
+                            <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>
+                              Genérico
+                            </span>
+                          )}
                           <button 
                             type="button"
                             onClick={(e) => {
