@@ -17,7 +17,7 @@ export default function CotacaoDetalhes() {
   const [loading, setLoading] = useState(true)
   
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
-  const [subAbaItens, setSubAbaItens] = useState('pendentes') 
+  const [subAbaItens, setSubAbaItens] = useState('comprados')
 
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [aceitesTroca, setAceitesTroca] = useState({})
