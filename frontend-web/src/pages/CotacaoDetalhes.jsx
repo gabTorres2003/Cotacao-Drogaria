@@ -716,40 +716,46 @@ export default function CotacaoDetalhes() {
       return;
     }
 
-    const pedidosAgrupados = {};
-    itensComprados.forEach(item => {
-        if (!pedidosAgrupados[item.fornecedorNome]) {
-            pedidosAgrupados[item.fornecedorNome] = [];
-        }
-        pedidosAgrupados[item.fornecedorNome].push(item);
-    });
+    setIsProcessandoPedidos(true);
 
-    const payload = Object.keys(pedidosAgrupados).map(forn => ({
-        cotacaoId: Number(id),
-        fornecedorNome: forn,
-        itens: pedidosAgrupados[forn]
-    }));
-
-    const mapaDuplicatas = await mapearDuplicatas();
-    const itensDuplicados = itensComprados.filter(i => mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]);
-
-    let mensagemConfirmacao = `Confirma o registro de pedidos manuais para ${Object.keys(pedidosAgrupados).length} fornecedor(es)?\n\n`;
-    Object.keys(pedidosAgrupados).forEach(f => {
-        mensagemConfirmacao += `- ${f}: ${pedidosAgrupados[f].length} item(ns)\n`;
-    });
-
-    if (itensDuplicados.length > 0) {
-      mensagemConfirmacao += `\n⚠️ AVISO DE DUPLICIDADE ⚠️\nOs seguintes itens já possuem pedidos pendentes em outras cotações:\n`;
-      itensDuplicados.forEach(i => {
-        const cots = Array.from(mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]).join(', ');
-        mensagemConfirmacao += `- ${i.nomeProduto} (Cotações: ${cots})\n`;
+    try {
+      const pedidosAgrupados = {};
+      itensComprados.forEach(item => {
+          if (!pedidosAgrupados[item.fornecedorNome]) {
+              pedidosAgrupados[item.fornecedorNome] = [];
+          }
+          pedidosAgrupados[item.fornecedorNome].push(item);
       });
-      mensagemConfirmacao += `\nDeseja gerar os pedidos mesmo assim?`;
-    }
 
-    setMensagemConfirmacaoManual(mensagemConfirmacao);
-    setPayloadManualData(payload);
-    setConfirmManualModal(true);
+      const payload = Object.keys(pedidosAgrupados).map(forn => ({
+          cotacaoId: Number(id),
+          fornecedorNome: forn,
+          itens: pedidosAgrupados[forn]
+      }));
+
+      const mapaDuplicatas = await mapearDuplicatas();
+      const itensDuplicados = itensComprados.filter(i => mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]);
+
+      let mensagemConfirmacao = `Confirma o registro de pedidos manuais para ${Object.keys(pedidosAgrupados).length} fornecedor(es)?\n\n`;
+      Object.keys(pedidosAgrupados).forEach(f => {
+          mensagemConfirmacao += `- ${f}: ${pedidosAgrupados[f].length} item(ns)\n`;
+      });
+
+      if (itensDuplicados.length > 0) {
+        mensagemConfirmacao += `\n⚠️ AVISO DE DUPLICIDADE ⚠️\nOs seguintes itens já possuem pedidos pendentes em outras cotações:\n`;
+        itensDuplicados.forEach(i => {
+          const cots = Array.from(mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]).join(', ');
+          mensagemConfirmacao += `- ${i.nomeProduto} (Cotações: ${cots})\n`;
+        });
+        mensagemConfirmacao += `\nDeseja gerar os pedidos mesmo assim?`;
+      }
+
+      setMensagemConfirmacaoManual(mensagemConfirmacao);
+      setPayloadManualData(payload);
+      setConfirmManualModal(true);
+    } finally {
+      setIsProcessandoPedidos(false);
+    }
   }
 
   const processarRegistroManual = async () => {
@@ -1132,8 +1138,13 @@ export default function CotacaoDetalhes() {
         </div>
 
         <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-          <button type="button" onClick={handlePrepararRegistroManual} disabled={salvandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
-            {salvandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />} 
+          <button 
+            type="button" 
+            onClick={handlePrepararRegistroManual} 
+            disabled={isProcessandoPedidos || isEncerrada} 
+            style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}
+          >
+            {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />}
             Finalizar Registro e Gerar Pedidos
           </button>
         </div>
