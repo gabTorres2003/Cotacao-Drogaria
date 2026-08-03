@@ -17,7 +17,7 @@ export default function CotacaoDetalhes() {
   const [loading, setLoading] = useState(true)
   
   const [modoVisualizacao, setModoVisualizacao] = useState('itens') 
-  const [subAbaItens, setSubAbaItens] = useState('comprados')
+  const [subAbaItens, setSubAbaItens] = useState('pendentes')
 
   const [decisaoCompra, setDecisaoCompra] = useState({})
   const [aceitesTroca, setAceitesTroca] = useState({})
@@ -155,7 +155,14 @@ export default function CotacaoDetalhes() {
           }
         })
       })
+      
       setItensJaComprados(mapComprados)
+      if (Object.keys(mapComprados).length === 0) {
+        setSubAbaItens('pendentes');
+      } else {
+        setSubAbaItens('comprados');
+      }
+
     } catch (error) {
       console.error("Erro ao carregar pedidos da cotação", error)
     }
