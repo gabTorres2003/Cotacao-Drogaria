@@ -1866,10 +1866,37 @@ export default function CotacaoDetalhes() {
                               {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
                               
                               {duplicatasSet && duplicatasSet.size > 0 && (
-                                <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold', display: 'block', marginTop: '4px' }}>
-                                  ⚠️ Já pedido na(s) Cotação(ões): {Array.from(duplicatasSet).join(', ')}
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
+                                <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold' }}>
+                                  ⚠️ Já pedido em:
                                 </span>
-                              )}
+                                {Array.from(duplicatasSet).map((cotId) => (
+                                  <button
+                                    key={cotId}
+                                    type="button"
+                                    onClick={() => window.open(`/cotacao/${cotId}`, '_blank')}
+                                    title={`Abrir Cotação #${cotId} em uma nova aba`}
+                                    style={{
+                                      display: 'inline-flex',
+                                      alignItems: 'center',
+                                      gap: '4px',
+                                      padding: '3px 8px',
+                                      backgroundColor: '#fef3c7',
+                                      color: '#b45309',
+                                      border: '1px solid #fde047',
+                                      borderRadius: '12px',
+                                      fontSize: '11px',
+                                      fontWeight: 'bold',
+                                      cursor: 'pointer',
+                                      transition: 'all 0.2s',
+                                      boxShadow: '0 1px 2px rgba(0,0,0,0.05)'
+                                    }}
+                                  >
+                                    <Eye size={12} /> Cotação #{cotId}
+                                  </button>
+                                ))}
+                              </div>
+                            )}
                             </td>
                             <td style={{...styles.td, textAlign: 'center'}}>
                               <input 
