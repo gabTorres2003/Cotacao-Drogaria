@@ -20,6 +20,7 @@ export default function Fornecedores() {
     id: null,
     nome: '',
     empresa: '',
+    entreguePor: '',
     telefone: '',
     login: '',
     email: '',
@@ -46,6 +47,7 @@ export default function Fornecedores() {
       id: null,
       nome: '',
       empresa: '',
+      entreguePor: '',
       telefone: '',
       login: '',
       email: '',
@@ -59,6 +61,7 @@ export default function Fornecedores() {
       id: fornecedor.id,
       nome: fornecedor.nome,
       empresa: fornecedor.empresa || fornecedor.nomeEmpresa || '',
+      entreguePor: fornecedor.entreguePor || '',
       telefone: fornecedor.telefone || '',
       login: fornecedor.login || '',
       email: fornecedor.email || '',
@@ -158,6 +161,7 @@ export default function Fornecedores() {
         nome: form.nome,
         empresa: form.empresa,
         nomeEmpresa: form.empresa,
+        entreguePor: form.entreguePor,
         telefone: telefoneLimpo,
         login: form.login,
         email: form.email,
@@ -181,9 +185,11 @@ export default function Fornecedores() {
 
   const filtrados = fornecedores.filter((f) => {
     const nomeDaEmpresa = f.empresa || f.nomeEmpresa || ''
+    const entreguePorBusca = f.entreguePor || ''
     return (
       f.nome.toLowerCase().includes(busca.toLowerCase()) ||
       nomeDaEmpresa.toLowerCase().includes(busca.toLowerCase()) ||
+      entreguePorBusca.toLowerCase().includes(busca.toLowerCase()) ||
       (f.telefone && f.telefone.includes(busca)) ||
       (f.login && f.login.toLowerCase().includes(busca.toLowerCase()))
     )
@@ -243,7 +249,7 @@ export default function Fornecedores() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="5"
+                    colSpan="6"
                     style={{
                       textAlign: 'center',
                       padding: '20px',
@@ -301,7 +307,7 @@ export default function Fornecedores() {
                     </td>
                     <td>
                       <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>
-                        {fornecedor.entreguePor || '-'}
+                        {f.entreguePor || '-'}
                       </span>
                     </td>
                     <td>
@@ -431,7 +437,9 @@ export default function Fornecedores() {
                     width: '100%',
                     padding: '10px',
                     borderRadius: '6px',
-                    border: '1px solid #cbd5e1',
+                    border: '1px solid #d1d5db',
+                    fontSize: '15px',
+                    outlineColor: '#2563eb',
                   }}
                 />
               </div>
