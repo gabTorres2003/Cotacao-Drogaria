@@ -88,6 +88,10 @@ public class ComparativoService {
             linha.setVendidoAposUltCompra(item.getVendidoAposUltCompra());
             linha.setUltimoPreco(item.getUltimoPreco());
             linha.setOrigemItem(item.getOrigemItem());
+            
+            // Novos campos de controle
+            linha.setEditadoManual(item.getEditadoManual());
+            linha.setExcluido(item.getExcluido());
 
             List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
@@ -152,6 +156,8 @@ public class ComparativoService {
             dto.setIdItem(item.getId()); 
             dto.setNomeProduto(item.getNomeProduto());
             dto.setQuantidade(item.getQuantidade());
+            dto.setEditadoManual(item.getEditadoManual());
+            dto.setExcluido(item.getExcluido());
             return dto;
         }).collect(Collectors.toList());
     }

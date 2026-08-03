@@ -18,6 +18,9 @@ public class ItemComparativoDTO {
     private Double vendidoAposUltCompra;
     private Double ultimoPreco;
     private String origemItem;
+    
+    private Boolean editadoManual;
+    private Boolean excluido;
 
     private Double menorPrecoEncontrado;
     private String fornecedorVencedor;
@@ -67,6 +70,12 @@ public class ItemComparativoDTO {
 
     public String getOrigemItem() { return origemItem; }
     public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
+
+    public Boolean getEditadoManual() { return editadoManual; }
+    public void setEditadoManual(Boolean editadoManual) { this.editadoManual = editadoManual; }
+
+    public Boolean getExcluido() { return excluido; }
+    public void setExcluido(Boolean excluido) { this.excluido = excluido; }
 
     public Double getMenorPrecoEncontrado() { return menorPrecoEncontrado; }
     public void setMenorPrecoEncontrado(Double menorPrecoEncontrado) { this.menorPrecoEncontrado = menorPrecoEncontrado; }

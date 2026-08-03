@@ -5,7 +5,6 @@ import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
-import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.service.ComparativoService;
 import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
@@ -32,9 +31,6 @@ public class CotacaoController {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
-
-    @Autowired
-    private ItemCotacaoRepository itemCotacaoRepository;
 
     @Autowired
     private CotacaoService cotacaoService;
@@ -103,7 +99,6 @@ public class CotacaoController {
         }
     }
 
-    // NOVA ROTA: Adicionar item manual à cotação
     @PostMapping("/{id}/item")
     public ResponseEntity<ItemCotacao> adicionarItemManual(@PathVariable Long id, @RequestBody ItemCotacao dados) {
         try {
@@ -127,20 +122,22 @@ public class CotacaoController {
 
     @PutMapping("/item/{idItem}")
     public ResponseEntity<ItemCotacao> atualizarItem(@PathVariable Long idItem, @RequestBody ItemCotacao dados) {
-        return itemCotacaoRepository.findById(idItem).map(item -> {
-            item.setNomeProduto(dados.getNomeProduto());
-            item.setQuantidade(dados.getQuantidade());
-            return ResponseEntity.ok(itemCotacaoRepository.save(item));
-        }).orElse(ResponseEntity.notFound().build());
+        try {
+            ItemCotacao atualizado = cotacaoService.atualizarItemManual(idItem, dados.getNomeProduto(), dados.getQuantidade());
+            return ResponseEntity.ok(atualizado);
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
+        }
     }
 
     @DeleteMapping("/item/{idItem}")
     public ResponseEntity<Void> removerItem(@PathVariable Long idItem) {
-        if (itemCotacaoRepository.existsById(idItem)) {
-            itemCotacaoRepository.deleteById(idItem);
+        try {
+            cotacaoService.removerItemManual(idItem);
             return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            return ResponseEntity.notFound().build();
         }
-        return ResponseEntity.notFound().build();
     }
 
     @DeleteMapping("/{id}")

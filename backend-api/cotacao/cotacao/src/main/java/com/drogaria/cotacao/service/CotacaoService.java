@@ -124,7 +124,10 @@ public class CotacaoService {
         novaCotacao.setStatus("ABERTA");
         novaCotacao.setDataCriacao(LocalDateTime.now());
         
-        itensFinais.forEach(item -> item.setCotacao(novaCotacao));
+        itensFinais.forEach(item -> {
+            item.setCotacao(novaCotacao);
+            item.setNomeOriginal(item.getNomeProduto());
+        });
         novaCotacao.setItens(itensFinais);
         
         return cotacaoRepository.save(novaCotacao);
@@ -138,7 +141,7 @@ public class CotacaoService {
         List<ItemCotacao> itensDoDna = obterItensDoDNA(request);
         Map<String, ItemCotacao> itensExistentes = cotacao.getItens().stream()
                 .collect(Collectors.toMap(
-                        i -> i.getNomeProduto().toUpperCase().trim(),
+                        i -> (i.getNomeOriginal() != null ? i.getNomeOriginal() : i.getNomeProduto()).toUpperCase().trim(),
                         i -> i,
                         (existente, substituto) -> existente
                 ));
@@ -150,6 +153,13 @@ public class CotacaoService {
             
             if (itensExistentes.containsKey(chave)) {
                 ItemCotacao existente = itensExistentes.get(chave);
+                
+                // Se o usuário excluiu manualmente, ignora a importação
+                if (Boolean.TRUE.equals(existente.getExcluido())) continue;
+                
+                // Se o usuário editou nome/quantidade, não sobrescreve os dados
+                if (Boolean.TRUE.equals(existente.getEditadoManual())) continue;
+
                 if (itemDna.getQuantidade() > existente.getQuantidade()) {
                     existente.setQuantidade(itemDna.getQuantidade());
                     houveAlteracao = true;
@@ -157,6 +167,7 @@ public class CotacaoService {
             } else {
                 itemDna.setCotacao(cotacao);
                 itemDna.setOrigemItem("Nova Importação");
+                itemDna.setNomeOriginal(itemDna.getNomeProduto());
                 cotacao.getItens().add(itemDna);
                 houveAlteracao = true;
             }
@@ -175,12 +186,39 @@ public class CotacaoService {
                 .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
 
         novoItem.setCotacao(cotacao);
+        novoItem.setNomeOriginal(novoItem.getNomeProduto());
+        novoItem.setEditadoManual(true);
+        novoItem.setExcluido(false);
         
         if (novoItem.getOrigemItem() == null || novoItem.getOrigemItem().isEmpty()) {
             novoItem.setOrigemItem("Extra Manual");
         }
         
         return itemCotacaoRepository.save(novoItem);
+    }
+
+    @Transactional
+    public ItemCotacao atualizarItemManual(Long idItem, String novoNome, Integer novaQtd) {
+        ItemCotacao item = itemCotacaoRepository.findById(idItem)
+            .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+        
+        if (item.getNomeOriginal() == null) {
+            item.setNomeOriginal(item.getNomeProduto());
+        }
+
+        item.setNomeProduto(novoNome);
+        item.setQuantidade(novaQtd);
+        item.setEditadoManual(true);
+        return itemCotacaoRepository.save(item);
+    }
+
+    @Transactional
+    public void removerItemManual(Long idItem) {
+        ItemCotacao item = itemCotacaoRepository.findById(idItem)
+            .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+        
+        item.setExcluido(true); 
+        itemCotacaoRepository.save(item);
     }
 
     @Transactional

@@ -46,7 +46,6 @@ export default function CotacaoDetalhes() {
   const [filtroOrigem, setFiltroOrigem] = useState('TODOS')
   const [filtroPropostas, setFiltroPropostas] = useState('TODOS')
   
-  // ORDENAÇÃO FIXADA POR ID PARA NÃO PERDER A POSIÇÃO AO ALTERNAR OS NOMES
   const [sortConfig, setSortConfig] = useState({ key: 'idItem', direction: 'asc' })
 
   const [copiadoId, setCopiadoId] = useState(null)
@@ -267,7 +266,8 @@ export default function CotacaoDetalhes() {
     setLoading(true)
     try {
       const response = await api.get(`/api/comparativo/relatorio/${id}`)
-      const data = Array.isArray(response.data) ? response.data : [];
+      // Filtra os excluídos logicamente para não renderizar na tela
+      const data = Array.isArray(response.data) ? response.data.filter(i => !i.excluido) : [];
       setRelatorio(data)
 
       const nomes = new Set()
@@ -374,7 +374,7 @@ export default function CotacaoDetalhes() {
       return 0;
     });
     return ordenavel;
-  }, [relatorio, sortConfig, mostrarNomeReal, dicionarioDiversos]);
+  }, [relatorio, sortConfig, dicionarioDiversos]);
 
   const relatorioExibicao = useMemo(() => {
     return relatorioOrdenado.filter(item => {
@@ -400,7 +400,7 @@ export default function CotacaoDetalhes() {
 
       return matchBusca && matchOrigem && matchPropostas;
     });
-  }, [relatorioOrdenado, termoBusca, filtroOrigem, filtroPropostas, itensJaComprados, modoVisualizacao, subAbaItens]);
+  }, [relatorioOrdenado, termoBusca, filtroOrigem, filtroPropostas, itensJaComprados, modoVisualizacao, subAbaItens, mostrarNomeReal]);
 
   const SortIcon = ({ sortKey }) => {
     if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="#9ca3af" style={{ marginLeft: '6px' }} />;
@@ -491,7 +491,7 @@ export default function CotacaoDetalhes() {
       
       setRelatorio(prev => prev.map(item => 
         item.idItem === idItem 
-          ? { ...item, nomeProduto: payloadNome, quantidade: payloadQtd } 
+          ? { ...item, nomeProduto: payloadNome, quantidade: payloadQtd, editadoManual: true } 
           : item
       ))
     } catch (error) {
@@ -1026,6 +1026,11 @@ export default function CotacaoDetalhes() {
                             Genérico
                           </span>
                         )}
+                        {item.editadoManual && (
+                          <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>
+                            ✏️ Editado
+                          </span>
+                        )}
                         <button 
                           type="button"
                           onClick={(e) => {
@@ -1263,6 +1268,11 @@ export default function CotacaoDetalhes() {
                           {isDiversos(item.nomeProduto) && !mostrarNomeReal && (
                             <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>
                               Genérico
+                            </span>
+                          )}
+                          {item.editadoManual && (
+                            <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>
+                              ✏️ Editado
                             </span>
                           )}
                           <button 

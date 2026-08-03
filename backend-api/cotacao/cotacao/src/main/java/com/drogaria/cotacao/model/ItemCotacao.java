@@ -14,6 +14,10 @@ public class ItemCotacao {
     private Long id;
 
     private String nomeProduto;
+    
+    @Column(name = "nome_original")
+    private String nomeOriginal;
+
     private Integer quantidade; 
     private Double ultimoPreco; 
     private Double estoque;
@@ -29,8 +33,15 @@ public class ItemCotacao {
     private LocalDate ultVendaData;
     
     private Double vendidoAposUltCompra;
+    
     @Column(name = "origem_item")
     private String origemItem;
+
+    @Column(name = "editado_manual")
+    private Boolean editadoManual = false;
+
+    @Column(name = "excluido")
+    private Boolean excluido = false;
 
     @ManyToOne
     @JoinColumn(name = "cotacao_id")
@@ -43,6 +54,10 @@ public class ItemCotacao {
     public Long getId() { return id; }
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
+    
+    public String getNomeOriginal() { return nomeOriginal; }
+    public void setNomeOriginal(String nomeOriginal) { this.nomeOriginal = nomeOriginal; }
+    
     public Integer getQuantidade() { return quantidade; }
     public void setQuantidade(Integer quantidade) { this.quantidade = quantidade; }
     public Double getUltimoPreco() { return ultimoPreco; }
@@ -68,4 +83,10 @@ public class ItemCotacao {
     public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
     public String getOrigemItem() { return origemItem; }
     public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
+    
+    public Boolean getEditadoManual() { return editadoManual; }
+    public void setEditadoManual(Boolean editadoManual) { this.editadoManual = editadoManual; }
+    
+    public Boolean getExcluido() { return excluido; }
+    public void setExcluido(Boolean excluido) { this.excluido = excluido; }
 }
