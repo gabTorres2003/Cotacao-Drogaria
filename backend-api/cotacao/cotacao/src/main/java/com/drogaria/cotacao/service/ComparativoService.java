@@ -47,8 +47,10 @@ public class ComparativoService {
     public List<ItemComparativoDTO> compararPrecos(Long idCotacao) {
         List<ItemComparativoDTO> relatorio = new ArrayList<>();
 
-        Cotacao cotacao = cotacaoRepository.findById(idCotacao)
-                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+        Cotacao cotacao = cotacaoRepository.findById(idCotacao).orElse(null);
+        if (cotacao == null) {
+            return new ArrayList<>();
+        }
 
         List<ItemCotacao> itens = itemRepository.findByCotacao(cotacao);
         
@@ -140,8 +142,10 @@ public class ComparativoService {
     }
 
     public List<ItemComparativoDTO> listarItensParaCotacao(Long idCotacao) {
-        Cotacao cotacao = cotacaoRepository.findById(idCotacao)
-                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+        Cotacao cotacao = cotacaoRepository.findById(idCotacao).orElse(null);
+        if (cotacao == null) {
+            return new ArrayList<>();
+        }
         
         return cotacao.getItens().stream().map(item -> {
             ItemComparativoDTO dto = new ItemComparativoDTO();
