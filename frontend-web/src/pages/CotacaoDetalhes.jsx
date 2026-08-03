@@ -1821,14 +1821,14 @@ export default function CotacaoDetalhes() {
                 <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '10px' }}>
                     <button onClick={() => setConfirmManualModal(false)} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', cursor: 'pointer', fontWeight: '500', color: '#374151' }}>Voltar</button>
                     <button 
-                    type="button" 
-                    onClick={handlePrepararRegistroManual} 
-                    disabled={isProcessandoPedidos || isEncerrada} 
-                    style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}
-                  >
-                    {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />} 
-                    {isProcessandoPedidos ? 'Processando...' : 'Finalizar Registro e Gerar Pedidos'}
-                  </button>
+                      type="button" 
+                      onClick={processarRegistroManual} 
+                      disabled={salvandoPedidos || isEncerrada} 
+                      style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}
+                    >
+                      {salvandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />} 
+                      {salvandoPedidos ? 'Processando...' : 'Finalizar Registro e Gerar Pedidos'}
+                    </button>
                 </div>
             </div>
         </div>
