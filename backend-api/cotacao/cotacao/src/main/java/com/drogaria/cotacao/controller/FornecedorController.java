@@ -72,6 +72,7 @@ public class FornecedorController {
                     fornecedor.setTelefone(dados.getTelefone());
                     fornecedor.setEmail(dados.getEmail());
                     fornecedor.setEmpresa(dados.getEmpresa()); 
+                    fornecedor.setEntreguePor(dados.getEntreguePor());
                     
                     Fornecedor atualizado = fornecedorRepository.save(fornecedor);
 
