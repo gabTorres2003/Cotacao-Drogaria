@@ -78,7 +78,7 @@ export default function FornecedorDashboard() {
     if (!novaSenha) return alert("Digite a nova senha.");
     setSalvandoSenha(true);
     try {
-      await api.put(`/api/fornecedor/${usuarioId}/senha`, { senha: novaSenha });
+      await api.put(`/api/fornecedor/${usuarioId}/primeiro-acesso`, { novaSenha: novaSenha });
       localStorage.setItem('primeiroAcesso', 'false');
       setShowPrimeiroAcesso(false);
       alert("Senha de acesso atualizada com sucesso!");
