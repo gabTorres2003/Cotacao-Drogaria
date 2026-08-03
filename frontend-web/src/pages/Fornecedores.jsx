@@ -234,6 +234,7 @@ export default function Fornecedores() {
                 <th style={{ width: '60px' }}>ID</th>
                 <th>Nome / Login</th>
                 <th>Empresa</th>
+                <th>Entregue por</th>
                 <th>Telefone (WhatsApp)</th>
                 <th style={{ width: '120px' }}>Ações</th>
               </tr>
@@ -297,6 +298,11 @@ export default function Fornecedores() {
                         <Building2 size={16} color="#9ca3af" />
                         {f.empresa || f.nomeEmpresa || '-'}
                       </div>
+                    </td>
+                    <td>
+                      <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>
+                        {fornecedor.entreguePor || '-'}
+                      </span>
                     </td>
                     <td>
                       <div
