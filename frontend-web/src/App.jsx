@@ -5,7 +5,7 @@ import Cotacoes from './pages/Cotacoes'
 import ResponderCotacao from './pages/ResponderCotacao'
 import CotacaoDetalhes from './pages/CotacaoDetalhes'
 import Fornecedores from './pages/Fornecedores'
-import Relatorios from './pages/Relatorios'
+import DashboardEstrategico from './pages/DashboardEstrategico'
 import Usuarios from './pages/Usuarios'
 import FornecedorDashboard from './pages/FornecedorDashboard' 
 import Pedidos from './pages/Pedidos' 
@@ -36,7 +36,9 @@ function App() {
         <Route path="/pedidos" element={<RotaPrivada><Pedidos /></RotaPrivada>} />
         <Route path="/pedidos/:id" element={<RotaPrivada><PedidoDetalhes /></RotaPrivada>} />
         <Route path="/pedidos/:id/conferir" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
-        <Route path="/relatorios" element={<RotaPrivada><Relatorios /></RotaPrivada>} />
+    
+        <Route path="/relatorios" element={<RotaPrivada><DashboardEstrategico /></RotaPrivada>} />
+        
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
         <Route path="/auditoria" element={<RotaPrivada><Auditoria /></RotaPrivada>} />
         <Route path="/devolucoes" element={<RotaPrivada><Devolucoes /></RotaPrivada>} />
