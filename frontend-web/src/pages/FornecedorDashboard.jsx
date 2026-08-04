@@ -75,7 +75,7 @@ export default function FornecedorDashboard() {
   }
 
   const salvarNovaSenha = async () => {
-    if (!novaSenha) return alert("Digite a nova senha.");
+    if (!novaSenha || novaSenha.length < 4) return alert("A senha deve ter no mínimo 4 dígitos.");
     setSalvandoSenha(true);
     try {
       await api.put(`/api/fornecedor/${usuarioId}/primeiro-acesso`, { novaSenha: novaSenha });
@@ -386,17 +386,30 @@ export default function FornecedorDashboard() {
               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nova Senha Numérica</label>
               <input
                 type="password"
+                inputMode="numeric"
+                minLength={4}
+                maxLength={6}
                 value={novaSenha}
-                // REGRA 1 APLICADA: REGEX PARA PERMITIR APENAS NÚMEROS
                 onChange={(e) => setNovaSenha(e.target.value.replace(/\D/g, ''))}
-                placeholder="Ex: 123456"
+                placeholder="Mínimo 4 e máximo 6 dígitos"
                 style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '16px', letterSpacing: '2px', boxSizing: 'border-box' }}
               />
             </div>
             <button 
               onClick={salvarNovaSenha} 
-              disabled={!novaSenha || salvandoSenha}
-              style={{ width: '100%', padding: '12px', marginTop: '24px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer' }}
+              disabled={novaSenha.length < 4 || salvandoSenha}
+              style={{ 
+                width: '100%', 
+                padding: '12px', 
+                marginTop: '24px', 
+                backgroundColor: '#2563eb', 
+                color: 'white', 
+                border: 'none', 
+                borderRadius: '8px', 
+                fontWeight: 'bold', 
+                cursor: (novaSenha.length < 4 || salvandoSenha) ? 'not-allowed' : 'pointer',
+                opacity: (novaSenha.length < 4 || salvandoSenha) ? 0.7 : 1
+              }}
             >
               {salvandoSenha ? 'Salvando...' : 'Confirmar e Acessar Portal'}
             </button>
