@@ -8,6 +8,7 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
+  AlertTriangle
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -21,6 +22,7 @@ export default function ResponderCotacao() {
     localStorage.getItem('primeiroAcesso') === 'true',
   )
   const [erroLogin, setErroLogin] = useState('')
+  const [erroGeral, setErroGeral] = useState('')
 
   const [novoPin, setNovoPin] = useState('')
   const [confirmaPin, setConfirmaPin] = useState('')
@@ -37,16 +39,35 @@ export default function ResponderCotacao() {
 
   const [emFalta, setEmFalta] = useState({})
   const [sugestoes, setSugestoes] = useState([])
+  
   const [loading, setLoading] = useState(false)
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false) 
   const [enviado, setEnviado] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
+  const draftKey = `cotacao_draft_${idCotacao}_${usuarioId}`
 
   useEffect(() => {
     if (!isPrimeiroAcesso) {
       carregarItens()
     }
   }, [isPrimeiroAcesso])
+
+  useEffect(() => {
+    if (isInitialLoadDone) {
+      try {
+        const draft = {
+          precos, quantidades, observacoes, produtoSubstituto, 
+          precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes
+        }
+        localStorage.setItem(draftKey, JSON.stringify(draft))
+      } catch (error) {
+        setErroGeral('Aviso: Armazenamento do navegador cheio. O rascunho automático pode não ser salvo.')
+        console.error('Erro ao salvar rascunho local:', error)
+      }
+    }
+  }, [precos, quantidades, observacoes, produtoSubstituto, precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes, isInitialLoadDone, draftKey])
+
 
   const handlePrimeiroAcesso = async (e) => {
     e.preventDefault()
@@ -66,31 +87,54 @@ export default function ResponderCotacao() {
     }
   }
 
+  const tentarCarregarRascunhoLocal = () => {
+    try {
+      const draftStr = localStorage.getItem(draftKey)
+      if (draftStr) {
+        const draft = JSON.parse(draftStr)
+        setPrecos(draft.precos || {})
+        setQuantidades(draft.quantidades || {})
+        setObservacoes(draft.observacoes || {})
+        setProdutoSubstituto(draft.produtoSubstituto || {})
+        setPrecoSubstituto(draft.precoSubstituto || {})
+        setQtdSubstituto(draft.qtdSubstituto || {})
+        setExibirTroca(draft.exibirTroca || {})
+        setEmFalta(draft.emFalta || {})
+        setSugestoes(draft.sugestoes || [])
+        return true
+      }
+    } catch (error) {
+      console.error("Erro ao ler rascunho", error)
+    }
+    return false
+  }
+
   const carregarItens = async () => {
     setLoading(true)
+    setErroGeral('')
     try {
-      const response = await api.get(
-        `/api/comparativo/listar-itens/${idCotacao}`,
-      )
+      const response = await api.get(`/api/comparativo/listar-itens/${idCotacao}`)
       const itensCarregados = Array.isArray(response.data) ? response.data : []
       setItens(itensCarregados)
 
       if (itensCarregados.length > 0 && usuarioId) {
-        await carregarRespostasAnteriores(usuarioId)
+        const temRascunho = tentarCarregarRascunhoLocal()
+        if (!temRascunho) {
+          await carregarRespostasAnteriores(usuarioId)
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar itens:', error)
-      alert('Erro ao carregar a cotação.')
+      setErroGeral('Erro de conexão ao tentar carregar a cotação. Verifique sua internet.')
     } finally {
       setLoading(false)
+      setIsInitialLoadDone(true)
     }
   }
 
   const carregarRespostasAnteriores = async (idFornecedor) => {
     try {
-      const res = await api.get(
-        `/api/fornecedor/${idFornecedor}/cotacao/${idCotacao}/respostas`,
-      )
+      const res = await api.get(`/api/fornecedor/${idFornecedor}/cotacao/${idCotacao}/respostas`)
       const respostas = res.data
 
       if (respostas && respostas.length > 0) {
@@ -115,8 +159,7 @@ export default function ResponderCotacao() {
           if (r.produtoSubstituto) {
             novosSubstitutos[r.idItem] = r.produtoSubstituto
             novosPrecosSubst[r.idItem] = r.precoSubstituto || r.preco
-            novasQtdsSubst[r.idItem] =
-              r.quantidadeSubstituto || r.quantidadeDisponivel
+            novasQtdsSubst[r.idItem] = r.quantidadeSubstituto || r.quantidadeDisponivel
             novasExibicoes[r.idItem] = true
           }
         })
@@ -182,13 +225,7 @@ export default function ResponderCotacao() {
   const adicionarSugestao = () => {
     setSugestoes((prev) => [
       ...prev,
-      {
-        tempId: Date.now(),
-        nomeProduto: '',
-        preco: '',
-        qtdMinima: 1,
-        observacao: '',
-      },
+      { tempId: Date.now(), nomeProduto: '', preco: '', qtdMinima: 1, observacao: '' },
     ])
   }
 
@@ -235,22 +272,22 @@ export default function ResponderCotacao() {
 
   const enviarResposta = async () => {
     setIsSubmitting(true)
+    setErroGeral('')
+    
     try {
       const itensRespostas = itens.map((item) => {
         const isFalta = !!emFalta[item.idItem]
         let precoFinal = isFalta
           ? -1
-          : parseFloat(String(precos[item.idItem] || '0').replace(',', '.')) ||
-            0
+          : parseFloat(String(precos[item.idItem] || '0').replace(',', '.')) || 0
+        
         let qtdFinal = isFalta
           ? 0
           : quantidades[item.idItem] !== undefined
             ? quantidades[item.idItem]
             : item.quantidade
 
-        const temTroca =
-          !!exibirTroca[item.idItem] &&
-          produtoSubstituto[item.idItem]?.trim() !== ''
+        const temTroca = !!exibirTroca[item.idItem] && produtoSubstituto[item.idItem]?.trim() !== ''
 
         return {
           idItem: item.idItem,
@@ -258,17 +295,9 @@ export default function ResponderCotacao() {
           preco: precoFinal,
           quantidadeDisponivel: qtdFinal,
           observacao: observacoes[item.idItem] || '',
-          produtoSubstituto: temTroca
-            ? produtoSubstituto[item.idItem].trim()
-            : '',
-          precoSubstituto: temTroca
-            ? parseFloat(
-                String(precoSubstituto[item.idItem] || '0').replace(',', '.'),
-              ) || 0
-            : null,
-          quantidadeSubstituto: temTroca
-            ? parseInt(qtdSubstituto[item.idItem] || item.quantidade, 10)
-            : null,
+          produtoSubstituto: temTroca ? produtoSubstituto[item.idItem].trim() : '',
+          precoSubstituto: temTroca ? parseFloat(String(precoSubstituto[item.idItem] || '0').replace(',', '.')) || 0 : null,
+          quantidadeSubstituto: temTroca ? parseInt(qtdSubstituto[item.idItem] || item.quantidade, 10) : null,
         }
       })
 
@@ -289,15 +318,25 @@ export default function ResponderCotacao() {
       }
 
       await api.post('/api/comparativo/salvar-respostas-completas', payload)
+      localStorage.removeItem(draftKey)
+
       setEnviado(true)
       setTimeout(() => {
         navigate('/portal-fornecedor')
       }, 3000)
     } catch (error) {
       console.error('Erro ao enviar:', error)
-      alert('Erro ao enviar cotação.')
+      const erroMsg = error.response?.data?.message || error.response?.data || error.message || 'Falha na conexão com o servidor.'
+      setErroGeral(`Erro ao salvar a cotação: ${erroMsg}`)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const limparRascunho = () => {
+    if(window.confirm('Isso apagará todas as respostas que você preencheu nesta tela e restaurará os dados originais. Tem certeza?')) {
+      localStorage.removeItem(draftKey)
+      window.location.reload()
     }
   }
 
@@ -308,32 +347,11 @@ export default function ResponderCotacao() {
         <p style={{ color: '#6b7280', marginBottom: '25px', fontSize: '14px' }}>
           Crie um novo PIN numérico.
         </p>
-        <form
-          onSubmit={handlePrimeiroAcesso}
-          style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
-        >
-          <input
-            type="password"
-            placeholder="Novo PIN"
-            required
-            style={mobileStyles.inputField}
-            value={novoPin}
-            onChange={(e) => setNovoPin(e.target.value)}
-          />
-          <input
-            type="password"
-            placeholder="Confirme o PIN"
-            required
-            style={mobileStyles.inputField}
-            value={confirmaPin}
-            onChange={(e) => setConfirmaPin(e.target.value)}
-          />
-          <button
-            type="submit"
-            style={{ ...mobileStyles.submitButton, backgroundColor: '#059669' }}
-          >
-            Salvar
-          </button>
+        <form onSubmit={handlePrimeiroAcesso} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+          <input type="password" placeholder="Novo PIN" required style={mobileStyles.inputField} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} />
+          <input type="password" placeholder="Confirme o PIN" required style={mobileStyles.inputField} value={confirmaPin} onChange={(e) => setConfirmaPin(e.target.value)} />
+          {erroLogin && <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{erroLogin}</div>}
+          <button type="submit" style={{ ...mobileStyles.submitButton, backgroundColor: '#059669' }}>Salvar</button>
         </form>
       </div>
     )
@@ -342,11 +360,7 @@ export default function ResponderCotacao() {
   if (enviado) {
     return (
       <div style={mobileStyles.successBox}>
-        <CheckCircle
-          size={48}
-          color="#059669"
-          style={{ margin: '0 auto 15px auto' }}
-        />
+        <CheckCircle size={48} color="#059669" style={{ margin: '0 auto 15px auto' }} />
         <h2 style={{ marginBottom: '10px' }}>Proposta Enviada!</h2>
         <p>Retornando ao painel...</p>
       </div>
@@ -370,74 +384,42 @@ export default function ResponderCotacao() {
           borderBottom: '1px solid #e5e7eb'
         }}
       >
-        <button
-          onClick={() => navigate('/portal-fornecedor')}
-          style={mobileStyles.btnVoltar}
-        >
+        <button onClick={() => navigate('/portal-fornecedor')} style={mobileStyles.btnVoltar}>
           <ArrowLeft size={18} /> Voltar
         </button>
 
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <img
-            src="/assets/logo-torres.png"
-            alt="Torres Farma"
-            style={{ height: '24px' }}
-          />
-          <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>
-            Cotação #{idCotacao}
-          </h1>
+          <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '24px' }} />
+          <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Cotação #{idCotacao}</h1>
         </div>
 
-        <div
-          style={{
-            background: '#dbeafe',
-            color: '#1e40af',
-            padding: '6px 10px',
-            borderRadius: '8px',
-            fontSize: '12px',
-            fontWeight: 'bold',
-          }}
-        >
+        <div style={{ background: '#dbeafe', color: '#1e40af', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>
           {nomeUsuario}
         </div>
       </div>
 
       {loading ? (
-        <p>Carregando itens...</p>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: '#6b7280' }}>
+          <Loader2 size={32} className="animate-spin" color="#3b82f6" style={{ marginBottom: '10px' }} />
+          <p>Carregando itens...</p>
+        </div>
       ) : (
         <div>
           {itens.map((item) => {
             const isFalta = !!emFalta[item.idItem]
-            const qtdNaTela =
-              quantidades[item.idItem] !== undefined
-                ? quantidades[item.idItem]
-                : item.quantidade
+            const qtdNaTela = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
             const temTrocaAtiva = !!exibirTroca[item.idItem]
 
             return (
               <div key={item.idItem} style={mobileStyles.card}>
-                <div
-                  style={{
-                    fontSize: '15px',
-                    fontWeight: '600',
-                    color: '#1f2937',
-                  }}
-                >
+                <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>
                   {getNomeReal(item.nomeProduto)}
                 </div>
                 <div style={{ fontSize: '13px', color: '#6b7280' }}>
                   Solicitado: <strong>{item.quantidade} un</strong>
                 </div>
 
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: '1fr 1fr auto',
-                    gap: '8px',
-                    alignItems: 'flex-end',
-                    marginTop: '8px',
-                  }}
-                >
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginTop: '8px' }}>
                   <div>
                     <label style={mobileStyles.labelMini}>Qtd. Disp.</label>
                     <input
@@ -447,40 +429,22 @@ export default function ResponderCotacao() {
                       style={mobileStyles.inputFieldItem}
                       value={qtdNaTela}
                       onWheel={(e) => e.target.blur()} 
-                      onChange={(e) =>
-                        handleQtdChange(
-                          item.idItem,
-                          e.target.value,
-                          item.quantidade,
-                        )
-                      }
+                      onChange={(e) => handleQtdChange(item.idItem, e.target.value, item.quantidade) }
                     />
                   </div>
                   <div>
-                    <label style={mobileStyles.labelMini}>
-                      Preço Unit. (R$)
-                    </label>
+                    <label style={mobileStyles.labelMini}>Preço Unit. (R$)</label>
                     <input
                       type="number"
                       step="0.01"
                       placeholder="0,00"
                       style={mobileStyles.inputFieldItem}
-                      value={
-                        precos[item.idItem] !== undefined
-                          ? precos[item.idItem]
-                          : ''
-                      }
+                      value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''}
                       onWheel={(e) => e.target.blur()} 
-                      onChange={(e) =>
-                        handlePrecoChange(item.idItem, e.target.value)
-                      }
+                      onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
                     />
                   </div>
-                  <button
-                    type="button"
-                    style={mobileStyles.btnFalta(isFalta)}
-                    onClick={() => toggleEmFalta(item.idItem)}
-                  >
+                  <button type="button" style={mobileStyles.btnFalta(isFalta)} onClick={() => toggleEmFalta(item.idItem)}>
                     {isFalta ? 'Em falta' : 'Falta?'}
                   </button>
                 </div>
@@ -489,114 +453,46 @@ export default function ResponderCotacao() {
                   <button
                     type="button"
                     onClick={() => toggleTrocaProduto(item.idItem)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#2563eb',
-                      cursor: 'pointer',
-                      fontSize: '13px',
-                      fontWeight: '600',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '4px',
-                      padding: 0,
-                    }}
+                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
                   >
                     <RefreshCw size={14} />{' '}
-                    {temTrocaAtiva
-                      ? 'Remover Sugestão de Troca'
-                      : 'Sugerir Troca de Marca/Laboratório'}
+                    {temTrocaAtiva ? 'Remover Sugestão de Troca' : 'Sugerir Troca de Marca/Laboratório'}
                   </button>
 
                   {temTrocaAtiva && (
-                    <div
-                      style={{
-                        marginTop: '8px',
-                        padding: '10px',
-                        backgroundColor: '#eff6ff',
-                        borderRadius: '6px',
-                        border: '1px solid #bfdbfe',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        gap: '8px',
-                      }}
-                    >
+                    <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <div>
-                        <label style={mobileStyles.labelMini}>
-                          Nome do Produto Alternativo *
-                        </label>
+                        <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
                         <input
                           type="text"
                           placeholder="Ex: Paracetamol Medley..."
-                          style={{
-                            ...mobileStyles.inputFieldItem,
-                            backgroundColor: 'white',
-                          }}
+                          style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
                           value={produtoSubstituto[item.idItem] || ''}
-                          onChange={(e) =>
-                            setProdutoSubstituto((prev) => ({
-                              ...prev,
-                              [item.idItem]: e.target.value,
-                            }))
-                          }
+                          onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
                         />
                       </div>
-                      <div
-                        style={{
-                          display: 'grid',
-                          gridTemplateColumns: '1fr 1fr',
-                          gap: '8px',
-                        }}
-                      >
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>
-                          <label style={mobileStyles.labelMini}>
-                            Qtd. Disponível (Troca)
-                          </label>
+                          <label style={mobileStyles.labelMini}>Qtd. Disponível (Troca)</label>
                           <input
                             type="number"
                             min="0"
-                            style={{
-                              ...mobileStyles.inputFieldItem,
-                              backgroundColor: 'white',
-                            }}
-                            value={
-                              qtdSubstituto[item.idItem] !== undefined
-                                ? qtdSubstituto[item.idItem]
-                                : item.quantidade
-                            }
+                            style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
+                            value={qtdSubstituto[item.idItem] !== undefined ? qtdSubstituto[item.idItem] : item.quantidade}
                             onWheel={(e) => e.target.blur()}
-                            onChange={(e) =>
-                              setQtdSubstituto((prev) => ({
-                                ...prev,
-                                [item.idItem]: e.target.value,
-                              }))
-                            }
+                            onChange={(e) => setQtdSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
                           />
                         </div>
                         <div>
-                          <label style={mobileStyles.labelMini}>
-                            Preço Unit. R$ (Troca)
-                          </label>
+                          <label style={mobileStyles.labelMini}>Preço Unit. R$ (Troca)</label>
                           <input
                             type="number"
                             step="0.01"
                             placeholder="0,00"
-                            style={{
-                              ...mobileStyles.inputFieldItem,
-                              backgroundColor: 'white',
-                            }}
-                            value={
-                              precoSubstituto[item.idItem] !== undefined
-                                ? precoSubstituto[item.idItem]
-                                : ''
-                            }
+                            style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
+                            value={precoSubstituto[item.idItem] !== undefined ? precoSubstituto[item.idItem] : ''}
                             onWheel={(e) => e.target.blur()}
-                            onChange={(e) =>
-                              setPrecoSubstituto((prev) => ({
-                                ...prev,
-                                [item.idItem]: e.target.value,
-                              }))
-                            }
+                            onChange={(e) => setPrecoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
                           />
                         </div>
                       </div>
@@ -605,198 +501,80 @@ export default function ResponderCotacao() {
                 </div>
 
                 <div style={{ marginTop: '6px' }}>
-                  <label style={mobileStyles.labelMini}>
-                    Observação / Validade
-                  </label>
+                  <label style={mobileStyles.labelMini}>Observação / Validade</label>
                   <input
                     type="text"
                     placeholder="Ex: Lote 2027..."
                     style={mobileStyles.inputFieldItem}
                     value={observacoes[item.idItem] || ''}
-                    onChange={(e) =>
-                      setObservacoes((prev) => ({
-                        ...prev,
-                        [item.idItem]: e.target.value,
-                      }))
-                    }
+                    onChange={(e) => setObservacoes((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
                   />
                 </div>
               </div>
             )
           })}
 
-          <div
-            style={{
-              marginTop: '24px',
-              backgroundColor: 'white',
-              padding: '16px',
-              borderRadius: '10px',
-              border: '1px solid #e5e7eb',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                marginBottom: '12px',
-              }}
-            >
-              <h3
-                style={{
-                  fontSize: '16px',
-                  fontWeight: 'bold',
-                  color: '#111827',
-                  margin: 0,
-                }}
-              >
-                Sugestões & Promoções
-              </h3>
-              <button
-                type="button"
-                onClick={adicionarSugestao}
-                style={mobileStyles.btnAddSugestao}
-              >
+          <div style={{ marginTop: '24px', backgroundColor: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Sugestões & Promoções</h3>
+              <button type="button" onClick={adicionarSugestao} style={mobileStyles.btnAddSugestao}>
                 <Plus size={14} /> Adicionar
               </button>
             </div>
             {sugestoes.map((sug, index) => (
-              <div
-                key={sug.tempId}
-                style={{
-                  padding: '12px',
-                  border: '1px solid #cbd5e1',
-                  borderRadius: '8px',
-                  backgroundColor: '#f8fafc',
-                  marginBottom: '10px',
-                }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    marginBottom: '8px',
-                  }}
-                >
-                  <span
-                    style={{
-                      fontSize: '12px',
-                      fontWeight: 'bold',
-                      color: '#2563eb',
-                    }}
-                  >
-                    Sugestão #{index + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => removerSugestao(sug.tempId)}
-                    style={{
-                      background: 'none',
-                      border: 'none',
-                      color: '#ef4444',
-                      cursor: 'pointer',
-                    }}
-                  >
+              <div key={sug.tempId} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#2563eb' }}>Sugestão #{index + 1}</span>
+                  <button type="button" onClick={() => removerSugestao(sug.tempId)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
                     <Trash2 size={16} />
                   </button>
                 </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    gap: '8px',
-                  }}
-                >
-                  <input
-                    type="text"
-                    placeholder="Nome do Produto *"
-                    style={mobileStyles.inputFieldItem}
-                    value={sug.nomeProduto}
-                    onChange={(e) =>
-                      handleSugestaoChange(
-                        sug.tempId,
-                        'nomeProduto',
-                        e.target.value,
-                      )
-                    }
-                  />
-                  <div
-                    style={{
-                      display: 'grid',
-                      gridTemplateColumns: '1fr 1fr',
-                      gap: '8px',
-                    }}
-                  >
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="Preço R$ *"
-                      style={mobileStyles.inputFieldItem}
-                      value={sug.preco}
-                      onWheel={(e) => e.target.blur()}
-                      onChange={(e) =>
-                        handleSugestaoChange(
-                          sug.tempId,
-                          'preco',
-                          e.target.value,
-                        )
-                      }
-                    />
-                    <input
-                      type="number"
-                      min="1"
-                      placeholder="Qtd Mínima *"
-                      style={mobileStyles.inputFieldItem}
-                      value={sug.qtdMinima}
-                      onWheel={(e) => e.target.blur()}
-                      onChange={(e) =>
-                        handleSugestaoChange(
-                          sug.tempId,
-                          'qtdMinima',
-                          e.target.value,
-                        )
-                      }
-                    />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  <input type="text" placeholder="Nome do Produto *" style={mobileStyles.inputFieldItem} value={sug.nomeProduto} onChange={(e) => handleSugestaoChange(sug.tempId, 'nomeProduto', e.target.value)} />
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                    <input type="number" step="0.01" placeholder="Preço R$ *" style={mobileStyles.inputFieldItem} value={sug.preco} onWheel={(e) => e.target.blur()} onChange={(e) => handleSugestaoChange(sug.tempId, 'preco', e.target.value)} />
+                    <input type="number" min="1" placeholder="Qtd Mínima *" style={mobileStyles.inputFieldItem} value={sug.qtdMinima} onWheel={(e) => e.target.blur()} onChange={(e) => handleSugestaoChange(sug.tempId, 'qtdMinima', e.target.value)} />
                   </div>
-                  <input
-                    type="text"
-                    placeholder="Observação..."
-                    style={mobileStyles.inputFieldItem}
-                    value={sug.observacao}
-                    onChange={(e) =>
-                      handleSugestaoChange(
-                        sug.tempId,
-                        'observacao',
-                        e.target.value,
-                      )
-                    }
-                  />
+                  <input type="text" placeholder="Observação..." style={mobileStyles.inputFieldItem} value={sug.observacao} onChange={(e) => handleSugestaoChange(sug.tempId, 'observacao', e.target.value)} />
                 </div>
               </div>
             ))}
           </div>
 
-          <button
-            style={{
-              ...mobileStyles.submitButton,
-              opacity: isSubmitting ? 0.7 : 1,
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              gap: '8px',
-            }}
-            onClick={enviarResposta}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <>
-                <Loader2 size={18} className="animate-spin" /> Enviando
-                Proposta...
-              </>
-            ) : (
-              'Enviar Proposta'
+          <div style={{ marginTop: '30px' }}>
+            {erroGeral && (
+              <div style={mobileStyles.errorBox}>
+                <AlertTriangle size={20} style={{ flexShrink: 0 }} />
+                <span>{erroGeral}</span>
+              </div>
             )}
-          </button>
+
+            <button
+              style={{
+                ...mobileStyles.submitButton,
+                opacity: isSubmitting ? 0.7 : 1,
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                gap: '8px',
+              }}
+              onClick={enviarResposta}
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? (
+                <><Loader2 size={18} className="animate-spin" /> Enviando Proposta...</>
+              ) : (
+                'Enviar Proposta'
+              )}
+            </button>
+
+            <button 
+              onClick={limparRascunho} 
+              style={{ width: '100%', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer', textDecoration: 'underline' }}
+            >
+              Apagar rascunho e recomeçar
+            </button>
+          </div>
         </div>
       )}
 
@@ -875,7 +653,6 @@ const mobileStyles = {
     fontSize: '16px',
     fontWeight: 'bold',
     cursor: 'pointer',
-    marginTop: '20px',
   },
   btnVoltar: {
     display: 'flex',
@@ -907,4 +684,18 @@ const mobileStyles = {
     borderRadius: '12px',
     textAlign: 'center',
   },
+  errorBox: {
+    display: 'flex',
+    alignItems: 'center',
+    gap: '10px',
+    padding: '12px',
+    backgroundColor: '#fee2e2',
+    border: '1px solid #f87171',
+    borderRadius: '8px',
+    color: '#991b1b',
+    fontSize: '14px',
+    marginBottom: '15px',
+    fontWeight: '600',
+    textAlign: 'left'
+  }
 }
