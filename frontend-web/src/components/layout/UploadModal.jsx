@@ -48,7 +48,8 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
         incluirSugestao: incluirSugestao,
         dataInicial: incluirSugestao ? dataInicial : null,
         dataFinal: incluirSugestao ? dataFinal : null,
-        diasSuprir: incluirSugestao ? Number(diasSuprir) : null
+        diasSuprir: incluirSugestao ? Number(diasSuprir) : null,
+        nomeUsuario: localStorage.getItem('nomeUsuario') || 'Sistema'
       };
 
       if (cotacaoId) {

@@ -123,6 +123,7 @@ public class CotacaoService {
         novaCotacao.setDescricao("Cotação " + tipoBusca + nomeGrupos);
         novaCotacao.setStatus("ABERTA");
         novaCotacao.setDataCriacao(LocalDateTime.now());
+        novaCotacao.setNomeUsuario(request.getNomeUsuario());
         
         itensFinais.forEach(item -> {
             item.setCotacao(novaCotacao);

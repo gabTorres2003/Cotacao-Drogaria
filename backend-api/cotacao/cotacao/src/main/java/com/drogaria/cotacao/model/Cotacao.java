@@ -19,6 +19,9 @@ public class Cotacao {
     private String status;
     private String descricao; 
     
+    @Column(name = "nome_usuario")
+    private String nomeUsuario;
+
     @JsonIgnore 
     @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemCotacao> itens;
@@ -30,26 +33,11 @@ public class Cotacao {
     @Transient
     private List<String> fornecedoresPendentes = new ArrayList<>();
 
-    public List<String> getFornecedoresPendentes() {
-        return fornecedoresPendentes;
-    }
-
-    public void setFornecedoresPendentes(List<String> fornecedoresPendentes) {
-        this.fornecedoresPendentes = fornecedoresPendentes;
-    }
-
     @Transient
     private List<Long> fornecedoresVinculadosIds = new ArrayList<>();
     
     @Transient
     private List<Long> fornecedoresRespondidosIds = new ArrayList<>();
-
-    public List<CotacaoFornecedor> getCotacaoFornecedores() {
-        return cotacaoFornecedores;
-    }
-    public void setCotacaoFornecedores(List<CotacaoFornecedor> cotacaoFornecedores) {
-        this.cotacaoFornecedores = cotacaoFornecedores;
-    }
 
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -63,22 +51,21 @@ public class Cotacao {
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
 
+    public String getNomeUsuario() { return nomeUsuario; }
+    public void setNomeUsuario(String nomeUsuario) { this.nomeUsuario = nomeUsuario; }
+
     public List<ItemCotacao> getItens() { return itens; }
     public void setItens(List<ItemCotacao> itens) { this.itens = itens; }
 
-    public List<Long> getFornecedoresVinculadosIds() {
-        return fornecedoresVinculadosIds;
-    }
+    public List<CotacaoFornecedor> getCotacaoFornecedores() { return cotacaoFornecedores; }
+    public void setCotacaoFornecedores(List<CotacaoFornecedor> cotacaoFornecedores) { this.cotacaoFornecedores = cotacaoFornecedores; }
 
-    public void setFornecedoresVinculadosIds(List<Long> fornecedoresVinculadosIds) {
-        this.fornecedoresVinculadosIds = fornecedoresVinculadosIds;
-    }
+    public List<String> getFornecedoresPendentes() { return fornecedoresPendentes; }
+    public void setFornecedoresPendentes(List<String> fornecedoresPendentes) { this.fornecedoresPendentes = fornecedoresPendentes; }
 
-    public List<Long> getFornecedoresRespondidosIds() {
-        return fornecedoresRespondidosIds;
-    }
+    public List<Long> getFornecedoresVinculadosIds() { return fornecedoresVinculadosIds; }
+    public void setFornecedoresVinculadosIds(List<Long> fornecedoresVinculadosIds) { this.fornecedoresVinculadosIds = fornecedoresVinculadosIds; }
 
-    public void setFornecedoresRespondidosIds(List<Long> fornecedoresRespondidosIds) {
-        this.fornecedoresRespondidosIds = fornecedoresRespondidosIds;
-    }
+    public List<Long> getFornecedoresRespondidosIds() { return fornecedoresRespondidosIds; }
+    public void setFornecedoresRespondidosIds(List<Long> fornecedoresRespondidosIds) { this.fornecedoresRespondidosIds = fornecedoresRespondidosIds; }
 }

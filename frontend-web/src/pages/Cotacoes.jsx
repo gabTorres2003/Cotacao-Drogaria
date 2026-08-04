@@ -9,6 +9,7 @@ export default function Cotacoes() {
   const navigate = useNavigate()
   const [cotacoes, setCotacoes] = useState([])
   const [loading, setLoading] = useState(true)
+  const [deletandoId, setDeletandoId] = useState(null)
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
@@ -45,11 +46,14 @@ export default function Cotacoes() {
 
   const deletarCotacao = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir esta cotação permanentemente?')) {
+      setDeletandoId(id)
       try {
         await api.delete(`/api/cotacao/${id}`)
         carregarCotacoes()
       } catch (error) {
         alert(error.response?.data || 'Erro ao excluir a cotação.')
+      } finally {
+        setDeletandoId(null)
       }
     }
   }
@@ -198,6 +202,7 @@ export default function Cotacoes() {
               <tr>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Usuário</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px', textAlign: 'center' }}>Ações</th>
@@ -206,7 +211,7 @@ export default function Cotacoes() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando cotações...</span>
@@ -215,7 +220,7 @@ export default function Cotacoes() {
                 </tr>
               ) : cotacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="5" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhuma cotação encontrada nesta aba.
                   </td>
                 </tr>
@@ -224,6 +229,12 @@ export default function Cotacoes() {
                   <tr key={cotacao.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '16px', fontWeight: 'bold', color: '#374151' }}>#{cotacao.id}</td>
                     <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>{cotacao.descricao}</td>
+                    <td style={{ padding: '16px', color: '#4b5563', fontSize: '14px' }}>
+                      <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                        {cotacao.nomeUsuario || 'Sistema'}
+                      </span>
+                    </td>
+
                     <td style={{ padding: '16px', color: '#6b7280', fontSize: '14px' }}>{formatarData(cotacao.dataCriacao)}</td>
                     <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
@@ -232,8 +243,13 @@ export default function Cotacoes() {
                           <Eye size={16} /> Abrir
                         </button>
                         
-                        <button onClick={() => deletarCotacao(cotacao.id)} title="Excluir Cotação" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
-                          <Trash2 size={18} />
+                        <button 
+                          onClick={() => deletarCotacao(cotacao.id)} 
+                          disabled={deletandoId === cotacao.id}
+                          title="Excluir Cotação" 
+                          style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: deletandoId === cotacao.id ? 'not-allowed' : 'pointer' }}
+                        >
+                          {deletandoId === cotacao.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                         </button>
                       </div>
                     </td>
