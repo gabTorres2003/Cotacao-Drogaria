@@ -44,6 +44,30 @@ public class DevolucaoService {
     }
 
     @Transactional
+    public Devolucao atualizarItem(Long idDevolucao, Long idItem, String novoNome, Integer novaQtd, Double novoValor) {
+        Devolucao devolucao = buscarPorId(idDevolucao);
+        boolean itemEncontrado = false;
+        
+        if (devolucao.getItens() != null) {
+            for (var item : devolucao.getItens()) {
+                if (item.getId() != null && item.getId().equals(idItem)) {
+                    item.setNomeProduto(novoNome);
+                    item.setQuantidade(novaQtd);
+                    item.setValorUnitario(novoValor);
+                    itemEncontrado = true;
+                    break;
+                }
+            }
+        }
+        
+        if (!itemEncontrado) {
+            throw new RuntimeException("Item não encontrado na devolução.");
+        }
+        
+        return salvar(devolucao); 
+    }
+
+    @Transactional
     public void deletar(Long id) {
         devolucaoRepository.deleteById(id);
     }

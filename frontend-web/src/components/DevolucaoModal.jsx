@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
-import { X, Plus, Trash2, Save, CheckSquare, ListX, AlertCircle } from 'lucide-react';
+import { X, Plus, Trash2, Save, CheckSquare, ListX, AlertCircle, Edit2, Check } from 'lucide-react';
 
 export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly }) {
   const navigate = useNavigate();
@@ -29,6 +29,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
   const [itens, setItens] = useState([]);
   const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
+
+  // Estados de edição de item na tabela
+  const [editingIndex, setEditingIndex] = useState(null);
+  const [editItemForm, setEditItemForm] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
 
   const [selecaoPedido, setSelecaoPedido] = useState({});
 
@@ -168,6 +172,40 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     setItens(novaLista);
   };
 
+  const iniciarEdicaoItem = (index, item) => {
+    setEditingIndex(index);
+    setEditItemForm({
+      nomeProduto: item.nomeProduto,
+      quantidade: item.quantidade,
+      valorUnitario: item.valorUnitario || 0
+    });
+  };
+
+  const handleSalvarEdicaoItem = async (index) => {
+    const item = itens[index];
+    
+    // Se a devolução já existe no banco e o item tem ID, faz a atualização na API
+    if (internalDevId && item.id) {
+      setLoading(true);
+      try {
+        await api.put(`/api/devolucoes/${internalDevId}/item/${item.id}`, editItemForm);
+        await carregarDevolucaoExistente(internalDevId);
+        onSuccess(); // Aciona a atualização da lista por trás do modal
+        setEditingIndex(null);
+      } catch (error) {
+        alert('Erro ao atualizar o item da devolução.');
+      } finally {
+        setLoading(false);
+      }
+    } else {
+      // Caso seja um item adicionado manualmente e ainda não salvo no banco, atualiza apenas o estado local
+      const novaLista = [...itens];
+      novaLista[index] = { ...novaLista[index], ...editItemForm };
+      setItens(novaLista);
+      setEditingIndex(null);
+    }
+  };
+
   const handleSalvar = async () => {
     if (!form.fornecedorId) return alert('Selecione um Fornecedor.');
 
@@ -232,7 +270,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         .filter(s => s.selected)
         .reduce((acc, s) => acc + (s.qtd * s.valorUnitario), 0);
     }
-    return itens.reduce((acc, item) => acc + (item.quantidade * item.valorUnitario), 0);
+    return itens.reduce((acc, item) => acc + ((item.quantidade || 0) * (item.valorUnitario || 0)), 0);
   };
 
   const mostrarDataRecolhimento = form.status === 'AGUARDANDO_CREDITO' || form.status === 'CONCLUIDA' || (readOnly && form.dataRecolhimento);
@@ -449,7 +487,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'center' }}>Qtd</th>
                     <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Unitário</th>
                     <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
-                    {!readOnly && <th style={{ padding: '8px 0', width: '40px' }}></th>}
+                    {!readOnly && <th style={{ padding: '8px 0', width: '70px' }}></th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -457,17 +495,72 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <tr><td colSpan={readOnly ? "4" : "5"} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Nenhum produto adicionado.</td></tr>
                   )}
                   {itens.map((item, idx) => (
-                    <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                      <td style={{ padding: '12px 0', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
-                      <td style={{ padding: '12px 0', textAlign: 'center' }}>{item.quantidade}</td>
-                      <td style={{ padding: '12px 0', textAlign: 'right' }}>R$ {item.valorUnitario.toFixed(2)}</td>
-                      <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>R$ {(item.quantidade * item.valorUnitario).toFixed(2)}</td>
-                      {!readOnly && (
-                        <td style={{ padding: '12px 0', textAlign: 'right' }}>
-                          <button onClick={() => handleRemoverItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
+                    <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      {editingIndex === idx ? (
+                        <>
+                          <td style={{ padding: '12px 0' }}>
+                            <input 
+                              type="text" 
+                              style={{...styles.input, padding: '4px 8px'}} 
+                              value={editItemForm.nomeProduto} 
+                              onChange={e => setEditItemForm({...editItemForm, nomeProduto: e.target.value})} 
+                            />
+                          </td>
+                          <td style={{ padding: '12px 0', textAlign: 'center' }}>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              style={{...styles.input, padding: '4px 8px', width: '60px', textAlign: 'center'}} 
+                              value={editItemForm.quantidade} 
+                              onChange={e => setEditItemForm({...editItemForm, quantidade: Number(e.target.value)})} 
+                              onFocus={e => e.target.select()}
+                            />
+                          </td>
+                          <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                            <input 
+                              type="number" 
+                              step="0.01" 
+                              style={{...styles.input, padding: '4px 8px', width: '80px', textAlign: 'right'}} 
+                              value={editItemForm.valorUnitario} 
+                              onChange={e => setEditItemForm({...editItemForm, valorUnitario: Number(e.target.value)})} 
+                              onFocus={e => e.target.select()}
+                            />
+                          </td>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                            R$ {(editItemForm.quantidade * editItemForm.valorUnitario).toFixed(2)}
+                          </td>
+                          {!readOnly && (
+                            <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button onClick={() => handleSalvarEdicaoItem(idx)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }} title="Salvar">
+                                  <Check size={18} />
+                                </button>
+                                <button onClick={() => setEditingIndex(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} title="Cancelar">
+                                  <X size={18} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </>
+                      ) : (
+                        <>
+                          <td style={{ padding: '12px 0', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
+                          <td style={{ padding: '12px 0', textAlign: 'center' }}>{item.quantidade}</td>
+                          <td style={{ padding: '12px 0', textAlign: 'right' }}>R$ {(item.valorUnitario || 0).toFixed(2)}</td>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>R$ {((item.quantidade || 0) * (item.valorUnitario || 0)).toFixed(2)}</td>
+                          {!readOnly && (
+                            <td style={{ padding: '12px 0', textAlign: 'right' }}>
+                              <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+                                <button onClick={() => iniciarEdicaoItem(idx, item)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }} title="Editar Produto">
+                                  <Edit2 size={16} />
+                                </button>
+                                <button onClick={() => handleRemoverItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover Produto">
+                                  <Trash2 size={16} />
+                                </button>
+                              </div>
+                            </td>
+                          )}
+                        </>
                       )}
                     </tr>
                   ))}

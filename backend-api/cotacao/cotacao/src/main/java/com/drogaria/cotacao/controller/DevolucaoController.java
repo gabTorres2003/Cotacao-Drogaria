@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.model.Devolucao;
+import com.drogaria.cotacao.model.ItemDevolucao;
 import com.drogaria.cotacao.model.enums.TipoAcao;
 import com.drogaria.cotacao.service.DevolucaoService;
 import com.drogaria.cotacao.service.LogAuditoriaService;
@@ -71,6 +72,27 @@ public class DevolucaoController {
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Devolução", id,
             "Atualizou os dados/status da devolução."
+        );
+
+        return ResponseEntity.ok(atualizada);
+    }
+
+    @PutMapping("/{idDevolucao}/item/{idItem}")
+    public ResponseEntity<Devolucao> atualizarItemDevolucao(
+            @PathVariable Long idDevolucao, 
+            @PathVariable Long idItem, 
+            @RequestBody ItemDevolucao dadosAtualizados) {
+        
+        Devolucao atualizada = devolucaoService.atualizarItem(
+            idDevolucao, idItem, 
+            dadosAtualizados.getNomeProduto(), 
+            dadosAtualizados.getQuantidade(), 
+            dadosAtualizados.getValorUnitario()
+        );
+
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Item Devolução", idItem,
+            "Atualizou o produto, quantidade ou valor do item na devolução #" + idDevolucao
         );
 
         return ResponseEntity.ok(atualizada);
