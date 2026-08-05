@@ -120,9 +120,12 @@ export default function PedidoDetalhes() {
     if (loading) return <div className="layout"><Sidebar /><main className="main-content"><p>Carregando...</p></main></div>;
     if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
-    const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'Fornecedor Desconhecido';
+    const empresa = pedido.fornecedor?.empresa || pedido.fornecedor?.nomeEmpresa || 'Empresa não informada';
+    const vendedor = pedido.fornecedor?.nome || pedido.fornecedor?.vendedor || pedido.fornecedorNome || 'Vendedor não informado';
     
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
+    const mostrarReais = !podeConferir; // Se ainda pode conferir (em espera), NÃO mostra as colunas reais e impostos
+    
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
@@ -134,7 +137,9 @@ export default function PedidoDetalhes() {
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <div>
                         <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Pedido #{pedido.id}</h1>
-                        <p style={{ color: '#6b7280' }}>Fornecedor: {fornecedorNome}</p>
+                        <p style={{ color: '#4b5563', fontSize: '15px' }}>
+                            <strong>Empresa:</strong> {empresa} &nbsp;|&nbsp; <strong>Vendedor:</strong> {vendedor}
+                        </p>
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px' }}>
@@ -152,7 +157,7 @@ export default function PedidoDetalhes() {
                         <div>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status)}>{getStatusExibicao(pedido)}</span></p>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
-                            {pedido.valorTotalReal != null && (
+                            {mostrarReais && pedido.valorTotalReal != null && (
                                 <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
                             )}
                         </div>
@@ -195,12 +200,14 @@ export default function PedidoDetalhes() {
                             <tr>
                                 <th style={styles.th}>Produto</th>
                                 <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f9fafb' }}>Qtd Pedida</th>
-                                <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f0fdf4' }}>Qtd Real (NF)</th>
+                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f0fdf4' }}>Qtd Real (NF)</th>}
+                                
                                 <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Vlr Unit. (Prev)</th>
-                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Vlr Unit. (NF)</th>
-                                <th style={{ ...styles.th, textAlign: 'center' }}>% Imposto</th>
+                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Vlr Unit. (NF)</th>}
+                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'center' }}>% Imposto</th>}
+                                
                                 <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
-                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>
+                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>}
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
                             </tr>
                         </thead>
@@ -214,7 +221,7 @@ export default function PedidoDetalhes() {
                                 // Lógica de cálculo do imposto cobrado
                                 let pctImposto = 0;
                                 let alertImposto = false;
-                                if (vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
+                                if (mostrarReais && vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
                                     pctImposto = ((vlrReal - vlrPrevisto) / vlrPrevisto) * 100;
                                     if (pctImposto > 5) alertImposto = true;
                                 }
@@ -227,47 +234,55 @@ export default function PedidoDetalhes() {
                                         
                                         <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>{qtdPedida} un</td>
                                         
-                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
-                                            {qtdReal !== null ? `${qtdReal} un` : '-'}
-                                        </td>
+                                        {mostrarReais && (
+                                            <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
+                                                {qtdReal !== null ? `${qtdReal} un` : '-'}
+                                            </td>
+                                        )}
                                         
                                         <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
                                             {fMoney(vlrPrevisto)}
                                         </td>
                                         
-                                        <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
-                                            {vlrReal !== null ? fMoney(vlrReal) : '-'}
-                                        </td>
+                                        {mostrarReais && (
+                                            <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                                {vlrReal !== null ? fMoney(vlrReal) : '-'}
+                                            </td>
+                                        )}
 
-                                        <td style={{ ...styles.td, textAlign: 'center' }}>
-                                            {(() => {
-                                                if (vlrReal !== null && vlrPrevisto > 0) {
-                                                    if (vlrReal > vlrPrevisto) {
-                                                        return (
-                                                            <span style={{ color: alertImposto ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
-                                                                {alertImposto && <AlertTriangle size={14} />} +{pctImposto.toFixed(1)}%
-                                                            </span>
-                                                        );
-                                                    } else if (vlrReal < vlrPrevisto) {
-                                                        const pctNeg = ((vlrPrevisto - vlrReal) / vlrPrevisto) * 100;
-                                                        return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>-{pctNeg.toFixed(1)}%</span>;
+                                        {mostrarReais && (
+                                            <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                {(() => {
+                                                    if (vlrReal !== null && vlrPrevisto > 0) {
+                                                        if (vlrReal > vlrPrevisto) {
+                                                            return (
+                                                                <span style={{ color: alertImposto ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>
+                                                                    {alertImposto && <AlertTriangle size={14} />} +{pctImposto.toFixed(1)}%
+                                                                </span>
+                                                            );
+                                                        } else if (vlrReal < vlrPrevisto) {
+                                                            const pctNeg = ((vlrPrevisto - vlrReal) / vlrPrevisto) * 100;
+                                                            return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>-{pctNeg.toFixed(1)}%</span>;
+                                                        }
                                                     }
-                                                }
-                                                return <span style={{ color: '#9ca3af' }}>-</span>;
-                                            })()}
-                                        </td>
+                                                    return <span style={{ color: '#9ca3af' }}>-</span>;
+                                                })()}
+                                            </td>
+                                        )}
 
                                         <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
                                             {fMoney(vlrPrevisto * qtdPedida)}
                                         </td>
 
-                                        <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
-                                            {qtdReal !== null && vlrReal !== null ? fMoney(vlrReal * qtdReal) : '-'}
-                                        </td>
+                                        {mostrarReais && (
+                                            <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                                {qtdReal !== null && vlrReal !== null ? fMoney(vlrReal * qtdReal) : '-'}
+                                            </td>
+                                        )}
 
                                         <td style={{ ...styles.td, textAlign: 'center' }}>
                                             <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida)}>
-                                                {qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
+                                                {mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
                                                     ? 'FALTA PARCIAL' 
                                                     : (item.statusRecebimento || 'AGUARDANDO')}
                                             </span>

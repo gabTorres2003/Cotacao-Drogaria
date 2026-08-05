@@ -77,6 +77,7 @@ export default function Pedidos() {
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
       const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
       const entreguePorTexto = p.fornecedor?.entreguePor ? p.fornecedor.entreguePor.toLowerCase() : '';
+      const nfStr = p.numeroNota ? p.numeroNota.toLowerCase() : '';
       
       const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
 
@@ -84,6 +85,7 @@ export default function Pedidos() {
                          p.id.toString().includes(textoBusca) || 
                          idCotacaoStr.includes(textoBusca) || 
                          entreguePorTexto.includes(textoBusca) ||
+                         nfStr.includes(textoBusca) ||
                          matchProduto;
 
       const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
@@ -108,8 +110,13 @@ export default function Pedidos() {
     .sort((a, b) => {
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
       if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao || 0) - new Date(b.dataCriacao || 0) || a.id - b.id;
-      if (ordenacao === 'MAIOR_VALOR') return (b.valorTotalPedido || 0) - (a.valorTotalPedido || 0);
-      if (ordenacao === 'MENOR_VALOR') return (a.valorTotalPedido || 0) - (b.valorTotalPedido || 0);
+      
+      // Ajuste para ordenar pelo valor REAL se já estiver concluído/conferido
+      const valA = (a.status !== 'PENDENTE_ENTREGA' && a.status !== 'CONFIRMADO_FORNECEDOR' && a.valorTotalReal != null) ? a.valorTotalReal : (a.valorTotalPedido || 0);
+      const valB = (b.status !== 'PENDENTE_ENTREGA' && b.status !== 'CONFIRMADO_FORNECEDOR' && b.valorTotalReal != null) ? b.valorTotalReal : (b.valorTotalPedido || 0);
+      
+      if (ordenacao === 'MAIOR_VALOR') return valB - valA;
+      if (ordenacao === 'MENOR_VALOR') return valA - valB;
       return 0;
     });
 
@@ -230,8 +237,8 @@ export default function Pedidos() {
             <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="RECENTES">Mais Recentes</option>
               <option value="ANTIGOS">Mais Antigos</option>
-              <option value="MAIOR_VALOR">Maior Valor Previsto</option>
-              <option value="MENOR_VALOR">Menor Valor Previsto</option>
+              <option value="MAIOR_VALOR">Maior Valor</option>
+              <option value="MENOR_VALOR">Menor Valor</option>
             </select>
           </div>
 
@@ -252,9 +259,10 @@ export default function Pedidos() {
                 <th style={{ width: '80px' }}>ID</th>
                 <th style={{ width: '90px' }}>Cotação</th>
                 <th>Empresa (Fornecedor)</th>
+                <th style={{ width: '100px' }}>NF</th>
                 <th>Entregue Por</th>
                 <th>Grupos</th>
-                <th>Valor Previsto</th>
+                <th>Valor Total</th>
                 <th style={{ width: '100px' }}>Data</th>
                 <th>Status</th>
                 <th>Ações</th>
@@ -263,7 +271,7 @@ export default function Pedidos() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando pedidos...</span>
@@ -272,7 +280,7 @@ export default function Pedidos() {
                 </tr>
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
-                  <td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado nesta aba.
                   </td>
                 </tr>
@@ -289,6 +297,10 @@ export default function Pedidos() {
                     if (gruposUnicos.length > 0) gruposFormatados = gruposUnicos.join(', ');
                   }
                   
+                  // Lógica para exibir Valor Previsto se estiver aguardando, ou Valor Real se estiver conferido
+                  const isAguardando = p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR';
+                  const valorExibir = (!isAguardando && p.valorTotalReal != null) ? p.valorTotalReal : p.valorTotalPedido;
+
                   return (
                     <tr key={p.id}>
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
@@ -300,9 +312,10 @@ export default function Pedidos() {
                       </td>
 
                       <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
+                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '600', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{p.numeroNota || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.fornecedor?.entreguePor || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
-                      <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(p.valorTotalPedido)}</span></td>
+                      <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(valorExibir)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
                       <td><span style={statusInfo.style}>{statusInfo.texto}</span></td>
                       <td>
@@ -311,7 +324,7 @@ export default function Pedidos() {
                             <Eye size={18} />
                           </button>
                           
-                          {(p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR') && (
+                          {isAguardando && (
                             <button className="btn-icon" title="Conferir Recebimento" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
                               <CheckCircle size={18} color="#16a34a" />
                             </button>

@@ -184,9 +184,6 @@ export default function PedidoConferencia() {
                   <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
                     Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
                   </th>
-                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', width: '130px', textAlign: 'center' }} onClick={() => requestSort('quantidadePedida')}>
-                    Previsto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
-                  </th>
                   <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Qtd (NF)</th>
                   <th style={{ ...styles.th, width: '140px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>
                   <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Avariado?</th>
@@ -204,10 +201,6 @@ export default function PedidoConferencia() {
                         <strong style={{ color: isConferido ? '#166534' : '#111827' }}>
                           {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
                         </strong>
-                      </td>
-
-                      <td style={{ ...styles.td, textAlign: 'center', color: '#64748b' }}>
-                        {item.quantidadePedida} un
                       </td>
                       
                       <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
