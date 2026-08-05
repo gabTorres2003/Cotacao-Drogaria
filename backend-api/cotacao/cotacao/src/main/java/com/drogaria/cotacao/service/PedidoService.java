@@ -165,6 +165,7 @@ public class PedidoService {
             itemPedido.setValorUnitarioPedido(itemDto.getValorUnitarioPedido());
             itemPedido.setQuantidadeReal(0);
             itemPedido.setValorUnitarioReal(0.0);
+            itemPedido.setValorAlteradoAposPedido(false);
 
             valorTotal += (itemDto.getQuantidadePedida() * itemDto.getValorUnitarioPedido());
             itens.add(itemPedido);
@@ -243,6 +244,7 @@ public class PedidoService {
         }
 
         novoItem.setPedido(pedido);
+        novoItem.setValorAlteradoAposPedido(false);
         
         pedido.getItens().add(novoItem);
 
@@ -267,6 +269,55 @@ public class PedidoService {
         
         itemPedidoRepository.delete(item);
         pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido atualizarValoresPrevistos(Long pedidoId, List<Map<String, Object>> payload) {
+        Pedido pedido = buscarPorId(pedidoId);
+        
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA && pedido.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR) {
+            throw new RuntimeException("Só é possível editar valores de pedidos que estão aguardando entrega.");
+        }
+
+        double novoTotal = 0.0;
+
+        for (Map<String, Object> dados : payload) {
+            Long idItem = Long.valueOf(dados.get("idItemPedido").toString());
+            Integer novaQtd = Integer.valueOf(dados.get("quantidadePedida").toString());
+            Double novoValor = Double.valueOf(dados.get("valorUnitarioPedido").toString());
+
+            ItemPedido item = itemPedidoRepository.findById(idItem)
+                    .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+
+            if (!item.getPedido().getId().equals(pedidoId)) continue;
+
+            boolean alterouValor = !item.getValorUnitarioPedido().equals(novoValor) || !item.getQuantidadePedida().equals(novaQtd);
+
+            item.setQuantidadePedida(novaQtd);
+            item.setValorUnitarioPedido(novoValor);
+
+            if (alterouValor) {
+                item.setValorAlteradoAposPedido(true);
+            }
+
+            // Sincronização automática com a resposta da cotação
+            if (item.getItemCotacao() != null && pedido.getFornecedor() != null) {
+                String sqlUpdateCotacao = "UPDATE tb_precos_cotacao SET preco_ofertado = :preco, quantidade_disponivel = :qtd " +
+                                          "WHERE item_id = :itemId AND fornecedor_id = :fornId";
+                
+                entityManager.createNativeQuery(sqlUpdateCotacao)
+                        .setParameter("preco", novoValor)
+                        .setParameter("qtd", novaQtd)
+                        .setParameter("itemId", item.getItemCotacao().getId())
+                        .setParameter("fornId", pedido.getFornecedor().getId())
+                        .executeUpdate();
+            }
+
+            novoTotal += (novaQtd * novoValor);
+        }
+
+        pedido.setValorTotalPedido(novoTotal);
+        return pedidoRepository.save(pedido);
     }
 
     @SuppressWarnings("unchecked")

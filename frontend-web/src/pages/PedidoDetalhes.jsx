@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2 } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -12,12 +12,15 @@ export default function PedidoDetalhes() {
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
-    // Estados do Modal de Adição de Item
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-    const [tipoAdicao, setTipoAdicao] = useState('COTACAO'); // 'COTACAO' ou 'MANUAL'
+    const [tipoAdicao, setTipoAdicao] = useState('COTACAO'); 
     const [itensPendentes, setItensPendentes] = useState([]);
     const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
     const [salvandoItem, setSalvandoItem] = useState(false);
+
+    // NOVO: Estados de Edição de Valores
+    const [isEditandoValores, setIsEditandoValores] = useState(false);
+    const [valoresEditados, setValoresEditados] = useState({});
 
     const carregarPedido = async () => {
         try {
@@ -47,12 +50,11 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // NOVO: Função para remover um item específico do pedido em espera
     const handleRemoverItemDoPedido = async (idItem) => {
         if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
             try {
                 await api.delete(`/api/pedidos/item/${idItem}`);
-                carregarPedido(); // Atualiza a tela após remover
+                carregarPedido(); 
             } catch (error) {
                 alert('Erro ao remover o item: ' + (error.response?.data?.message || error.message));
             }
@@ -71,7 +73,6 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // NOVO: Abrir modal e buscar itens pendentes
     const abrirModalAdicao = async () => {
         setIsAddItemModalOpen(true);
         setTipoAdicao('COTACAO');
@@ -95,7 +96,7 @@ export default function PedidoDetalhes() {
             setNovoItem({
                 nomeProduto: itemSel.nomeProduto,
                 quantidadePedida: itemSel.quantidade || 1,
-                valorUnitarioPedido: '', // O usuário deve preencher o valor acordado
+                valorUnitarioPedido: '', 
                 itemCotacaoId: itemSel.idItem
             });
         }
@@ -124,6 +125,35 @@ export default function PedidoDetalhes() {
             alert('Erro ao adicionar produto: ' + (error.response?.data?.message || error.message));
         } finally {
             setSalvandoItem(false);
+        }
+    };
+
+    const iniciarEdicaoValores = () => {
+        const initialEdits = {};
+        pedido.itens.forEach(item => {
+            initialEdits[item.id] = {
+                quantidadePedida: item.quantidadePedida,
+                valorUnitarioPedido: item.valorUnitarioPedido,
+            };
+        });
+        setValoresEditados(initialEdits);
+        setIsEditandoValores(true);
+    };
+
+    const salvarEdicaoValores = async () => {
+        try {
+            const payload = Object.keys(valoresEditados).map(itemId => ({
+                idItemPedido: Number(itemId),
+                quantidadePedida: Number(valoresEditados[itemId].quantidadePedida),
+                valorUnitarioPedido: Number(valoresEditados[itemId].valorUnitarioPedido)
+            }));
+            
+            await api.put(`/api/pedidos/${id}/valores-previstos`, payload);
+            alert('Valores atualizados com sucesso! A cotação vinculada também foi atualizada.');
+            setIsEditandoValores(false);
+            carregarPedido();
+        } catch (error) {
+            alert('Erro ao atualizar valores: ' + (error.response?.data?.message || error.message));
         }
     };
 
@@ -209,7 +239,21 @@ export default function PedidoDetalhes() {
                             )}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                            {/* BOTOES DE EDICAO */}
                             {podeConferir && (
+                                <button onClick={isEditandoValores ? () => setIsEditandoValores(false) : iniciarEdicaoValores} style={{ ...styles.btnConferir, backgroundColor: isEditandoValores ? '#6b7280' : '#3b82f6' }}>
+                                    <Edit2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> 
+                                    {isEditandoValores ? 'Cancelar Edição' : 'Editar Valores / Qtd'}
+                                </button>
+                            )}
+                            
+                            {isEditandoValores && (
+                                <button onClick={salvarEdicaoValores} style={{ ...styles.btnConferir, backgroundColor: '#10b981' }}>
+                                    <Save size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Salvar Alterações
+                                </button>
+                            )}
+                            
+                            {podeConferir && !isEditandoValores && (
                                 <button onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} style={styles.btnConferir}>
                                     <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Conferir Recebimento (Loja)
                                 </button>
@@ -256,7 +300,7 @@ export default function PedidoDetalhes() {
                                 <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
                                 {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>}
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
-                                {podeAdicionarProduto && <th style={{ ...styles.th, textAlign: 'center' }}>Ação</th>}
+                                {podeAdicionarProduto && !isEditandoValores && <th style={{ ...styles.th, textAlign: 'center' }}>Ação</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -277,9 +321,26 @@ export default function PedidoDetalhes() {
                                     <tr key={item.id}>
                                         <td style={styles.td}>
                                             <strong>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                            {item.valorAlteradoAposPedido && (
+                                                <span style={{ display: 'block', fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}>
+                                                    <AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> Valor/Qtd editado pós-pedido
+                                                </span>
+                                            )}
                                         </td>
                                         
-                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>{qtdPedida} un</td>
+                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                                            {isEditandoValores ? (
+                                                <input 
+                                                    type="number" 
+                                                    min="1"
+                                                    value={valoresEditados[item.id]?.quantidadePedida || ''}
+                                                    onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantidadePedida: e.target.value } }))}
+                                                    style={{ width: '70px', padding: '6px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                />
+                                            ) : (
+                                                `${qtdPedida} un`
+                                            )}
+                                        </td>
                                         
                                         {mostrarReais && (
                                             <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
@@ -288,7 +349,17 @@ export default function PedidoDetalhes() {
                                         )}
                                         
                                         <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
-                                            {fMoney(vlrPrevisto)}
+                                            {isEditandoValores ? (
+                                                <input 
+                                                    type="number" 
+                                                    step="0.01"
+                                                    value={valoresEditados[item.id]?.valorUnitarioPedido || ''}
+                                                    onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], valorUnitarioPedido: e.target.value } }))}
+                                                    style={{ width: '90px', padding: '6px', textAlign: 'right', borderRadius: '4px', border: '1px solid #cbd5e1' }}
+                                                />
+                                            ) : (
+                                                fMoney(vlrPrevisto)
+                                            )}
                                         </td>
                                         
                                         {mostrarReais && (
@@ -318,7 +389,7 @@ export default function PedidoDetalhes() {
                                         )}
 
                                         <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
-                                            {fMoney(vlrPrevisto * qtdPedida)}
+                                            {isEditandoValores ? fMoney((valoresEditados[item.id]?.valorUnitarioPedido || 0) * (valoresEditados[item.id]?.quantidadePedida || 0)) : fMoney(vlrPrevisto * qtdPedida)}
                                         </td>
 
                                         {mostrarReais && (
@@ -335,7 +406,7 @@ export default function PedidoDetalhes() {
                                             </span>
                                         </td>
 
-                                        {podeAdicionarProduto && (
+                                        {podeAdicionarProduto && !isEditandoValores && (
                                             <td style={{ ...styles.td, textAlign: 'center' }}>
                                                 <button 
                                                     onClick={() => handleRemoverItemDoPedido(item.id)} 

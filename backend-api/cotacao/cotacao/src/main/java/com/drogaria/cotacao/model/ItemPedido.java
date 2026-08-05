@@ -48,4 +48,7 @@ public class ItemPedido {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_recebimento")
     private StatusItemRecebimento statusRecebimento;
+    
+    @Column(name = "valor_alterado_apos_pedido")
+    private Boolean valorAlteradoAposPedido = false;
 }

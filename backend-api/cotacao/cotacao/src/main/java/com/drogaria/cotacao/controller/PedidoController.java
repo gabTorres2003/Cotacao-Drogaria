@@ -62,6 +62,11 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.buscarPorFornecedorId(fornecedorId));
     }
 
+    @GetMapping("/itens-pendentes")
+    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesParaAdicionar() {
+        return ResponseEntity.ok(pedidoService.buscarItensPendentesCotacao());
+    }
+
     @PostMapping("/gerar")
     public ResponseEntity<Pedido> gerarPedido(@RequestBody GerarPedidoRequestDTO requestDTO) {
         Pedido pedidoSalvo = pedidoService.gerarPedidoEmLote(requestDTO);
@@ -98,9 +103,19 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
-    @GetMapping("/itens-pendentes")
-    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesParaAdicionar() {
-        return ResponseEntity.ok(pedidoService.buscarItensPendentesCotacao());
+    // NOVA ROTA: Sincronização de valores editados com a Cotação
+    @PutMapping("/{id}/valores-previstos")
+    public ResponseEntity<Pedido> atualizarValoresPrevistos(
+            @PathVariable Long id, 
+            @RequestBody List<Map<String, Object>> payload) {
+        Pedido pedidoAtualizado = pedidoService.atualizarValoresPrevistos(id, payload);
+        
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            "Editou os valores/quantidades no pedido e sincronizou com a cotação."
+        );
+
+        return ResponseEntity.ok(pedidoAtualizado);
     }
 
     @PutMapping("/{id}/receber")
