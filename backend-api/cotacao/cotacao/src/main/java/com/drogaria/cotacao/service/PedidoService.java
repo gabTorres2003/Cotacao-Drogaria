@@ -9,7 +9,7 @@ import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
-import com.drogaria.cotacao.model.PrecoCotacao; // <-- NOVA IMPORTAÇÃO AQUI
+import com.drogaria.cotacao.model.PrecoCotacao;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoRepository;
@@ -272,6 +272,13 @@ public class PedidoService {
         pedidoRepository.save(pedido);
     }
 
+    // NOVO MÉTODO: Trocar Item
+    @Transactional
+    public Pedido trocarItem(Long pedidoId, Long idItemPedidoAntigo, ItemPedido novoItem) {
+        removerItem(idItemPedidoAntigo);
+        return adicionarItemManual(pedidoId, novoItem);
+    }
+
     @Transactional
     public Pedido atualizarValoresPrevistos(Long pedidoId, List<Map<String, Object>> payload) {
         Pedido pedido = buscarPorId(pedidoId);
@@ -345,15 +352,18 @@ public class PedidoService {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> buscarItensPendentesCotacao() {
+    public List<Map<String, Object>> buscarItensPendentesPorCotacao(Long cotacaoId) {
         String sql = "SELECT ic.id, ic.nome_produto, c.id AS cotacao_id, ic.quantidade " +
                      "FROM tb_itens_cotacao ic " +
                      "JOIN tb_cotacoes c ON ic.cotacao_id = c.id " +
-                     "WHERE c.status NOT IN ('FINALIZADA', 'CANCELADA') " +
+                     "WHERE c.id = :cotacaoId " +
                      "AND (ic.excluido IS NULL OR ic.excluido = false) " +
                      "AND NOT EXISTS (SELECT 1 FROM tb_itens_pedido ip WHERE ip.item_cotacao_id = ic.id)";
 
-        List<Object[]> results = entityManager.createNativeQuery(sql).getResultList();
+        List<Object[]> results = entityManager.createNativeQuery(sql)
+                .setParameter("cotacaoId", cotacaoId)
+                .getResultList();
+        
         List<java.util.Map<String, Object>> lista = new java.util.ArrayList<>();
         
         for (Object[] row : results) {

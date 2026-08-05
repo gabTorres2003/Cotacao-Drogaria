@@ -62,9 +62,10 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.buscarPorFornecedorId(fornecedorId));
     }
 
-    @GetMapping("/itens-pendentes")
-    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesParaAdicionar() {
-        return ResponseEntity.ok(pedidoService.buscarItensPendentesCotacao());
+    // ATUALIZADO: Buscar itens pendentes SOMENTE da cotação específica
+    @GetMapping("/cotacao/{cotacaoId}/itens-pendentes")
+    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesDaCotacao(@PathVariable Long cotacaoId) {
+        return ResponseEntity.ok(pedidoService.buscarItensPendentesPorCotacao(cotacaoId));
     }
 
     @PostMapping("/gerar")
@@ -103,7 +104,19 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
-    // NOVA ROTA: Sincronização de valores editados com a Cotação
+    // NOVA ROTA: Trocar um item por outro
+    @PutMapping("/{id}/itens/{idItemAntigo}/trocar")
+    public ResponseEntity<Pedido> trocarItemPedido(@PathVariable Long id, @PathVariable Long idItemAntigo, @RequestBody ItemPedido novoItem) {
+        Pedido pedidoAtualizado = pedidoService.trocarItem(id, idItemAntigo, novoItem);
+        
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            "Efetuou a troca de um produto do pedido pelo item: " + novoItem.getNomeProduto()
+        );
+
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
     @PutMapping("/{id}/valores-previstos")
     public ResponseEntity<Pedido> atualizarValoresPrevistos(
             @PathVariable Long id, 
@@ -166,7 +179,7 @@ public class PedidoController {
 
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "FORNECEDOR", TipoAcao.EXCLUSAO, "ItemPedido", idItem, 
-            "Fornecedor sinalizou falta de estoque e o item foi removido do pedido."
+            "Um item foi removido do pedido e retornou para os pendentes."
         );
 
         return ResponseEntity.noContent().build();
