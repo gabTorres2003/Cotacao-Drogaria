@@ -86,6 +86,8 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
   const fData = (data) => data ? data : '-';
 
+  const normalizeStr = str => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
+
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
@@ -277,6 +279,8 @@ export default function CotacaoDetalhes() {
     setIsProcessandoPedidos(true);
     setTimeout(async () => {
       const pedidosPorFornecedor = {};
+      
+      // 1. Injeta os Itens Ganhos no Resumo
       relatorioOrdenado.forEach(itemRelatorio => {
         const idItem = itemRelatorio.idItem;
         if (itensJaComprados[idItem]) return; 
@@ -310,15 +314,37 @@ export default function CotacaoDetalhes() {
         pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
       });
 
+      promocoes.forEach(promo => {
+        const fName = promo.fornecedorNome;
+        if (!pedidosPorFornecedor[fName]) {
+            pedidosPorFornecedor[fName] = { fornecedorNome: fName, itens: [], total: 0 };
+        }
+        pedidosPorFornecedor[fName].itens.push({
+            idItem: null,
+            promocaoId: promo.id,
+            nomeProduto: getNomeRealSempre(promo.nomeProduto),
+            quantidadePedida: promo.qtdMinima,
+            valorUnitarioPedido: promo.preco,
+            subtotal: promo.qtdMinima * promo.preco,
+            isExtra: true,
+            observacao: promo.observacao,
+            selected: false
+        });
+      });
+
       const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0);
       if (pedidosArray.length === 0) {
         alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
 
+      // Pré-seleciona a ação (Gerar Novo vs Adicionar) baseado em pedidos abertos existentes
       pedidosArray.forEach(ped => {
+         const fNameMatch = normalizeStr(ped.fornecedorNome);
          const pedAberto = pedidosAbertosList.find(p => {
-           const nomeF = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
-           return nomeF && nomeF.toLowerCase().trim() === ped.fornecedorNome.toLowerCase().trim();
+           const emp = normalizeStr(p.fornecedor?.empresa);
+           const nom = normalizeStr(p.fornecedor?.nome);
+           const fNomeApi = normalizeStr(p.fornecedorNome);
+           return (emp && fNameMatch.includes(emp)) || (nom && fNameMatch.includes(nom)) || (fNomeApi && fNameMatch.includes(fNomeApi));
          });
          ped.acaoFornecedor = pedAberto ? String(pedAberto.id) : 'NOVO';
       });
@@ -452,6 +478,7 @@ export default function CotacaoDetalhes() {
     }).filter(ped => ped.itens.length > 0));
   };
 
+  // ATUALIZADO: Salva itens extras (Sugestões) de forma correta 
   const salvarPedidosNoBanco = async () => {
     setSalvandoPedidos(true);
     try {
@@ -491,6 +518,7 @@ export default function CotacaoDetalhes() {
     }
   };
 
+  // MODAL FLUTUANTE DE ADD PEDIDO (ÚNICO VS MASSIVO)
   const abrirModalAddPedido = async (item, fornecedorTarget = null) => {
     setItemAddPedido(item);
     setFornecedorTargetToModal(fornecedorTarget);
@@ -523,8 +551,14 @@ export default function CotacaoDetalhes() {
       let defaultPedidoId = '';
       if (fornecedorTarget) {
         const doForn = abertos.filter(p => {
-          const nomeF = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
-          return nomeF && nomeF.toLowerCase().trim() === fornecedorTarget.toLowerCase().trim();
+          const emp = normalizeStr(p.fornecedor?.empresa);
+          const nom = normalizeStr(p.fornecedor?.nome);
+          const fNomeApi = normalizeStr(p.fornecedorNome);
+          const fTargetNorm = normalizeStr(fornecedorTarget);
+
+          return (emp && fTargetNorm.includes(emp)) || 
+                 (nom && fTargetNorm.includes(nom)) || 
+                 (fNomeApi && fTargetNorm.includes(fNomeApi));
         }).sort((a,b) => b.id - a.id); 
 
         if (doForn.length > 0) {
@@ -535,6 +569,20 @@ export default function CotacaoDetalhes() {
       setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
       setPedidosAbertosList(abertos);
     } catch (e) {}
+  };
+
+  const handleSelectPedidoAberto = (e) => {
+    const pedId = e.target.value;
+    const pedObj = pedidosAbertosList.find(p => String(p.id) === String(pedId));
+    let novoValor = addPedidoForm.valor;
+    
+    if (pedObj && itemAddPedido && itemAddPedido.precosPorFornecedor) {
+      const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome;
+      if (fornecedor && itemAddPedido.precosPorFornecedor[fornecedor] > 0) {
+        novoValor = itemAddPedido.precosPorFornecedor[fornecedor];
+      }
+    }
+    setAddPedidoForm(prev => ({ ...prev, pedidoId: pedId, valor: novoValor }));
   };
 
   const confirmarAddPedido = async () => {
@@ -711,6 +759,7 @@ export default function CotacaoDetalhes() {
           getNomeRealSempre={getNomeRealSempre} 
           fMoney={fMoney} 
           pedidosAbertosList={pedidosAbertosList} 
+          relatorioOrdenado={relatorioOrdenado} 
       />
       
       {modalAddPedidoAberto && itemAddPedido && (
