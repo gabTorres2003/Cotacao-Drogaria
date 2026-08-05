@@ -6,7 +6,7 @@ export default function ModalResumoPedidos({
   removerItemDoPedido, moverItemParaFornecedor,
   irParaProximoMenorPreco, acaoPosPedido, setAcaoPosPedido,
   salvarPedidosNoBanco, salvandoPedidos, fornecedores, fMoney, pedidosAbertosList,
-  relatorioOrdenado, getNomeRealSempre
+  relatorioOrdenado, getNomeRealSempre 
 }) {
   if (!isOpen) return null;
 
@@ -31,7 +31,8 @@ export default function ModalResumoPedidos({
   }, 0);
 
   const hasAnySelected = pedidosGerados.some(ped => ped.itens.some(i => i.selected));
-  const normalizeStr = str => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
+
+  const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
   return (
     <div style={styles.overlay}>
@@ -47,7 +48,6 @@ export default function ModalResumoPedidos({
             const someSelected = pedido.itens.some(i => i.selected);
             const totalForn = pedido.itens.filter(i => i.selected).reduce((sum, i) => sum + i.subtotal, 0);
 
-            // CORREÇÃO: Busca pedidos em aberto de forma inteligente
             const fNameMatch = normalizeStr(pedido.fornecedorNome);
             const ordersForn = (pedidosAbertosList || []).filter(p => {
                 const emp = normalizeStr(p.fornecedor?.empresa);
@@ -111,10 +111,16 @@ export default function ModalResumoPedidos({
                   <tbody>
                     {pedido.itens.map((item, iIndex) => {
                        const nomeExibir = item.nomeOriginal && item.nomeProduto !== item.nomeOriginal ? item.nomeProduto : item.nomeProduto;
+
                        let rankBadge = null;
                        if (item.isExtra && relatorioOrdenado) {
-                           const nomeNorm = getNomeRealSempre(item.nomeProduto).toLowerCase().trim();
-                           const matchItem = relatorioOrdenado.find(r => getNomeRealSempre(r.nomeProduto).toLowerCase().trim() === nomeNorm);
+                           let matchItem = null;
+                           if (item.idItem) {
+                               matchItem = relatorioOrdenado.find(r => r.idItem === item.idItem);
+                           } else {
+                               const nomeNorm = getNomeRealSempre(item.nomeProduto).toLowerCase().trim();
+                               matchItem = relatorioOrdenado.find(r => getNomeRealSempre(r.nomeProduto).toLowerCase().trim() === nomeNorm);
+                           }
                            
                            if (matchItem) {
                                let precosArr = [];
@@ -134,12 +140,12 @@ export default function ModalResumoPedidos({
                                  </span>
                                );
                            } else {
-                               rankBadge = <span style={{ fontSize: '10px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Novo Item</span>;
+                               rankBadge = <span style={{ fontSize: '10px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Item Novo (Extra)</span>;
                            }
                        }
 
                        return (
-                         <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.4 }}>
+                         <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
                               <input 
                                  type="checkbox" 
@@ -157,7 +163,9 @@ export default function ModalResumoPedidos({
                              )}
                              {item.isExtra && (
                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
-                                 <span style={{ fontSize: '10px', backgroundColor: '#fde047', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>⭐ Sugestão</span>
+                                 <span style={{ fontSize: '10px', backgroundColor: '#fde047', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                   ⭐ {item.isSugestaoTroca ? 'Sugestão de Troca' : 'Sugestão Extra'}
+                                 </span>
                                  {rankBadge}
                                </div>
                              )}

@@ -67,7 +67,6 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
-  // Estados do Modal + Pedido Avulso
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
   const [fornecedorTargetToModal, setFornecedorTargetToModal] = useState(null);
@@ -87,7 +86,8 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
   const fData = (data) => data ? data : '-';
 
-  const normalizeStr = str => str ? str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim() : "";
+  // Normalizador agressivo: ignora espaços, acentos, parenteses, etc.
+  const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
   useEffect(() => {
      const fetchAbertos = async () => {
@@ -281,54 +281,83 @@ export default function CotacaoDetalhes() {
     setTimeout(async () => {
       const pedidosPorFornecedor = {};
       
-      // 1. Injeta os Itens Ganhos no Resumo
+      const initForn = (fName) => {
+        if (!fName) return;
+        if (!pedidosPorFornecedor[fName]) {
+          pedidosPorFornecedor[fName] = { fornecedorNome: fName, itens: [], total: 0 };
+        }
+      };
+
       relatorioOrdenado.forEach(itemRelatorio => {
         const idItem = itemRelatorio.idItem;
         if (itensJaComprados[idItem]) return; 
-        const fornecedorNome = decisaoCompra[idItem];
-        if (!fornecedorNome || fornecedorNome === 'Sem ofertas') return;
 
-        if (!pedidosPorFornecedor[fornecedorNome]) pedidosPorFornecedor[fornecedorNome] = { fornecedorNome, itens: [], total: 0 };
+        const vencedor = decisaoCompra[idItem];
+        const isTrocaAceitaVencedor = aceitesTroca[idItem];
 
-        const isTrocaAceita = aceitesTroca[idItem];
-        const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[fornecedorNome];
+        if (vencedor && vencedor !== 'Sem ofertas') {
+          const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[vencedor];
+          let preco = itemRelatorio.precosPorFornecedor?.[vencedor] || 0;
+          let qtd = itemRelatorio.quantidade || 0;
+          let nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
+          let nomeOriginal = null;
 
-        let preco = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
-        let qtd = itemRelatorio.quantidade || 0;
-        let nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
-        let nomeOriginal = null;
+          if (isTrocaAceitaVencedor && nomeSubstituto) {
+            preco = itemRelatorio.precosSubstitutosPorFornecedor?.[vencedor] || preco;
+            qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[vencedor] || qtd;
+            nomeFinal = getNomeRealSempre(nomeSubstituto); 
+            nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+          }
 
-        if (isTrocaAceita && nomeSubstituto) {
-          preco = itemRelatorio.precosSubstitutosPorFornecedor?.[fornecedorNome] || preco;
-          qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[fornecedorNome] || qtd;
-          nomeFinal = getNomeRealSempre(nomeSubstituto); 
-          nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+          if (preco > 0) {
+            initForn(vencedor);
+            pedidosPorFornecedor[vencedor].itens.push({
+              idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[vencedor],
+              quantidadePedida: qtd, valorUnitarioPedido: preco, subtotal: qtd * preco, isExtra: false, todosDadosItem: itemRelatorio,
+              selected: true 
+            });
+            pedidosPorFornecedor[vencedor].total += (qtd * preco);
+          }
         }
 
-        if (preco <= 0) return;
+        fornecedores.forEach(forn => {
+           const nomeSubstForn = itemRelatorio.substitutosPorFornecedor?.[forn];
+           if (nomeSubstForn) {
+              if (vencedor === forn && isTrocaAceitaVencedor) return;
 
-        pedidosPorFornecedor[fornecedorNome].itens.push({
-          idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
-          quantidadePedida: qtd, valorUnitarioPedido: preco, subtotal: qtd * preco, isExtra: false, todosDadosItem: itemRelatorio,
-          selected: true 
+              let precoSubst = itemRelatorio.precosSubstitutosPorFornecedor?.[forn] || itemRelatorio.precosPorFornecedor?.[forn] || 0;
+              let qtdSubst = itemRelatorio.qtdsSubstitutosPorFornecedor?.[forn] || itemRelatorio.quantidade || 0;
+
+              if (precoSubst > 0) {
+                 initForn(forn);
+                 pedidosPorFornecedor[forn].itens.push({
+                   idItem,
+                   nomeProduto: getNomeRealSempre(nomeSubstForn),
+                   nomeOriginal: getNomeRealSempre(itemRelatorio.nomeProduto),
+                   observacao: itemRelatorio.observacoesPorFornecedor?.[forn],
+                   quantidadePedida: qtdSubst,
+                   valorUnitarioPedido: precoSubst,
+                   subtotal: qtdSubst * precoSubst,
+                   isExtra: true, 
+                   isSugestaoTroca: true,
+                   todosDadosItem: itemRelatorio,
+                   selected: false 
+                 });
+              }
+           }
         });
-        pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
       });
 
-      // 2. Injeta as Sugestões/Promoções de forma agrupada e inteligente
       promocoes.forEach(promo => {
         let targetForn = promo.fornecedorNome;
         const fNameMatch = normalizeStr(promo.fornecedorNome);
         
-        // Procura se o fornecedor já tem itens ganhos sob um nome ligeiramente diferente (ex: "GABRIEL TESTE" vs "Gabriel Teste")
         const existingKey = Object.keys(pedidosPorFornecedor).find(k => normalizeStr(k) === fNameMatch);
         if (existingKey) {
             targetForn = existingKey;
         }
 
-        if (!pedidosPorFornecedor[targetForn]) {
-            pedidosPorFornecedor[targetForn] = { fornecedorNome: promo.fornecedorNome || targetForn, itens: [], total: 0 };
-        }
+        initForn(targetForn);
         
         pedidosPorFornecedor[targetForn].itens.push({
             idItem: null,
@@ -338,8 +367,9 @@ export default function CotacaoDetalhes() {
             valorUnitarioPedido: promo.preco,
             subtotal: promo.qtdMinima * promo.preco,
             isExtra: true,
+            isSugestaoTroca: false,
             observacao: promo.observacao,
-            selected: false // Oculta do total inicial até o usuário marcar
+            selected: false
         });
       });
 
@@ -558,11 +588,11 @@ export default function CotacaoDetalhes() {
       
       let defaultPedidoId = '';
       if (fornecedorTarget) {
+        const fTargetNorm = normalizeStr(fornecedorTarget);
         const doForn = abertos.filter(p => {
           const emp = normalizeStr(p.fornecedor?.empresa);
           const nom = normalizeStr(p.fornecedor?.nome);
           const fNomeApi = normalizeStr(p.fornecedorNome);
-          const fTargetNorm = normalizeStr(fornecedorTarget);
 
           return (emp && fTargetNorm.includes(emp)) || 
                  (nom && fTargetNorm.includes(nom)) || 
@@ -738,15 +768,10 @@ export default function CotacaoDetalhes() {
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
           />
-          
           {isComparativo && (
             <CardsSugestoes 
-               promocoes={promocoes} 
-               getNomeExibicao={getNomeExibicao} 
-               fMoney={fMoney} 
-               onAbrirAddPedidoModal={abrirModalAddPedido}
-               relatorioOrdenado={relatorioOrdenado}
-               getNomeRealSempre={getNomeRealSempre}
+               promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} 
+               onAbrirAddPedidoModal={abrirModalAddPedido} relatorioOrdenado={relatorioOrdenado} getNomeRealSempre={getNomeRealSempre}
             />
           )}
         </div>
