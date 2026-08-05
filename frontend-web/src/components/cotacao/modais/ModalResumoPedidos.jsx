@@ -1,197 +1,213 @@
 import React from 'react';
-import { X, Eye, ArrowRightLeft, Trash2, Plus } from 'lucide-react';
+import { X, ArrowRight, Loader2, Trash2 } from 'lucide-react';
 
 export default function ModalResumoPedidos({
-  isOpen,
-  onClose,
-  pedidosGerados,
-  setPedidosGerados,
-  promocoes,
-  avisosDuplicidade,
-  fornecedores,
-  adicionarPromocaoAoPedido,
-  removerItemDoPedido,
-  moverItemParaFornecedor,
-  irParaProximoMenorPreco,
-  acaoPosPedido,
-  setAcaoPosPedido,
-  salvarPedidosNoBanco,
-  salvandoPedidos,
-  getNomeRealSempre,
-  fMoney
+  isOpen, onClose, pedidosGerados, setPedidosGerados,
+  removerItemDoPedido, moverItemParaFornecedor,
+  irParaProximoMenorPreco, acaoPosPedido, setAcaoPosPedido,
+  salvarPedidosNoBanco, salvandoPedidos, fornecedores, fMoney, pedidosAbertosList
 }) {
   if (!isOpen) return null;
 
-  const styles = {
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '1000px', maxHeight: '85vh', overflowY: 'auto' },
-    table: { width: '100%', borderCollapse: 'collapse', marginTop: 0 },
-    th: { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap' },
-    td: { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px' },
-    inputEdicao: { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' },
-    btnIcon: { background: 'none', border: 'none', cursor: 'pointer', padding: '4px' },
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }
+  const handleToggleFornecedor = (fIndex, checked) => {
+     setPedidosGerados(prev => {
+        const next = [...prev];
+        next[fIndex].itens = next[fIndex].itens.map(i => ({...i, selected: checked}));
+        return next;
+     });
   };
 
+  const handleToggleItem = (fIndex, iIndex, checked) => {
+     setPedidosGerados(prev => {
+        const next = [...prev];
+        next[fIndex].itens[iIndex].selected = checked;
+        return next;
+     });
+  };
+
+  const totalGeralSelecionado = pedidosGerados.reduce((acc, ped) => {
+      return acc + ped.itens.filter(i => i.selected).reduce((sum, item) => sum + item.subtotal, 0);
+  }, 0);
+
+  const hasAnySelected = pedidosGerados.some(ped => ped.itens.some(i => i.selected));
+
   return (
-    <div style={styles.modalOverlay}>
-      <div style={styles.modalContent}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h2 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937' }}>Resumo de Pedidos</h2>
-          <button type="button" onClick={onClose} style={styles.btnIcon}><X size={24} color="#4b5563" /></button>
+    <div style={styles.overlay}>
+      <div style={styles.modal}>
+        <div style={styles.header}>
+          <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Resumo de Pedidos</h2>
+          <button onClick={onClose} style={styles.closeBtn}><X size={24} /></button>
         </div>
-        
-        {pedidosGerados.map((pedido, index) => {
-          const promosDesteFornecedor = promocoes.filter(p => p.fornecedorNome === pedido.fornecedorNome);
-          const promosNaoAdicionadas = promosDesteFornecedor.filter(p => !pedido.itens.some(i => i.isExtra && i.promocaoId === p.id));
 
-          return (
-            <div key={index} style={{ marginBottom: '24px', padding: '16px', border: '1px solid #e5e7eb', borderRadius: '8px', backgroundColor: '#f9fafb', overflowX: 'auto' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '18px', fontWeight: 'bold', color: '#111827' }}>{pedido.fornecedorNome}</h3>
-              </div>
-              
-              <table style={{ ...styles.table, backgroundColor: 'white', minWidth: '600px' }}>
-                <thead>
-                  <tr>
-                    <th style={styles.th}>Produto</th>
-                    <th style={{...styles.th, textAlign: 'center'}}>Qtd</th>
-                    <th style={styles.th}>Preço Unit.</th>
-                    <th style={styles.th}>Subtotal</th>
-                    <th style={{...styles.th, textAlign: 'center', minWidth: '150px'}}>Mover / Trocar</th>
-                    <th style={styles.th}></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {pedido.itens.map((item, idx) => {
-                    const nomeProdutoBusca = getNomeRealSempre(item.nomeProduto).toUpperCase().trim();
-                    const duplicatasSet = avisosDuplicidade[nomeProdutoBusca];
+        <div style={styles.content}>
+          {pedidosGerados.map((pedido, fIndex) => {
+            const allSelected = pedido.itens.length > 0 && pedido.itens.every(i => i.selected);
+            const someSelected = pedido.itens.some(i => i.selected);
+            const totalForn = pedido.itens.filter(i => i.selected).reduce((sum, i) => sum + i.subtotal, 0);
 
-                    return (
-                      <tr key={idx} style={{ backgroundColor: item.isExtra ? '#eff6ff' : 'white' }}>
-                        <td style={styles.td}>
-                          <span style={{ fontWeight: '500', color: '#111827', display: 'block' }}>{item.nomeProduto}</span>
-                          {item.nomeOriginal && <span style={{ fontSize: '11px', color: '#b45309', display: 'block' }}>Troca de: {item.nomeOriginal}</span>}
-                          {item.isExtra && <span style={{ fontSize: '11px', color: '#2563eb', fontWeight: 'bold', display: 'block' }}>Oferta Extra</span>}
-                          {item.observacao && <span style={{ fontSize: '11px', color: '#475569', fontStyle: 'italic', display: 'block' }}>Obs: {item.observacao}</span>}
-                          
-                          {duplicatasSet && duplicatasSet.size > 0 && (
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-                            <span style={{ fontSize: '11px', color: '#d97706', fontWeight: 'bold' }}>⚠️ Já pedido em:</span>
-                            {Array.from(duplicatasSet).map((cotId) => (
-                              <button
-                                key={cotId}
-                                type="button"
-                                onClick={() => window.open(`/cotacao/${cotId}`, '_blank')}
-                                title={`Abrir Cotação #${cotId} em uma nova aba`}
-                                style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '3px 8px', backgroundColor: '#fef3c7', color: '#b45309', border: '1px solid #fde047', borderRadius: '12px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
-                              >
-                                <Eye size={12} /> Cotação #{cotId}
-                              </button>
-                            ))}
-                          </div>
-                        )}
-                        </td>
-                        <td style={{...styles.td, textAlign: 'center'}}>
-                          <input 
-                            type="number" min="1" value={item.quantidadePedida}
-                            onFocus={(e) => e.target.select()}
-                            onChange={(e) => {
-                              const q = Number(e.target.value) || 1;
-                              setPedidosGerados(prev => prev.map(p => {
-                                if (p.fornecedorNome === pedido.fornecedorNome) {
-                                  const nitens = [...p.itens];
-                                  nitens[idx] = { ...nitens[idx], quantidadePedida: q, subtotal: q * nitens[idx].valorUnitarioPedido };
-                                  return { ...p, itens: nitens, total: nitens.reduce((a, b) => a + b.subtotal, 0) };
-                                }
-                                return p;
-                              }));
-                            }}
-                            style={{ ...styles.inputEdicao, width: '60px', textAlign: 'center' }}
-                          />
-                        </td>
-                        <td style={styles.td}>{fMoney(item.valorUnitarioPedido)}</td>
-                        <td style={styles.td}>{fMoney(item.subtotal)}</td>
-                        
-                        <td style={{...styles.td, textAlign: 'center'}}>
-                          {!item.isExtra && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', alignItems: 'center' }}>
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <ArrowRightLeft size={12} color="#64748b" />
-                                <select 
-                                  style={{...styles.inputEdicao, width: '130px', fontSize: '11px', padding: '2px 4px'}}
-                                  value={pedido.fornecedorNome}
-                                  onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, idx, e.target.value)}
-                                >
-                                  {fornecedores.map(f => (
-                                    <option key={f} value={f}>{f}</option>
-                                  ))}
-                                </select>
-                              </div>
-                              <button 
-                                type="button" 
-                                onClick={() => irParaProximoMenorPreco(pedido.fornecedorNome, idx)}
-                                title="Busca o próximo fornecedor mais barato"
-                                style={{ fontSize: '10px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', fontWeight: 'bold', width: '100%' }}
-                              >
-                                Próximo Menor $
-                              </button>
-                            </div>
-                          )}
-                        </td>
+            // Busca pedidos em aberto DESSA empresa
+            const ordersForn = (pedidosAbertosList || []).filter(p => {
+                const n = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
+                return n && n.toLowerCase().trim() === pedido.fornecedorNome.toLowerCase().trim();
+            }).sort((a, b) => b.id - a.id); // Mais recentes primeiro
 
-                        <td style={{...styles.td, textAlign: 'center'}}>
-                          <button type="button" onClick={() => removerItemDoPedido(pedido.fornecedorNome, idx)} style={{ ...styles.btnIcon, color: '#ef4444' }}>
-                            <Trash2 size={16} />
-                          </button>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-                <tfoot>
-                  <tr>
-                    <td colSpan="3" style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold' }}>Total:</td>
-                    <td colSpan="3" style={{ ...styles.td, fontWeight: 'bold', color: '#16a34a', fontSize: '16px' }}>{fMoney(pedido.total)}</td>
-                  </tr>
-                </tfoot>
-              </table>
-
-              {promosNaoAdicionadas.length > 0 && (
-                <div style={{ marginTop: '16px', padding: '12px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '8px' }}>
-                  <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#166534', fontWeight: '600' }}>Fornecedor ofereceu itens extras. Incluir no pedido?</p>
-                  <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                    {promosNaoAdicionadas.map(promo => (
-                      <button type="button" key={promo.id} onClick={() => adicionarPromocaoAoPedido(pedido.fornecedorNome, promo)} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 12px', backgroundColor: 'white', border: '1px solid #22c55e', color: '#16a34a', borderRadius: '6px', fontSize: '12px', cursor: 'pointer', fontWeight: 'bold' }}>
-                        <Plus size={14} /> Add {getNomeRealSempre(promo.nomeProduto)} ({fMoney(promo.preco)})
-                      </button>
-                    ))}
+            return (
+              <div key={pedido.fornecedorNome} style={{ ...styles.card, opacity: someSelected ? 1 : 0.6 }}>
+                <div style={styles.cardHeader}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <input
+                      type="checkbox"
+                      checked={allSelected}
+                      ref={el => { if(el) el.indeterminate = !allSelected && someSelected; }}
+                      onChange={e => handleToggleFornecedor(fIndex, e.target.checked)}
+                      style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                    />
+                    <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>{pedido.fornecedorNome}</h3>
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>Ação:</span>
+                    <select
+                       value={pedido.acaoFornecedor || 'NOVO'}
+                       onChange={e => {
+                           const val = e.target.value;
+                           setPedidosGerados(prev => {
+                              const next = [...prev];
+                              next[fIndex].acaoFornecedor = val;
+                              return next;
+                           });
+                       }}
+                       style={styles.selectAcao}
+                       disabled={!someSelected}
+                    >
+                       <option value="NOVO">Gerar Novo Pedido</option>
+                       {ordersForn.map(o => <option key={o.id} value={o.id}>Adicionar ao Pedido #{o.id}</option>)}
+                    </select>
                   </div>
                 </div>
-              )}
-            </div>
-          );
-        })}
-        
-        <div style={{ marginTop: '20px', padding: '16px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-            <h4 style={{ margin: '0 0 10px 0', fontSize: '14px', color: '#374151' }}>Após gerar os pedidos, o que deseja fazer com a cotação?</h4>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="acaoPosPedidoAutomatico" value="ABERTA" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} />
-                <span style={{ fontSize: '14px', color: '#4b5563' }}>Deixar em Aberto (Aguardando outros pedidos)</span>
-            </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer' }}>
-                <input type="radio" name="acaoPosPedidoAutomatico" value="ENCERRADA" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} />
-                <span style={{ fontSize: '14px', color: '#dc2626', fontWeight: 'bold' }}>Encerrar Cotação (Mover para o Histórico)</span>
-            </label>
+
+                <table style={styles.table}>
+                  <thead>
+                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
+                      <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
+                      <th style={{ padding: '8px', textAlign: 'left' }}>Produto</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>Qtd</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Preço Unit.</th>
+                      <th style={{ padding: '8px', textAlign: 'right' }}>Subtotal</th>
+                      <th style={{ padding: '8px', textAlign: 'center' }}>Mover / Trocar</th>
+                      <th style={{ padding: '8px', width: '40px' }}></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pedido.itens.map((item, iIndex) => {
+                       const nomeExibir = item.nomeOriginal && item.nomeProduto !== item.nomeOriginal ? item.nomeProduto : item.nomeProduto;
+
+                       return (
+                         <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? 'white' : '#f8fafc', opacity: item.selected ? 1 : 0.4 }}>
+                           <td style={{ padding: '8px', textAlign: 'center' }}>
+                              <input 
+                                 type="checkbox" 
+                                 checked={item.selected} 
+                                 onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)}
+                                 style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
+                              />
+                           </td>
+                           <td style={{ padding: '8px', fontSize: '13px', fontWeight: '500', color: '#1e293b' }}>
+                             {nomeExibir}
+                             {item.nomeOriginal && item.nomeProduto !== item.nomeOriginal && (
+                               <div style={{ fontSize: '10px', color: '#d97706', marginTop: '2px' }}>
+                                 Troca de: {item.nomeOriginal}
+                               </div>
+                             )}
+                           </td>
+                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px' }}>{item.quantidadePedida}</td>
+                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? '#16a34a' : '#9ca3af' }}>
+                             {fMoney(item.subtotal)}
+                           </td>
+                           <td style={{ padding: '8px', textAlign: 'center' }}>
+                             {!item.isExtra && item.selected && (
+                               <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                   <ArrowRight size={12} color="#6b7280" />
+                                   <select 
+                                     style={styles.selectSmall}
+                                     value={pedido.fornecedorNome}
+                                     onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, iIndex, e.target.value)}
+                                   >
+                                     <option value={pedido.fornecedorNome}>{pedido.fornecedorNome}</option>
+                                     {fornecedores.filter(f => f !== pedido.fornecedorNome).map(f => (
+                                       <option key={f} value={f}>{f}</option>
+                                     ))}
+                                   </select>
+                                 </div>
+                                 <button onClick={() => irParaProximoMenorPreco(pedido.fornecedorNome, iIndex)} style={styles.btnSmallBlue}>
+                                   Próximo Menor $
+                                 </button>
+                               </div>
+                             )}
+                           </td>
+                           <td style={{ padding: '8px', textAlign: 'center' }}>
+                             <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, iIndex)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                               <Trash2 size={16} />
+                             </button>
+                           </td>
+                         </tr>
+                       )
+                    })}
+                  </tbody>
+                </table>
+                <div style={{ textAlign: 'right', padding: '12px 16px', borderTop: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#f8fafc', borderRadius: '0 0 8px 8px' }}>
+                   Total Selecionado de {pedido.fornecedorNome}: <span style={{ color: '#16a34a', fontSize: '16px' }}>{fMoney(totalForn)}</span>
+                </div>
+              </div>
+            )
+          })}
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px', gap: '12px' }}>
-          <button type="button" onClick={onClose} style={styles.btnVoltar} disabled={salvandoPedidos}>Cancelar</button>
-          <button type="button" onClick={salvarPedidosNoBanco} style={{ ...styles.btnVoltar, backgroundColor: '#16a34a' }} disabled={salvandoPedidos}>
-            {salvandoPedidos ? 'Salvando...' : 'Confirmar e Salvar Pedidos'}
-          </button>
+        <div style={styles.footer}>
+          <div style={styles.footerOptions}>
+            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>Após processar os pedidos, o que deseja fazer com a cotação?</p>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: '500' }}>
+              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} />
+              Deixar em Aberto (Aguardando outros pedidos)
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#dc2626', fontWeight: '500', marginTop: '4px' }}>
+              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} />
+              Encerrar Cotação (Mover para o Histórico)
+            </label>
+          </div>
+
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
+             <div style={{ textAlign: 'right', marginRight: '16px' }}>
+                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>Total Geral Selecionado</div>
+                <div style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</div>
+             </div>
+            <button onClick={onClose} disabled={salvandoPedidos} style={styles.btnCancel}>Cancelar</button>
+            <button onClick={salvarPedidosNoBanco} disabled={salvandoPedidos || !hasAnySelected} style={{ ...styles.btnSave, opacity: hasAnySelected ? 1 : 0.5 }}>
+              {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : 'Confirmar e Salvar'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
   );
 }
+
+const styles = {
+  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' },
+  modal: { backgroundColor: '#f8fafc', borderRadius: '12px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+  header: { padding: '20px 24px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' },
+  content: { padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' },
+  card: { backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: '0.2s' },
+  cardHeader: { padding: '16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f1f5f9', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  selectAcao: { padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 'bold', color: '#1e293b', outline: 'none', cursor: 'pointer', minWidth: '200px' },
+  table: { width: '100%', borderCollapse: 'collapse' },
+  selectSmall: { padding: '2px 4px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1', maxWidth: '120px' },
+  btnSmallBlue: { padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+  footer: { padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  footerOptions: { backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' },
+  btnCancel: { padding: '10px 20px', backgroundColor: '#64748b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
+  btnSave: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
+};

@@ -69,9 +69,12 @@ export default function CotacaoDetalhes() {
 
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
+  const [fornecedorTargetToModal, setFornecedorTargetToModal] = useState(null);
   const [pedidosAbertosList, setPedidosAbertosList] = useState([]);
   const [addPedidoForm, setAddPedidoForm] = useState({ pedidoId: '', qtd: '', valor: '' });
   const [loadingAddPedido, setLoadingAddPedido] = useState(false);
+  const [itensGanhosFornecedor, setItensGanhosFornecedor] = useState([]);
+  const [addPedidoModo, setAddPedidoModo] = useState('UNICO');
 
   const [filtroVencedor, setFiltroVencedor] = useState('TODOS');
   const [filtroTopN, setFiltroTopN] = useState('TODOS'); 
@@ -82,6 +85,17 @@ export default function CotacaoDetalhes() {
 
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
   const fData = (data) => data ? data : '-';
+
+  useEffect(() => {
+     const fetchAbertos = async () => {
+       try {
+         const res = await api.get('/api/pedidos');
+         const abertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+         setPedidosAbertosList(abertos);
+       } catch(e) {}
+     };
+     fetchAbertos();
+  }, [showModal, modalAddPedidoAberto]);
 
   useEffect(() => {
     if (isEncerrada && modoVisualizacao === 'manual') setModoVisualizacao('itens');
@@ -290,15 +304,25 @@ export default function CotacaoDetalhes() {
 
         pedidosPorFornecedor[fornecedorNome].itens.push({
           idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[fornecedorNome],
-          quantidadePedida: qtd, valorUnitarioPedido: preco, subtotal: qtd * preco, isExtra: false, todosDadosItem: itemRelatorio 
+          quantidadePedida: qtd, valorUnitarioPedido: preco, subtotal: qtd * preco, isExtra: false, todosDadosItem: itemRelatorio,
+          selected: true 
         });
         pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
       });
 
       const pedidosArray = Object.values(pedidosPorFornecedor).filter(ped => ped.itens.length > 0);
       if (pedidosArray.length === 0) {
-        alert('Nenhum item válido para gerar pedido.'); setIsProcessandoPedidos(false); return;
+        alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
+
+      pedidosArray.forEach(ped => {
+         const pedAberto = pedidosAbertosList.find(p => {
+           const nomeF = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
+           return nomeF && nomeF.toLowerCase().trim() === ped.fornecedorNome.toLowerCase().trim();
+         });
+         ped.acaoFornecedor = pedAberto ? String(pedAberto.id) : 'NOVO';
+      });
+
       setAvisosDuplicidade(await mapearDuplicatas());
       setPedidosGerados(pedidosArray);
       setShowModal(true);
@@ -317,7 +341,7 @@ export default function CotacaoDetalhes() {
 
       let pedDestino = newState.find(p => p.fornecedorNome === fornecedorDestino);
       if (!pedDestino) {
-        pedDestino = { fornecedorNome: fornecedorDestino, itens: [], total: 0 };
+        pedDestino = { fornecedorNome: fornecedorDestino, itens: [], total: 0, acaoFornecedor: 'NOVO' };
         newState.push(pedDestino);
       }
       let novoPreco = itemToMove.todosDadosItem?.precosPorFornecedor?.[fornecedorDestino] || 0;
@@ -412,7 +436,7 @@ export default function CotacaoDetalhes() {
     setPedidosGerados(prev => prev.map(ped => {
       if (ped.fornecedorNome === fornecedorNome) {
         const subtotal = promo.qtdMinima * promo.preco;
-        return { ...ped, itens: [...ped.itens, { idItem: null, promocaoId: promo.id, nomeProduto: getNomeRealSempre(promo.nomeProduto), observacao: promo.observacao, quantidadePedida: promo.qtdMinima, valorUnitarioPedido: promo.preco, subtotal, isExtra: true }], total: ped.total + subtotal };
+        return { ...ped, itens: [...ped.itens, { idItem: null, promocaoId: promo.id, nomeProduto: getNomeRealSempre(promo.nomeProduto), observacao: promo.observacao, quantidadePedida: promo.qtdMinima, valorUnitarioPedido: promo.preco, subtotal, isExtra: true, selected: true }], total: ped.total + subtotal };
       }
       return ped;
     }));
@@ -432,24 +456,64 @@ export default function CotacaoDetalhes() {
     setSalvandoPedidos(true);
     try {
       for (const pedido of pedidosGerados) {
-        await api.post('/api/pedidos/gerar', { cotacaoId: Number(id), fornecedorNome: pedido.fornecedorNome, itens: pedido.itens.map(item => ({ itemCotacaoId: item.idItem || null, nomeProduto: item.nomeProduto, quantidadePedida: item.quantidadePedida, valorUnitarioPedido: item.valorUnitarioPedido })) });
+        const itensSelecionados = pedido.itens.filter(i => i.selected);
+        if (itensSelecionados.length === 0) continue; 
+
+        if (pedido.acaoFornecedor === 'NOVO') {
+            await api.post('/api/pedidos/gerar', {
+                cotacaoId: Number(id),
+                fornecedorNome: pedido.fornecedorNome,
+                itens: itensSelecionados.map(item => ({
+                    itemCotacaoId: item.idItem || null,
+                    nomeProduto: item.nomeProduto,
+                    quantidadePedida: item.quantidadePedida,
+                    valorUnitarioPedido: item.valorUnitarioPedido
+                }))
+            });
+        } else {
+            for (const item of itensSelecionados) {
+                await api.post(`/api/pedidos/${pedido.acaoFornecedor}/itens`, {
+                    nomeProduto: item.nomeProduto,
+                    quantidadePedida: item.quantidadePedida,
+                    valorUnitarioPedido: item.valorUnitarioPedido,
+                    itemCotacao: item.idItem ? { id: item.idItem } : null
+                });
+            }
+        }
       }
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
-      alert('Pedidos gerados com sucesso!');
+      alert('Pedidos processados e gerados/atualizados com sucesso!');
       setShowModal(false); navigate('/pedidos');
-    } catch (error) { alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro'}`); } 
-    finally { setSalvandoPedidos(false); }
+    } catch (error) { 
+      alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro de conexão com servidor'}`); 
+    } finally { 
+      setSalvandoPedidos(false); 
+    }
   };
-  
+
   const abrirModalAddPedido = async (item, fornecedorTarget = null) => {
     setItemAddPedido(item);
-    const valorInicial = item.precoCustom !== undefined ? item.precoCustom : (item.ultimoPreco || '');
+    setFornecedorTargetToModal(fornecedorTarget);
+    setAddPedidoModo('UNICO');
 
+    const valorInicial = item.precoCustom !== undefined ? item.precoCustom : (item.ultimoPreco || '');
     setAddPedidoForm({
       pedidoId: '',
       qtd: item.quantidade || 1,
       valor: valorInicial
     });
+
+    if (fornecedorTarget) {
+       const ganhos = relatorioOrdenado.filter(i => {
+         const isBloqueado = !!itensJaComprados[i.idItem];
+         const isWinner = decisaoCompra[i.idItem] === fornecedorTarget;
+         return isWinner && !isBloqueado;
+       });
+       setItensGanhosFornecedor(ganhos);
+    } else {
+       setItensGanhosFornecedor([]);
+    }
+
     setModalAddPedidoAberto(true);
 
     try {
@@ -461,7 +525,8 @@ export default function CotacaoDetalhes() {
         const doForn = abertos.filter(p => {
           const nomeF = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
           return nomeF && nomeF.toLowerCase().trim() === fornecedorTarget.toLowerCase().trim();
-        });
+        }).sort((a,b) => b.id - a.id); 
+
         if (doForn.length > 0) {
           defaultPedidoId = String(doForn[0].id);
         }
@@ -469,54 +534,57 @@ export default function CotacaoDetalhes() {
 
       setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
       setPedidosAbertosList(abertos);
-    } catch (e) {
-      console.error("Erro ao buscar pedidos abertos", e);
-    }
-  };
-
-  const handleSelectPedidoAberto = (e) => {
-    const pedId = e.target.value;
-    const pedObj = pedidosAbertosList.find(p => String(p.id) === String(pedId));
-    let novoValor = addPedidoForm.valor;
-    
-    if (pedObj && itemAddPedido && itemAddPedido.precosPorFornecedor) {
-      const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome;
-      if (fornecedor && itemAddPedido.precosPorFornecedor[fornecedor] > 0) {
-        novoValor = itemAddPedido.precosPorFornecedor[fornecedor];
-      }
-    }
-    setAddPedidoForm(prev => ({ ...prev, pedidoId: pedId, valor: novoValor }));
+    } catch (e) {}
   };
 
   const confirmarAddPedido = async () => {
-    if (!addPedidoForm.pedidoId) return alert("Selecione um pedido.");
-    if (!addPedidoForm.qtd || !addPedidoForm.valor) return alert("Preencha quantidade e valor.");
+    if (!addPedidoForm.pedidoId) return alert("Selecione um pedido existente para prosseguir.");
     
     setLoadingAddPedido(true);
     try {
       const pedObj = pedidosAbertosList.find(p => String(p.id) === String(addPedidoForm.pedidoId));
       const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome || pedObj.fornecedor?.empresa;
 
-      await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
-        nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
-        quantidadePedida: Number(addPedidoForm.qtd),
-        valorUnitarioPedido: Number(addPedidoForm.valor),
-        itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null
-      });
-      
-      if (itemAddPedido.idItem) {
-        setItensJaComprados(prev => ({
-          ...prev,
-          [itemAddPedido.idItem]: {
-            id: Number(addPedidoForm.pedidoId),
-            fornecedor: fornecedor,
-            preco: Number(addPedidoForm.valor),
-            quantidade: Number(addPedidoForm.qtd)
+      if (addPedidoModo === 'UNICO') {
+          if (!addPedidoForm.qtd || !addPedidoForm.valor) return alert("Preencha quantidade e valor.");
+          await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
+            nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
+            quantidadePedida: Number(addPedidoForm.qtd),
+            valorUnitarioPedido: Number(addPedidoForm.valor),
+            itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null
+          });
+          
+          if (itemAddPedido.idItem) {
+            setItensJaComprados(prev => ({
+              ...prev, [itemAddPedido.idItem]: { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(addPedidoForm.valor), quantidade: Number(addPedidoForm.qtd) }
+            }));
           }
-        }));
+      } else {
+          const newComprados = { ...itensJaComprados };
+          for (const i of itensGanhosFornecedor) {
+             const isTrocaAceita = aceitesTroca[i.idItem];
+             const nomeSubstituto = i.substitutosPorFornecedor?.[fornecedorTargetToModal];
+             let preco = i.precosPorFornecedor?.[fornecedorTargetToModal] || 0;
+             let qtd = i.quantidade || 0;
+             let nomeFinal = getNomeRealSempre(i.nomeProduto);
+
+             if (isTrocaAceita && nomeSubstituto) {
+                preco = i.precosSubstitutosPorFornecedor?.[fornecedorTargetToModal] || preco;
+                qtd = i.qtdsSubstitutosPorFornecedor?.[fornecedorTargetToModal] || qtd;
+                nomeFinal = getNomeRealSempre(nomeSubstituto);
+             }
+
+             if (preco > 0) {
+                await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
+                  nomeProduto: nomeFinal, quantidadePedida: qtd, valorUnitarioPedido: preco, itemCotacao: { id: i.idItem }
+                });
+                newComprados[i.idItem] = { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(preco), quantidade: Number(qtd) };
+             }
+          }
+          setItensJaComprados(newComprados);
       }
 
-      alert('Produto adicionado ao pedido com sucesso!');
+      alert('Produto(s) injetado(s) no pedido com sucesso!');
       setModalAddPedidoAberto(false);
     } catch(e) {
       alert('Erro ao adicionar produto: ' + (e.response?.data?.message || e.message));
@@ -612,51 +680,82 @@ export default function CotacaoDetalhes() {
             handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} navigate={navigate}
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
-            
-            filtroVencedor={filtroVencedor} 
-            setFiltroVencedor={setFiltroVencedor}
-            filtroTopN={filtroTopN}
+            filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
           />
           {isComparativo && <CardsSugestoes promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} />}
         </div>
       )}
 
-      {/* Renderização de Modais Independentes */}
       <ModalFornecedoresNotificados isOpen={showVinculosModal} onClose={() => setShowVinculosModal(false)} vinculos={vinculos} removerVinculo={removerVinculo} />
       <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvandoItemManual} />
       {isUploadModalOpen && <UploadModal cotacaoId={id} onClose={() => setIsUploadModalOpen(false)} onSuccess={carregarRelatorio} />}
       {isEnviarModalOpen && <EnviarLinkModal idCotacao={id} onClose={() => setIsEnviarModalOpen(false)} onStatusUpdate={() => { carregarCotacao(); carregarVinculos(); }} />}
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
-      <ModalResumoPedidos isOpen={showModal} onClose={() => setShowModal(false)} pedidosGerados={pedidosGerados} setPedidosGerados={setPedidosGerados} promocoes={promocoes} avisosDuplicidade={avisosDuplicidade} fornecedores={fornecedores} adicionarPromocaoAoPedido={adicionarPromocaoAoPedido} removerItemDoPedido={removerItemDoPedido} moverItemParaFornecedor={moverItemParaFornecedor} irParaProximoMenorPreco={irParaProximoMenorPreco} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} salvarPedidosNoBanco={salvarPedidosNoBanco} salvandoPedidos={salvandoPedidos} getNomeRealSempre={getNomeRealSempre} fMoney={fMoney} />
       
-      {/* Modal Adicionar a Pedido Existente */}
+      <ModalResumoPedidos 
+          isOpen={showModal} 
+          onClose={() => setShowModal(false)} 
+          pedidosGerados={pedidosGerados} 
+          setPedidosGerados={setPedidosGerados} 
+          promocoes={promocoes} 
+          avisosDuplicidade={avisosDuplicidade} 
+          fornecedores={fornecedores} 
+          adicionarPromocaoAoPedido={adicionarPromocaoAoPedido} 
+          removerItemDoPedido={removerItemDoPedido} 
+          moverItemParaFornecedor={moverItemParaFornecedor} 
+          irParaProximoMenorPreco={irParaProximoMenorPreco} 
+          acaoPosPedido={acaoPosPedido} 
+          setAcaoPosPedido={setAcaoPosPedido} 
+          salvarPedidosNoBanco={salvarPedidosNoBanco} 
+          salvandoPedidos={salvandoPedidos} 
+          getNomeRealSempre={getNomeRealSempre} 
+          fMoney={fMoney} 
+          pedidosAbertosList={pedidosAbertosList} 
+      />
+      
       {modalAddPedidoAberto && itemAddPedido && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar a Pedido Existente</h3>
-                <button onClick={() => setModalAddPedidoAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
-                   <X size={20} />
-                </button>
+                <button onClick={() => setModalAddPedidoAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
              </div>
-             
-             <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '16px' }}>
-               Produto: <strong>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong>
-             </p>
 
-             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido em Aberto</label>
-                  <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.pedidoId} onChange={handleSelectPedidoAberto}>
-                    <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto encontrado' : '-- Selecione um Pedido --'}</option>
-                    {pedidosAbertosList.map(p => (
-                      <option key={p.id} value={p.id}>
-                        Pedido #{p.id} - {p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+             <div style={{ marginBottom: '20px' }}>
+               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
+               <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
+                 <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto' : '-- Selecione --'}</option>
+                 {pedidosAbertosList.map(p => {
+                    const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
+                    const vend = p.fornecedor?.nome || p.fornecedorNome || '';
+                    let exibicao = emp;
+                    if (emp && vend && emp !== vend) exibicao += ` (${vend})`;
+                    else if (!emp && vend) exibicao = vend;
+                    else if (!emp && !vend) exibicao = 'Fornecedor Desconhecido';
+                    return <option key={p.id} value={p.id}>Pedido #{p.id} - {exibicao}</option>;
+                 })}
+               </select>
+             </div>
 
+             {fornecedorTargetToModal ? (
+               <div style={{ padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px', marginBottom: '20px' }}>
+                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '10px' }}>O que deseja transferir?</div>
+                 
+                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '8px' }}>
+                   <input type="radio" checked={addPedidoModo === 'UNICO'} onChange={() => setAddPedidoModo('UNICO')} style={{ transform: 'scale(1.2)' }} />
+                   <span>Somente este produto: <strong style={{ color: '#2563eb' }}>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></span>
+                 </label>
+                 
+                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                   <input type="radio" checked={addPedidoModo === 'TODOS'} onChange={() => setAddPedidoModo('TODOS')} style={{ transform: 'scale(1.2)' }} disabled={itensGanhosFornecedor.length === 0} />
+                   <span>Adicionar <strong>TODOS</strong> os {itensGanhosFornecedor.length} produtos pendentes que o fornecedor <strong>{fornecedorTargetToModal}</strong> ganhou.</span>
+                 </label>
+               </div>
+             ) : (
+                <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '16px' }}>Produto Selecionado: <strong>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></p>
+             )}
+
+             {addPedidoModo === 'UNICO' && (
                 <div style={{ display: 'flex', gap: '15px' }}>
                   <div style={{ flex: 1 }}>
                     <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd a Pedir</label>
@@ -667,15 +766,15 @@ export default function CotacaoDetalhes() {
                     <input type="number" step="0.01" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.valor} onChange={e => setAddPedidoForm({...addPedidoForm, valor: e.target.value})} onFocus={e => e.target.select()}/>
                   </div>
                 </div>
+             )}
 
-                <button 
-                  onClick={confirmarAddPedido} 
-                  disabled={loadingAddPedido || !addPedidoForm.pedidoId}
-                  style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: !addPedidoForm.pedidoId ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: !addPedidoForm.pedidoId ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
-                >
-                  {loadingAddPedido ? 'Adicionando...' : 'Confirmar e Adicionar'}
-                </button>
-             </div>
+             <button 
+               onClick={confirmarAddPedido} 
+               disabled={loadingAddPedido || !addPedidoForm.pedidoId}
+               style={{ width: '100%', padding: '12px', marginTop: '16px', backgroundColor: !addPedidoForm.pedidoId ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: !addPedidoForm.pedidoId ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+             >
+               {loadingAddPedido ? <Loader2 className="animate-spin" size={18} /> : (addPedidoModo === 'TODOS' ? 'Confirmar Adição Massiva' : 'Confirmar e Adicionar')}
+             </button>
           </div>
         </div>
       )}
