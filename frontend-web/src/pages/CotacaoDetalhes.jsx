@@ -67,6 +67,7 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
+  // Estados do Modal + Pedido Avulso
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
   const [fornecedorTargetToModal, setFornecedorTargetToModal] = useState(null);
@@ -314,12 +315,22 @@ export default function CotacaoDetalhes() {
         pedidosPorFornecedor[fornecedorNome].total += (qtd * preco);
       });
 
+      // 2. Injeta as Sugestões/Promoções de forma agrupada e inteligente
       promocoes.forEach(promo => {
-        const fName = promo.fornecedorNome;
-        if (!pedidosPorFornecedor[fName]) {
-            pedidosPorFornecedor[fName] = { fornecedorNome: fName, itens: [], total: 0 };
+        let targetForn = promo.fornecedorNome;
+        const fNameMatch = normalizeStr(promo.fornecedorNome);
+        
+        // Procura se o fornecedor já tem itens ganhos sob um nome ligeiramente diferente (ex: "GABRIEL TESTE" vs "Gabriel Teste")
+        const existingKey = Object.keys(pedidosPorFornecedor).find(k => normalizeStr(k) === fNameMatch);
+        if (existingKey) {
+            targetForn = existingKey;
         }
-        pedidosPorFornecedor[fName].itens.push({
+
+        if (!pedidosPorFornecedor[targetForn]) {
+            pedidosPorFornecedor[targetForn] = { fornecedorNome: promo.fornecedorNome || targetForn, itens: [], total: 0 };
+        }
+        
+        pedidosPorFornecedor[targetForn].itens.push({
             idItem: null,
             promocaoId: promo.id,
             nomeProduto: getNomeRealSempre(promo.nomeProduto),
@@ -328,7 +339,7 @@ export default function CotacaoDetalhes() {
             subtotal: promo.qtdMinima * promo.preco,
             isExtra: true,
             observacao: promo.observacao,
-            selected: false
+            selected: false // Oculta do total inicial até o usuário marcar
         });
       });
 
@@ -337,7 +348,6 @@ export default function CotacaoDetalhes() {
         alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
 
-      // Pré-seleciona a ação (Gerar Novo vs Adicionar) baseado em pedidos abertos existentes
       pedidosArray.forEach(ped => {
          const fNameMatch = normalizeStr(ped.fornecedorNome);
          const pedAberto = pedidosAbertosList.find(p => {
@@ -478,7 +488,6 @@ export default function CotacaoDetalhes() {
     }).filter(ped => ped.itens.length > 0));
   };
 
-  // ATUALIZADO: Salva itens extras (Sugestões) de forma correta 
   const salvarPedidosNoBanco = async () => {
     setSalvandoPedidos(true);
     try {
@@ -518,7 +527,6 @@ export default function CotacaoDetalhes() {
     }
   };
 
-  // MODAL FLUTUANTE DE ADD PEDIDO (ÚNICO VS MASSIVO)
   const abrirModalAddPedido = async (item, fornecedorTarget = null) => {
     setItemAddPedido(item);
     setFornecedorTargetToModal(fornecedorTarget);
@@ -730,7 +738,17 @@ export default function CotacaoDetalhes() {
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
           />
-          {isComparativo && <CardsSugestoes promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} />}
+          
+          {isComparativo && (
+            <CardsSugestoes 
+               promocoes={promocoes} 
+               getNomeExibicao={getNomeExibicao} 
+               fMoney={fMoney} 
+               onAbrirAddPedidoModal={abrirModalAddPedido}
+               relatorioOrdenado={relatorioOrdenado}
+               getNomeRealSempre={getNomeRealSempre}
+            />
+          )}
         </div>
       )}
 
