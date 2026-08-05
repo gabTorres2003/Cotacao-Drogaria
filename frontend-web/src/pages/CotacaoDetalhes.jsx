@@ -440,17 +440,37 @@ export default function CotacaoDetalhes() {
     } catch (error) { alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro'}`); } 
     finally { setSalvandoPedidos(false); }
   };
-
-  const abrirModalAddPedido = async (item) => {
+  
+  const abrirModalAddPedido = async (item, fornecedorTarget = null) => {
     setItemAddPedido(item);
-    setAddPedidoForm({ pedidoId: '', qtd: item.quantidade || 1, valor: item.ultimoPreco || '' });
+    const valorInicial = item.precoCustom !== undefined ? item.precoCustom : (item.ultimoPreco || '');
+
+    setAddPedidoForm({
+      pedidoId: '',
+      qtd: item.quantidade || 1,
+      valor: valorInicial
+    });
     setModalAddPedidoAberto(true);
+
     try {
       const res = await api.get('/api/pedidos');
       const abertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+      
+      let defaultPedidoId = '';
+      if (fornecedorTarget) {
+        const doForn = abertos.filter(p => {
+          const nomeF = p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome;
+          return nomeF && nomeF.toLowerCase().trim() === fornecedorTarget.toLowerCase().trim();
+        });
+        if (doForn.length > 0) {
+          defaultPedidoId = String(doForn[0].id);
+        }
+      }
+
+      setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
       setPedidosAbertosList(abertos);
-    } catch(e) {
-      console.error("Erro ao buscar pedidos abertos");
+    } catch (e) {
+      console.error("Erro ao buscar pedidos abertos", e);
     }
   };
 
@@ -481,18 +501,20 @@ export default function CotacaoDetalhes() {
         nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
         quantidadePedida: Number(addPedidoForm.qtd),
         valorUnitarioPedido: Number(addPedidoForm.valor),
-        itemCotacao: { id: itemAddPedido.idItem }
+        itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null
       });
       
-      setItensJaComprados(prev => ({
-        ...prev,
-        [itemAddPedido.idItem]: {
-          id: Number(addPedidoForm.pedidoId),
-          fornecedor: fornecedor,
-          preco: Number(addPedidoForm.valor),
-          quantidade: Number(addPedidoForm.qtd)
-        }
-      }));
+      if (itemAddPedido.idItem) {
+        setItensJaComprados(prev => ({
+          ...prev,
+          [itemAddPedido.idItem]: {
+            id: Number(addPedidoForm.pedidoId),
+            fornecedor: fornecedor,
+            preco: Number(addPedidoForm.valor),
+            quantidade: Number(addPedidoForm.qtd)
+          }
+        }));
+      }
 
       alert('Produto adicionado ao pedido com sucesso!');
       setModalAddPedidoAberto(false);
@@ -546,7 +568,6 @@ export default function CotacaoDetalhes() {
       {modoVisualizacao === 'comparativo' && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginRight: '8px' }}>Filtro de Competitividade:</span>
-          {/* ATUALIZADO: Nome mais intuitivo para o botão que remove o filtro */}
           <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Sem Filtro Top (Ver Todos)</button>
           <button onClick={() => setFiltroTopN('TOP_2')} style={styles.topNBtn(filtroTopN === 'TOP_2')}>Top 2 (Ganhador vs 2º Colocado)</button>
           <button onClick={() => setFiltroTopN('TOP_3')} style={styles.topNBtn(filtroTopN === 'TOP_3')}>Top 3 Melhores Preços</button>

@@ -8,7 +8,7 @@ export default function TabelaDetalhes({
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
-  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN // NOVAS PROPS
+  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
@@ -38,7 +38,6 @@ export default function TabelaDetalhes({
             )}
             {colunasVisiveis.ultimoPreco && <th style={{ ...thStyle, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div></th>}
             
-            {/* ATUALIZADO: Cabeçalho dos fornecedores ganha o ícone de filtro rápido da Opção A */}
             {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => (
                 <th key={f} style={{ ...thStyle, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
@@ -166,6 +165,7 @@ export default function TabelaDetalhes({
                   const isWinner = decisaoCompra[item.idItem] === f;
                   const isTrocaAceita = aceitesTroca[item.idItem];
                   const isEmFaltaOriginal = precoOriginal <= 0; 
+                  const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
 
                   return (
                     <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} style={{ ...tdStyle, backgroundColor: isWinner ? '#ecfdf5' : 'inherit', textAlign: 'center', borderLeft: '1px solid #f3f4f6', border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', verticalAlign: 'top', position: 'relative', opacity: isBloqueado ? 0.6 : 1 }}>
@@ -183,20 +183,58 @@ export default function TabelaDetalhes({
                         </div>
                       )}
                       {obs && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
+
+                      {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && (
+                        <div style={{ marginTop: '10px' }}>
+                          <button
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
+                              const nomeFinal = isTroca ? substituto : item.nomeProduto;
+                              const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
+                              const precoFinal = isTroca ? precoSubstituto : precoOriginal;
+
+                              onAbrirAddPedidoModal({
+                                idItem: item.idItem,
+                                nomeProduto: nomeFinal,
+                                quantidade: qtdFinal,
+                                ultimoPreco: precoFinal,
+                                precoCustom: precoFinal
+                              }, f);
+                            }}
+                            style={{
+                              display: 'inline-flex',
+                              alignItems: 'center',
+                              gap: '4px',
+                              fontSize: '11px',
+                              fontWeight: 'bold',
+                              backgroundColor: '#10b981',
+                              color: 'white',
+                              border: 'none',
+                              borderRadius: '4px',
+                              padding: '4px 8px',
+                              cursor: 'pointer',
+                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
+                            }}
+                            title={`Adicionar ${substituto && (isTrocaAceita || isEmFaltaOriginal) ? substituto : item.nomeProduto} ao pedido de ${f}`}
+                          >
+                            <ShoppingCart size={12} /> + Pedido
+                          </button>
+                        </div>
+                      )}
                     </td>
                   );
                 })}
 
+                {/* NOVO: Na aba Detalhes da Cotação (isItens), mantemos APENAS o botão de excluir */}
                 {isItens && (
                   <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                     {subAbaItens === 'comprados' ? (
                       <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
                     ) : (
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button type="button" onClick={() => !item.excluido && onAbrirAddPedidoModal(item)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#10b981' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Adicionar a um Pedido em Aberto">
-                          <ShoppingCart size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
-                        </button>
-                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto">
+                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
                           <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
                         </button>
                       </div>
