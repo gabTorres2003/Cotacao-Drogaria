@@ -36,7 +36,7 @@ export default function CotacaoDetalhes() {
   } = useCotacaoDados(id);
 
   const [modoVisualizacao, setModoVisualizacao] = useState('itens');
-  const [subAbaItens, setSubAbaItens] = useState('pendentes');
+  const [subAbaItens, setSubAbaItens] = useState('todos');
 
   const {
     termoBusca, setTermoBusca, filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas,
@@ -73,9 +73,8 @@ export default function CotacaoDetalhes() {
   const [addPedidoForm, setAddPedidoForm] = useState({ pedidoId: '', qtd: '', valor: '' });
   const [loadingAddPedido, setLoadingAddPedido] = useState(false);
 
-  // NOVO: Estados de Filtro de Análise de Preços
   const [filtroVencedor, setFiltroVencedor] = useState('TODOS');
-  const [filtroTopN, setFiltroTopN] = useState('TODOS'); // 'TODOS', 'TOP_2', 'TOP_3'
+  const [filtroTopN, setFiltroTopN] = useState('TODOS'); 
 
   const isEncerrada = statusCotacao === 'FINALIZADA';
   const isComparativo = modoVisualizacao === 'comparativo';
@@ -121,7 +120,6 @@ export default function CotacaoDetalhes() {
     }
   }, [relatorio, itensJaComprados]);
 
-  // NOVO: Filtrar as linhas baseadas no Fornecedor Vencedor selecionado no cabeçalho
   const relatorioFiltradoFinal = relatorioExibicao.filter(item => {
     if (filtroVencedor !== 'TODOS') {
         return decisaoCompra[item.idItem] === filtroVencedor;
@@ -548,7 +546,8 @@ export default function CotacaoDetalhes() {
       {modoVisualizacao === 'comparativo' && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginRight: '8px' }}>Filtro de Competitividade:</span>
-          <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Mostrar Todos os Preços</button>
+          {/* ATUALIZADO: Nome mais intuitivo para o botão que remove o filtro */}
+          <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Sem Filtro Top (Ver Todos)</button>
           <button onClick={() => setFiltroTopN('TOP_2')} style={styles.topNBtn(filtroTopN === 'TOP_2')}>Top 2 (Ganhador vs 2º Colocado)</button>
           <button onClick={() => setFiltroTopN('TOP_3')} style={styles.topNBtn(filtroTopN === 'TOP_3')}>Top 3 Melhores Preços</button>
         </div>

@@ -25,7 +25,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
 
       itensAgrupados[vencedor].itens.push([
         nomeCorreto,
-        qtd,
+        `${qtd} un`,
         preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
         total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       ]);
@@ -58,7 +58,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
 
       doc.setFontSize(14);
       if (fornecedor === 'Produtos em Falta') {
-          doc.setTextColor(220, 38, 38);
+          doc.setTextColor(220, 38, 38); 
       } else {
           doc.setTextColor(22, 163, 74);
       }
@@ -75,6 +75,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
         theme: 'striped',
         headStyles: { fillColor: fornecedor === 'Produtos em Falta' ? [220, 38, 38] : [71, 85, 105] }, 
         footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
+        pageBreak: 'avoid',
         margin: { bottom: 20 },
       });
 

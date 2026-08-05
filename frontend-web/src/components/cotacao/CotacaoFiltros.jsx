@@ -19,7 +19,10 @@ export default function CotacaoFiltros({
       </div>
       
       {(modoVisualizacao === 'itens' || modoVisualizacao === 'comparativo') && (
-        <div style={{ display: 'flex', gap: '10px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: '6px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' }}>
+          <button onClick={() => setSubAbaItens('todos')} style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'white' : 'transparent', color: subAbaItens === 'todos' ? '#4f46e5' : '#64748b', boxShadow: subAbaItens === 'todos' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}>
+            📑 Todos os Produtos
+          </button>
           <button onClick={() => setSubAbaItens('pendentes')} style={{ padding: '8px 16px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? (isEncerrada ? '#dc2626' : '#2563eb') : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: '0.2s' }}>
             {isEncerrada ? '🚨 Produtos em Falta' : '⏳ Itens Pendentes'}
           </button>
