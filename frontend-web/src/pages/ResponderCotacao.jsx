@@ -41,10 +41,11 @@ export default function ResponderCotacao() {
   const [sugestoes, setSugestoes] = useState([])
   
   const [loading, setLoading] = useState(false)
-  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false) 
+  const [isInitialLoadDone, setIsInitialLoadDone] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
+
   const draftKey = `cotacao_draft_${idCotacao}_${usuarioId}`
 
   useEffect(() => {
@@ -67,7 +68,6 @@ export default function ResponderCotacao() {
       }
     }
   }, [precos, quantidades, observacoes, produtoSubstituto, precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes, isInitialLoadDone, draftKey])
-
 
   const handlePrimeiroAcesso = async (e) => {
     e.preventDefault()
@@ -318,6 +318,7 @@ export default function ResponderCotacao() {
       }
 
       await api.post('/api/comparativo/salvar-respostas-completas', payload)
+      
       localStorage.removeItem(draftKey)
 
       setEnviado(true)
@@ -465,11 +466,14 @@ export default function ResponderCotacao() {
                         <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
                         <input
                           type="text"
-                          placeholder="Ex: Paracetamol Medley..."
+                          placeholder="Ex: Paracetamol 500mg C/ 20 - Medley"
                           style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
                           value={produtoSubstituto[item.idItem] || ''}
                           onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
                         />
+                        <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                          <AlertTriangle size={12} /> Digite o NOME COMPLETO. Não coloque apenas o laboratório!
+                        </span>
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                         <div>
@@ -578,7 +582,6 @@ export default function ResponderCotacao() {
         </div>
       )}
 
-      {/* Estilo do Loader Spin isolado */}
       <style>{`
         @keyframes spin {
           from { transform: rotate(0deg); }
