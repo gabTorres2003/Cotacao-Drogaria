@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaDetalhes({
@@ -7,7 +7,8 @@ export default function TabelaDetalhes({
   editandoItem, formEdicao, setFormEdicao, salvarEdicao, isEncerrada, iniciarEdicao, 
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
-  handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens
+  handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
+  onAbrirAddPedidoModal // NOVA PROP
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
@@ -146,6 +147,10 @@ export default function TabelaDetalhes({
                       <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
                     ) : (
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                        {/* NOVO BOTÃO DE ADICIONAR A PEDIDO ABERTO */}
+                        <button type="button" onClick={() => !item.excluido && onAbrirAddPedidoModal(item)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#10b981' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Adicionar a um Pedido em Aberto">
+                          <ShoppingCart size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
+                        </button>
                         <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto">
                           <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
                         </button>

@@ -22,13 +22,12 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  // Custom Hooks centralizando dados e filtros
   const {
     statusCotacao, setStatusCotacao, relatorio, setRelatorio, fornecedores, promocoes, loading, 
     decisaoCompra, setDecisaoCompra, dicionarioDiversos, fornecedoresLista, itensJaComprados, 
@@ -46,7 +45,6 @@ export default function CotacaoDetalhes() {
     getNomeRealSempre, getNomeExibicao, isDiversos
   } = useCotacaoFiltros(relatorio, itensJaComprados, modoVisualizacao, subAbaItens, dicionarioDiversos, fornecedores);
 
-  // Estados Locais (Modais e Interações)
   const [aceitesTroca, setAceitesTroca] = useState({});
   const [showModal, setShowModal] = useState(false);
   const [pedidosGerados, setPedidosGerados] = useState([]);
@@ -69,15 +67,20 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
+  // NOVO: Estados para Modal de Atribuição a Pedido Existente
+  const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
+  const [itemAddPedido, setItemAddPedido] = useState(null);
+  const [pedidosAbertosList, setPedidosAbertosList] = useState([]);
+  const [addPedidoForm, setAddPedidoForm] = useState({ pedidoId: '', qtd: '', valor: '' });
+  const [loadingAddPedido, setLoadingAddPedido] = useState(false);
+
   const isEncerrada = statusCotacao === 'FINALIZADA';
   const isComparativo = modoVisualizacao === 'comparativo';
   const isItens = modoVisualizacao === 'itens';
 
-  // Utilitários de Formatação
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
   const fData = (data) => data ? data : '-';
 
-  // Efeitos
   useEffect(() => {
     if (isEncerrada && modoVisualizacao === 'manual') setModoVisualizacao('itens');
   }, [isEncerrada, modoVisualizacao]);
@@ -115,7 +118,6 @@ export default function CotacaoDetalhes() {
     }
   }, [relatorio, itensJaComprados]);
 
-  // Ações da Tela
   const copiarParaAreaTransferencia = (texto, idItem) => {
     navigator.clipboard.writeText(texto).then(() => {
       setCopiadoId(idItem);
@@ -430,6 +432,68 @@ export default function CotacaoDetalhes() {
     finally { setSalvandoPedidos(false); }
   };
 
+  const abrirModalAddPedido = async (item) => {
+    setItemAddPedido(item);
+    setAddPedidoForm({ pedidoId: '', qtd: item.quantidade || 1, valor: item.ultimoPreco || '' });
+    setModalAddPedidoAberto(true);
+    try {
+      const res = await api.get('/api/pedidos');
+      const abertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+      setPedidosAbertosList(abertos);
+    } catch(e) {
+      console.error("Erro ao buscar pedidos abertos");
+    }
+  };
+
+  const handleSelectPedidoAberto = (e) => {
+    const pedId = e.target.value;
+    const pedObj = pedidosAbertosList.find(p => String(p.id) === String(pedId));
+    let novoValor = addPedidoForm.valor;
+    
+    if (pedObj && itemAddPedido && itemAddPedido.precosPorFornecedor) {
+      const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome;
+      if (fornecedor && itemAddPedido.precosPorFornecedor[fornecedor] > 0) {
+        novoValor = itemAddPedido.precosPorFornecedor[fornecedor];
+      }
+    }
+    setAddPedidoForm(prev => ({ ...prev, pedidoId: pedId, valor: novoValor }));
+  };
+
+  const confirmarAddPedido = async () => {
+    if (!addPedidoForm.pedidoId) return alert("Selecione um pedido.");
+    if (!addPedidoForm.qtd || !addPedidoForm.valor) return alert("Preencha quantidade e valor.");
+    
+    setLoadingAddPedido(true);
+    try {
+      const pedObj = pedidosAbertosList.find(p => String(p.id) === String(addPedidoForm.pedidoId));
+      const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome || pedObj.fornecedor?.empresa;
+
+      await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
+        nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
+        quantidadePedida: Number(addPedidoForm.qtd),
+        valorUnitarioPedido: Number(addPedidoForm.valor),
+        itemCotacao: { id: itemAddPedido.idItem }
+      });
+      
+      setItensJaComprados(prev => ({
+        ...prev,
+        [itemAddPedido.idItem]: {
+          id: Number(addPedidoForm.pedidoId),
+          fornecedor: fornecedor,
+          preco: Number(addPedidoForm.valor),
+          quantidade: Number(addPedidoForm.qtd)
+        }
+      }));
+
+      alert('Produto adicionado ao pedido com sucesso!');
+      setModalAddPedidoAberto(false);
+    } catch(e) {
+      alert('Erro ao adicionar produto: ' + (e.response?.data?.message || e.message));
+    } finally {
+      setLoadingAddPedido(false);
+    }
+  };
+
   const totalComprado = Object.keys(checklist).reduce((acc, key) => {
     const item = checklist[key]; return (item.comprado && !item.bloqueado) ? acc + (item.qtd * item.preco) : acc;
   }, 0);
@@ -506,6 +570,7 @@ export default function CotacaoDetalhes() {
             reatribuirItem={reatribuirItem} fData={fData} fMoney={fMoney} decisaoCompra={decisaoCompra} aceitesTroca={aceitesTroca}
             handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} navigate={navigate}
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
+            onAbrirAddPedidoModal={abrirModalAddPedido}
           />
           {isComparativo && <CardsSugestoes promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} />}
         </div>
@@ -519,6 +584,57 @@ export default function CotacaoDetalhes() {
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
       <ModalResumoPedidos isOpen={showModal} onClose={() => setShowModal(false)} pedidosGerados={pedidosGerados} setPedidosGerados={setPedidosGerados} promocoes={promocoes} avisosDuplicidade={avisosDuplicidade} fornecedores={fornecedores} adicionarPromocaoAoPedido={adicionarPromocaoAoPedido} removerItemDoPedido={removerItemDoPedido} moverItemParaFornecedor={moverItemParaFornecedor} irParaProximoMenorPreco={irParaProximoMenorPreco} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} salvarPedidosNoBanco={salvarPedidosNoBanco} salvandoPedidos={salvandoPedidos} getNomeRealSempre={getNomeRealSempre} fMoney={fMoney} />
       
+      {/* Modal Adicionar a Pedido Existente */}
+      {modalAddPedidoAberto && itemAddPedido && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar a Pedido Existente</h3>
+                <button onClick={() => setModalAddPedidoAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}>
+                   <X size={20} />
+                </button>
+             </div>
+             
+             <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '16px' }}>
+               Produto: <strong>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong>
+             </p>
+
+             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido em Aberto</label>
+                  <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.pedidoId} onChange={handleSelectPedidoAberto}>
+                    <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto encontrado' : '-- Selecione um Pedido --'}</option>
+                    {pedidosAbertosList.map(p => (
+                      <option key={p.id} value={p.id}>
+                        Pedido #{p.id} - {p.fornecedor?.empresa || p.fornecedor?.nome || p.fornecedorNome}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div style={{ display: 'flex', gap: '15px' }}>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd a Pedir</label>
+                    <input type="number" min="1" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.qtd} onChange={e => setAddPedidoForm({...addPedidoForm, qtd: e.target.value})} onFocus={e => e.target.select()}/>
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
+                    <input type="number" step="0.01" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.valor} onChange={e => setAddPedidoForm({...addPedidoForm, valor: e.target.value})} onFocus={e => e.target.select()}/>
+                  </div>
+                </div>
+
+                <button 
+                  onClick={confirmarAddPedido} 
+                  disabled={loadingAddPedido || !addPedidoForm.pedidoId}
+                  style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: !addPedidoForm.pedidoId ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: !addPedidoForm.pedidoId ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                >
+                  {loadingAddPedido ? 'Adicionando...' : 'Confirmar e Adicionar'}
+                </button>
+             </div>
+          </div>
+        </div>
+      )}
+
       <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .animate-spin { animation: spin 1s linear infinite; }`}</style>
     </div>
   );

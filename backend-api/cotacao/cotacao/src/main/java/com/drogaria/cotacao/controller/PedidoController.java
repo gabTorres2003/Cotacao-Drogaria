@@ -98,6 +98,11 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
+    @GetMapping("/itens-pendentes")
+    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesParaAdicionar() {
+        return ResponseEntity.ok(pedidoService.buscarItensPendentesCotacao());
+    }
+
     @PutMapping("/{id}/receber")
     public ResponseEntity<Pedido> processarRecebimento(
             @PathVariable Long id, 

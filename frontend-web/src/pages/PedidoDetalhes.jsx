@@ -12,8 +12,11 @@ export default function PedidoDetalhes() {
     const [isDevolucaoModalOpen, setIsDevolucaoModalOpen] = useState(false);
     const [loading, setLoading] = useState(true);
 
+    // Estados do Modal de Adição de Item
     const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
-    const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '' });
+    const [tipoAdicao, setTipoAdicao] = useState('COTACAO'); // 'COTACAO' ou 'MANUAL'
+    const [itensPendentes, setItensPendentes] = useState([]);
+    const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
     const [salvandoItem, setSalvandoItem] = useState(false);
 
     const carregarPedido = async () => {
@@ -44,6 +47,18 @@ export default function PedidoDetalhes() {
         }
     };
 
+    // NOVO: Função para remover um item específico do pedido em espera
+    const handleRemoverItemDoPedido = async (idItem) => {
+        if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
+            try {
+                await api.delete(`/api/pedidos/item/${idItem}`);
+                carregarPedido(); // Atualiza a tela após remover
+            } catch (error) {
+                alert('Erro ao remover o item: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
     const aceitarDivergenciaValor = async () => {
         if (window.confirm('Confirmar o recebimento ignorando as diferenças de valores/impostos? O pedido será marcado como Concluído.')) {
             try {
@@ -56,22 +71,54 @@ export default function PedidoDetalhes() {
         }
     };
 
+    // NOVO: Abrir modal e buscar itens pendentes
+    const abrirModalAdicao = async () => {
+        setIsAddItemModalOpen(true);
+        setTipoAdicao('COTACAO');
+        setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
+        try {
+            const res = await api.get('/api/pedidos/itens-pendentes');
+            setItensPendentes(res.data || []);
+        } catch (error) {
+            console.error("Erro ao buscar itens pendentes:", error);
+        }
+    };
+
+    const handleSelectPendente = (e) => {
+        const val = e.target.value;
+        if (!val) {
+            setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
+            return;
+        }
+        const itemSel = itensPendentes.find(i => String(i.idItem) === String(val));
+        if (itemSel) {
+            setNovoItem({
+                nomeProduto: itemSel.nomeProduto,
+                quantidadePedida: itemSel.quantidade || 1,
+                valorUnitarioPedido: '', // O usuário deve preencher o valor acordado
+                itemCotacaoId: itemSel.idItem
+            });
+        }
+    };
+
     const handleSalvarNovoItem = async () => {
         if (!novoItem.nomeProduto || !novoItem.quantidadePedida || !novoItem.valorUnitarioPedido) {
-            alert('Preencha todos os campos do produto.');
+            alert('Preencha todos os campos do produto (Nome, Qtd e Valor).');
             return;
         }
 
         setSalvandoItem(true);
         try {
-            await api.post(`/api/pedidos/${id}/itens`, {
+            const payload = {
                 nomeProduto: novoItem.nomeProduto,
                 quantidadePedida: Number(novoItem.quantidadePedida),
-                valorUnitarioPedido: Number(novoItem.valorUnitarioPedido)
-            });
+                valorUnitarioPedido: Number(novoItem.valorUnitarioPedido),
+                itemCotacao: novoItem.itemCotacaoId ? { id: novoItem.itemCotacaoId } : null
+            };
+
+            await api.post(`/api/pedidos/${id}/itens`, payload);
             alert('Produto adicionado com sucesso!');
             setIsAddItemModalOpen(false);
-            setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '' });
             carregarPedido();
         } catch (error) {
             alert('Erro ao adicionar produto: ' + (error.response?.data?.message || error.message));
@@ -124,7 +171,7 @@ export default function PedidoDetalhes() {
     const vendedor = pedido.fornecedor?.nome || pedido.fornecedor?.vendedor || pedido.fornecedorNome || 'Vendedor não informado';
     
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
-    const mostrarReais = !podeConferir; // Se ainda pode conferir (em espera), NÃO mostra as colunas reais e impostos
+    const mostrarReais = !podeConferir; 
     
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
@@ -189,7 +236,7 @@ export default function PedidoDetalhes() {
                         <h3 style={{ fontSize: '18px', fontWeight: '600', color: '#1f2937' }}>Itens do Pedido</h3>
                         
                         {podeAdicionarProduto && (
-                            <button onClick={() => setIsAddItemModalOpen(true)} style={styles.btnAddItem}>
+                            <button onClick={abrirModalAdicao} style={styles.btnAddItem}>
                                 <Plus size={16} style={{ marginRight: '6px' }} /> Adicionar Produto Extra
                             </button>
                         )}
@@ -209,6 +256,7 @@ export default function PedidoDetalhes() {
                                 <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
                                 {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>}
                                 <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
+                                {podeAdicionarProduto && <th style={{ ...styles.th, textAlign: 'center' }}>Ação</th>}
                             </tr>
                         </thead>
                         <tbody>
@@ -218,7 +266,6 @@ export default function PedidoDetalhes() {
                                 const vlrPrevisto = item.valorUnitarioPedido || 0;
                                 const vlrReal = item.valorUnitarioReal;
 
-                                // Lógica de cálculo do imposto cobrado
                                 let pctImposto = 0;
                                 let alertImposto = false;
                                 if (mostrarReais && vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
@@ -287,6 +334,18 @@ export default function PedidoDetalhes() {
                                                     : (item.statusRecebimento || 'AGUARDANDO')}
                                             </span>
                                         </td>
+
+                                        {podeAdicionarProduto && (
+                                            <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                <button 
+                                                    onClick={() => handleRemoverItemDoPedido(item.id)} 
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                                    title="Remover produto (retorna para Cotação Aberta)"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
+                                            </td>
+                                        )}
                                     </tr>
                                 );
                             })}
@@ -304,17 +363,47 @@ export default function PedidoDetalhes() {
 
                 {isAddItemModalOpen && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '400px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
                                 <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
                                 <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
                             </div>
 
+                            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px' }}>
+                                <button 
+                                    onClick={() => setTipoAdicao('COTACAO')} 
+                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                >
+                                    De Cotações Abertas
+                                </button>
+                                <button 
+                                    onClick={() => { setTipoAdicao('MANUAL'); setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null }); }} 
+                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: tipoAdicao === 'MANUAL' ? 'white' : 'transparent', color: tipoAdicao === 'MANUAL' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'MANUAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                >
+                                    Digitar Manualmente
+                                </button>
+                            </div>
+
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                <div>
-                                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
-                                    <input type="text" style={styles.inputModal} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
-                                </div>
+                                
+                                {tipoAdicao === 'COTACAO' ? (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione um Produto Pendente</label>
+                                        <select style={styles.inputModal} value={novoItem.itemCotacaoId || ''} onChange={handleSelectPendente}>
+                                            <option value="">{itensPendentes.length === 0 ? 'Nenhum produto pendente encontrado' : '-- Selecione --'}</option>
+                                            {itensPendentes.map(p => (
+                                                <option key={p.idItem} value={p.idItem}>
+                                                    [Cot. #{p.cotacaoId}] {p.nomeProduto} - Qtd: {p.quantidade}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                ) : (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
+                                        <input type="text" style={styles.inputModal} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
+                                    </div>
+                                )}
                                 
                                 <div style={{ display: 'flex', gap: '15px' }}>
                                     <div style={{ flex: 1 }}>
@@ -329,8 +418,8 @@ export default function PedidoDetalhes() {
 
                                 <button 
                                     onClick={handleSalvarNovoItem} 
-                                    disabled={salvandoItem}
-                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    disabled={salvandoItem || (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId)}
+                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                 >
                                     <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItem ? 'Adicionando...' : 'Confirmar e Adicionar'}
                                 </button>

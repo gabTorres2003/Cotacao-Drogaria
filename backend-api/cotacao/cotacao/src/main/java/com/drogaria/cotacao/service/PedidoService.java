@@ -17,6 +17,8 @@ import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
 import lombok.RequiredArgsConstructor;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -34,6 +37,9 @@ public class PedidoService {
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
     private final ItemCotacaoRepository itemCotacaoRepository;
+
+    @Autowired
+    private jakarta.persistence.EntityManager entityManager;
 
     public List<Pedido> listarTodos() {
         return pedidoRepository.findAll();
@@ -230,6 +236,12 @@ public class PedidoService {
             throw new RuntimeException("Não é possível adicionar itens a um pedido que já foi processado pelo fornecedor ou entregue.");
         }
 
+        if (novoItem.getItemCotacao() != null && novoItem.getItemCotacao().getId() != null) {
+            ItemCotacao ic = itemCotacaoRepository.findById(novoItem.getItemCotacao().getId())
+                    .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
+            novoItem.setItemCotacao(ic);
+        }
+
         novoItem.setPedido(pedido);
         
         pedido.getItens().add(novoItem);
@@ -255,5 +267,28 @@ public class PedidoService {
         
         itemPedidoRepository.delete(item);
         pedidoRepository.save(pedido);
+    }
+
+    @SuppressWarnings("unchecked")
+    public List<Map<String, Object>> buscarItensPendentesCotacao() {
+        String sql = "SELECT ic.id, ic.nome_produto, c.id AS cotacao_id, ic.quantidade " +
+                     "FROM tb_itens_cotacao ic " +
+                     "JOIN tb_cotacoes c ON ic.cotacao_id = c.id " +
+                     "WHERE c.status NOT IN ('FINALIZADA', 'CANCELADA') " +
+                     "AND (ic.excluido IS NULL OR ic.excluido = false) " +
+                     "AND NOT EXISTS (SELECT 1 FROM tb_itens_pedido ip WHERE ip.item_cotacao_id = ic.id)";
+
+        List<Object[]> results = entityManager.createNativeQuery(sql).getResultList();
+        List<java.util.Map<String, Object>> lista = new java.util.ArrayList<>();
+        
+        for (Object[] row : results) {
+            java.util.Map<String, Object> map = new java.util.HashMap<>();
+            map.put("idItem", row[0]);
+            map.put("nomeProduto", row[1]);
+            map.put("cotacaoId", row[2]);
+            map.put("quantidade", row[3]);
+            lista.add(map);
+        }
+        return lista;
     }
 }

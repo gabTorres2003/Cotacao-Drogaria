@@ -56,6 +56,7 @@ public class DashboardRepository {
                      "GROUP BY f.id, f.empresa, f.nome " +
                      "ORDER BY total_comprado DESC LIMIT 10";
 
+        @SuppressWarnings("unchecked")
         List<Object[]> results = em.createNativeQuery(sql).getResultList();
         List<FornecedorDesempenhoDTO> list = new ArrayList<>();
         
@@ -80,6 +81,7 @@ public class DashboardRepository {
                      "GROUP BY ip.nome_produto " +
                      "ORDER BY vezes_falta DESC LIMIT 10";
 
+        @SuppressWarnings("unchecked")
         List<Object[]> results = em.createNativeQuery(sql).getResultList();
         List<RupturaAlertaDTO> list = new ArrayList<>();
         
