@@ -189,7 +189,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       try {
         await api.put(`/api/devolucoes/${internalDevId}/item/${item.id}`, editItemForm);
         await carregarDevolucaoExistente(internalDevId);
-        onSuccess(); 
         setEditingIndex(null);
       } catch (error) {
         alert('Erro ao atualizar o item da devolução.');
