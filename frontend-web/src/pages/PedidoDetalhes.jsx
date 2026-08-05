@@ -18,7 +18,6 @@ export default function PedidoDetalhes() {
     const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
     const [salvandoItem, setSalvandoItem] = useState(false);
 
-    // NOVO: Estados de Edição de Valores
     const [isEditandoValores, setIsEditandoValores] = useState(false);
     const [valoresEditados, setValoresEditados] = useState({});
 
@@ -213,7 +212,18 @@ export default function PedidoDetalhes() {
             <main className="main-content">
                 <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
                     <div>
-                        <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Pedido #{pedido.id}</h1>
+                        <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                            Pedido #{pedido.id}
+                            {pedido.cotacao?.id && (
+                                <button 
+                                    onClick={() => navigate(`/cotacao/${pedido.cotacao.id}`)}
+                                    style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                                    title="Abrir Cotação vinculada"
+                                >
+                                    Ver Cotação #{pedido.cotacao.id}
+                                </button>
+                            )}
+                        </h1>
                         <p style={{ color: '#4b5563', fontSize: '15px' }}>
                             <strong>Empresa:</strong> {empresa} &nbsp;|&nbsp; <strong>Vendedor:</strong> {vendedor}
                         </p>
@@ -239,7 +249,6 @@ export default function PedidoDetalhes() {
                             )}
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
-                            {/* BOTOES DE EDICAO */}
                             {podeConferir && (
                                 <button onClick={isEditandoValores ? () => setIsEditandoValores(false) : iniciarEdicaoValores} style={{ ...styles.btnConferir, backgroundColor: isEditandoValores ? '#6b7280' : '#3b82f6' }}>
                                     <Edit2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> 

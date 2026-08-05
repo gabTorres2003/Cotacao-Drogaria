@@ -9,6 +9,7 @@ import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
+import com.drogaria.cotacao.model.PrecoCotacao; // <-- NOVA IMPORTAÇÃO AQUI
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoRepository;
@@ -300,17 +301,40 @@ public class PedidoService {
                 item.setValorAlteradoAposPedido(true);
             }
 
-            // Sincronização automática com a resposta da cotação
             if (item.getItemCotacao() != null && pedido.getFornecedor() != null) {
-                String sqlUpdateCotacao = "UPDATE tb_precos_cotacao SET preco_ofertado = :preco, quantidade_disponivel = :qtd " +
-                                          "WHERE item_id = :itemId AND fornecedor_id = :fornId";
-                
-                entityManager.createNativeQuery(sqlUpdateCotacao)
-                        .setParameter("preco", novoValor)
-                        .setParameter("qtd", novaQtd)
-                        .setParameter("itemId", item.getItemCotacao().getId())
-                        .setParameter("fornId", pedido.getFornecedor().getId())
-                        .executeUpdate();
+                try {
+                    String jpql = "SELECT pc FROM PrecoCotacao pc WHERE pc.item.id = :itemId AND pc.fornecedor.id = :fornId";
+                    List<PrecoCotacao> precos = entityManager.createQuery(jpql, PrecoCotacao.class)
+                            .setParameter("itemId", item.getItemCotacao().getId())
+                            .setParameter("fornId", pedido.getFornecedor().getId())
+                            .getResultList();
+
+                    if (!precos.isEmpty()) {
+                        PrecoCotacao pc = precos.get(0);
+                        boolean isSubstituto = false;
+                        
+                        if (pc.getProdutoSubstituto() != null && !pc.getProdutoSubstituto().trim().isEmpty()) {
+                            String nomePedido = item.getNomeProduto() != null ? item.getNomeProduto().toLowerCase().trim() : "";
+                            String nomeSubstituto = pc.getProdutoSubstituto().toLowerCase().trim();
+                            
+                            if (nomePedido.contains(nomeSubstituto) || nomeSubstituto.contains(nomePedido)) {
+                                isSubstituto = true;
+                            }
+                        }
+
+                        if (isSubstituto) {
+                            pc.setPrecoSubstituto(novoValor);
+                            pc.setQuantidadeSubstituto(novaQtd);
+                        } else {
+                            pc.setPrecoOfertado(novoValor);
+                            pc.setQuantidadeDisponivel(novaQtd);
+                        }
+                        
+                        entityManager.merge(pc);
+                    }
+                } catch (Exception e) {
+                    System.err.println("Aviso: Falha ao sincronizar valor com a cotação: " + e.getMessage());
+                }
             }
 
             novoTotal += (novaQtd * novoValor);

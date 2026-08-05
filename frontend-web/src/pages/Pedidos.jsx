@@ -111,7 +111,6 @@ export default function Pedidos() {
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
       if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao || 0) - new Date(b.dataCriacao || 0) || a.id - b.id;
       
-      // Ajuste para ordenar pelo valor REAL se já estiver concluído/conferido
       const valA = (a.status !== 'PENDENTE_ENTREGA' && a.status !== 'CONFIRMADO_FORNECEDOR' && a.valorTotalReal != null) ? a.valorTotalReal : (a.valorTotalPedido || 0);
       const valB = (b.status !== 'PENDENTE_ENTREGA' && b.status !== 'CONFIRMADO_FORNECEDOR' && b.valorTotalReal != null) ? b.valorTotalReal : (b.valorTotalPedido || 0);
       
@@ -257,7 +256,7 @@ export default function Pedidos() {
             <thead>
               <tr>
                 <th style={{ width: '80px' }}>ID</th>
-                <th style={{ width: '90px' }}>Cotação</th>
+                <th style={{ width: '120px' }}>Cotação</th>
                 <th>Empresa (Fornecedor)</th>
                 <th style={{ width: '100px' }}>NF</th>
                 <th>Entregue Por</th>
@@ -297,7 +296,6 @@ export default function Pedidos() {
                     if (gruposUnicos.length > 0) gruposFormatados = gruposUnicos.join(', ');
                   }
                   
-                  // Lógica para exibir Valor Previsto se estiver aguardando, ou Valor Real se estiver conferido
                   const isAguardando = p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR';
                   const valorExibir = (!isAguardando && p.valorTotalReal != null) ? p.valorTotalReal : p.valorTotalPedido;
 
@@ -306,9 +304,19 @@ export default function Pedidos() {
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
                       
                       <td>
-                        <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                          #{idCotacao}
-                        </span>
+                        {idCotacao !== '-' ? (
+                          <button 
+                            onClick={() => navigate(`/cotacao/${idCotacao}`)}
+                            style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                            title="Ir para a Cotação"
+                          >
+                            Ver Cot. #{idCotacao}
+                          </button>
+                        ) : (
+                          <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                            -
+                          </span>
+                        )}
                       </td>
 
                       <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
