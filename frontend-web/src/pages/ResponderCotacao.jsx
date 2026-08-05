@@ -10,7 +10,9 @@ import {
   Loader2,
   AlertTriangle,
   Search,
-  SortAsc
+  SortAsc,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -48,7 +50,6 @@ export default function ResponderCotacao() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
-  // NOVO: Estados para Filtro e Ordenação
   const [busca, setBusca] = useState('')
   const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
 
@@ -347,6 +348,15 @@ export default function ResponderCotacao() {
     }
   }
 
+  // Funções de Rolagem
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const scrollToBottom = () => {
+    window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
+  };
+
   const itensProcessados = itens
     .filter(item => {
       if (!busca) return true;
@@ -357,7 +367,7 @@ export default function ResponderCotacao() {
       if (ordemAlfabetica) {
         return getNomeReal(a.nomeProduto).localeCompare(getNomeReal(b.nomeProduto));
       }
-      return 0; 
+      return 0;
     });
 
   if (isPrimeiroAcesso) {
@@ -418,7 +428,6 @@ export default function ResponderCotacao() {
         </div>
       </div>
 
-      {/* NOVO: Barra de Pesquisa e Filtros Fixa no Topo */}
       <div style={{ position: 'sticky', top: '56px', backgroundColor: '#f3f4f6', zIndex: 99, paddingBottom: '16px' }}>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
@@ -630,6 +639,16 @@ export default function ResponderCotacao() {
               Apagar rascunho e recomeçar
             </button>
           </div>
+
+          {/* Botões Flutuantes de Rolagem */}
+          <div style={{ position: 'fixed', bottom: '24px', right: '24px', display: 'flex', flexDirection: 'column', gap: '10px', zIndex: 1000 }}>
+            <button onClick={scrollToTop} style={mobileStyles.fabButton} title="Ir para o topo">
+              <ArrowUp size={24} />
+            </button>
+            <button onClick={scrollToBottom} style={mobileStyles.fabButton} title="Ir para o final">
+              <ArrowDown size={24} />
+            </button>
+          </div>
         </div>
       )}
 
@@ -720,6 +739,19 @@ const mobileStyles = {
     fontWeight: 'bold',
     cursor: 'pointer',
     fontSize: '13px',
+  },
+  fabButton: {
+    width: '46px',
+    height: '46px',
+    borderRadius: '23px',
+    backgroundColor: '#2563eb',
+    color: 'white',
+    border: 'none',
+    display: 'flex',
+    justifyContent: 'center',
+    alignItems: 'center',
+    boxShadow: '0 4px 10px rgba(0,0,0,0.2)',
+    cursor: 'pointer',
   },
   successBox: {
     textAlign: 'center',
