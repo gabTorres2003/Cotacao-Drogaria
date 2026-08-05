@@ -267,12 +267,13 @@ public class PedidoService {
         
         double valorSubtrair = item.getQuantidadePedida() * item.getValorUnitarioPedido();
         pedido.setValorTotalPedido(pedido.getValorTotalPedido() - valorSubtrair);
+        item.setItemCotacao(null);
+        itemPedidoRepository.saveAndFlush(item);
         
         itemPedidoRepository.delete(item);
         pedidoRepository.save(pedido);
     }
 
-    // NOVO MÉTODO: Trocar Item
     @Transactional
     public Pedido trocarItem(Long pedidoId, Long idItemPedidoAntigo, ItemPedido novoItem) {
         removerItem(idItemPedidoAntigo);
