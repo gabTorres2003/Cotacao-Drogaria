@@ -20,7 +20,7 @@ export default function TabelaDetalhes({
   };
 
   return (
-    <div style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+    <div style={{ maxHeight: '85vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
         <thead>
           <tr>
