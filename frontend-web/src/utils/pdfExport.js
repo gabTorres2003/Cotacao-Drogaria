@@ -13,7 +13,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
 
     relatorioOrdenado.forEach(item => {
       const comprado = itensJaComprados[item.idItem];
-      const vencedor = comprado ? comprado.fornecedor : (item.fornecedorVencedor || 'Sem Oferta');
+      const vencedor = comprado ? comprado.fornecedor : (item.fornecedorVencedor || 'Produtos em Falta');
       const preco = comprado ? comprado.preco : (item.menorPrecoEncontrado || 0);
       const qtd = comprado ? comprado.quantidade : (item.quantidade || 0);
       const total = preco * qtd;
@@ -34,6 +34,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
     });
 
     const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height; 
     doc.setFontSize(18);
     doc.text(`Relatório de Fechamento - Cotação #${id}`, 14, 20);
     doc.setFontSize(12);
@@ -41,11 +42,26 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
 
     let currentY = 40;
 
-    Object.keys(itensAgrupados).sort().forEach(fornecedor => {
+    const fornecedoresList = Object.keys(itensAgrupados).sort((a, b) => {
+        if (a === 'Produtos em Falta') return 1;
+        if (b === 'Produtos em Falta') return -1;
+        return a.localeCompare(b);
+    });
+
+    fornecedoresList.forEach(fornecedor => {
       const data = itensAgrupados[fornecedor];
 
+      if (currentY > pageHeight - 40) {
+          doc.addPage();
+          currentY = 20;
+      }
+
       doc.setFontSize(14);
-      doc.setTextColor(22, 163, 74);
+      if (fornecedor === 'Produtos em Falta') {
+          doc.setTextColor(220, 38, 38);
+      } else {
+          doc.setTextColor(22, 163, 74);
+      }
       doc.text(`Fornecedor: ${fornecedor}`, 14, currentY);
       currentY += 5;
 
@@ -57,13 +73,18 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
           ['', '', 'TOTAL FORNECEDOR', data.totalFornecedor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]
         ],
         theme: 'striped',
-        headStyles: { fillColor: [71, 85, 105] },
+        headStyles: { fillColor: fornecedor === 'Produtos em Falta' ? [220, 38, 38] : [71, 85, 105] }, 
         footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42] },
-        margin: { bottom: 20 }
+        margin: { bottom: 20 },
       });
 
       currentY = doc.lastAutoTable.finalY + 15;
     });
+
+    if (currentY > pageHeight - 20) {
+        doc.addPage();
+        currentY = 20;
+    }
 
     doc.setFontSize(14);
     doc.setTextColor(0, 0, 0);

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaDetalhes({
@@ -8,7 +8,7 @@ export default function TabelaDetalhes({
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
-  onAbrirAddPedidoModal
+  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN // NOVAS PROPS
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
@@ -20,7 +20,7 @@ export default function TabelaDetalhes({
   };
 
   return (
-    <div style={{ maxHeight: '85vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+    <div style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
         <thead>
           <tr>
@@ -37,7 +37,23 @@ export default function TabelaDetalhes({
               </>
             )}
             {colunasVisiveis.ultimoPreco && <th style={{ ...thStyle, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div></th>}
-            {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => <th key={f} style={{ ...thStyle, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>{f}</th>)}
+            
+            {/* ATUALIZADO: Cabeçalho dos fornecedores ganha o ícone de filtro rápido da Opção A */}
+            {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => (
+                <th key={f} style={{ ...thStyle, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                        {f}
+                        <button
+                            title={`Filtrar apenas itens ganhos por ${f}`}
+                            onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)}
+                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? '#dbeafe' : 'transparent', display: 'flex', alignItems: 'center' }}
+                        >
+                            <Filter size={14} color={filtroVencedor === f ? '#2563eb' : '#9ca3af'} />
+                        </button>
+                    </div>
+                </th>
+            ))}
+            
             {isItens && <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
           </tr>
         </thead>
@@ -45,6 +61,21 @@ export default function TabelaDetalhes({
           {relatorioExibicao.map((item) => {
             const isBloqueado = !!itensJaComprados[item.idItem];
             const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
+
+            const ofertasValidas = fornecedores.map(forn => {
+                let pO = item.precosPorFornecedor?.[forn] || 0;
+                let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+                let val = Infinity;
+                
+                if (pO > 0) val = pO;
+                if (pS > 0 && pS < val) val = pS; 
+                if (pO <= 0 && pS > 0) val = pS;
+                
+                return { forn, val };
+            }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
+
+            const rankMap = {};
+            ofertasValidas.forEach((vo, index) => { rankMap[vo.forn] = index + 1; });
 
             return (
               <tr key={item.idItem} style={{ backgroundColor: '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
@@ -83,7 +114,6 @@ export default function TabelaDetalhes({
                         <BadgeOrigem origem={item.origemItem} />
                         {isBloqueado && (
                           <>
-                            {/* NOVO LINK DIRETO PARA O PEDIDO */}
                             <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
                               ✓ Ver Pedido #{itensJaComprados[item.idItem].id}
                             </button>
@@ -120,6 +150,14 @@ export default function TabelaDetalhes({
                 {colunasVisiveis.ultimoPreco && <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '500' }}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>}
 
                 {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+                  
+                  const rank = rankMap[f];
+                  const isTopN = filtroTopN === 'TODOS' || (filtroTopN === 'TOP_2' && rank <= 2) || (filtroTopN === 'TOP_3' && rank <= 3);
+
+                  if (!isTopN) {
+                      return <td key={f} style={{ ...tdStyle, backgroundColor: '#f8fafc', borderLeft: '1px solid #f3f4f6', textAlign: 'center', color: '#cbd5e1' }}>-</td>;
+                  }
+
                   const precoOriginal = item.precosPorFornecedor?.[f] || 0;
                   const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
                   const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;

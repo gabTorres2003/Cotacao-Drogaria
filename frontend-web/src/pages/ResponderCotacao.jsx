@@ -8,7 +8,9 @@ import {
   Trash2,
   RefreshCw,
   Loader2,
-  AlertTriangle
+  AlertTriangle,
+  Search,
+  SortAsc
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -45,6 +47,10 @@ export default function ResponderCotacao() {
   const [enviado, setEnviado] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
+
+  // NOVO: Estados para Filtro e Ordenação
+  const [busca, setBusca] = useState('')
+  const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
 
   const draftKey = `cotacao_draft_${idCotacao}_${usuarioId}`
 
@@ -341,6 +347,19 @@ export default function ResponderCotacao() {
     }
   }
 
+  const itensProcessados = itens
+    .filter(item => {
+      if (!busca) return true;
+      const nomeFinal = getNomeReal(item.nomeProduto).toLowerCase();
+      return nomeFinal.includes(busca.toLowerCase());
+    })
+    .sort((a, b) => {
+      if (ordemAlfabetica) {
+        return getNomeReal(a.nomeProduto).localeCompare(getNomeReal(b.nomeProduto));
+      }
+      return 0; 
+    });
+
   if (isPrimeiroAcesso) {
     return (
       <div style={mobileStyles.loginBox}>
@@ -375,7 +394,7 @@ export default function ResponderCotacao() {
           display: 'flex',
           justifyContent: 'space-between',
           alignItems: 'center',
-          marginBottom: '20px',
+          marginBottom: '10px',
           position: 'sticky',
           top: 0,
           backgroundColor: '#f3f4f6', 
@@ -399,6 +418,34 @@ export default function ResponderCotacao() {
         </div>
       </div>
 
+      {/* NOVO: Barra de Pesquisa e Filtros Fixa no Topo */}
+      <div style={{ position: 'sticky', top: '56px', backgroundColor: '#f3f4f6', zIndex: 99, paddingBottom: '16px' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+          <div style={{ flex: 1, position: 'relative' }}>
+            <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <input 
+              type="text" 
+              placeholder="Pesquisar produto..." 
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              style={{ ...mobileStyles.inputFieldItem, paddingLeft: '36px' }}
+            />
+          </div>
+          <button 
+            onClick={() => setOrdemAlfabetica(!ordemAlfabetica)}
+            style={{ ...mobileStyles.btnVoltar, backgroundColor: ordemAlfabetica ? '#dbeafe' : 'white', color: ordemAlfabetica ? '#1e40af' : '#4b5563', border: '1px solid #cbd5e1' }}
+            title="Ordenar A-Z"
+          >
+            <SortAsc size={16} /> {ordemAlfabetica ? 'A-Z' : 'Padrão'}
+          </button>
+        </div>
+        {busca && (
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px', textAlign: 'right' }}>
+                Mostrando {itensProcessados.length} de {itens.length} produtos
+            </div>
+        )}
+      </div>
+
       {loading ? (
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: '#6b7280' }}>
           <Loader2 size={32} className="animate-spin" color="#3b82f6" style={{ marginBottom: '10px' }} />
@@ -406,117 +453,121 @@ export default function ResponderCotacao() {
         </div>
       ) : (
         <div>
-          {itens.map((item) => {
-            const isFalta = !!emFalta[item.idItem]
-            const qtdNaTela = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
-            const temTrocaAtiva = !!exibirTroca[item.idItem]
+          {itensProcessados.length === 0 ? (
+            <div style={{ textAlign: 'center', padding: '40px', color: '#9ca3af' }}>Nenhum produto encontrado para "{busca}".</div>
+          ) : (
+            itensProcessados.map((item) => {
+              const isFalta = !!emFalta[item.idItem]
+              const qtdNaTela = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
+              const temTrocaAtiva = !!exibirTroca[item.idItem]
 
-            return (
-              <div key={item.idItem} style={mobileStyles.card}>
-                <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>
-                  {getNomeReal(item.nomeProduto)}
-                </div>
-                <div style={{ fontSize: '13px', color: '#6b7280' }}>
-                  Solicitado: <strong>{item.quantidade} un</strong>
-                </div>
-
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginTop: '8px' }}>
-                  <div>
-                    <label style={mobileStyles.labelMini}>Qtd. Disp.</label>
-                    <input
-                      type="number"
-                      min="0"
-                      max={item.quantidade}
-                      style={mobileStyles.inputFieldItem}
-                      value={qtdNaTela}
-                      onWheel={(e) => e.target.blur()} 
-                      onChange={(e) => handleQtdChange(item.idItem, e.target.value, item.quantidade) }
-                    />
+              return (
+                <div key={item.idItem} style={mobileStyles.card}>
+                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>
+                    {getNomeReal(item.nomeProduto)}
                   </div>
-                  <div>
-                    <label style={mobileStyles.labelMini}>Preço Unit. (R$)</label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      placeholder="0,00"
-                      style={mobileStyles.inputFieldItem}
-                      value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''}
-                      onWheel={(e) => e.target.blur()} 
-                      onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
-                    />
+                  <div style={{ fontSize: '13px', color: '#6b7280' }}>
+                    Solicitado: <strong>{item.quantidade} un</strong>
                   </div>
-                  <button type="button" style={mobileStyles.btnFalta(isFalta)} onClick={() => toggleEmFalta(item.idItem)}>
-                    {isFalta ? 'Em falta' : 'Falta?'}
-                  </button>
-                </div>
 
-                <div style={{ marginTop: '10px' }}>
-                  <button
-                    type="button"
-                    onClick={() => toggleTrocaProduto(item.idItem)}
-                    style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
-                  >
-                    <RefreshCw size={14} />{' '}
-                    {temTrocaAtiva ? 'Remover Sugestão de Troca' : 'Sugerir Troca de Marca/Laboratório'}
-                  </button>
-
-                  {temTrocaAtiva && (
-                    <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                      <div>
-                        <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
-                        <input
-                          type="text"
-                          placeholder="Ex: Paracetamol 500mg C/ 20 - Medley"
-                          style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
-                          value={produtoSubstituto[item.idItem] || ''}
-                          onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
-                        />
-                        <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
-                          <AlertTriangle size={12} /> Digite o NOME COMPLETO. Não coloque apenas o laboratório!
-                        </span>
-                      </div>
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
-                        <div>
-                          <label style={mobileStyles.labelMini}>Qtd. Disponível (Troca)</label>
-                          <input
-                            type="number"
-                            min="0"
-                            style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
-                            value={qtdSubstituto[item.idItem] !== undefined ? qtdSubstituto[item.idItem] : item.quantidade}
-                            onWheel={(e) => e.target.blur()}
-                            onChange={(e) => setQtdSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
-                          />
-                        </div>
-                        <div>
-                          <label style={mobileStyles.labelMini}>Preço Unit. R$ (Troca)</label>
-                          <input
-                            type="number"
-                            step="0.01"
-                            placeholder="0,00"
-                            style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
-                            value={precoSubstituto[item.idItem] !== undefined ? precoSubstituto[item.idItem] : ''}
-                            onWheel={(e) => e.target.blur()}
-                            onChange={(e) => setPrecoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
-                          />
-                        </div>
-                      </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginTop: '8px' }}>
+                    <div>
+                      <label style={mobileStyles.labelMini}>Qtd. Disp.</label>
+                      <input
+                        type="number"
+                        min="0"
+                        max={item.quantidade}
+                        style={mobileStyles.inputFieldItem}
+                        value={qtdNaTela}
+                        onWheel={(e) => e.target.blur()} 
+                        onChange={(e) => handleQtdChange(item.idItem, e.target.value, item.quantidade) }
+                      />
                     </div>
-                  )}
-                </div>
+                    <div>
+                      <label style={mobileStyles.labelMini}>Preço Unit. (R$)</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        style={mobileStyles.inputFieldItem}
+                        value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''}
+                        onWheel={(e) => e.target.blur()} 
+                        onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
+                      />
+                    </div>
+                    <button type="button" style={mobileStyles.btnFalta(isFalta)} onClick={() => toggleEmFalta(item.idItem)}>
+                      {isFalta ? 'Em falta' : 'Falta?'}
+                    </button>
+                  </div>
 
-                <div style={{ marginTop: '6px' }}>
-                  <label style={mobileStyles.labelMini}>Observação / Validade</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Lote 2027..."
-                    style={mobileStyles.inputFieldItem}
-                    value={observacoes[item.idItem] || ''}
-                    onChange={(e) => setObservacoes((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
-                  />
+                  <div style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={() => toggleTrocaProduto(item.idItem)}
+                      style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '13px', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}
+                    >
+                      <RefreshCw size={14} />{' '}
+                      {temTrocaAtiva ? 'Remover Sugestão de Troca' : 'Sugerir Troca de Marca/Laboratório'}
+                    </button>
+
+                    {temTrocaAtiva && (
+                      <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div>
+                          <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
+                          <input
+                            type="text"
+                            placeholder="Ex: Paracetamol 500mg C/ 20 - Medley"
+                            style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
+                            value={produtoSubstituto[item.idItem] || ''}
+                            onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
+                          />
+                          <span style={{ fontSize: '11px', color: '#dc2626', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', marginTop: '4px' }}>
+                            <AlertTriangle size={12} /> Digite o NOME COMPLETO. Não coloque apenas o laboratório!
+                          </span>
+                        </div>
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                          <div>
+                            <label style={mobileStyles.labelMini}>Qtd. Disponível (Troca)</label>
+                            <input
+                              type="number"
+                              min="0"
+                              style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
+                              value={qtdSubstituto[item.idItem] !== undefined ? qtdSubstituto[item.idItem] : item.quantidade}
+                              onWheel={(e) => e.target.blur()}
+                              onChange={(e) => setQtdSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
+                            />
+                          </div>
+                          <div>
+                            <label style={mobileStyles.labelMini}>Preço Unit. R$ (Troca)</label>
+                            <input
+                              type="number"
+                              step="0.01"
+                              placeholder="0,00"
+                              style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }}
+                              value={precoSubstituto[item.idItem] !== undefined ? precoSubstituto[item.idItem] : ''}
+                              onWheel={(e) => e.target.blur()}
+                              onChange={(e) => setPrecoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
+                            />
+                          </div>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+
+                  <div style={{ marginTop: '6px' }}>
+                    <label style={mobileStyles.labelMini}>Observação / Validade</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Lote 2027..."
+                      style={mobileStyles.inputFieldItem}
+                      value={observacoes[item.idItem] || ''}
+                      onChange={(e) => setObservacoes((prev) => ({ ...prev, [item.idItem]: e.target.value }))}
+                    />
+                  </div>
                 </div>
-              </div>
-            )
-          })}
+              )
+            })
+          )}
 
           <div style={{ marginTop: '24px', backgroundColor: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>

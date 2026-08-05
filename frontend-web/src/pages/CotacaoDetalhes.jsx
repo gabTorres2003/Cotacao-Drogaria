@@ -67,12 +67,15 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
-  // NOVO: Estados para Modal de Atribuição a Pedido Existente
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
   const [pedidosAbertosList, setPedidosAbertosList] = useState([]);
   const [addPedidoForm, setAddPedidoForm] = useState({ pedidoId: '', qtd: '', valor: '' });
   const [loadingAddPedido, setLoadingAddPedido] = useState(false);
+
+  // NOVO: Estados de Filtro de Análise de Preços
+  const [filtroVencedor, setFiltroVencedor] = useState('TODOS');
+  const [filtroTopN, setFiltroTopN] = useState('TODOS'); // 'TODOS', 'TOP_2', 'TOP_3'
 
   const isEncerrada = statusCotacao === 'FINALIZADA';
   const isComparativo = modoVisualizacao === 'comparativo';
@@ -117,6 +120,14 @@ export default function CotacaoDetalhes() {
       });
     }
   }, [relatorio, itensJaComprados]);
+
+  // NOVO: Filtrar as linhas baseadas no Fornecedor Vencedor selecionado no cabeçalho
+  const relatorioFiltradoFinal = relatorioExibicao.filter(item => {
+    if (filtroVencedor !== 'TODOS') {
+        return decisaoCompra[item.idItem] === filtroVencedor;
+    }
+    return true;
+  });
 
   const copiarParaAreaTransferencia = (texto, idItem) => {
     navigator.clipboard.writeText(texto).then(() => {
@@ -503,7 +514,8 @@ export default function CotacaoDetalhes() {
     card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' },
     toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
     toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' },
+    topNBtn: (ativo) => ({ padding: '6px 12px', borderRadius: '6px', border: ativo ? 'none' : '1px solid #cbd5e1', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#475569', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', boxShadow: ativo ? '0 2px 4px rgba(37,99,235,0.2)' : 'none' })
   };
 
   if (loading) return <div style={styles.container}><p>Carregando dados...</p></div>;
@@ -533,6 +545,15 @@ export default function CotacaoDetalhes() {
         fornecedores={fornecedores} fornecedoresVisiveis={fornecedoresVisiveis} setFornecedoresVisiveis={setFornecedoresVisiveis}
       />
 
+      {modoVisualizacao === 'comparativo' && (
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
+          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginRight: '8px' }}>Filtro de Competitividade:</span>
+          <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Mostrar Todos os Preços</button>
+          <button onClick={() => setFiltroTopN('TOP_2')} style={styles.topNBtn(filtroTopN === 'TOP_2')}>Top 2 (Ganhador vs 2º Colocado)</button>
+          <button onClick={() => setFiltroTopN('TOP_3')} style={styles.topNBtn(filtroTopN === 'TOP_3')}>Top 3 Melhores Preços</button>
+        </div>
+      )}
+
       {modoVisualizacao === 'manual' ? (
         <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb', flexWrap: 'wrap', gap: '15px' }}>
@@ -547,7 +568,7 @@ export default function CotacaoDetalhes() {
           </div>
 
           <TabelaRegistroManual 
-            relatorioExibicao={relatorioExibicao} checklist={checklist} setChecklist={setChecklist} fornecedoresLista={fornecedoresLista}
+            relatorioExibicao={relatorioFiltradoFinal} checklist={checklist} setChecklist={setChecklist} fornecedoresLista={fornecedoresLista}
             isEncerrada={isEncerrada} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} copiarFornecedorParaBaixo={copiarFornecedorParaBaixo}
             reatribuirItem={reatribuirItem} fMoney={fMoney} requestSort={requestSort} sortConfig={sortConfig}
@@ -562,7 +583,7 @@ export default function CotacaoDetalhes() {
       ) : (
         <div style={styles.card}>
           <TabelaDetalhes 
-            relatorioExibicao={relatorioExibicao} colunasVisiveis={colunasVisiveis} fornecedoresVisiveis={fornecedoresVisiveis}
+            relatorioExibicao={relatorioFiltradoFinal} colunasVisiveis={colunasVisiveis} fornecedoresVisiveis={fornecedoresVisiveis}
             fornecedores={fornecedores} requestSort={requestSort} sortConfig={sortConfig} editandoItem={editandoItem}
             formEdicao={formEdicao} setFormEdicao={setFormEdicao} salvarEdicao={salvarEdicao} isEncerrada={isEncerrada}
             iniciarEdicao={iniciarEdicao} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
@@ -571,6 +592,10 @@ export default function CotacaoDetalhes() {
             handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} navigate={navigate}
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
+            
+            filtroVencedor={filtroVencedor} 
+            setFiltroVencedor={setFiltroVencedor}
+            filtroTopN={filtroTopN}
           />
           {isComparativo && <CardsSugestoes promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} />}
         </div>
