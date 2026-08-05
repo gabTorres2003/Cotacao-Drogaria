@@ -184,13 +184,12 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
   const handleSalvarEdicaoItem = async (index) => {
     const item = itens[index];
     
-    // Se a devolução já existe no banco e o item tem ID, faz a atualização na API
     if (internalDevId && item.id) {
       setLoading(true);
       try {
         await api.put(`/api/devolucoes/${internalDevId}/item/${item.id}`, editItemForm);
         await carregarDevolucaoExistente(internalDevId);
-        onSuccess(); // Aciona a atualização da lista por trás do modal
+        onSuccess(); 
         setEditingIndex(null);
       } catch (error) {
         alert('Erro ao atualizar o item da devolução.');
@@ -198,7 +197,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         setLoading(false);
       }
     } else {
-      // Caso seja um item adicionado manualmente e ainda não salvo no banco, atualiza apenas o estado local
       const novaLista = [...itens];
       novaLista[index] = { ...novaLista[index], ...editItemForm };
       setItens(novaLista);
@@ -291,7 +289,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px' }}>
                         Vinculado ao Pedido #{idPedVinculado}
                     </span>
-                    <button type="button" onClick={() => { onClose(); navigate(`/pedidos/${idPedVinculado}`); }} style={{ fontSize: '11px', background: 'white', border: '1px solid #c7d2fe', color: '#4f46e5', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                    <button type="button" onClick={(e) => { e.preventDefault(); onClose(); navigate(`/pedidos/${idPedVinculado}`); }} style={{ fontSize: '11px', background: 'white', border: '1px solid #c7d2fe', color: '#4f46e5', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
                         Ir para Pedido
                     </button>
                 </div>
@@ -301,7 +299,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                 </span>
             )}
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+          <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
             <X size={26} />
           </button>
         </div>
@@ -385,8 +383,8 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                 <h3 style={{ fontSize: '16px', color: '#1e293b', margin: 0 }}>Selecione os Produtos e Motivos</h3>
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button onClick={() => aplicarFiltroSelecao(pedidoOriginal, 'TOTAL')} style={{...styles.btnFiltro, color: '#166534', backgroundColor: '#dcfce7'}}><CheckSquare size={14}/> Devolução Total</button>
-                  <button onClick={() => aplicarFiltroSelecao(pedidoOriginal, 'DIVERGENCIAS')} style={{...styles.btnFiltro, color: '#9a3412', backgroundColor: '#ffedd5'}}><ListX size={14}/> Apenas Divergências</button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'TOTAL'); }} style={{...styles.btnFiltro, color: '#166534', backgroundColor: '#dcfce7'}}><CheckSquare size={14}/> Devolução Total</button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'DIVERGENCIAS'); }} style={{...styles.btnFiltro, color: '#9a3412', backgroundColor: '#ffedd5'}}><ListX size={14}/> Apenas Divergências</button>
                 </div>
               </div>
 
@@ -474,7 +472,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <label style={styles.label}>Vlr Unit. (R$)</label>
                     <input type="number" step="0.01" style={styles.input} value={novoItem.valorUnitario} onChange={e => setNovoItem({...novoItem, valorUnitario: Number(e.target.value)})} onFocus={e => e.target.select()} />
                   </div>
-                  <button onClick={handleAddItem} style={{ height: '38px', padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                  <button type="button" onClick={(e) => { e.preventDefault(); handleAddItem(); }} style={{ height: '38px', padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
                     <Plus size={16} /> Adicionar
                   </button>
                 </div>
@@ -532,10 +530,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                           {!readOnly && (
                             <td style={{ padding: '12px 0', textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button onClick={() => handleSalvarEdicaoItem(idx)} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }} title="Salvar">
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSalvarEdicaoItem(idx); }} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }} title="Salvar">
                                   <Check size={18} />
                                 </button>
-                                <button onClick={() => setEditingIndex(null)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} title="Cancelar">
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIndex(null); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} title="Cancelar">
                                   <X size={18} />
                                 </button>
                               </div>
@@ -551,10 +549,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                           {!readOnly && (
                             <td style={{ padding: '12px 0', textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button onClick={() => iniciarEdicaoItem(idx, item)} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }} title="Editar Produto">
+                                <button type="button" onClick={(e) => { e.preventDefault(); iniciarEdicaoItem(idx, item); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }} title="Editar Produto">
                                   <Edit2 size={16} />
                                 </button>
-                                <button onClick={() => handleRemoverItem(idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover Produto">
+                                <button type="button" onClick={(e) => { e.preventDefault(); handleRemoverItem(idx); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover Produto">
                                   <Trash2 size={16} />
                                 </button>
                               </div>
@@ -576,11 +574,11 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
             Total a Ressarcir: <strong style={{ color: '#16a34a', fontSize: '24px' }}>R$ {calcTotal().toFixed(2)}</strong>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={onClose} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#475569' }}>
+            <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#475569' }}>
               {readOnly ? 'Fechar' : 'Cancelar'}
             </button>
             {!readOnly && (
-              <button onClick={handleSalvar} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="button" onClick={(e) => { e.preventDefault(); handleSalvar(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Save size={18} /> {loading ? 'Salvando...' : 'Salvar Devolução/Crédito'}
               </button>
             )}
