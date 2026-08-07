@@ -11,12 +11,17 @@ import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.PrecoCotacao;
 import com.drogaria.cotacao.model.SugestaoPromocao;
+import com.drogaria.cotacao.model.Pedido;
+import com.drogaria.cotacao.model.ItemPedido;
+import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
 import com.drogaria.cotacao.repository.SugestaoPromocaoRepository;
+import com.drogaria.cotacao.repository.PedidoRepository;
+import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -43,6 +48,11 @@ public class ComparativoService {
     private SugestaoPromocaoRepository sugestaoPromocaoRepository;
     @Autowired
     private CotacaoFornecedorRepository cotacaoFornecedorRepository;
+    
+    @Autowired
+    private PedidoRepository pedidoRepository;
+    @Autowired
+    private ItemPedidoRepository itemPedidoRepository;
 
     public List<ItemComparativoDTO> compararPrecos(Long idCotacao) {
         List<ItemComparativoDTO> relatorio = new ArrayList<>();
@@ -89,7 +99,6 @@ public class ComparativoService {
             linha.setUltimoPreco(item.getUltimoPreco());
             linha.setOrigemItem(item.getOrigemItem());
             
-            // Novos campos de controle
             linha.setEditadoManual(item.getEditadoManual());
             linha.setExcluido(item.getExcluido());
 
@@ -225,6 +234,11 @@ public class ComparativoService {
         Fornecedor fornecedor = fornecedorRepository.findById(request.getFornecedorId())
                 .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + request.getFornecedorId()));
 
+        List<Pedido> pedidosAbertosDoFornecedor = pedidoRepository.findByCotacaoId(cotacao.getId()).stream()
+                .filter(p -> p.getFornecedor() != null && p.getFornecedor().getId().equals(fornecedor.getId()))
+                .filter(p -> p.getStatus() == StatusPedido.PENDENTE_ENTREGA || p.getStatus() == StatusPedido.CONFIRMADO_FORNECEDOR)
+                .collect(Collectors.toList());
+
         List<ItemCotacao> itensCotacao = itemRepository.findByCotacao(cotacao);
         if (!itensCotacao.isEmpty()) {
             List<PrecoCotacao> precosAntigos = precoRepository.findByFornecedorAndItemIn(fornecedor, itensCotacao);
@@ -256,14 +270,44 @@ public class ComparativoService {
                 preco.setPrecoOfertado(dto.getPreco());
                 preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
                 preco.setObservacao(dto.getObservacao());
-                
                 preco.setProdutoSubstituto(dto.getProdutoSubstituto());
                 preco.setPrecoSubstituto(dto.getPrecoSubstituto());
                 preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
-                
                 preco.setDataResposta(LocalDateTime.now());
 
                 precoRepository.save(preco);
+
+                for (Pedido pedido : pedidosAbertosDoFornecedor) {
+                    List<ItemPedido> itensParaRemover = new ArrayList<>();
+                    
+                    for (ItemPedido ip : pedido.getItens()) {
+                        if (ip.getItemCotacao() != null && ip.getItemCotacao().getId().equals(item.getId())) {
+                            
+                            boolean precoPrincipalDiferente = dto.getPreco() != null && !dto.getPreco().equals(ip.getValorUnitarioPedido());
+                            boolean precoSubstitutoDiferente = dto.getPrecoSubstituto() == null || !dto.getPrecoSubstituto().equals(ip.getValorUnitarioPedido());
+                            
+                            if (precoPrincipalDiferente && precoSubstitutoDiferente) {
+                                itensParaRemover.add(ip);
+                            }
+                        }
+                    }
+                    
+                    if (!itensParaRemover.isEmpty()) {
+                        for (ItemPedido ipRemover : itensParaRemover) {
+                            double qtd = ipRemover.getQuantidadePedida() != null ? ipRemover.getQuantidadePedida() : 0.0;
+                            double vlr = ipRemover.getValorUnitarioPedido() != null ? ipRemover.getValorUnitarioPedido() : 0.0;
+                            double subtotal = qtd * vlr;
+                            
+                            pedido.setValorTotalPedido(pedido.getValorTotalPedido() - subtotal);
+                            
+                            ipRemover.setItemCotacao(null);
+                            itemPedidoRepository.saveAndFlush(ipRemover);
+                            itemPedidoRepository.delete(ipRemover);
+                        }
+                        pedido.getItens().removeAll(itensParaRemover);
+                        pedidoRepository.save(pedido);
+                    }
+                }
             }
         }
 
