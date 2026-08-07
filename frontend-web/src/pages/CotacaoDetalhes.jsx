@@ -67,6 +67,7 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
+  // Estados do Modal + Pedido Avulso
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
   const [fornecedorTargetToModal, setFornecedorTargetToModal] = useState(null);
@@ -89,16 +90,20 @@ export default function CotacaoDetalhes() {
   // Normalizador agressivo: ignora espaços, acentos, parenteses, etc.
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
+  // ATUALIZADO: Buscar pedidos abertos apenas DA COTAÇÃO ATUAL
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
          const res = await api.get('/api/pedidos');
-         const abertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
-         setPedidosAbertosList(abertos);
+         const abertosCotacaoAtual = Array.isArray(res.data) ? res.data.filter(p => 
+             p.status === 'PENDENTE_ENTREGA' && 
+             (String(p.cotacao?.id) === String(id) || String(p.cotacaoId) === String(id))
+         ) : [];
+         setPedidosAbertosList(abertosCotacaoAtual);
        } catch(e) {}
      };
      fetchAbertos();
-  }, [showModal, modalAddPedidoAberto]);
+  }, [showModal, modalAddPedidoAberto, id]);
 
   useEffect(() => {
     if (isEncerrada && modoVisualizacao === 'manual') setModoVisualizacao('itens');
@@ -341,7 +346,7 @@ export default function CotacaoDetalhes() {
                    isExtra: true, 
                    isSugestaoTroca: true,
                    todosDadosItem: itemRelatorio,
-                   selected: false 
+                   selected: false // Inicia desmarcado
                  });
               }
            }
@@ -369,7 +374,7 @@ export default function CotacaoDetalhes() {
             isExtra: true,
             isSugestaoTroca: false,
             observacao: promo.observacao,
-            selected: false
+            selected: false // Inicia desmarcado
         });
       });
 
@@ -584,12 +589,15 @@ export default function CotacaoDetalhes() {
 
     try {
       const res = await api.get('/api/pedidos');
-      const abertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+      const abertosDaCotacao = Array.isArray(res.data) ? res.data.filter(p => 
+          p.status === 'PENDENTE_ENTREGA' && 
+          (String(p.cotacao?.id) === String(id) || String(p.cotacaoId) === String(id))
+      ) : [];
       
       let defaultPedidoId = '';
       if (fornecedorTarget) {
         const fTargetNorm = normalizeStr(fornecedorTarget);
-        const doForn = abertos.filter(p => {
+        const doForn = abertosDaCotacao.filter(p => {
           const emp = normalizeStr(p.fornecedor?.empresa);
           const nom = normalizeStr(p.fornecedor?.nome);
           const fNomeApi = normalizeStr(p.fornecedorNome);
@@ -605,7 +613,7 @@ export default function CotacaoDetalhes() {
       }
 
       setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
-      setPedidosAbertosList(abertos);
+      setPedidosAbertosList(abertosDaCotacao);
     } catch (e) {}
   };
 
@@ -768,6 +776,7 @@ export default function CotacaoDetalhes() {
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
           />
+          
           {isComparativo && (
             <CardsSugestoes 
                promocoes={promocoes} getNomeExibicao={getNomeExibicao} fMoney={fMoney} 
@@ -816,7 +825,7 @@ export default function CotacaoDetalhes() {
              <div style={{ marginBottom: '20px' }}>
                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
                <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
-                 <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto' : '-- Selecione --'}</option>
+                 <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto nesta cotação' : '-- Selecione --'}</option>
                  {pedidosAbertosList.map(p => {
                     const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
                     const vend = p.fornecedor?.nome || p.fornecedorNome || '';

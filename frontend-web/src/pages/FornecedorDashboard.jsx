@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2 } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -322,6 +322,7 @@ export default function FornecedorDashboard() {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {pedidos.map((pedido) => {
                   const badge = getBadgeFornecedor(pedido.status);
+                  const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
 
                   return (
                     <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
@@ -330,16 +331,24 @@ export default function FornecedorDashboard() {
                           <h3 style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Pedido #{pedido.id}</h3>
                           <span style={{ fontSize: '13px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
                         </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                           <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
                           
-                          {badge === null ? (
-                            <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
-                              <CheckCircle size={16} /> Confirmar Pedido
-                            </button>
-                          ) : (
-                            badge
-                          )}
+                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                            {idCotacaoOrigem && (
+                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
+                                 <Edit2 size={16} /> Editar Cotação
+                               </button>
+                            )}
+
+                            {badge === null ? (
+                              <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
+                                <CheckCircle size={16} /> Confirmar Pedido
+                              </button>
+                            ) : (
+                              badge
+                            )}
+                          </div>
                         </div>
                       </div>
                       
