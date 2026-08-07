@@ -22,6 +22,10 @@ public class ItemComparativoDTO {
     private Boolean editadoManual;
     private Boolean excluido;
 
+    // NOVOS CAMPOS AQUI
+    private Boolean devolvidoPorAlteracaoPreco;
+    private Long pedidoOrigemId;
+
     private Double menorPrecoEncontrado;
     private String fornecedorVencedor;
     private Double ultimoPrecoComprado;
@@ -76,6 +80,13 @@ public class ItemComparativoDTO {
 
     public Boolean getExcluido() { return excluido; }
     public void setExcluido(Boolean excluido) { this.excluido = excluido; }
+
+    // GETTERS E SETTERS DOS NOVOS CAMPOS
+    public Boolean getDevolvidoPorAlteracaoPreco() { return devolvidoPorAlteracaoPreco; }
+    public void setDevolvidoPorAlteracaoPreco(Boolean devolvidoPorAlteracaoPreco) { this.devolvidoPorAlteracaoPreco = devolvidoPorAlteracaoPreco; }
+
+    public Long getPedidoOrigemId() { return pedidoOrigemId; }
+    public void setPedidoOrigemId(Long pedidoOrigemId) { this.pedidoOrigemId = pedidoOrigemId; }
 
     public Double getMenorPrecoEncontrado() { return menorPrecoEncontrado; }
     public void setMenorPrecoEncontrado(Double menorPrecoEncontrado) { this.menorPrecoEncontrado = menorPrecoEncontrado; }

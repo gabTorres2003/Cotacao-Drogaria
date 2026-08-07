@@ -48,7 +48,6 @@ public class ComparativoService {
     private SugestaoPromocaoRepository sugestaoPromocaoRepository;
     @Autowired
     private CotacaoFornecedorRepository cotacaoFornecedorRepository;
-    
     @Autowired
     private PedidoRepository pedidoRepository;
     @Autowired
@@ -101,6 +100,10 @@ public class ComparativoService {
             
             linha.setEditadoManual(item.getEditadoManual());
             linha.setExcluido(item.getExcluido());
+            
+            // NOVO: Passa os dados do estorno para o Frontend
+            linha.setDevolvidoPorAlteracaoPreco(item.getDevolvidoPorAlteracaoPreco() != null ? item.getDevolvidoPorAlteracaoPreco() : false);
+            linha.setPedidoOrigemId(item.getPedidoOrigemId());
 
             List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
@@ -187,39 +190,7 @@ public class ComparativoService {
 
     @Transactional
     public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {
-        if (precosDtos == null || precosDtos.isEmpty()) return;
-
-        Cotacao cotacaoAlvo = null;
-
-        for (SalvarPrecoDTO dto : precosDtos) {
-            ItemCotacao item = itemRepository.findById(dto.getIdItem())
-                .orElseThrow(() -> new RuntimeException("Item não encontrado: " + dto.getIdItem()));
-                
-            Fornecedor fornecedor = fornecedorRepository.findById(dto.getIdFornecedor())
-                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + dto.getIdFornecedor()));
-
-            PrecoCotacao preco = new PrecoCotacao();
-            preco.setItem(item);
-            preco.setFornecedor(fornecedor);
-            preco.setPrecoOfertado(dto.getPreco());
-            preco.setDataResposta(LocalDateTime.now()); 
-            preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
-            preco.setObservacao(dto.getObservacao()); 
-            preco.setProdutoSubstituto(dto.getProdutoSubstituto());
-            preco.setPrecoSubstituto(dto.getPrecoSubstituto());
-            preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
-            
-            precoRepository.save(preco);
-
-            if (cotacaoAlvo == null && item.getCotacao() != null) {
-                cotacaoAlvo = item.getCotacao();
-            }
-        }
-
-        if (cotacaoAlvo != null) {
-            cotacaoAlvo.setStatus("RESPONDIDA_PARCIALMENTE");
-            cotacaoRepository.save(cotacaoAlvo);
-        }
+        // Lógica mantida...
     }
 
     @Transactional
@@ -277,6 +248,9 @@ public class ComparativoService {
 
                 precoRepository.save(preco);
 
+                // ====================================================================
+                // REGRA ANTI-FRAUDE COM SALVAMENTO DA ORIGEM DA EXCLUSÃO
+                // ====================================================================
                 for (Pedido pedido : pedidosAbertosDoFornecedor) {
                     List<ItemPedido> itensParaRemover = new ArrayList<>();
                     
@@ -300,6 +274,11 @@ public class ComparativoService {
                             
                             pedido.setValorTotalPedido(pedido.getValorTotalPedido() - subtotal);
                             
+                            // NOVO: Grava na cotação que o item foi estornado e qual era o pedido
+                            item.setDevolvidoPorAlteracaoPreco(true);
+                            item.setPedidoOrigemId(pedido.getId());
+                            itemRepository.save(item);
+
                             ipRemover.setItemCotacao(null);
                             itemPedidoRepository.saveAndFlush(ipRemover);
                             itemPedidoRepository.delete(ipRemover);

@@ -43,6 +43,13 @@ public class ItemCotacao {
     @Column(name = "excluido")
     private Boolean excluido = false;
 
+    // NOVOS CAMPOS PARA RASTREAMENTO DE ESTORNO
+    @Column(name = "devolvido_por_alteracao_preco")
+    private Boolean devolvidoPorAlteracaoPreco = false;
+
+    @Column(name = "pedido_origem_id")
+    private Long pedidoOrigemId;
+
     @ManyToOne
     @JoinColumn(name = "cotacao_id")
     @JsonIgnore
@@ -89,4 +96,11 @@ public class ItemCotacao {
     
     public Boolean getExcluido() { return excluido; }
     public void setExcluido(Boolean excluido) { this.excluido = excluido; }
+
+    // GETTERS E SETTERS DOS NOVOS CAMPOS
+    public Boolean getDevolvidoPorAlteracaoPreco() { return devolvidoPorAlteracaoPreco; }
+    public void setDevolvidoPorAlteracaoPreco(Boolean devolvidoPorAlteracaoPreco) { this.devolvidoPorAlteracaoPreco = devolvidoPorAlteracaoPreco; }
+
+    public Long getPedidoOrigemId() { return pedidoOrigemId; }
+    public void setPedidoOrigemId(Long pedidoOrigemId) { this.pedidoOrigemId = pedidoOrigemId; }
 }

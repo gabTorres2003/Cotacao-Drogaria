@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaDetalhes({
@@ -108,6 +108,23 @@ export default function TabelaDetalhes({
                           {copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}
                         </button>
                       </div>
+
+                      {item.devolvidoPorAlteracaoPreco && !isBloqueado && (
+                        <div style={{ marginTop: '2px' }}>
+                          <button 
+                            onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${item.pedidoOrigemId}`); }}
+                            style={{ 
+                              display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', 
+                              backgroundColor: '#fee2e2', color: '#b91c1c', padding: '2px 6px', 
+                              borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', 
+                              cursor: 'pointer' 
+                            }}
+                            title="O fornecedor alterou o preço após a compra. O item foi removido do pedido por segurança."
+                          >
+                            <AlertTriangle size={10} /> Estorno de Preço (Ver Pedido #{item.pedidoOrigemId})
+                          </button>
+                        </div>
+                      )}
                       
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <BadgeOrigem origem={item.origemItem} />
@@ -227,7 +244,6 @@ export default function TabelaDetalhes({
                   );
                 })}
 
-                {/* NOVO: Na aba Detalhes da Cotação (isItens), mantemos APENAS o botão de excluir */}
                 {isItens && (
                   <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                     {subAbaItens === 'comprados' ? (
