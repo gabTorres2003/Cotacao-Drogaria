@@ -18,8 +18,10 @@ export default function ModalResumoPedidos({
      });
   };
 
+  // ATUALIZADO: Lógica de Vai-e-Vem (Desmarcar sugestão devolve pro vencedor original)
   const handleToggleItem = (fIndex, iIndex, checked) => {
      setPedidosGerados(prev => {
+        // Cria uma cópia profunda para não mutar o estado diretamente
         const next = prev.map(ped => ({
            ...ped,
            itens: ped.itens.map(item => ({ ...item }))
@@ -28,12 +30,25 @@ export default function ModalResumoPedidos({
         const targetItem = next[fIndex].itens[iIndex];
         targetItem.selected = checked;
 
+        // SE MARCOU: e tem idItem, desmarca todos os outros iguais (Original ou outras Trocas)
         if (checked && targetItem.idItem !== null) {
            next.forEach((pedido, idxForn) => {
               pedido.itens.forEach((item, idxItem) => {
                  if (idxForn === fIndex && idxItem === iIndex) return;
+
                  if (item.idItem === targetItem.idItem) {
                     item.selected = false;
+                 }
+              });
+           });
+        } 
+        // SE DESMARCOU: e era uma Sugestão, devolve a marcação para o vencedor original
+        else if (!checked && targetItem.isExtra && targetItem.idItem !== null) {
+           next.forEach((pedido) => {
+              pedido.itens.forEach((item) => {
+                 // O produto original é o que tem o mesmo idItem e NÃO é extra (isExtra === false)
+                 if (item.idItem === targetItem.idItem && !item.isExtra) {
+                    item.selected = true;
                  }
               });
            });
