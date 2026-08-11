@@ -20,8 +20,25 @@ export default function ModalResumoPedidos({
 
   const handleToggleItem = (fIndex, iIndex, checked) => {
      setPedidosGerados(prev => {
-        const next = [...prev];
-        next[fIndex].itens[iIndex].selected = checked;
+        const next = prev.map(ped => ({
+           ...ped,
+           itens: ped.itens.map(item => ({ ...item }))
+        }));
+
+        const targetItem = next[fIndex].itens[iIndex];
+        targetItem.selected = checked;
+
+        if (checked && targetItem.idItem !== null) {
+           next.forEach((pedido, idxForn) => {
+              pedido.itens.forEach((item, idxItem) => {
+                 if (idxForn === fIndex && idxItem === iIndex) return;
+                 if (item.idItem === targetItem.idItem) {
+                    item.selected = false;
+                 }
+              });
+           });
+        }
+
         return next;
      });
   };
