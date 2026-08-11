@@ -13,6 +13,9 @@ export default function Pedidos() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
+  // NOVO: Controle de Seleção em Massa
+  const [pedidosSelecionados, setPedidosSelecionados] = useState([])
+  
   const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
@@ -55,10 +58,34 @@ export default function Pedidos() {
       try {
         await api.delete(`/api/pedidos/${id}`);
         setPedidos(pedidos.filter(p => p.id !== id));
+        
+        // Remove da lista de selecionados caso estivesse marcado
+        setPedidosSelecionados(prev => prev.filter(selId => selId !== id));
+        
         alert('Pedido excluído com sucesso!');
         carregarPedidos(); 
       } catch (error) {
         alert(error.response?.data?.message || 'Erro ao excluir pedido.');
+      } finally {
+        setIsDeleting(false);
+      }
+    }
+  };
+
+  // NOVO: Função de Exclusão em Massa
+  const handleExcluirEmMassa = async () => {
+    if (window.confirm(`Tem certeza que deseja excluir permanentemente ${pedidosSelecionados.length} pedido(s)? Esta ação não pode ser desfeita.`)) {
+      setIsDeleting(true);
+      try {
+        // Roda as exclusões em paralelo para ser mais rápido
+        await Promise.all(pedidosSelecionados.map(id => api.delete(`/api/pedidos/${id}`)));
+        
+        alert('Pedidos excluídos com sucesso!');
+        setPedidosSelecionados([]); // Limpa a seleção
+        carregarPedidos(); // Recarrega a tabela atualizada
+      } catch (error) {
+        alert('Alguns pedidos não puderam ser excluídos. Verifique se possuem devoluções vinculadas no histórico.');
+        carregarPedidos(); // Recarrega para mostrar os que foram excluídos
       } finally {
         setIsDeleting(false);
       }
@@ -119,6 +146,25 @@ export default function Pedidos() {
       return 0;
     });
 
+  // NOVO: Funções de manipulação dos Checkboxes
+  const handleSelectAll = (e) => {
+    if (e.target.checked) {
+      // Adiciona todos os IDs que estão visíveis na tela no momento
+      const allVisibleIds = pedidosProcessados.map(p => p.id);
+      setPedidosSelecionados(Array.from(new Set([...pedidosSelecionados, ...allVisibleIds])));
+    } else {
+      // Remove da seleção os IDs que estão visíveis na tela
+      const visibleIds = pedidosProcessados.map(p => p.id);
+      setPedidosSelecionados(pedidosSelecionados.filter(id => !visibleIds.includes(id)));
+    }
+  };
+
+  const handleSelectPedido = (id) => {
+    setPedidosSelecionados(prev =>
+      prev.includes(id) ? prev.filter(item => item !== id) : [...prev, id]
+    );
+  };
+
   const formatarDataBR = (dataIso) => {
     if (!dataIso) return '--/--/--'
     return new Date(dataIso).toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
@@ -176,13 +222,13 @@ export default function Pedidos() {
 
         <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
           <button 
-            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
             style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Pedidos em Andamento
           </button>
           <button 
-            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
             style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Histórico (Concluídos)
@@ -251,13 +297,39 @@ export default function Pedidos() {
           )}
         </div>
 
+        {/* NOVO: Barra Flutuante de Ação (Aparece quando 1+ pedidos estão selecionados) */}
+        {pedidosSelecionados.length > 0 && (
+          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'fadeIn 0.3s' }}>
+            <span style={{ color: '#991b1b', fontWeight: 'bold', fontSize: '15px' }}>
+              {pedidosSelecionados.length} pedido(s) selecionado(s)
+            </span>
+            <button 
+              onClick={handleExcluirEmMassa} 
+              disabled={isDeleting} 
+              style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
+            >
+              <Trash2 size={18} /> {isDeleting ? 'Excluindo...' : 'Excluir Selecionados'}
+            </button>
+          </div>
+        )}
+
         <div className="table-container">
           <table>
             <thead>
               <tr>
+                {/* NOVO: Checkbox no Header para Selecionar/Desmarcar Todos da vista */}
+                <th style={{ width: '40px', textAlign: 'center' }}>
+                  <input
+                    type="checkbox"
+                    checked={pedidosProcessados.length > 0 && pedidosProcessados.every(p => pedidosSelecionados.includes(p.id))}
+                    onChange={handleSelectAll}
+                    style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: '#3b82f6' }}
+                    title="Selecionar/Desmarcar Todos"
+                  />
+                </th>
                 <th style={{ width: '80px' }}>ID</th>
                 <th style={{ width: '120px' }}>Cotação</th>
-                <th>Empresa (Fornecedor)</th>
+                <th>Empresa (Vendedor)</th>
                 <th style={{ width: '100px' }}>NF</th>
                 <th>Entregue Por</th>
                 <th>Grupos</th>
@@ -270,7 +342,7 @@ export default function Pedidos() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando pedidos...</span>
@@ -279,14 +351,21 @@ export default function Pedidos() {
                 </tr>
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
-                  <td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="11" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado nesta aba.
                   </td>
                 </tr>
               ) : (
                 pedidosProcessados.map((p) => {
                   const statusInfo = getStatusFormatado(p.status)
-                  const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || 'N/A'
+                  
+                  const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
+                  const vend = p.fornecedor?.nome || p.fornecedorNome || '';
+                  let nomeEmpresa = emp;
+                  if (emp && vend && emp !== vend) nomeEmpresa += ` (${vend})`;
+                  else if (!emp && vend) nomeEmpresa = vend;
+                  else if (!emp && !vend) nomeEmpresa = 'N/A';
+
                   const idCotacao = p.cotacao?.id || p.cotacaoId || '-';
 
                   let gruposFormatados = '-';
@@ -298,9 +377,20 @@ export default function Pedidos() {
                   
                   const isAguardando = p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR';
                   const valorExibir = (!isAguardando && p.valorTotalReal != null) ? p.valorTotalReal : p.valorTotalPedido;
+                  
+                  const isSelected = pedidosSelecionados.includes(p.id);
 
                   return (
-                    <tr key={p.id}>
+                    <tr key={p.id} style={{ backgroundColor: isSelected ? '#f0f9ff' : 'transparent', transition: 'background-color 0.2s' }}>
+                      {/* NOVO: Checkbox por linha de pedido */}
+                      <td style={{ textAlign: 'center' }}>
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onChange={() => handleSelectPedido(p.id)}
+                          style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: '#3b82f6' }}
+                        />
+                      </td>
                       <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
                       
                       <td>
@@ -365,8 +455,10 @@ export default function Pedidos() {
           />
         )}
       </main>
+      
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
         .animate-spin { animation: spin 1s linear infinite; }
       `}</style>
     </div>
