@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar } from 'lucide-react'
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -13,7 +13,6 @@ export default function Pedidos() {
   const [pedidoSelecionado, setPedidoSelecionado] = useState(null)
   const [isDeleting, setIsDeleting] = useState(false)
   
-  // NOVO: Controle de Seleção em Massa
   const [pedidosSelecionados, setPedidosSelecionados] = useState([])
   
   const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
@@ -58,10 +57,7 @@ export default function Pedidos() {
       try {
         await api.delete(`/api/pedidos/${id}`);
         setPedidos(pedidos.filter(p => p.id !== id));
-        
-        // Remove da lista de selecionados caso estivesse marcado
         setPedidosSelecionados(prev => prev.filter(selId => selId !== id));
-        
         alert('Pedido excluído com sucesso!');
         carregarPedidos(); 
       } catch (error) {
@@ -72,24 +68,57 @@ export default function Pedidos() {
     }
   };
 
-  // NOVO: Função de Exclusão em Massa
   const handleExcluirEmMassa = async () => {
     if (window.confirm(`Tem certeza que deseja excluir permanentemente ${pedidosSelecionados.length} pedido(s)? Esta ação não pode ser desfeita.`)) {
       setIsDeleting(true);
       try {
-        // Roda as exclusões em paralelo para ser mais rápido
         await Promise.all(pedidosSelecionados.map(id => api.delete(`/api/pedidos/${id}`)));
-        
         alert('Pedidos excluídos com sucesso!');
-        setPedidosSelecionados([]); // Limpa a seleção
-        carregarPedidos(); // Recarrega a tabela atualizada
+        setPedidosSelecionados([]); 
+        carregarPedidos(); 
       } catch (error) {
         alert('Alguns pedidos não puderam ser excluídos. Verifique se possuem devoluções vinculadas no histórico.');
-        carregarPedidos(); // Recarrega para mostrar os que foram excluídos
+        carregarPedidos(); 
       } finally {
         setIsDeleting(false);
       }
     }
+  };
+
+  // NOVO: Mensagem em massa para lista de transmissão
+  const handleAvisarEmMassa = () => {
+    const horaAtual = new Date().getHours();
+    let saudacao = 'Boa noite';
+    if (horaAtual >= 5 && horaAtual < 12) saudacao = 'Bom dia';
+    else if (horaAtual >= 12 && horaAtual < 18) saudacao = 'Boa tarde';
+
+    const mensagem = `${saudacao}, pessoal! 📦✨\n\nAcabamos de enviar novos pedidos de compra para a tela de pedidos no nosso portal.\n\n🔗 *Acessem o link padrão abaixo, façam o login com o PIN e cliquem na opção "Meus Pedidos" para confirmar o recebimento e checar se há produtos para vocês:*\nhttps://cotacaotorresfarma.netlify.app\n\nFicamos no aguardo das confirmações!`;
+
+    window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`, '_blank');
+  };
+
+  // NOVO: Mensagem individual para o fornecedor da linha
+  const handleAvisarIndividual = (pedido) => {
+    const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'parceiro';
+    const telefone = pedido.fornecedor?.telefone || ''; 
+
+    const horaAtual = new Date().getHours();
+    let saudacao = 'Boa noite';
+    if (horaAtual >= 5 && horaAtual < 12) saudacao = 'Bom dia';
+    else if (horaAtual >= 12 && horaAtual < 18) saudacao = 'Boa tarde';
+
+    const mensagem = `${saudacao}, *${fornecedorNome}*! 📦✨\n\nAcabamos de enviar o *Pedido #${pedido.id}* para a sua tela de pedidos no nosso portal.\n\n🔗 *Acesse o link padrão abaixo, faça seu login com o PIN e clique na opção "Meus Pedidos" para nos confirmar o recebimento:*\nhttps://cotacaotorresfarma.netlify.app\n\nFico no aguardo da sua confirmação!`;
+
+    let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+    
+    // Se tiver telefone salvo no banco, já abre o chat direto com a pessoa!
+    if (telefone) {
+      let telefoneLimpo = telefone.replace(/\D/g, '');
+      if (telefoneLimpo.length === 10 || telefoneLimpo.length === 11) telefoneLimpo = `55${telefoneLimpo}`;
+      url = `https://api.whatsapp.com/send?phone=${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
+    }
+
+    window.open(url, '_blank');
   };
 
   const fMoney = (valor) => valor != null ? Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
@@ -146,14 +175,11 @@ export default function Pedidos() {
       return 0;
     });
 
-  // NOVO: Funções de manipulação dos Checkboxes
   const handleSelectAll = (e) => {
     if (e.target.checked) {
-      // Adiciona todos os IDs que estão visíveis na tela no momento
       const allVisibleIds = pedidosProcessados.map(p => p.id);
       setPedidosSelecionados(Array.from(new Set([...pedidosSelecionados, ...allVisibleIds])));
     } else {
-      // Remove da seleção os IDs que estão visíveis na tela
       const visibleIds = pedidosProcessados.map(p => p.id);
       setPedidosSelecionados(pedidosSelecionados.filter(id => !visibleIds.includes(id)));
     }
@@ -297,19 +323,26 @@ export default function Pedidos() {
           )}
         </div>
 
-        {/* NOVO: Barra Flutuante de Ação (Aparece quando 1+ pedidos estão selecionados) */}
         {pedidosSelecionados.length > 0 && (
-          <div style={{ backgroundColor: '#fef2f2', border: '1px solid #fca5a5', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'fadeIn 0.3s' }}>
-            <span style={{ color: '#991b1b', fontWeight: 'bold', fontSize: '15px' }}>
+          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'fadeIn 0.3s', flexWrap: 'wrap', gap: '10px' }}>
+            <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '15px' }}>
               {pedidosSelecionados.length} pedido(s) selecionado(s)
             </span>
-            <button 
-              onClick={handleExcluirEmMassa} 
-              disabled={isDeleting} 
-              style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
-            >
-              <Trash2 size={18} /> {isDeleting ? 'Excluindo...' : 'Excluir Selecionados'}
-            </button>
+            <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={handleAvisarEmMassa} 
+                  style={{ backgroundColor: '#25D366', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(37, 211, 102, 0.3)' }}
+                >
+                  <MessageCircle size={18} /> Avisar Fornecedores
+                </button>
+                <button 
+                  onClick={handleExcluirEmMassa} 
+                  disabled={isDeleting} 
+                  style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
+                >
+                  <Trash2 size={18} /> {isDeleting ? 'Excluindo...' : 'Excluir Selecionados'}
+                </button>
+            </div>
           </div>
         )}
 
@@ -317,7 +350,6 @@ export default function Pedidos() {
           <table>
             <thead>
               <tr>
-                {/* NOVO: Checkbox no Header para Selecionar/Desmarcar Todos da vista */}
                 <th style={{ width: '40px', textAlign: 'center' }}>
                   <input
                     type="checkbox"
@@ -382,7 +414,6 @@ export default function Pedidos() {
 
                   return (
                     <tr key={p.id} style={{ backgroundColor: isSelected ? '#f0f9ff' : 'transparent', transition: 'background-color 0.2s' }}>
-                      {/* NOVO: Checkbox por linha de pedido */}
                       <td style={{ textAlign: 'center' }}>
                         <input
                           type="checkbox"
@@ -422,6 +453,13 @@ export default function Pedidos() {
                             <Eye size={18} />
                           </button>
                           
+                          {/* NOVO: Botão verde para avisar no WhatsApp na linha individual */}
+                          {p.status === 'PENDENTE_ENTREGA' && (
+                             <button className="btn-icon" title="Avisar Fornecedor (WhatsApp)" onClick={() => handleAvisarIndividual(p)}>
+                               <MessageCircle size={18} color="#25D366" />
+                             </button>
+                          )}
+
                           {isAguardando && (
                             <button className="btn-icon" title="Conferir Recebimento" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
                               <CheckCircle size={18} color="#16a34a" />

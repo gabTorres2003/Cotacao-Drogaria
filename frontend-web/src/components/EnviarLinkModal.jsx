@@ -114,8 +114,15 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
         await atualizarStatusCotacao();
     }
 
-    const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
-    const mensagem = `Olá, parceiros! Aqui é ${nomeUsuario} da Drogaria Torres Farma.\n\nAcabamos de liberar uma nova cotação. Aguardamos as melhores propostas de vocês!\n\n🔗 Acesse o link para preencher: ${link}\n\n🔒 *Acesso rápido: utilizem o login e senha já cadastrados.*`;
+    const horaAtual = new Date().getHours();
+    let saudacao = 'Boa noite';
+    if (horaAtual >= 5 && horaAtual < 12) {
+      saudacao = 'Bom dia';
+    } else if (horaAtual >= 12 && horaAtual < 18) {
+      saudacao = 'Boa tarde';
+    }
+
+    const mensagem = `${saudacao}, pessoal! 🚀\n\nA cotação de hoje já está liberada no nosso portal. Fico no aguardo das propostas de vocês!\n\n🔗 *Acesse o link para preencher:* https://cotacaotorresfarma.netlify.app\n\n🟢 *A COTAÇÃO ATUAL (#${idCotacao}) ESTARÁ COM O BOTÃO VERDE "RESPONDER"*\n\n🔒 *Acesso rápido: utilizem o login e a senha (PIN) que vocês já cadastraram.*`;
 
     const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
     window.open(url, '_blank');

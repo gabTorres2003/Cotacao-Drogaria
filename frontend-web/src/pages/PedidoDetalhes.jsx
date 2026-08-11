@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, RefreshCw } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -17,7 +17,7 @@ export default function PedidoDetalhes() {
     const [itensPendentes, setItensPendentes] = useState([]);
     const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
     const [salvandoItem, setSalvandoItem] = useState(false);
-    const [itemParaTrocar, setItemParaTrocar] = useState(null); // NOVO
+    const [itemParaTrocar, setItemParaTrocar] = useState(null);
 
     const [isEditandoValores, setIsEditandoValores] = useState(false);
     const [valoresEditados, setValoresEditados] = useState({});
@@ -73,32 +73,34 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // ATUALIZADO
+    // NOVO: Função para disparar mensagem individual do cabeçalho
+    const handleAvisarFornecedor = () => {
+      const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'parceiro';
+      const telefone = pedido.fornecedor?.telefone || ''; 
+  
+      const horaAtual = new Date().getHours();
+      let saudacao = 'Boa noite';
+      if (horaAtual >= 5 && horaAtual < 12) saudacao = 'Bom dia';
+      else if (horaAtual >= 12 && horaAtual < 18) saudacao = 'Boa tarde';
+  
+      const mensagem = `${saudacao}, *${fornecedorNome}*! 📦✨\n\nAcabamos de enviar o *Pedido #${pedido.id}* para a sua tela de pedidos no nosso portal.\n\n🔗 *Acesse o link padrão abaixo, faça seu login com o PIN e clique na opção "Meus Pedidos" para visualizar e nos confirmar o recebimento:*\nhttps://cotacaotorresfarma.netlify.app\n\nFico no aguardo da sua confirmação!`;
+  
+      let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
+      
+      if (telefone) {
+        let telefoneLimpo = telefone.replace(/\D/g, '');
+        if (telefoneLimpo.length === 10 || telefoneLimpo.length === 11) telefoneLimpo = `55${telefoneLimpo}`;
+        url = `https://api.whatsapp.com/send?phone=${telefoneLimpo}&text=${encodeURIComponent(mensagem)}`;
+      }
+  
+      window.open(url, '_blank');
+    };
+
     const abrirModalAdicao = async () => {
         setIsAddItemModalOpen(true);
         setItemParaTrocar(null);
         setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
         
-        if (pedido?.cotacao?.id) {
-            setTipoAdicao('COTACAO');
-            try {
-                const res = await api.get(`/api/pedidos/cotacao/${pedido.cotacao.id}/itens-pendentes`);
-                setItensPendentes(res.data || []);
-            } catch (error) {
-                console.error("Erro ao buscar itens pendentes:", error);
-            }
-        } else {
-            setTipoAdicao('MANUAL');
-            setItensPendentes([]);
-        }
-    };
-
-    // NOVO
-    const abrirModalTroca = async (item) => {
-        setIsAddItemModalOpen(true);
-        setItemParaTrocar(item.id);
-        setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
-
         if (pedido?.cotacao?.id) {
             setTipoAdicao('COTACAO');
             try {
@@ -245,7 +247,7 @@ export default function PedidoDetalhes() {
         <div className="layout">
             <Sidebar />
             <main className="main-content">
-                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+                <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
                     <div>
                         <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             Pedido #{pedido.id}
@@ -264,7 +266,13 @@ export default function PedidoDetalhes() {
                         </p>
                     </div>
                     
-                    <div style={{ display: 'flex', gap: '10px' }}>
+                    <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                        {/* NOVO: Botão no cabeçalho */}
+                        {pedido.status === 'PENDENTE_ENTREGA' && (
+                          <button style={{ ...styles.btnVoltar, backgroundColor: '#25D366', color: 'white' }} onClick={handleAvisarFornecedor}>
+                              <MessageCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Avisar Fornecedor
+                          </button>
+                        )}
                         <button style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} onClick={handleExcluirPedido}>
                             <Trash2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Excluir Pedido
                         </button>
@@ -452,23 +460,13 @@ export default function PedidoDetalhes() {
 
                                         {podeAdicionarProduto && !isEditandoValores && (
                                             <td style={{ ...styles.td, textAlign: 'center' }}>
-                                                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                                                    {/* NOVO: Botão de Trocar Produto */}
-                                                    <button 
-                                                        onClick={() => abrirModalTroca(item)} 
-                                                        style={{ background: 'none', border: 'none', color: '#f59e0b', cursor: 'pointer' }}
-                                                        title="Trocar este produto"
-                                                    >
-                                                        <RefreshCw size={18} />
-                                                    </button>
-                                                    <button 
-                                                        onClick={() => handleRemoverItemDoPedido(item.id)} 
-                                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
-                                                        title="Remover produto (retorna para Cotação Aberta)"
-                                                    >
-                                                        <Trash2 size={18} />
-                                                    </button>
-                                                </div>
+                                                <button 
+                                                    onClick={() => handleRemoverItemDoPedido(item.id)} 
+                                                    style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}
+                                                    title="Remover produto (retorna para Cotação Aberta)"
+                                                >
+                                                    <Trash2 size={18} />
+                                                </button>
                                             </td>
                                         )}
                                     </tr>
@@ -490,24 +488,14 @@ export default function PedidoDetalhes() {
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>
-                                    {itemParaTrocar ? 'Trocar Produto' : 'Adicionar Produto Extra'}
-                                </h3>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
                                 <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
                             </div>
-
-                            {/* Aviso quando o pedido não tem cotação vinculada */}
-                            {!pedido?.cotacao?.id && tipoAdicao === 'MANUAL' && (
-                                <div style={{ padding: '10px', backgroundColor: '#fef2f2', color: '#991b1b', borderRadius: '6px', marginBottom: '15px', fontSize: '13px', fontWeight: 'bold' }}>
-                                    Este pedido não está vinculado a uma cotação. Insira o item manualmente.
-                                </div>
-                            )}
 
                             <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px' }}>
                                 <button 
                                     onClick={() => setTipoAdicao('COTACAO')} 
-                                    disabled={!pedido?.cotacao?.id}
-                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: !pedido?.cotacao?.id ? 'not-allowed' : 'pointer', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', opacity: !pedido?.cotacao?.id ? 0.5 : 1, boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
                                 >
                                     De Cotações Abertas
                                 </button>
@@ -528,7 +516,7 @@ export default function PedidoDetalhes() {
                                             <option value="">{itensPendentes.length === 0 ? 'Nenhum produto pendente encontrado' : '-- Selecione --'}</option>
                                             {itensPendentes.map(p => (
                                                 <option key={p.idItem} value={p.idItem}>
-                                                    {p.nomeProduto} - Qtd: {p.quantidade}
+                                                    [Cot. #{p.cotacaoId}] {p.nomeProduto} - Qtd: {p.quantidade}
                                                 </option>
                                             ))}
                                         </select>
@@ -556,8 +544,7 @@ export default function PedidoDetalhes() {
                                     disabled={salvandoItem || (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId)}
                                     style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                 >
-                                    <Save size={18} style={{ marginRight: '8px' }}/> 
-                                    {salvandoItem ? 'Processando...' : (itemParaTrocar ? 'Confirmar Troca' : 'Confirmar e Adicionar')}
+                                    <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItem ? 'Adicionando...' : 'Confirmar e Adicionar'}
                                 </button>
                             </div>
                         </div>
