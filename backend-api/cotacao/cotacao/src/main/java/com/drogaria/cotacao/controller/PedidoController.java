@@ -172,6 +172,35 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
+    @PatchMapping("/{id}/valor-minimo")
+    public ResponseEntity<Pedido> atualizarValorMinimo(@PathVariable Long id, @RequestBody Map<String, Double> payload) {
+        Double valorMinimo = payload.get("valorMinimo");
+        Pedido pedidoAtualizado = pedidoService.atualizarValorMinimo(id, valorMinimo);
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PostMapping("/{id}/sugestoes")
+    public ResponseEntity<SugestaoPedido> adicionarSugestao(@PathVariable Long id, @RequestBody SugestaoPedido sugestao) {
+        SugestaoPedido novaSugestao = pedidoService.adicionarSugestao(id, sugestao);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novaSugestao);
+    }
+
+    @DeleteMapping("/{id}/sugestoes/{idSugestao}")
+    public ResponseEntity<Void> removerSugestao(@PathVariable Long id, @PathVariable Long idSugestao) {
+        pedidoService.removerSugestao(id, idSugestao);
+        return ResponseEntity.noContent().build();
+    }
+
+    @PostMapping("/{id}/sugestoes/{idSugestao}/aceitar")
+    public ResponseEntity<Pedido> aceitarSugestao(@PathVariable Long id, @PathVariable Long idSugestao) {
+        Pedido pedidoAtualizado = pedidoService.aceitarSugestao(id, idSugestao);
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            "Aceitou a sugestão extra do fornecedor e incluiu no pedido oficial."
+        );
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarPedido(@PathVariable Long id) {
         pedidoService.deletarPedido(id);
@@ -193,25 +222,6 @@ public class PedidoController {
             "Um item foi removido do pedido e retornou para os pendentes."
         );
 
-        return ResponseEntity.noContent().build();
-    }
-
-    @PatchMapping("/{id}/valor-minimo")
-    public ResponseEntity<Pedido> atualizarValorMinimo(@PathVariable Long id, @RequestBody Map<String, Double> payload) {
-        Double valorMinimo = payload.get("valorMinimo");
-        Pedido pedidoAtualizado = pedidoService.atualizarValorMinimo(id, valorMinimo);
-        return ResponseEntity.ok(pedidoAtualizado);
-    }
-
-    @PostMapping("/{id}/sugestoes")
-    public ResponseEntity<SugestaoPedido> adicionarSugestao(@PathVariable Long id, @RequestBody SugestaoPedido sugestao) {
-        SugestaoPedido novaSugestao = pedidoService.adicionarSugestao(id, sugestao);
-        return ResponseEntity.status(HttpStatus.CREATED).body(novaSugestao);
-    }
-
-    @DeleteMapping("/{id}/sugestoes/{idSugestao}")
-    public ResponseEntity<Void> removerSugestao(@PathVariable Long id, @PathVariable Long idSugestao) {
-        pedidoService.removerSugestao(id, idSugestao);
         return ResponseEntity.noContent().build();
     }
 }

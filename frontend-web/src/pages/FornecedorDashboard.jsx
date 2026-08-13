@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, DollarSign, PlusCircle, Trash2, Tag } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, DollarSign, PlusCircle, Trash2, Tag, TrendingUp } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -17,7 +17,6 @@ export default function FornecedorDashboard() {
   const [checklistEstoque, setChecklistEstoque] = useState({})
   const [salvandoConfirmacao, setSalvandoConfirmacao] = useState(false)
 
-  // NOVOS ESTADOS: Valor Mínimo e Sugestões
   const [valoresMinimos, setValoresMinimos] = useState({})
   const [isSugestaoModalOpen, setIsSugestaoModalOpen] = useState(false)
   const [pedidoAtualSugestao, setPedidoAtualSugestao] = useState(null)
@@ -145,7 +144,6 @@ export default function FornecedorDashboard() {
     }
   }
 
-  // NOVAS FUNÇÕES: Lógica de Negócio para Faturamento e Sugestões
   const handleValorMinimoChange = (pedidoId, value) => {
     setValoresMinimos(prev => ({ ...prev, [pedidoId]: value }));
   }
@@ -237,14 +235,14 @@ export default function FornecedorDashboard() {
   const getBadgeFornecedor = (status) => {
     if (status === 'PENDENTE_ENTREGA') return null;
     if (status === 'CONFIRMADO_FORNECEDOR') {
-      return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={14} /> CONFIRMADO NA FÁBRICA</span>;
+      return <span style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #c7d2fe' }}><CheckCircle size={16} /> CONFIRMADO NA FÁBRICA</span>;
     }
 
     if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) {
-      return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px' }}><CheckCircle size={14} /> ENTREGUE NA FARMÁCIA</span>;
+      return <span style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #86efac' }}><CheckCircle size={16} /> ENTREGUE NA FARMÁCIA</span>;
     }
 
-    return <span style={{ padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>{status}</span>;
+    return <span style={{ padding: '8px 16px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb' }}>{status}</span>;
   }
 
   return (
@@ -387,143 +385,147 @@ export default function FornecedorDashboard() {
                   const badge = getBadgeFornecedor(pedido.status);
                   const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
 
-                  return (
-                    <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                      <div style={{ backgroundColor: '#f8fafc', padding: '16px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                        <div>
-                          <h3 style={{ margin: 0, color: '#0f172a', fontSize: '18px' }}>Pedido #{pedido.id}</h3>
-                          <span style={{ fontSize: '13px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
-                          
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                            {idCotacaoOrigem && (
-                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#e0e7ff', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
-                                 <Edit2 size={16} /> Editar Cotação
-                               </button>
-                            )}
+                  // Cálculos para o Faturamento Mínimo
+                  const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
+                  const somaSugestoes = pedido.sugestoes?.reduce((acc, s) => acc + (s.quantidade * s.precoUnitario), 0) || 0;
+                  const totalConsiderado = pedido.valorTotalPedido + somaSugestoes;
+                  const faltaParaMinimo = valorMinimoSalvo > 0 ? valorMinimoSalvo - totalConsiderado : 0;
+                  const atingiuMinimo = valorMinimoSalvo > 0 && totalConsiderado >= valorMinimoSalvo;
+                  const pctProgresso = valorMinimoSalvo > 0 ? (totalConsiderado / valorMinimoSalvo) * 100 : 0;
 
-                            {badge === null ? (
-                              <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px' }}>
-                                <CheckCircle size={16} /> Confirmar Pedido
-                              </button>
-                            ) : (
-                              badge
-                            )}
-                          </div>
+                  return (
+                    <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
+                      <div style={{ backgroundColor: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                        <div>
+                          <h3 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '20px', fontWeight: '800' }}>Pedido #{pedido.id}</h3>
+                          <span style={{ fontSize: '14px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
+                        </div>
+                        
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                          {idCotacaoOrigem && (
+                             <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                               <Edit2 size={16} /> Editar Cotação Origem
+                             </button>
+                          )}
+
+                          {pedido.status === 'PENDENTE_ENTREGA' && (
+                            <button 
+                              onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
+                              style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
+                            >
+                              <PlusCircle size={16} /> Adicionar Sugestão
+                            </button>
+                          )}
+
+                          {badge === null ? (
+                            <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
+                              <CheckCircle size={16} /> Confirmar Separação / Envio
+                            </button>
+                          ) : (
+                            badge
+                          )}
                         </div>
                       </div>
                       
+                      {/* BARRA DE FATURAMENTO MÍNIMO (Mapeada para o topo) */}
+                      <div style={{ backgroundColor: '#fff7ed', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                        <div style={{ flex: 1, minWidth: '300px' }}>
+                          <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>
+                            <TrendingUp size={18}/> Acompanhamento do Pedido Mínimo
+                          </h4>
+                          
+                          <div style={{ display: 'flex', gap: '16px', fontSize: '13px', color: '#9a3412', marginBottom: '12px', flexWrap: 'wrap' }}>
+                            <span>Itens do Pedido: <strong style={{fontSize: '14px'}}>{fMoney(pedido.valorTotalPedido)}</strong></span>
+                            {somaSugestoes > 0 && <span>+ Sugestões: <strong style={{fontSize: '14px'}}>{fMoney(somaSugestoes)}</strong></span>}
+                            <span style={{ paddingLeft: '8px', borderLeft: '2px solid #fdba74' }}>Total Considerado: <strong style={{fontSize: '16px'}}>{fMoney(totalConsiderado)}</strong></span>
+                          </div>
+
+                          {valorMinimoSalvo > 0 && (
+                            <div>
+                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', fontWeight: 'bold', color: atingiuMinimo ? '#166534' : '#b45309' }}>
+                                <span>{atingiuMinimo ? 'Mínimo Alcançado! 🎉' : `Faltam ${fMoney(faltaParaMinimo)} para atingir o mínimo de faturamento`}</span>
+                                <span>{Math.min(pctProgresso, 100).toFixed(0)}%</span>
+                              </div>
+                              <div style={{ width: '100%', height: '10px', backgroundColor: '#fed7aa', borderRadius: '5px', overflow: 'hidden' }}>
+                                <div style={{ width: `${Math.min(pctProgresso, 100)}%`, height: '100%', backgroundColor: atingiuMinimo ? '#22c55e' : '#f97316', transition: 'width 0.4s ease' }}></div>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+
+                        {pedido.status === 'PENDENTE_ENTREGA' && (
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'flex-end', padding: '12px 16px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #fdba74', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+                            <div>
+                              <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#c2410c', display: 'block', marginBottom: '4px' }}>Definir Mínimo (R$):</label>
+                              <input 
+                                type="number" 
+                                step="0.01"
+                                placeholder={valorMinimoSalvo || "0,00"}
+                                value={valoresMinimos[pedido.id] !== undefined ? valoresMinimos[pedido.id] : ''}
+                                onChange={(e) => handleValorMinimoChange(pedido.id, e.target.value)}
+                                style={{ padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '120px', outline: 'none', fontSize: '14px', fontWeight: 'bold', color: '#1e293b' }}
+                              />
+                            </div>
+                            <button 
+                              onClick={() => handleSalvarValorMinimo(pedido.id, valoresMinimos[pedido.id])}
+                              disabled={isSalvando || !valoresMinimos[pedido.id]}
+                              style={{ backgroundColor: '#f97316', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', height: '37px', opacity: (!valoresMinimos[pedido.id] || isSalvando) ? 0.6 : 1 }}
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        )}
+                      </div>
+
                       <div className="pedido-scroll" style={{ padding: '16px 24px' }}>
                         <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
                           <thead>
-                            <tr style={{ borderBottom: '2px solid #f1f5f9' }}>
-                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px' }}>Produto Solicitado</th>
-                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'center' }}>Qtd</th>
-                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'right' }}>Unitário</th>
-                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
+                            <tr style={{ borderBottom: '2px solid #e2e8f0' }}>
+                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textTransform: 'uppercase' }}>Produto</th>
+                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'center', textTransform: 'uppercase' }}>Qtd</th>
+                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'right', textTransform: 'uppercase' }}>Unitário</th>
+                              <th style={{ padding: '12px', color: '#64748b', fontSize: '13px', textAlign: 'right', textTransform: 'uppercase' }}>Subtotal</th>
+                              <th style={{ padding: '12px', width: '40px' }}></th>
                             </tr>
                           </thead>
                           <tbody>
+                            {/* Renderizar as SUGESTÕES no topo */}
+                            {pedido.sugestoes && pedido.sugestoes.map(sug => (
+                              <tr key={`sug-${sug.id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
+                                <td style={{ padding: '12px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+                                    <span style={{ fontSize: '10px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', letterSpacing: '0.5px' }}>SUGESTÃO EXTRA</span>
+                                    <span style={{ fontSize: '11px', color: '#d97706', fontWeight: '700' }}>Aguardando análise da loja</span>
+                                  </div>
+                                  <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '14px' }}>{sug.nomeProduto}</span>
+                                  {sug.observacao && <div style={{ fontSize: '12px', color: '#b45309', marginTop: '4px', fontStyle: 'italic' }}>Obs: {sug.observacao}</div>}
+                                </td>
+                                <td style={{ padding: '12px', textAlign: 'center', color: '#9a3412', fontWeight: '600', fontSize: '14px' }}>{sug.quantidade} un</td>
+                                <td style={{ padding: '12px', textAlign: 'right', color: '#9a3412', fontSize: '14px' }}>{fMoney(sug.precoUnitario)}</td>
+                                <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '14px' }}>{fMoney(sug.quantidade * sug.precoUnitario)}</td>
+                                <td style={{ padding: '12px', textAlign: 'center' }}>
+                                  {pedido.status === 'PENDENTE_ENTREGA' && (
+                                    <button onClick={() => handleRemoverSugestao(pedido.id, sug.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Remover sugestão">
+                                      <Trash2 size={18} />
+                                    </button>
+                                  )}
+                                </td>
+                              </tr>
+                            ))}
+
+                            {/* Renderizar os itens NORMAIS do pedido */}
                             {pedido.itens.map(item => (
                               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
-                                <td style={{ padding: '12px', textAlign: 'center', color: '#334155' }}>{item.quantidadePedida} un</td>
-                                <td style={{ padding: '12px', textAlign: 'right', color: '#64748b' }}>{fMoney(item.valorUnitarioPedido)}</td>
-                                <td style={{ padding: '12px', textAlign: 'right', fontWeight: '600', color: '#334155' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
+                                <td style={{ padding: '12px', color: '#334155', fontWeight: '600', fontSize: '14px' }}>{item.nomeProduto}</td>
+                                <td style={{ padding: '12px', textAlign: 'center', color: '#475569', fontSize: '14px' }}>{item.quantidadePedida} un</td>
+                                <td style={{ padding: '12px', textAlign: 'right', color: '#64748b', fontSize: '14px' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                                <td style={{ padding: '12px', textAlign: 'right', fontWeight: '700', color: '#1e293b', fontSize: '14px' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
+                                <td style={{ padding: '12px' }}></td>
                               </tr>
                             ))}
                           </tbody>
                         </table>
                       </div>
-
-                      {/* INÍCIO DOS NOVOS BLOCOS (Faturamento e Sugestões) */}
-                      <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
-                        {/* BLOCO 1: DEFINIR VALOR MÍNIMO */}
-                        <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-                          <div>
-                            <h4 style={{ margin: '0 0 4px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                              <DollarSign size={18}/> Política de Faturamento
-                            </h4>
-                            <p style={{ margin: 0, fontSize: '13px', color: '#c2410c' }}>
-                              Seu pedido atual totaliza: <strong>{fMoney(pedido.valorTotalPedido)}</strong>
-                            </p>
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#9a3412' }}>Valor Mínimo (R$):</label>
-                            <input 
-                              type="number" 
-                              step="0.01"
-                              placeholder={pedido.valorMinimoFaturamento || "0,00"}
-                              value={valoresMinimos[pedido.id] !== undefined ? valoresMinimos[pedido.id] : ''}
-                              onChange={(e) => handleValorMinimoChange(pedido.id, e.target.value)}
-                              style={{ padding: '8px', borderRadius: '6px', border: '1px solid #fdba74', width: '120px', outline: 'none' }}
-                            />
-                            <button 
-                              onClick={() => handleSalvarValorMinimo(pedido.id, valoresMinimos[pedido.id])}
-                              disabled={isSalvando || !valoresMinimos[pedido.id]}
-                              style={{ backgroundColor: '#f97316', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
-                            >
-                              Salvar
-                            </button>
-                          </div>
-                        </div>
-
-                        {/* BLOCO 2: LISTA DE SUGESTÕES / PROMOÇÕES */}
-                        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                            <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                              <Tag size={18} color="#3b82f6"/> Sugestões e Ofertas Extras
-                            </h3>
-                            <button 
-                              onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
-                              style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
-                            >
-                              <PlusCircle size={16} /> Oferecer Produto
-                            </button>
-                          </div>
-
-                          {pedido.sugestoes && pedido.sugestoes.length > 0 ? (
-                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                              <thead style={{ backgroundColor: '#f8fafc', fontSize: '13px', color: '#64748b' }}>
-                                <tr>
-                                  <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Produto Sugerido</th>
-                                  <th style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>Qtd</th>
-                                  <th style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Vlr. Unitário</th>
-                                  <th style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Subtotal</th>
-                                  <th style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}></th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {pedido.sugestoes.map(s => (
-                                  <tr key={s.id} style={{ fontSize: '13px' }}>
-                                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}>
-                                      <strong>{s.nomeProduto}</strong>
-                                      {s.observacao && <span style={{ display: 'block', fontSize: '11px', color: '#6b7280' }}>Obs: {s.observacao}</span>}
-                                    </td>
-                                    <td style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>{s.quantidade}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{fMoney(s.precoUnitario)}</td>
-                                    <td style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', color: '#16a34a' }}>{fMoney(s.quantidade * s.precoUnitario)}</td>
-                                    <td style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
-                                      <button onClick={() => handleRemoverSugestao(pedido.id, s.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                                        <Trash2 size={16} />
-                                      </button>
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          ) : (
-                            <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '10px 0' }}>
-                              Nenhum produto extra sugerido para este pedido.
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                      {/* FIM DOS NOVOS BLOCOS */}
-
                     </div>
                   )
                 })}
@@ -642,7 +644,7 @@ export default function FornecedorDashboard() {
         </div>
       )}
 
-      {/* BLOCO 3: MODAL DE ADICIONAR SUGESTÃO */}
+      {/* MODAL DE ADICIONAR SUGESTÃO */}
       {isSugestaoModalOpen && (
         <div style={styles.modalOverlay}>
           <div style={{...styles.modalContent, maxWidth: '400px'}}>
@@ -650,18 +652,18 @@ export default function FornecedorDashboard() {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div>
-                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Nome do Produto</label>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Nome do Produto *</label>
                 <input type="text" value={novaSugestao.nomeProduto} onChange={e => setNovaSugestao({...novaSugestao, nomeProduto: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }} placeholder="Ex: Tadalafila Genérico c/ 30"/>
               </div>
 
               <div style={{ display: 'flex', gap: '10px' }}>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Qtd Sugerida</label>
-                  <input type="number" value={novaSugestao.quantidade} onChange={e => setNovaSugestao({...novaSugestao, quantidade: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Qtd Sugerida *</label>
+                  <input type="number" min="1" value={novaSugestao.quantidade} onChange={e => setNovaSugestao({...novaSugestao, quantidade: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Preço Unitário</label>
-                  <input type="number" step="0.01" value={novaSugestao.precoUnitario} onChange={e => setNovaSugestao({...novaSugestao, precoUnitario: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Preço Unitário R$ *</label>
+                  <input type="number" step="0.01" min="0.01" value={novaSugestao.precoUnitario} onChange={e => setNovaSugestao({...novaSugestao, precoUnitario: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
                 </div>
               </div>
 

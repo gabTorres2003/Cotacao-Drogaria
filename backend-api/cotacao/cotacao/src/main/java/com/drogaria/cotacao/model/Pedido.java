@@ -33,6 +33,9 @@ public class Pedido {
     @Column(name = "valor_total_real")
     private Double valorTotalReal;
 
+    @Column(name = "valor_minimo_faturamento")
+    private Double valorMinimoFaturamento;
+
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
@@ -45,9 +48,6 @@ public class Pedido {
     
     @Column(name = "numero_nota")
     private String numeroNota;
-
-    @Column(name = "valor_minimo_faturamento")
-    private Double valorMinimoFaturamento;
 
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 

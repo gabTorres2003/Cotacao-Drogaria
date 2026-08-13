@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -21,6 +21,8 @@ export default function PedidoDetalhes() {
 
     const [isEditandoValores, setIsEditandoValores] = useState(false);
     const [valoresEditados, setValoresEditados] = useState({});
+    
+    const [isModalSugestoesAberto, setIsModalSugestoesAberto] = useState(false);
 
     const carregarPedido = async () => {
         try {
@@ -69,6 +71,30 @@ export default function PedidoDetalhes() {
                 carregarPedido(); 
             } catch (error) {
                 alert('Erro ao remover o item: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
+    // NOVAS FUNÇÕES PARA LHE DAR COM AS SUGESTÕES
+    const handleAceitarSugestao = async (idSugestao) => {
+        try {
+            await api.post(`/api/pedidos/${id}/sugestoes/${idSugestao}/aceitar`);
+            alert('Sugestão aceita e adicionada ao pedido com sucesso!');
+            carregarPedido();
+            if (pedido.sugestoes.length === 1) setIsModalSugestoesAberto(false);
+        } catch (error) {
+            alert('Erro ao aceitar a sugestão.');
+        }
+    };
+
+    const handleRecusarSugestao = async (idSugestao) => {
+        if(window.confirm('Tem certeza que deseja recusar e excluir esta sugestão?')) {
+            try {
+                await api.delete(`/api/pedidos/${id}/sugestoes/${idSugestao}`);
+                carregarPedido();
+                if (pedido.sugestoes.length === 1) setIsModalSugestoesAberto(false);
+            } catch (error) {
+                alert('Erro ao recusar a sugestão.');
             }
         }
     };
@@ -260,6 +286,13 @@ export default function PedidoDetalhes() {
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
     const estaConfirmadoForn = pedido.status === 'CONFIRMADO_FORNECEDOR';
 
+    // Cálculos para o painel de Faturamento Mínimo
+    const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
+    const totalConsiderado = pedido.valorTotalPedido || 0;
+    const faltaParaMinimo = valorMinimoSalvo > 0 ? valorMinimoSalvo - totalConsiderado : 0;
+    const atingiuMinimo = valorMinimoSalvo > 0 && totalConsiderado >= valorMinimoSalvo;
+    const pctProgresso = valorMinimoSalvo > 0 ? (totalConsiderado / valorMinimoSalvo) * 100 : 0;
+
     return (
         <div className="layout">
             <Sidebar />
@@ -284,7 +317,6 @@ export default function PedidoDetalhes() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {/* NOVO: Botão de Cancelar Confirmação em destaque */}
                         {estaConfirmadoForn && (
                             <button style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b', color: 'white' }} onClick={handleCancelarConfirmacao}>
                                 <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Cancelar Confirmação
@@ -305,12 +337,27 @@ export default function PedidoDetalhes() {
                     </div>
                 </header>
 
+                {/* ALERTA DE SUGESTÕES PENDENTES NO TOPO */}
+                {pedido.sugestoes && pedido.sugestoes.length > 0 && (
+                    <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 'bold' }}>
+                            <Tag size={20} />
+                            <span>O fornecedor enviou {pedido.sugestoes.length} sugestão(ões) de produtos extras!</span>
+                        </div>
+                        <button 
+                            onClick={() => setIsModalSugestoesAberto(true)}
+                            style={{ backgroundColor: '#eab308', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(234, 179, 8, 0.3)' }}
+                        >
+                            <Eye size={16} /> Visualizar Sugestões
+                        </button>
+                    </div>
+                )}
+
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status)}>{getStatusExibicao(pedido)}</span></p>
                             
-                            {/* NOVO: Exibição das Datas de Geração e Confirmação */}
                             <p style={{ fontSize: '14px', marginBottom: '8px', color: '#4b5563' }}>
                                 <strong>Gerado (Enviado) em:</strong> {fDataHora(pedido.dataCriacao)}
                             </p>
@@ -362,6 +409,22 @@ export default function PedidoDetalhes() {
                         </div>
                     </div>
                 </div>
+
+                {/* NOVO: Acompanhamento de Faturamento Mínimo */}
+                {valorMinimoSalvo > 0 && (
+                    <div style={{ marginTop: '-5px', marginBottom: '20px', padding: '16px 20px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px' }}>
+                        <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>
+                            <TrendingUp size={18}/> Faturamento Mínimo do Fornecedor
+                        </h4>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '13px', marginBottom: '6px', fontWeight: 'bold', color: atingiuMinimo ? '#166534' : '#b45309' }}>
+                            <span>{atingiuMinimo ? 'Mínimo Alcançado! 🎉 O fornecedor poderá faturar o pedido.' : `Faltam ${fMoney(faltaParaMinimo)} para atingir o faturamento mínimo exigido de ${fMoney(valorMinimoSalvo)}.`}</span>
+                            <span>{Math.min(pctProgresso, 100).toFixed(0)}%</span>
+                        </div>
+                        <div style={{ width: '100%', height: '10px', backgroundColor: '#fed7aa', borderRadius: '5px', overflow: 'hidden' }}>
+                            <div style={{ width: `${Math.min(pctProgresso, 100)}%`, height: '100%', backgroundColor: atingiuMinimo ? '#22c55e' : '#f97316', transition: 'width 0.4s ease' }}></div>
+                        </div>
+                    </div>
+                )}
 
                 <div style={styles.card}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
@@ -518,6 +581,44 @@ export default function PedidoDetalhes() {
                         onClose={() => setIsDevolucaoModalOpen(false)} 
                         onSuccess={() => { setIsDevolucaoModalOpen(false); carregarPedido(); }}
                     />
+                )}
+
+                {/* MODAL DE SUGESTÕES DO FORNECEDOR */}
+                {isModalSugestoesAberto && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}><Tag size={20} color="#eab308"/> Sugestões do Fornecedor</h3>
+                                <button onClick={() => setIsModalSugestoesAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {pedido.sugestoes?.map(sug => (
+                                    <div key={sug.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', backgroundColor: '#f8fafc' }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                                            <div>
+                                                <h4 style={{ margin: '0 0 4px 0', color: '#1e293b', fontSize: '16px' }}>{sug.nomeProduto}</h4>
+                                                {sug.observacao && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>Obs: {sug.observacao}</p>}
+                                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569' }}>
+                                                    <span>Qtd: <strong>{sug.quantidade}</strong></span>
+                                                    <span>Preço Unit: <strong>{fMoney(sug.precoUnitario)}</strong></span>
+                                                    <span style={{ color: '#16a34a' }}>Subtotal: <strong>{fMoney(sug.quantidade * sug.precoUnitario)}</strong></span>
+                                                </div>
+                                            </div>
+                                            <div style={{ display: 'flex', gap: '8px' }}>
+                                                <button onClick={() => handleRecusarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <X size={14}/> Recusar
+                                                </button>
+                                                <button onClick={() => handleAceitarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                    <Check size={14}/> Aceitar e Incluir
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    </div>
                 )}
 
                 {isAddItemModalOpen && (

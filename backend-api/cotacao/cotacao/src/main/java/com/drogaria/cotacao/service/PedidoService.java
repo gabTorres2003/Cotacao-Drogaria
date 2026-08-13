@@ -372,6 +372,7 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+    // NOVAS FUNÇÕES PARA O MÓDULO DE FORNECEDORES E SUGESTÕES
     @Transactional
     public Pedido atualizarValorMinimo(Long pedidoId, Double valorMinimo) {
         Pedido pedido = buscarPorId(pedidoId);
@@ -388,8 +389,6 @@ public class PedidoService {
         }
         pedido.getSugestoes().add(sugestao);
         pedidoRepository.save(pedido);
-        
-        // Retorna a última sugestão adicionada
         return pedido.getSugestoes().get(pedido.getSugestoes().size() - 1);
     }
 
@@ -398,6 +397,32 @@ public class PedidoService {
         Pedido pedido = buscarPorId(pedidoId);
         pedido.getSugestoes().removeIf(s -> s.getId().equals(sugestaoId));
         pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido aceitarSugestao(Long pedidoId, Long sugestaoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+        SugestaoPedido sugestao = pedido.getSugestoes().stream()
+            .filter(s -> s.getId().equals(sugestaoId))
+            .findFirst()
+            .orElseThrow(() -> new RuntimeException("Sugestão não encontrada"));
+
+        ItemPedido novoItem = new ItemPedido();
+        novoItem.setPedido(pedido);
+        novoItem.setNomeProduto(sugestao.getNomeProduto() + " (Sugestão Aceita)");
+        novoItem.setQuantidadePedida(sugestao.getQuantidade());
+        novoItem.setValorUnitarioPedido(sugestao.getPrecoUnitario());
+        novoItem.setQuantidadeReal(0);
+        novoItem.setValorUnitarioReal(0.0);
+        novoItem.setValorAlteradoAposPedido(false);
+
+        pedido.getItens().add(novoItem);
+        
+        double subtotal = sugestao.getQuantidade() * sugestao.getPrecoUnitario();
+        pedido.setValorTotalPedido((pedido.getValorTotalPedido() != null ? pedido.getValorTotalPedido() : 0.0) + subtotal);
+        pedido.getSugestoes().remove(sugestao);
+
+        return pedidoRepository.save(pedido);
     }
 
     @SuppressWarnings("unchecked")
