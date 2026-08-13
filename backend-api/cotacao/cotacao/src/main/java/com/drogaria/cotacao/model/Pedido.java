@@ -46,7 +46,14 @@ public class Pedido {
     @Column(name = "numero_nota")
     private String numeroNota;
 
+    @Column(name = "valor_minimo_faturamento")
+    private Double valorMinimoFaturamento;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;
+
+    @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
+    @JsonIgnoreProperties("pedido") 
+    private List<SugestaoPedido> sugestoes;
 }

@@ -4,6 +4,7 @@ import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
+import com.drogaria.cotacao.model.SugestaoPedido;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.model.enums.TipoAcao;
 import com.drogaria.cotacao.service.LogAuditoriaService;
@@ -192,6 +193,25 @@ public class PedidoController {
             "Um item foi removido do pedido e retornou para os pendentes."
         );
 
+        return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{id}/valor-minimo")
+    public ResponseEntity<Pedido> atualizarValorMinimo(@PathVariable Long id, @RequestBody Map<String, Double> payload) {
+        Double valorMinimo = payload.get("valorMinimo");
+        Pedido pedidoAtualizado = pedidoService.atualizarValorMinimo(id, valorMinimo);
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PostMapping("/{id}/sugestoes")
+    public ResponseEntity<SugestaoPedido> adicionarSugestao(@PathVariable Long id, @RequestBody SugestaoPedido sugestao) {
+        SugestaoPedido novaSugestao = pedidoService.adicionarSugestao(id, sugestao);
+        return ResponseEntity.status(HttpStatus.CREATED).body(novaSugestao);
+    }
+
+    @DeleteMapping("/{id}/sugestoes/{idSugestao}")
+    public ResponseEntity<Void> removerSugestao(@PathVariable Long id, @PathVariable Long idSugestao) {
+        pedidoService.removerSugestao(id, idSugestao);
         return ResponseEntity.noContent().build();
     }
 }

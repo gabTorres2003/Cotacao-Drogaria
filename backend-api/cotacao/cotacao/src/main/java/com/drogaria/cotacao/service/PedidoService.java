@@ -10,6 +10,7 @@ import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.PrecoCotacao;
+import com.drogaria.cotacao.model.SugestaoPedido;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoRepository;
@@ -369,6 +370,34 @@ public class PedidoService {
 
         pedido.setValorTotalPedido(novoTotal);
         return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido atualizarValorMinimo(Long pedidoId, Double valorMinimo) {
+        Pedido pedido = buscarPorId(pedidoId);
+        pedido.setValorMinimoFaturamento(valorMinimo);
+        return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public SugestaoPedido adicionarSugestao(Long pedidoId, SugestaoPedido sugestao) {
+        Pedido pedido = buscarPorId(pedidoId);
+        sugestao.setPedido(pedido);
+        if(sugestao.getDataSugestao() == null) {
+            sugestao.setDataSugestao(LocalDateTime.now());
+        }
+        pedido.getSugestoes().add(sugestao);
+        pedidoRepository.save(pedido);
+        
+        // Retorna a última sugestão adicionada
+        return pedido.getSugestoes().get(pedido.getSugestoes().size() - 1);
+    }
+
+    @Transactional
+    public void removerSugestao(Long pedidoId, Long sugestaoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+        pedido.getSugestoes().removeIf(s -> s.getId().equals(sugestaoId));
+        pedidoRepository.save(pedido);
     }
 
     @SuppressWarnings("unchecked")

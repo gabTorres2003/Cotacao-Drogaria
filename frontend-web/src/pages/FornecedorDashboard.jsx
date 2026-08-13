@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2 } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, DollarSign, PlusCircle, Trash2, Tag } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -16,6 +16,13 @@ export default function FornecedorDashboard() {
   const [pedidoConfirmacao, setPedidoConfirmacao] = useState(null)
   const [checklistEstoque, setChecklistEstoque] = useState({})
   const [salvandoConfirmacao, setSalvandoConfirmacao] = useState(false)
+
+  // NOVOS ESTADOS: Valor Mínimo e Sugestões
+  const [valoresMinimos, setValoresMinimos] = useState({})
+  const [isSugestaoModalOpen, setIsSugestaoModalOpen] = useState(false)
+  const [pedidoAtualSugestao, setPedidoAtualSugestao] = useState(null)
+  const [novaSugestao, setNovaSugestao] = useState({ nomeProduto: '', quantidade: '', precoUnitario: '', observacao: '' })
+  const [isSalvando, setIsSalvando] = useState(false)
 
   const navigate = useNavigate()
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor'
@@ -137,6 +144,62 @@ export default function FornecedorDashboard() {
       setSalvandoConfirmacao(false)
     }
   }
+
+  // NOVAS FUNÇÕES: Lógica de Negócio para Faturamento e Sugestões
+  const handleValorMinimoChange = (pedidoId, value) => {
+    setValoresMinimos(prev => ({ ...prev, [pedidoId]: value }));
+  }
+
+  const handleSalvarValorMinimo = async (pedidoId, valorMinimoStr) => {
+    try {
+      setIsSalvando(true);
+      await api.patch(`/api/pedidos/${pedidoId}/valor-minimo`, { 
+        valorMinimo: Number(valorMinimoStr) 
+      });
+      alert('Valor mínimo atualizado com sucesso!');
+      fetchDados();
+    } catch (error) {
+      alert('Erro ao atualizar valor mínimo.');
+    } finally {
+      setIsSalvando(false);
+    }
+  };
+
+  const handleSalvarSugestao = async () => {
+    if (!novaSugestao.nomeProduto || !novaSugestao.quantidade || !novaSugestao.precoUnitario) {
+      alert('Preencha os campos obrigatórios (Nome, Qtd e Preço).');
+      return;
+    }
+    try {
+      setIsSalvando(true);
+      await api.post(`/api/pedidos/${pedidoAtualSugestao}/sugestoes`, {
+        nomeProduto: novaSugestao.nomeProduto,
+        quantidade: Number(novaSugestao.quantidade),
+        precoUnitario: Number(novaSugestao.precoUnitario),
+        observacao: novaSugestao.observacao
+      });
+      alert('Sugestão enviada para a farmácia!');
+      setIsSugestaoModalOpen(false);
+      setNovaSugestao({ nomeProduto: '', quantidade: '', precoUnitario: '', observacao: '' });
+      setPedidoAtualSugestao(null);
+      fetchDados();
+    } catch (error) {
+      alert('Erro ao enviar sugestão.');
+    } finally {
+      setIsSalvando(false);
+    }
+  };
+
+  const handleRemoverSugestao = async (pedidoId, sugestaoId) => {
+    if (window.confirm('Excluir esta sugestão?')) {
+      try {
+        await api.delete(`/api/pedidos/${pedidoId}/sugestoes/${sugestaoId}`);
+        fetchDados();
+      } catch (error) {
+        alert('Erro ao excluir sugestão.');
+      }
+    }
+  };
 
   const formatarDataHora = (dataIso) => {
     if (!dataIso) return 'Data não informada'
@@ -374,6 +437,93 @@ export default function FornecedorDashboard() {
                           </tbody>
                         </table>
                       </div>
+
+                      {/* INÍCIO DOS NOVOS BLOCOS (Faturamento e Sugestões) */}
+                      <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderTop: '1px solid #e2e8f0' }}>
+                        {/* BLOCO 1: DEFINIR VALOR MÍNIMO */}
+                        <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                          <div>
+                            <h4 style={{ margin: '0 0 4px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                              <DollarSign size={18}/> Política de Faturamento
+                            </h4>
+                            <p style={{ margin: 0, fontSize: '13px', color: '#c2410c' }}>
+                              Seu pedido atual totaliza: <strong>{fMoney(pedido.valorTotalPedido)}</strong>
+                            </p>
+                          </div>
+
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#9a3412' }}>Valor Mínimo (R$):</label>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              placeholder={pedido.valorMinimoFaturamento || "0,00"}
+                              value={valoresMinimos[pedido.id] !== undefined ? valoresMinimos[pedido.id] : ''}
+                              onChange={(e) => handleValorMinimoChange(pedido.id, e.target.value)}
+                              style={{ padding: '8px', borderRadius: '6px', border: '1px solid #fdba74', width: '120px', outline: 'none' }}
+                            />
+                            <button 
+                              onClick={() => handleSalvarValorMinimo(pedido.id, valoresMinimos[pedido.id])}
+                              disabled={isSalvando || !valoresMinimos[pedido.id]}
+                              style={{ backgroundColor: '#f97316', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
+                            >
+                              Salvar
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* BLOCO 2: LISTA DE SUGESTÕES / PROMOÇÕES */}
+                        <div style={{ backgroundColor: 'white', padding: '20px', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+                            <h3 style={{ margin: 0, fontSize: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <Tag size={18} color="#3b82f6"/> Sugestões e Ofertas Extras
+                            </h3>
+                            <button 
+                              onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
+                              style={{ backgroundColor: '#3b82f6', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+                            >
+                              <PlusCircle size={16} /> Oferecer Produto
+                            </button>
+                          </div>
+
+                          {pedido.sugestoes && pedido.sugestoes.length > 0 ? (
+                            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                              <thead style={{ backgroundColor: '#f8fafc', fontSize: '13px', color: '#64748b' }}>
+                                <tr>
+                                  <th style={{ padding: '10px', textAlign: 'left', borderBottom: '1px solid #e2e8f0' }}>Produto Sugerido</th>
+                                  <th style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}>Qtd</th>
+                                  <th style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Vlr. Unitário</th>
+                                  <th style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #e2e8f0' }}>Subtotal</th>
+                                  <th style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #e2e8f0' }}></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pedido.sugestoes.map(s => (
+                                  <tr key={s.id} style={{ fontSize: '13px' }}>
+                                    <td style={{ padding: '10px', borderBottom: '1px solid #f1f5f9' }}>
+                                      <strong>{s.nomeProduto}</strong>
+                                      {s.observacao && <span style={{ display: 'block', fontSize: '11px', color: '#6b7280' }}>Obs: {s.observacao}</span>}
+                                    </td>
+                                    <td style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>{s.quantidade}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #f1f5f9' }}>{fMoney(s.precoUnitario)}</td>
+                                    <td style={{ padding: '10px', textAlign: 'right', borderBottom: '1px solid #f1f5f9', fontWeight: 'bold', color: '#16a34a' }}>{fMoney(s.quantidade * s.precoUnitario)}</td>
+                                    <td style={{ padding: '10px', textAlign: 'center', borderBottom: '1px solid #f1f5f9' }}>
+                                      <button onClick={() => handleRemoverSugestao(pedido.id, s.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
+                                        <Trash2 size={16} />
+                                      </button>
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          ) : (
+                            <p style={{ fontSize: '13px', color: '#64748b', textAlign: 'center', padding: '10px 0' }}>
+                              Nenhum produto extra sugerido para este pedido.
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      {/* FIM DOS NOVOS BLOCOS */}
+
                     </div>
                   )
                 })}
@@ -491,6 +641,44 @@ export default function FornecedorDashboard() {
           </div>
         </div>
       )}
+
+      {/* BLOCO 3: MODAL DE ADICIONAR SUGESTÃO */}
+      {isSugestaoModalOpen && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, maxWidth: '400px'}}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#1e293b' }}>Sugerir Produto / Promoção</h3>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Nome do Produto</label>
+                <input type="text" value={novaSugestao.nomeProduto} onChange={e => setNovaSugestao({...novaSugestao, nomeProduto: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }} placeholder="Ex: Tadalafila Genérico c/ 30"/>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Qtd Sugerida</label>
+                  <input type="number" value={novaSugestao.quantidade} onChange={e => setNovaSugestao({...novaSugestao, quantidade: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
+                </div>
+                <div style={{ flex: 1 }}>
+                  <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Preço Unitário</label>
+                  <input type="number" step="0.01" value={novaSugestao.precoUnitario} onChange={e => setNovaSugestao({...novaSugestao, precoUnitario: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box' }}/>
+                </div>
+              </div>
+
+              <div>
+                <label style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569' }}>Observação (Opcional)</label>
+                <textarea value={novaSugestao.observacao} onChange={e => setNovaSugestao({...novaSugestao, observacao: e.target.value})} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginTop: '4px', boxSizing: 'border-box', resize: 'vertical', minHeight: '60px' }} placeholder="Ex: Vence em 3 meses, por isso o desconto."></textarea>
+              </div>
+
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
+                <button onClick={() => { setIsSugestaoModalOpen(false); setPedidoAtualSugestao(null); }} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={handleSalvarSugestao} disabled={isSalvando} style={{ padding: '10px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer' }}>{isSalvando ? 'Enviando...' : 'Enviar Sugestão'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }
