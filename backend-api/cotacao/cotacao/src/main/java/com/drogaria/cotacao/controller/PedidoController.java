@@ -62,7 +62,6 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.buscarPorFornecedorId(fornecedorId));
     }
 
-    // ATUALIZADO: Buscar itens pendentes SOMENTE da cotação específica
     @GetMapping("/cotacao/{cotacaoId}/itens-pendentes")
     public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesDaCotacao(@PathVariable Long cotacaoId) {
         return ResponseEntity.ok(pedidoService.buscarItensPendentesPorCotacao(cotacaoId));
@@ -104,7 +103,6 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
-    // NOVA ROTA: Trocar um item por outro
     @PutMapping("/{id}/itens/{idItemAntigo}/trocar")
     public ResponseEntity<Pedido> trocarItemPedido(@PathVariable Long id, @PathVariable Long idItemAntigo, @RequestBody ItemPedido novoItem) {
         Pedido pedidoAtualizado = pedidoService.trocarItem(id, idItemAntigo, novoItem);
@@ -156,6 +154,18 @@ public class PedidoController {
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "SISTEMA/FORNECEDOR", TipoAcao.STATUS_PEDIDO, "Pedido", id, 
             "Alterou o status do pedido para: " + novoStatus
+        );
+
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PatchMapping("/{id}/cancelar-confirmacao")
+    public ResponseEntity<Pedido> cancelarConfirmacao(@PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.cancelarConfirmacao(id);
+        
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.STATUS_PEDIDO, "Pedido", id, 
+            "Cancelou a confirmação do fornecedor e reabriu o pedido para edições."
         );
 
         return ResponseEntity.ok(pedidoAtualizado);

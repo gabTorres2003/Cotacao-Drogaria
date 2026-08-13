@@ -123,6 +123,25 @@ public class PedidoService {
     public Pedido atualizarStatus(Long pedidoId, StatusPedido novoStatus) {
         Pedido pedido = buscarPorId(pedidoId);
         pedido.setStatus(novoStatus);
+        
+        if (novoStatus == StatusPedido.CONFIRMADO_FORNECEDOR) {
+            pedido.setDataConfirmacao(LocalDateTime.now());
+        }
+        
+        return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido cancelarConfirmacao(Long pedidoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+        
+        if (pedido.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR) {
+            throw new RuntimeException("Apenas pedidos já confirmados pelo fornecedor podem ser cancelados/reabertos.");
+        }
+        
+        pedido.setStatus(StatusPedido.PENDENTE_ENTREGA);
+        pedido.setDataConfirmacao(null); 
+        
         return pedidoRepository.save(pedido);
     }
 

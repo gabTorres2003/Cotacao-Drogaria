@@ -36,6 +36,9 @@ public class Pedido {
     @Column(name = "data_criacao")
     private LocalDateTime dataCriacao;
 
+    @Column(name = "data_confirmacao")
+    private LocalDateTime dataConfirmacao;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status", nullable = false)
     private StatusPedido status;

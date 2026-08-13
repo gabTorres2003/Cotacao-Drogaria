@@ -50,6 +50,18 @@ export default function PedidoDetalhes() {
         }
     };
 
+    const handleCancelarConfirmacao = async () => {
+        if (window.confirm('Tem certeza que deseja cancelar a confirmação deste pedido?\n\nEle voltará para o status "Aguardando Fornecedor" e você poderá adicionar ou editar produtos novamente.')) {
+            try {
+                await api.patch(`/api/pedidos/${id}/cancelar-confirmacao`);
+                alert('Confirmação cancelada com sucesso! O pedido foi reaberto.');
+                carregarPedido();
+            } catch (error) {
+                alert('Erro ao cancelar a confirmação do pedido: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
     const handleRemoverItemDoPedido = async (idItem) => {
         if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
             try {
@@ -73,7 +85,6 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // NOVO: Função para disparar mensagem individual do cabeçalho
     const handleAvisarFornecedor = () => {
       const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'parceiro';
       const telefone = pedido.fornecedor?.telefone || ''; 
@@ -198,6 +209,11 @@ export default function PedidoDetalhes() {
         return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
     };
 
+    const fDataHora = (dataIso) => {
+        if (!dataIso) return '-';
+        return new Date(dataIso).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+    };
+
     const getStatusExibicao = (pedidoObj) => {
         if (!pedidoObj) return '';
         const status = pedidoObj.status;
@@ -242,6 +258,7 @@ export default function PedidoDetalhes() {
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
+    const estaConfirmadoForn = pedido.status === 'CONFIRMADO_FORNECEDOR';
 
     return (
         <div className="layout">
@@ -267,7 +284,13 @@ export default function PedidoDetalhes() {
                     </div>
                     
                     <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-                        {/* NOVO: Botão no cabeçalho */}
+                        {/* NOVO: Botão de Cancelar Confirmação em destaque */}
+                        {estaConfirmadoForn && (
+                            <button style={{ ...styles.btnVoltar, backgroundColor: '#f59e0b', color: 'white' }} onClick={handleCancelarConfirmacao}>
+                                <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Cancelar Confirmação
+                            </button>
+                        )}
+
                         {pedido.status === 'PENDENTE_ENTREGA' && (
                           <button style={{ ...styles.btnVoltar, backgroundColor: '#25D366', color: 'white' }} onClick={handleAvisarFornecedor}>
                               <MessageCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Avisar Fornecedor
@@ -283,13 +306,26 @@ export default function PedidoDetalhes() {
                 </header>
 
                 <div style={styles.infoCard}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
                             <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status)}>{getStatusExibicao(pedido)}</span></p>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
-                            {mostrarReais && pedido.valorTotalReal != null && (
-                                <p style={{ fontSize: '15px' }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
+                            
+                            {/* NOVO: Exibição das Datas de Geração e Confirmação */}
+                            <p style={{ fontSize: '14px', marginBottom: '8px', color: '#4b5563' }}>
+                                <strong>Gerado (Enviado) em:</strong> {fDataHora(pedido.dataCriacao)}
+                            </p>
+                            {pedido.dataConfirmacao && (
+                                <p style={{ fontSize: '14px', marginBottom: '8px', color: '#166534' }}>
+                                    <strong>Confirmado pelo Forn. em:</strong> {fDataHora(pedido.dataConfirmacao)}
+                                </p>
                             )}
+                            
+                            <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'inline-block' }}>
+                                <p style={{ fontSize: '15px', margin: '0 0 5px 0' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
+                                {mostrarReais && pedido.valorTotalReal != null && (
+                                    <p style={{ fontSize: '15px', margin: 0 }}><strong>Valor Real (NF):</strong> {fMoney(pedido.valorTotalReal)}</p>
+                                )}
+                            </div>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
                             {podeConferir && (
