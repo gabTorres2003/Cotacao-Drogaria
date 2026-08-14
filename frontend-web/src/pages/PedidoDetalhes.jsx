@@ -24,7 +24,6 @@ export default function PedidoDetalhes() {
     
     const [isModalSugestoesAberto, setIsModalSugestoesAberto] = useState(false);
 
-    const [dicionarioDna, setDicionarioDna] = useState({});
     const [codigoDna, setCodigoDna] = useState('');
 
     const carregarPedido = async () => {
@@ -153,19 +152,6 @@ export default function PedidoDetalhes() {
         setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
         setCodigoDna('');
         
-        if (Object.keys(dicionarioDna).length === 0) {
-            try {
-                const res = await api.get('/api/diversos');
-                const mapa = {};
-                res.data.forEach(d => {
-                    if (d.codigoDiversos) mapa[String(d.codigoDiversos).trim().toUpperCase()] = d.produto;
-                });
-                setDicionarioDna(mapa);
-            } catch (error) {
-                console.error("Erro ao carregar dicionário de DNA:", error);
-            }
-        }
-        
         if (pedido?.cotacao?.id) {
             setTipoAdicao('COTACAO');
             try {
@@ -197,12 +183,15 @@ export default function PedidoDetalhes() {
         }
     };
 
-    const handleBuscarDna = () => {
+    const handleBuscarDna = async () => {
         if (!codigoDna) return;
-        const cod = codigoDna.trim().toUpperCase();
-        if (dicionarioDna[cod]) {
-            setNovoItem(prev => ({ ...prev, nomeProduto: dicionarioDna[cod] }));
-        } else {
+        const cod = codigoDna.trim();
+        try {
+            const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(cod)}`);
+            if (res.data) {
+                setNovoItem(prev => ({ ...prev, nomeProduto: res.data.descricao }));
+            }
+        } catch (error) {
             alert(`Código DNA ${cod} não encontrado na base de dados.`);
             setNovoItem(prev => ({ ...prev, nomeProduto: '' }));
         }

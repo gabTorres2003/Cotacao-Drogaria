@@ -1,8 +1,10 @@
 package com.drogaria.cotacao.service;
 
+import com.drogaria.cotacao.dto.response.ProdutoDnaDTO;
 import com.drogaria.cotacao.model.ItemCotacao;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -12,6 +14,7 @@ import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.stream.Collectors;
+import java.util.Optional;
 
 @Service
 public class IntegracaoDNAService {
@@ -147,4 +150,39 @@ public class IntegracaoDNAService {
 
         return sugestoesBrutas.stream().filter(item -> item != null).collect(Collectors.toList());
     }
+
+    public Optional<ProdutoDnaDTO> buscarProdutoPorCodigoOuBarras(String query) {
+    String sql = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                 "FROM PRODUTOS " +
+                 "WHERE (CODIGO = :codigoNum OR CODBARRAS = :codbarras)";
+
+    MapSqlParameterSource params = new MapSqlParameterSource();
+    
+    Integer codigoNum = null;
+    try {
+        codigoNum = Integer.parseInt(query.trim());
+    } catch (NumberFormatException ignored) {
+        // Se não for numérico, busca apenas pelo código de barras
+    }
+
+    params.addValue("codigoNum", codigoNum);
+    params.addValue("codbarras", query.trim());
+
+    try {
+        ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
+            return new ProdutoDnaDTO(
+                rs.getInt("CODIGO"),
+                rs.getString("CODBARRAS"),
+                rs.getString("DESCRICAO"),
+                rs.getDouble("QUANTIDADE"), 
+                rs.getDouble("PRECOVENDA"),
+                rs.getDouble("PRECOCUSTO"),
+                rs.getString("INATIVO")
+            );
+        });
+        return Optional.ofNullable(produto);
+    } catch (EmptyResultDataAccessException e) {
+        return Optional.empty();
+    }
+}
 }

@@ -21,16 +21,14 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
     if (!codigoDna) return;
     setIsBuscando(true);
     try {
-        const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna)}`);
-        if (res.data && res.data.length > 0) {
-            setItemAtual({ ...itemAtual, nomeProduto: res.data[0].descricao || res.data[0].nomeProduto });
-        } else {
-            alert(`Código DNA ${codigoDna} não encontrado na base de dados.`);
-            setItemAtual({ ...itemAtual, nomeProduto: '' });
+        const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna.trim())}`);
+        if (res.data) {
+            setItemAtual({ ...itemAtual, nomeProduto: res.data.descricao });
         }
     } catch (error) {
         console.error("Erro na API:", error.response || error);
-        alert(`Erro 500: O servidor Java falhou ao buscar o produto. Verifique o console do backend.`);
+        alert(`Código DNA ${codigoDna} não encontrado na base de dados.`);
+        setItemAtual({ ...itemAtual, nomeProduto: '' });
     } finally {
         setIsBuscando(false);
     }

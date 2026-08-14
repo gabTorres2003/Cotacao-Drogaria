@@ -1,37 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Search, CheckCircle } from 'lucide-react';
 import api from '../../../services/api';
 
 export default function ModalProdutoExtra({ isOpen, onClose, novoItemManual, setNovoItemManual, handleSalvarItemManual, salvandoItemManual }) {
-  const [dicionarioDna, setDicionarioDna] = useState({});
   const [codigoDna, setCodigoDna] = useState('');
-
-  useEffect(() => {
-    if (isOpen && Object.keys(dicionarioDna).length === 0) {
-      const carregarDicionario = async () => {
-        try {
-          const res = await api.get('/api/diversos');
-          const mapa = {};
-          res.data.forEach(d => {
-            if (d.codigoDiversos) mapa[String(d.codigoDiversos).trim().toUpperCase()] = d.produto;
-          });
-          setDicionarioDna(mapa);
-        } catch (error) {
-          console.error("Erro ao carregar dicionário de DNA:", error);
-        }
-      };
-      carregarDicionario();
-    }
-  }, [isOpen]);
 
   if (!isOpen) return null;
 
-  const handleBuscarDna = () => {
+  const handleBuscarDna = async () => {
     if (!codigoDna) return;
-    const cod = codigoDna.trim().toUpperCase();
-    if (dicionarioDna[cod]) {
-      setNovoItemManual(prev => ({ ...prev, nomeProduto: dicionarioDna[cod] }));
-    } else {
+    const cod = codigoDna.trim();
+    try {
+      const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(cod)}`);
+      if (res.data) {
+        setNovoItemManual(prev => ({ ...prev, nomeProduto: res.data.descricao }));
+      }
+    } catch (error) {
       alert(`Código DNA ${cod} não encontrado na base de dados.`);
       setNovoItemManual(prev => ({ ...prev, nomeProduto: '' }));
     }
@@ -69,7 +53,7 @@ export default function ModalProdutoExtra({ isOpen, onClose, novoItemManual, set
                   <div style={{ display: 'flex', gap: '10px' }}>
                       <div style={{ position: 'relative', flex: 1 }}>
                           <Search size={18} color="#9ca3af" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                          <input type="text" value={codigoDna} onChange={e => setCodigoDna(e.target.value)} placeholder="Ex: 12345" style={{ width: '100%', padding: '10px 10px 10px 35px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
+                          <input type="text" value={codigoDna} onChange={e => setCodigoDna(e.target.value)} onKeyDown={e => e.key === 'Enter' && handleBuscarDna()} placeholder="Ex: 12345" style={{ width: '100%', padding: '10px 10px 10px 35px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }} />
                       </div>
                       <button onClick={handleBuscarDna} style={{ padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Buscar</button>
                   </div>

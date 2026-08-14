@@ -4,26 +4,27 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.Getter;
-import lombok.Setter;
 
 @Entity
 @Table(name = "PRODUTOS")
-@Getter
-@Setter
-public class Produto {
+public class ProdutoDna {
 
     @Id
     @Column(name = "CODIGO")
-    private Long codigo;
+    private Integer codigo;
 
     @Column(name = "CODBARRAS")
     private String codbarras;
 
     @Column(name = "DESCRICAO")
     private String descricao;
-    
-    @Column(name = "PRECOVENDA")
-    private Double precoVenda;
 
+    @Column(name = "QUANTIDADE")
+    private Double quantidade; 
+
+    @Column(name = "PRECOVENDA")
+    private Double precovenda;
+
+    @Column(name = "INATIVO", length = 1)
+    private String inativo;
 }

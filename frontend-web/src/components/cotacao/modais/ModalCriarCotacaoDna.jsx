@@ -1,59 +1,44 @@
-import React, { useState, useEffect } from 'react';
-import { X, Search, Check, Save, Loader2, FileText, AlertTriangle, Trash2 } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Search, CheckCircle, Save, Loader2, FileText, Trash2 } from 'lucide-react';
 import api from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
 
 export default function ModalCriarCotacaoDna({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [textoDna, setTextoDna] = useState('');
-  const [dicionarioDna, setDicionarioDna] = useState({});
   const [listaProcessada, setListaProcessada] = useState([]);
   const [isProcessando, setIsProcessando] = useState(false);
   const [isSalvando, setIsSalvando] = useState(false);
   
-  // NOME PADRÃO DA COTAÇÃO
   const dataHoje = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }).replace(/\//g, '-');
   const [nomeCotacao, setNomeCotacao] = useState(`Pedido via Códigos - ${dataHoje}`);
 
-  useEffect(() => {
-    if (isOpen && Object.keys(dicionarioDna).length === 0) {
-      const carregarDicionario = async () => {
-        try {
-          const res = await api.get('/api/diversos');
-          const mapa = {};
-          res.data.forEach(d => {
-            if (d.codigoDiversos) mapa[String(d.codigoDiversos).trim().toUpperCase()] = d.produto;
-          });
-          setDicionarioDna(mapa);
-        } catch (error) {
-          console.error("Erro ao carregar dicionário de DNA:", error);
-        }
-      };
-      carregarDicionario();
-    }
-  }, [isOpen]);
-
   if (!isOpen) return null;
 
-  const processarTexto = () => {
+  const processarTexto = async () => {
     setIsProcessando(true);
     
-    // Separa o texto por vírgulas, espaços ou quebras de linha
     const regexSeparador = /[,\s\n]+/;
     const codigosExtraidos = textoDna.split(regexSeparador).filter(c => c.trim() !== '');
 
-    const novosItens = [];
-    codigosExtraidos.forEach(codigo => {
-      const codUpper = codigo.toUpperCase();
-      if (dicionarioDna[codUpper]) {
-        novosItens.push({
-          idTemp: Math.random().toString(36).substr(2, 9),
-          codigo: codUpper,
-          nomeProduto: dicionarioDna[codUpper],
-          quantidade: 1
-        });
-      }
+    const fetchPromises = codigosExtraidos.map(async (codigo) => {
+        try {
+            const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigo.trim())}`);
+            if (res.data) {
+                return {
+                    idTemp: Math.random().toString(36).substr(2, 9),
+                    codigo: codigo.toUpperCase(),
+                    nomeProduto: res.data.descricao,
+                    quantidade: 1
+                };
+            }
+        } catch (error) {
+            return null;
+        }
     });
+
+    const resultados = await Promise.all(fetchPromises);
+    const novosItens = resultados.filter(item => item !== null);
 
     if (novosItens.length === 0) {
         alert("Nenhum código válido encontrado na base de dados.");
@@ -127,7 +112,7 @@ export default function ModalCriarCotacaoDna({ isOpen, onClose }) {
                         disabled={isProcessando || textoDna.trim() === ''}
                         style={{ marginTop: '12px', padding: '12px 24px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', fontSize: '14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }}
                     >
-                        <Search size={18} /> Traduzir Códigos para Produtos
+                        {isProcessando ? <Loader2 size={18} className="animate-spin" /> : <Search size={18} />} Traduzir Códigos para Produtos
                     </button>
                 </div>
             ) : (
