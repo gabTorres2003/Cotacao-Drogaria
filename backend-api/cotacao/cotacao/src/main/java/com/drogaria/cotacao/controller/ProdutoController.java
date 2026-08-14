@@ -5,6 +5,8 @@ import com.drogaria.cotacao.repository.ProdutoRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -17,7 +19,30 @@ public class ProdutoController {
 
     @GetMapping("/buscar")
     public ResponseEntity<List<Produto>> buscarProdutosDna(@RequestParam String q) {
-        List<Produto> resultados = produtoRepository.buscarPorCodigoExato(q.trim());
-        return ResponseEntity.ok(resultados);
+        try {
+            String termo = q.trim();
+            List<Produto> resultados = new ArrayList<>();
+
+            if (termo.matches("\\d+")) {
+                try {
+                    Long codigo = Long.parseLong(termo);
+                    resultados = produtoRepository.findByCodigoOrCodbarras(codigo, termo);
+                } catch (NumberFormatException e) {
+                    resultados = produtoRepository.findByCodigoOrCodbarras(-1L, termo);
+                }
+            } else {
+                resultados = produtoRepository.findByDescricaoContainingIgnoreCaseOrderByDescricaoAsc(termo);
+            }
+
+            if (resultados.size() > 50) {
+                resultados = resultados.subList(0, 50);
+            }
+
+            return ResponseEntity.ok(resultados);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.internalServerError().build();
+        }
     }
 }
