@@ -9,6 +9,7 @@ import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
 import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
 import org.springframework.stereotype.Service;
 
+import jakarta.persistence.EntityManager;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
@@ -22,6 +23,9 @@ public class IntegracaoDNAService {
     @Autowired
     @Qualifier("dnaNamedJdbcTemplate")
     private NamedParameterJdbcTemplate dnaNamedJdbcTemplate;
+
+    @Autowired
+    private EntityManager entityManager;
 
     public List<ItemCotacao> buscarFaltasDiretoDoBanco(List<String> gruposSelecionados) {
         StringBuilder sql = new StringBuilder(
@@ -152,37 +156,62 @@ public class IntegracaoDNAService {
     }
 
     public Optional<ProdutoDnaDTO> buscarProdutoPorCodigoOuBarras(String query) {
-    String sql = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
-                 "FROM PRODUTOS " +
-                 "WHERE (CODIGO = :codigoNum OR CODBARRAS = :codbarras)";
+        String sql = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                     "FROM PRODUTOS " +
+                     "WHERE (CODIGO = :codigoNum OR CODBARRAS = :codbarras)";
 
-    MapSqlParameterSource params = new MapSqlParameterSource();
-    
-    Integer codigoNum = null;
-    try {
-        codigoNum = Integer.parseInt(query.trim());
-    } catch (NumberFormatException ignored) {
-        // Se não for numérico, busca apenas pelo código de barras
+        MapSqlParameterSource params = new MapSqlParameterSource();
+        
+        Integer codigoNum = null;
+        try {
+            codigoNum = Integer.parseInt(query.trim());
+        } catch (NumberFormatException ignored) {}
+
+        params.addValue("codigoNum", codigoNum);
+        params.addValue("codbarras", query.trim());
+
+        try {
+            ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
+                return new ProdutoDnaDTO(
+                    rs.getInt("CODIGO"),
+                    rs.getString("CODBARRAS"),
+                    rs.getString("DESCRICAO"),
+                    rs.getDouble("QUANTIDADE"), 
+                    rs.getDouble("PRECOVENDA"),
+                    rs.getDouble("PRECOCUSTO"),
+                    rs.getString("INATIVO")
+                );
+            });
+            return Optional.ofNullable(produto);
+        } catch (EmptyResultDataAccessException e) {
+            // FALLBACK: Se não achar no DNA (Firebird), tenta buscar na tabela 'produtos' do Supabase principal
+            try {
+                String sqlSupabase = "SELECT codigo, codbarras, descricao, quantidade, precovenda, precocusto, inativo " +
+                                     "FROM produtos WHERE CAST(codigo AS TEXT) = :q OR codbarras = :q LIMIT 1";
+                
+                @SuppressWarnings("unchecked")
+                List<Object[]> resultados = entityManager.createNativeQuery(sqlSupabase)
+                        .setParameter("q", query.trim())
+                        .getResultList();
+
+                if (!resultados.isEmpty()) {
+                    Object[] row = resultados.get(0);
+                    ProdutoDnaDTO prodSupabase = new ProdutoDnaDTO(
+                        row[0] != null ? ((Number) row[0]).intValue() : null,
+                        (String) row[1],
+                        (String) row[2],
+                        row[3] != null ? ((Number) row[3]).doubleValue() : 0.0,
+                        row[4] != null ? ((Number) row[4]).doubleValue() : 0.0,
+                        row[5] != null ? ((Number) row[5]).doubleValue() : 0.0,
+                        (String) row[6]
+                    );
+                    return Optional.of(prodSupabase);
+                }
+            } catch (Exception ex) {
+                System.err.println("Erro no fallback do Supabase: " + ex.getMessage());
+            }
+
+            return Optional.empty();
+        }
     }
-
-    params.addValue("codigoNum", codigoNum);
-    params.addValue("codbarras", query.trim());
-
-    try {
-        ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sql, params, (rs, rowNum) -> {
-            return new ProdutoDnaDTO(
-                rs.getInt("CODIGO"),
-                rs.getString("CODBARRAS"),
-                rs.getString("DESCRICAO"),
-                rs.getDouble("QUANTIDADE"), 
-                rs.getDouble("PRECOVENDA"),
-                rs.getDouble("PRECOCUSTO"),
-                rs.getString("INATIVO")
-            );
-        });
-        return Optional.ofNullable(produto);
-    } catch (EmptyResultDataAccessException e) {
-        return Optional.empty();
-    }
-}
 }

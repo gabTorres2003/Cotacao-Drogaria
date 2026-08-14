@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, PackageOpen, CheckSquare, Loader2, Save } from 'lucide-react';
+import { X, PackageOpen, CheckSquare, Loader2 } from 'lucide-react';
 import api from '../../../services/api';
 
 export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, onSuccess }) {
@@ -46,14 +46,14 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
     
     setSalvando(true);
     try {
-      // Filtra as encomendas selecionadas e monta o objeto esperado pelo ItemCotacao.java
       const itensParaImportar = encomendas
         .filter(enc => selecionados.includes(enc.id))
         .map(enc => ({
           encomendaId: enc.id,
-          nomeProduto: enc.produto,
+          nomeProduto: `${enc.produto} (Cliente: ${enc.cliente})`,
           quantidade: Number(enc.quantidade) || 1,
-          fornecedorSugerido: enc.fornecedorSugerido || enc.fornecedor || null
+          fornecedorSugerido: enc.fornecedorSugerido || enc.fornecedor || null,
+          origemItem: 'Encomenda'
         }));
 
       await api.post(`/api/cotacao/${cotacaoId}/importar-encomendas`, itensParaImportar);
@@ -72,7 +72,7 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '90%', maxWidth: '800px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '90%', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
         
         <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
@@ -80,7 +80,7 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
               <PackageOpen color="#4338ca"/> Importar Encomendas do Balcão
             </h2>
             <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
-              Selecione as encomendas registradas pelos atendentes para adicioná-las a esta cotação.
+              Selecione as encomendas pendentes registradas pelos atendentes.
             </p>
           </div>
           <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
@@ -111,15 +111,19 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
                         style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>DATA</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>PRODUTO</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', textAlign: 'center' }}>QTD</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>FORN. SUGERIDO</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Datas (Enc/Prev)</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Balconista</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Cliente</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Produto</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Qtd</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Pagamento</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Forn. Sugerido</th>
                   </tr>
                 </thead>
                 <tbody>
                   {encomendas.map((enc) => {
-                    const dataFormatada = enc.dataEncomenda ? new Date(enc.dataEncomenda).toLocaleDateString('pt-BR') : '-';
+                    const dataEnc = enc.dataEncomenda ? new Date(enc.dataEncomenda).toLocaleDateString('pt-BR') : '-';
+                    const dataPrev = enc.dataPrevista ? new Date(enc.dataPrevista).toLocaleDateString('pt-BR') : '-';
                     const isSelected = selecionados.includes(enc.id);
                     return (
                       <tr key={enc.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isSelected ? '#eef2ff' : 'white', transition: '0.2s' }}>
@@ -131,14 +135,23 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
                             style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                           />
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#64748b' }}>{dataFormatada}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '14px', color: '#1e293b', fontWeight: '600' }}>
-                            {enc.produto}
-                            <div style={{ fontSize: '11px', color: '#94a3b8', fontWeight: 'normal', marginTop: '2px' }}>Cliente: {enc.cliente}</div>
+                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#4b5563' }}>
+                          <div>{dataEnc}</div>
+                          <div style={{ color: '#ea580c', fontSize: '11px' }}>Prev: {dataPrev}</div>
                         </td>
-                        <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '14px', fontWeight: 'bold' }}>{enc.quantidade || 1}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#334155' }}>{enc.vendedor || '-'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>
+                          {enc.cliente}
+                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>{enc.telefone}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1e293b', fontWeight: 'bold' }}>
+                          {enc.produto}
+                          <div style={{ fontSize: '11px', color: '#2563eb' }}>Cód: {enc.codigoProduto || '-'}</div>
+                        </td>
+                        <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>{enc.quantidade || 1}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4b5563' }}>{enc.pagamento || 'Dinheiro'}</td>
                         <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4338ca', fontWeight: '500' }}>
-                            {enc.fornecedorSugerido || enc.fornecedor || '-'}
+                          {enc.fornecedorSugerido || enc.fornecedor || '-'}
                         </td>
                       </tr>
                     );
@@ -167,7 +180,6 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
           </div>
         </div>
       </div>
-      <style>{`@keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } } .animate-spin { animation: spin 1s linear infinite; }`}</style>
     </div>
   );
 }
