@@ -1,6 +1,5 @@
 package com.drogaria.cotacao.controller;
 
-import com.drogaria.cotacao.dto.response.ProdutoDnaDTO;
 import com.drogaria.cotacao.service.IntegracaoDNAService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,6 +17,6 @@ public class ProdutoController {
     public ResponseEntity<?> buscarProduto(@RequestParam("q") String query) {
         return integracaoDNAService.buscarProdutoPorCodigoOuBarras(query)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
-                .orElseGet(() -> ResponseEntity.status(404).body("Produto não encontrado no DNA ou Supabase"));
+                .orElseGet(() -> ResponseEntity.status(404).body("Produto não encontrado"));
     }
 }

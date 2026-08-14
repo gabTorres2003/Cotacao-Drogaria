@@ -50,7 +50,7 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
         .filter(enc => selecionados.includes(enc.id))
         .map(enc => ({
           encomendaId: enc.id,
-          nomeProduto: `${enc.produto} (Cliente: ${enc.cliente})`,
+          nomeProduto: `${enc.produto} [Cliente: ${enc.cliente} | Tel: ${enc.telefone || 'N/A'} | Cód: ${enc.codigoProduto || 'N/A'}]`,
           quantidade: Number(enc.quantidade) || 1,
           fornecedorSugerido: enc.fornecedorSugerido || enc.fornecedor || null,
           origemItem: 'Encomenda'

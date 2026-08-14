@@ -8,6 +8,6 @@ import java.util.UUID;
 
 public interface EncomendaRepository extends JpaRepository<Encomenda, UUID> {
     
-    @Query("SELECT e FROM Encomenda e WHERE e.comprado = false OR e.comprado IS NULL")
+    @Query(value = "SELECT * FROM encomendas WHERE comprado = false OR comprado IS NULL", nativeQuery = true)
     List<Encomenda> findByCompradoFalseOrCompradoIsNull();
 }
