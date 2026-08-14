@@ -29,15 +29,14 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
     if (!codigoDna) return;
     setIsBuscando(true);
     try {
-        const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna)}`);
+        const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna.trim())}`);
         
-        if (res.data && res.data.length > 0) {
-            // Pega o primeiro resultado exato
-            const prod = res.data[0];
+        if (res.data && res.data.descricao) {
+            const prod = res.data;
             setItemAtual({ 
               ...itemAtual, 
               nomeProduto: prod.descricao, 
-              codigoDna: prod.codigo 
+              codigoDna: prod.codigo || codigoDna 
             });
         } else {
             alert(`Produto não encontrado para o código: ${codigoDna}`);
@@ -45,7 +44,8 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
         }
     } catch (error) {
         console.error("Erro na API:", error);
-        alert(`Falha ao buscar o produto. Verifique se o backend está rodando.`);
+        alert(`Produto não encontrado para o código: ${codigoDna}`);
+        setItemAtual({ ...itemAtual, nomeProduto: '', codigoDna: '' });
     } finally {
         setIsBuscando(false);
     }
