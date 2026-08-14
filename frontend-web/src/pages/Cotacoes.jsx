@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
-import { Plus, Search, Filter, Eye, Trash2, ArrowUpDown, Loader2 } from 'lucide-react'
+import ModalNovaCotacaoManual from '../components/cotacao/modais/ModalNovaCotacaoManual';
+import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus } from 'lucide-react';
 
 export default function Cotacoes() {
   const navigate = useNavigate()
@@ -19,6 +20,7 @@ export default function Cotacoes() {
   const [resumo, setResumo] = useState({ total: 0, emAberto: 0, aguardando: 0, finalizadas: 0 })
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
+  const [isModalManualOpen, setIsModalManualOpen] = useState(false);
 
   useEffect(() => {
     carregarCotacoes()
@@ -71,7 +73,12 @@ export default function Cotacoes() {
       if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
 
       const texto = busca.toLowerCase();
-      const matchTexto = c.id.toString().includes(texto) || (c.descricao && c.descricao.toLowerCase().includes(texto));
+      const descBusca = c.descricao || c.origem || '';
+      const userBusca = c.nomeUsuario || c.usuario || '';
+      
+      const matchTexto = c.id.toString().includes(texto) || 
+                         descBusca.toLowerCase().includes(texto) ||
+                         userBusca.toLowerCase().includes(texto);
       
       const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
 
@@ -103,12 +110,22 @@ export default function Cotacoes() {
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Painel de Cotações</h1>
             <p style={{ color: '#6b7280' }}>Gerencie suas compras e fornecedores</p>
           </div>
-          <button 
-            onClick={() => setIsUploadModalOpen(true)}
-            style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-          >
-            <Plus size={20} /> Nova Cotação (Importar)
-          </button>
+          
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+            <button 
+              onClick={() => setIsModalManualOpen(true)}
+              style={{ padding: '10px 20px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            >
+              <ListPlus size={20} /> Nova Cotação (Manual / Busca)
+            </button>
+
+            <button 
+              onClick={() => setIsUploadModalOpen(true)}
+              style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            >
+              <FileText size={20} /> Importar Faltas DNA
+            </button>
+          </div>
         </header>
 
         <div className="stats-grid" style={{ marginBottom: '24px' }}>
@@ -228,10 +245,12 @@ export default function Cotacoes() {
                 cotacoesFiltradas.map((cotacao) => (
                   <tr key={cotacao.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                     <td style={{ padding: '16px', fontWeight: 'bold', color: '#374151' }}>#{cotacao.id}</td>
-                    <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>{cotacao.descricao}</td>
+                    <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>
+                      {cotacao.descricao || cotacao.origem || 'Cotação Manual'}
+                    </td>
                     <td style={{ padding: '16px', color: '#4b5563', fontSize: '14px' }}>
                       <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                        {cotacao.nomeUsuario || 'Sistema'}
+                        {cotacao.nomeUsuario || cotacao.usuario || 'Sistema'}
                       </span>
                     </td>
 
@@ -265,6 +284,13 @@ export default function Cotacoes() {
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)} 
           onSuccess={carregarCotacoes} 
+        />
+      )}
+
+      {isModalManualOpen && (
+        <ModalNovaCotacaoManual 
+          isOpen={isModalManualOpen} 
+          onClose={() => { setIsModalManualOpen(false); carregarCotacoes(); }} 
         />
       )}
 
