@@ -11,7 +11,7 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
   const [listaItens, setListaItens] = useState([]);
   const [codigoDna, setCodigoDna] = useState('');
   
-  const [itemAtual, setItemAtual] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: '' });
+  const [itemAtual, setItemAtual] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: '', codigoDna: '' });
   
   const [isBuscando, setIsBuscando] = useState(false);
   const [isSalvando, setIsSalvando] = useState(false);
@@ -30,15 +30,22 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
     setIsBuscando(true);
     try {
         const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna)}`);
+        
         if (res.data && res.data.length > 0) {
-            setItemAtual({ ...itemAtual, nomeProduto: res.data[0].descricao || res.data[0].nomeProduto });
+            // Pega o primeiro resultado exato
+            const prod = res.data[0];
+            setItemAtual({ 
+              ...itemAtual, 
+              nomeProduto: prod.descricao, 
+              codigoDna: prod.codigo 
+            });
         } else {
-            alert(`Código DNA ${codigoDna} não encontrado na base de dados.`);
-            setItemAtual({ ...itemAtual, nomeProduto: '' });
+            alert(`Produto não encontrado para o código: ${codigoDna}`);
+            setItemAtual({ ...itemAtual, nomeProduto: '', codigoDna: '' });
         }
     } catch (error) {
-        console.error("Erro na API:", error.response || error);
-        alert(`Erro 500: O servidor Java falhou ao buscar o produto. Verifique o console do backend.`);
+        console.error("Erro na API:", error);
+        alert(`Falha ao buscar o produto. Verifique se o backend está rodando.`);
     } finally {
         setIsBuscando(false);
     }
@@ -48,8 +55,8 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
       if(!itemAtual.nomeProduto || !itemAtual.quantidade || !itemAtual.valorUnitario) {
           return alert("Preencha todos os campos obrigatórios (Nome, Qtd e Valor).");
       }
-      setListaItens([{ ...itemAtual, idTemp: Date.now(), codigoDna: abaDna ? codigoDna : '' }, ...listaItens]);
-      setItemAtual({ nomeProduto: '', quantidade: 1, valorUnitario: '' });
+      setListaItens([{ ...itemAtual, idTemp: Date.now(), codigoDna: abaDna ? itemAtual.codigoDna : '' }, ...listaItens]);
+      setItemAtual({ nomeProduto: '', quantidade: 1, valorUnitario: '', codigoDna: '' });
       setCodigoDna('');
   };
 
@@ -105,8 +112,8 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
 
             <div style={{ padding: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <button onClick={() => { setAbaDna(true); setItemAtual({...itemAtual, nomeProduto: ''}); setCodigoDna(''); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna ? 'white' : 'transparent', color: abaDna ? '#2563eb' : '#64748b', boxShadow: abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Por Código DNA</button>
-                    <button onClick={() => { setAbaDna(false); setItemAtual({...itemAtual, nomeProduto: ''}); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: !abaDna ? 'white' : 'transparent', color: !abaDna ? '#2563eb' : '#64748b', boxShadow: !abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Digitar Manualmente</button>
+                    <button onClick={() => { setAbaDna(true); setItemAtual({...itemAtual, nomeProduto: '', codigoDna: ''}); setCodigoDna(''); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna ? 'white' : 'transparent', color: abaDna ? '#2563eb' : '#64748b', boxShadow: abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Por Código DNA</button>
+                    <button onClick={() => { setAbaDna(false); setItemAtual({...itemAtual, nomeProduto: '', codigoDna: ''}); }} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: !abaDna ? 'white' : 'transparent', color: !abaDna ? '#2563eb' : '#64748b', boxShadow: !abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Digitar Manualmente</button>
                 </div>
 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -130,9 +137,9 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
                                 </button>
                             </div>
 
-                            {itemAtual.nomeProduto && (
+                            {itemAtual.nomeProduto && abaDna && (
                                 <div style={{ marginTop: '8px', fontSize: '13px', color: '#166534', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f0fdf4', padding: '8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                                    <CheckCircle size={16} /> Encontrado: {itemAtual.nomeProduto}
+                                    <CheckCircle size={16} /> Selecionado: {itemAtual.nomeProduto}
                                 </div>
                             )}
                         </div>
@@ -174,7 +181,9 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
                         <tbody>
                             {listaItens.map(item => (
                                 <tr key={item.idTemp} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '10px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>{item.nomeProduto}</td>
+                                    <td style={{ padding: '10px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>
+                                        {item.nomeProduto}
+                                    </td>
                                     <td style={{ padding: '10px', textAlign: 'center', fontSize: '13px', color: '#64748b' }}>{item.codigoDna || '-'}</td>
                                     <td style={{ padding: '10px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>{item.quantidade}</td>
                                     <td style={{ padding: '10px', textAlign: 'right', fontSize: '13px' }}>{Number(item.valorUnitario).toFixed(2)}</td>

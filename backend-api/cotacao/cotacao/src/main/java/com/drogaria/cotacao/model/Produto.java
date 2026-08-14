@@ -12,6 +12,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Produto {
+
     @Id
     @Column(name = "CODIGO")
     private Long codigo;
@@ -21,4 +22,8 @@ public class Produto {
 
     @Column(name = "DESCRICAO")
     private String descricao;
+    
+    @Column(name = "PRECOVENDA")
+    private Double precoVenda;
+
 }
