@@ -18,6 +18,7 @@ import com.drogaria.cotacao.repository.FornecedorRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
+import com.drogaria.cotacao.repository.EncomendaRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -39,6 +40,7 @@ public class PedidoService {
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
     private final ItemCotacaoRepository itemCotacaoRepository;
+    private final EncomendaRepository encomendaRepository; // REPOSITÓRIO DAS ENCOMENDAS INJETADO
 
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
@@ -198,6 +200,17 @@ public class PedidoService {
                 
                 itemPedido.setItemCotacao(itemCotacao);
                 itemPedido.setNomeProduto(itemDto.getNomeProduto() != null ? itemDto.getNomeProduto() : itemCotacao.getNomeProduto());
+
+                if (itemCotacao.getEncomendaId() != null) {
+                    encomendaRepository.findById(itemCotacao.getEncomendaId()).ifPresent(encomenda -> {
+                        encomenda.setComprado(true);
+                        encomenda.setDataCompra(java.time.LocalDate.now());
+                        String nomeFornecedorAnotado = fornecedor.getEmpresa() != null ? fornecedor.getEmpresa() : fornecedor.getNome();
+                        encomenda.setFornecedor(nomeFornecedorAnotado);
+                        encomendaRepository.save(encomenda);
+                    });
+                }
+
             } else {
                 itemPedido.setItemCotacao(null);
                 itemPedido.setNomeProduto(itemDto.getNomeProduto());

@@ -15,6 +15,7 @@ import TabelaRegistroManual from '../components/cotacao/TabelaRegistroManual';
 import CardsSugestoes from '../components/cotacao/CardsSugestoes';
 import UploadModal from '../components/layout/UploadModal';
 import EnviarLinkModal from '../components/EnviarLinkModal';
+import ModalImportarEncomendas from '../components/cotacao/modais/ModalImportarEncomendas';
 
 // Modais
 import ModalFornecedoresNotificados from '../components/cotacao/modais/ModalFornecedoresNotificados';
@@ -22,7 +23,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, PackageOpen } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -63,6 +64,7 @@ export default function CotacaoDetalhes() {
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isEnviarModalOpen, setIsEnviarModalOpen] = useState(false);
+  const [isEncomendasModalOpen, setIsEncomendasModalOpen] = useState(false);
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' });
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
@@ -90,7 +92,6 @@ export default function CotacaoDetalhes() {
   // Normalizador agressivo: ignora espaços, acentos, parenteses, etc.
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
-  // ATUALIZADO: Buscar pedidos abertos apenas DA COTAÇÃO ATUAL
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
@@ -346,7 +347,7 @@ export default function CotacaoDetalhes() {
                    isExtra: true, 
                    isSugestaoTroca: true,
                    todosDadosItem: itemRelatorio,
-                   selected: false // Inicia desmarcado
+                   selected: false 
                  });
               }
            }
@@ -374,7 +375,7 @@ export default function CotacaoDetalhes() {
             isExtra: true,
             isSugestaoTroca: false,
             observacao: promo.observacao,
-            selected: false // Inicia desmarcado
+            selected: false 
         });
       });
 
@@ -617,20 +618,6 @@ export default function CotacaoDetalhes() {
     } catch (e) {}
   };
 
-  const handleSelectPedidoAberto = (e) => {
-    const pedId = e.target.value;
-    const pedObj = pedidosAbertosList.find(p => String(p.id) === String(pedId));
-    let novoValor = addPedidoForm.valor;
-    
-    if (pedObj && itemAddPedido && itemAddPedido.precosPorFornecedor) {
-      const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome;
-      if (fornecedor && itemAddPedido.precosPorFornecedor[fornecedor] > 0) {
-        novoValor = itemAddPedido.precosPorFornecedor[fornecedor];
-      }
-    }
-    setAddPedidoForm(prev => ({ ...prev, pedidoId: pedId, valor: novoValor }));
-  };
-
   const confirmarAddPedido = async () => {
     if (!addPedidoForm.pedidoId) return alert("Selecione um pedido existente para prosseguir.");
     
@@ -712,6 +699,18 @@ export default function CotacaoDetalhes() {
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
       />
 
+      {/* BOTÃO PARA ABRIR O MODAL DE ENCOMENDAS DO BALCÃO */}
+      {!isEncerrada && (
+        <div style={{ marginBottom: '20px' }}>
+          <button 
+            onClick={() => setIsEncomendasModalOpen(true)}
+            style={{ padding: '10px 20px', backgroundColor: '#4338ca', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+          >
+            <PackageOpen size={20} /> Importar Encomendas do Balcão
+          </button>
+        </div>
+      )}
+
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
@@ -790,6 +789,15 @@ export default function CotacaoDetalhes() {
       <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvandoItemManual} />
       {isUploadModalOpen && <UploadModal cotacaoId={id} onClose={() => setIsUploadModalOpen(false)} onSuccess={carregarRelatorio} />}
       {isEnviarModalOpen && <EnviarLinkModal idCotacao={id} onClose={() => setIsEnviarModalOpen(false)} onStatusUpdate={() => { carregarCotacao(); carregarVinculos(); }} />}
+      
+      {/* MODAL DE IMPORTAR ENCOMENDAS */}
+      <ModalImportarEncomendas 
+        isOpen={isEncomendasModalOpen} 
+        onClose={() => setIsEncomendasModalOpen(false)} 
+        cotacaoId={id} 
+        onSuccess={carregarRelatorio} 
+      />
+
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
       
       <ModalResumoPedidos 

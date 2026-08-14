@@ -99,6 +99,19 @@ public class CotacaoController {
         }
     }
 
+    @PostMapping("/{id}/importar-encomendas")
+    public ResponseEntity<String> importarEncomendas(@PathVariable Long id, @RequestBody List<ItemCotacao> itens) {
+        return cotacaoRepository.findById(id).map(cotacao -> {
+            itens.forEach(item -> {
+                item.setCotacao(cotacao);
+                item.setOrigemItem("Encomenda");
+                cotacao.getItens().add(item);
+            });
+            cotacaoRepository.save(cotacao);
+            return ResponseEntity.ok("Encomendas importadas com sucesso!");
+        }).orElse(ResponseEntity.notFound().build());
+    }
+
     @PostMapping("/{id}/item")
     public ResponseEntity<ItemCotacao> adicionarItemManual(@PathVariable Long id, @RequestBody ItemCotacao dados) {
         try {

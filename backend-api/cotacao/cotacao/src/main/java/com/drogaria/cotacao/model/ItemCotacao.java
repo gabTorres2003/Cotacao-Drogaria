@@ -3,7 +3,8 @@ package com.drogaria.cotacao.model;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
-import java.util.List; 
+import java.util.List;
+import java.util.UUID;
 
 @Entity
 @Table(name = "tb_itens_cotacao")
@@ -43,12 +44,18 @@ public class ItemCotacao {
     @Column(name = "excluido")
     private Boolean excluido = false;
 
-    // NOVOS CAMPOS PARA RASTREAMENTO DE ESTORNO
     @Column(name = "devolvido_por_alteracao_preco")
     private Boolean devolvidoPorAlteracaoPreco = false;
 
     @Column(name = "pedido_origem_id")
     private Long pedidoOrigemId;
+
+    // NOVOS CAMPOS PARA ENCOMENDAS
+    @Column(name = "encomenda_id")
+    private UUID encomendaId;
+
+    @Column(name = "fornecedor_sugerido")
+    private String fornecedorSugerido;
 
     @ManyToOne
     @JoinColumn(name = "cotacao_id")
@@ -97,10 +104,16 @@ public class ItemCotacao {
     public Boolean getExcluido() { return excluido; }
     public void setExcluido(Boolean excluido) { this.excluido = excluido; }
 
-    // GETTERS E SETTERS DOS NOVOS CAMPOS
     public Boolean getDevolvidoPorAlteracaoPreco() { return devolvidoPorAlteracaoPreco; }
     public void setDevolvidoPorAlteracaoPreco(Boolean devolvidoPorAlteracaoPreco) { this.devolvidoPorAlteracaoPreco = devolvidoPorAlteracaoPreco; }
 
     public Long getPedidoOrigemId() { return pedidoOrigemId; }
     public void setPedidoOrigemId(Long pedidoOrigemId) { this.pedidoOrigemId = pedidoOrigemId; }
+
+    // GETTERS E SETTERS DAS ENCOMENDAS
+    public UUID getEncomendaId() { return encomendaId; }
+    public void setEncomendaId(UUID encomendaId) { this.encomendaId = encomendaId; }
+
+    public String getFornecedorSugerido() { return fornecedorSugerido; }
+    public void setFornecedorSugerido(String fornecedorSugerido) { this.fornecedorSugerido = fornecedorSugerido; }
 }

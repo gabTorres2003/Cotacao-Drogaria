@@ -125,6 +125,14 @@ export default function TabelaDetalhes({
                           </button>
                         </div>
                       )}
+
+                      {/* TAG VISUAL DE ENCOMENDA ADICIONADA AQUI */}
+                      {item.origemItem === 'Encomenda' && (
+                        <div style={{ marginTop: '4px', fontSize: '11px', color: '#4338ca', backgroundColor: '#e0e7ff', padding: '4px 8px', borderRadius: '4px', display: 'inline-block', border: '1px solid #c7d2fe' }}>
+                          📦 <b>Encomenda</b>
+                          {item.fornecedorSugerido && <span> | Sugestão do Balcão: <b style={{ color: '#312e81' }}>{item.fornecedorSugerido}</b></span>}
+                        </div>
+                      )}
                       
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <BadgeOrigem origem={item.origemItem} />
