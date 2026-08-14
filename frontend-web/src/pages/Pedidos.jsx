@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle } from 'lucide-react'
+import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' // NOVO MODAL
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -24,6 +25,9 @@ export default function Pedidos() {
 
   const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
+
+  // NOVO ESTADO
+  const [isModalManualOpen, setIsModalManualOpen] = useState(false)
 
   useEffect(() => {
     carregarPedidos()
@@ -85,7 +89,6 @@ export default function Pedidos() {
     }
   };
 
-  // NOVO: Mensagem em massa para lista de transmissão
   const handleAvisarEmMassa = () => {
     const horaAtual = new Date().getHours();
     let saudacao = 'Boa noite';
@@ -97,7 +100,6 @@ export default function Pedidos() {
     window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`, '_blank');
   };
 
-  // NOVO: Mensagem individual para o fornecedor da linha
   const handleAvisarIndividual = (pedido) => {
     const fornecedorNome = pedido.fornecedor?.nome || pedido.fornecedorNome || 'parceiro';
     const telefone = pedido.fornecedor?.telefone || ''; 
@@ -111,7 +113,6 @@ export default function Pedidos() {
 
     let url = `https://api.whatsapp.com/send?text=${encodeURIComponent(mensagem)}`;
     
-    // Se tiver telefone salvo no banco, já abre o chat direto com a pessoa!
     if (telefone) {
       let telefoneLimpo = telefone.replace(/\D/g, '');
       if (telefoneLimpo.length === 10 || telefoneLimpo.length === 11) telefoneLimpo = `55${telefoneLimpo}`;
@@ -246,18 +247,27 @@ export default function Pedidos() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+            <button 
+              onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+            >
+              Pedidos em Andamento
+            </button>
+            <button 
+              onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+              style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+            >
+              Histórico (Concluídos)
+            </button>
+          </div>
+
           <button 
-            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-          >
-            Pedidos em Andamento
-          </button>
-          <button 
-            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-          >
-            Histórico (Concluídos)
+              onClick={() => setIsModalManualOpen(true)}
+              style={{ padding: '10px 16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+            >
+              <PackagePlus size={18} /> Criar Pedido Manual
           </button>
         </div>
 
@@ -435,7 +445,7 @@ export default function Pedidos() {
                           </button>
                         ) : (
                           <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
-                            -
+                            Avulso
                           </span>
                         )}
                       </td>
@@ -453,7 +463,6 @@ export default function Pedidos() {
                             <Eye size={18} />
                           </button>
                           
-                          {/* NOVO: Botão verde para avisar no WhatsApp na linha individual */}
                           {p.status === 'PENDENTE_ENTREGA' && (
                              <button className="btn-icon" title="Avisar Fornecedor (WhatsApp)" onClick={() => handleAvisarIndividual(p)}>
                                <MessageCircle size={18} color="#25D366" />
@@ -492,6 +501,15 @@ export default function Pedidos() {
             onSuccess={() => { setModalDevolucaoAberto(false); carregarPedidos(); }}
           />
         )}
+        
+        {/* MODAL DE CRIAR PEDIDO MANUAL */}
+        {isModalManualOpen && (
+            <ModalPedidoManual 
+                isOpen={isModalManualOpen} 
+                onClose={() => { setIsModalManualOpen(false); carregarPedidos(); }} 
+            />
+        )}
+
       </main>
       
       <style>{`

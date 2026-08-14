@@ -163,12 +163,20 @@ public class PedidoController {
     @PatchMapping("/{id}/cancelar-confirmacao")
     public ResponseEntity<Pedido> cancelarConfirmacao(@PathVariable Long id) {
         Pedido pedidoAtualizado = pedidoService.cancelarConfirmacao(id);
-        
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.STATUS_PEDIDO, "Pedido", id, 
             "Cancelou a confirmação do fornecedor e reabriu o pedido para edições."
         );
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
 
+    @PatchMapping("/{id}/refazer-conferencia")
+    public ResponseEntity<Pedido> refazerConferencia(@PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.refazerConferencia(id);
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            "Reabriu a conferência (cega) do pedido para ajustes nos valores da Nota Fiscal."
+        );
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
@@ -204,24 +212,20 @@ public class PedidoController {
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deletarPedido(@PathVariable Long id) {
         pedidoService.deletarPedido(id);
-
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.EXCLUSAO, "Pedido", id, 
             "Excluiu permanentemente o pedido de compra do sistema."
         );
-
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/item/{idItem}")
     public ResponseEntity<Void> deletarItemPedido(@PathVariable Long idItem) {
         pedidoService.removerItem(idItem);
-
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "FORNECEDOR", TipoAcao.EXCLUSAO, "ItemPedido", idItem, 
             "Um item foi removido do pedido e retornou para os pendentes."
         );
-
         return ResponseEntity.noContent().build();
     }
 }

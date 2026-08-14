@@ -119,6 +119,28 @@ public class PedidoService {
 
         return pedidoRepository.save(pedido);
     }
+
+    @Transactional
+    public Pedido refazerConferencia(Long pedidoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+        
+        if (pedido.getStatus() == StatusPedido.PENDENTE_ENTREGA || pedido.getStatus() == StatusPedido.CONFIRMADO_FORNECEDOR) {
+            throw new RuntimeException("Este pedido ainda não foi conferido.");
+        }
+
+        pedido.setStatus(StatusPedido.CONFIRMADO_FORNECEDOR);
+        pedido.setValorTotalReal(null);
+        pedido.setNumeroNota(null);
+
+        for (ItemPedido item : pedido.getItens()) {
+            item.setQuantidadeReal(null);
+            item.setValorUnitarioReal(null);
+            item.setStatusRecebimento(null);
+            item.setObservacaoDevolucao(null);
+        }
+
+        return pedidoRepository.save(pedido);
+    }
     
     @Transactional
     public Pedido atualizarStatus(Long pedidoId, StatusPedido novoStatus) {
@@ -148,8 +170,11 @@ public class PedidoService {
 
     @Transactional
     public Pedido gerarPedidoEmLote(GerarPedidoRequestDTO dto) {
-        Cotacao cotacao = cotacaoRepository.findById(dto.getCotacaoId())
-                .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+        Cotacao cotacao = null;
+        if (dto.getCotacaoId() != null) {
+            cotacao = cotacaoRepository.findById(dto.getCotacaoId())
+                    .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
+        }
 
         Fornecedor fornecedor = fornecedorRepository.findByNome(dto.getFornecedorNome())
                 .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + dto.getFornecedorNome()));
@@ -205,7 +230,9 @@ public class PedidoService {
 
         for (GerarPedidoRequestDTO dto : dtos) {
             pedidosGerados.add(gerarPedidoEmLote(dto));
-            idCotacao = dto.getCotacaoId();
+            if (dto.getCotacaoId() != null) {
+                idCotacao = dto.getCotacaoId();
+            }
         }
 
         if (idCotacao != null) {
@@ -372,7 +399,6 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
-    // NOVAS FUNÇÕES PARA O MÓDULO DE FORNECEDORES E SUGESTÕES
     @Transactional
     public Pedido atualizarValorMinimo(Long pedidoId, Double valorMinimo) {
         Pedido pedido = buscarPorId(pedidoId);
@@ -420,6 +446,7 @@ public class PedidoService {
         
         double subtotal = sugestao.getQuantidade() * sugestao.getPrecoUnitario();
         pedido.setValorTotalPedido((pedido.getValorTotalPedido() != null ? pedido.getValorTotalPedido() : 0.0) + subtotal);
+
         pedido.getSugestoes().remove(sugestao);
 
         return pedidoRepository.save(pedido);

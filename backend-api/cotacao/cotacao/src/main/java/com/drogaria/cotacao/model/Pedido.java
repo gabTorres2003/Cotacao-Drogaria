@@ -18,7 +18,7 @@ public class Pedido {
     private Long id;
 
     @ManyToOne
-    @JoinColumn(name = "cotacao_id", nullable = false)
+    @JoinColumn(name = "cotacao_id") 
     @JsonIgnoreProperties({"pedidos", "itens"}) 
     private Cotacao cotacao;
 

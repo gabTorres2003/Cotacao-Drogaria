@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -23,6 +23,9 @@ export default function PedidoDetalhes() {
     const [valoresEditados, setValoresEditados] = useState({});
     
     const [isModalSugestoesAberto, setIsModalSugestoesAberto] = useState(false);
+
+    const [dicionarioDna, setDicionarioDna] = useState({});
+    const [codigoDna, setCodigoDna] = useState('');
 
     const carregarPedido = async () => {
         try {
@@ -64,6 +67,18 @@ export default function PedidoDetalhes() {
         }
     };
 
+    const handleRefazerConferencia = async () => {
+        if (window.confirm('Tem certeza que deseja APAGAR os valores recebidos e REFAZER a conferência cega deste pedido?')) {
+            try {
+                await api.patch(`/api/pedidos/${id}/refazer-conferencia`);
+                alert('Conferência apagada. Você foi redirecionado para lançar a NF novamente.');
+                navigate(`/pedidos/${id}/conferir`);
+            } catch (error) {
+                alert('Erro ao refazer a conferência: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
     const handleRemoverItemDoPedido = async (idItem) => {
         if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
             try {
@@ -75,7 +90,6 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // NOVAS FUNÇÕES PARA LHE DAR COM AS SUGESTÕES
     const handleAceitarSugestao = async (idSugestao) => {
         try {
             await api.post(`/api/pedidos/${id}/sugestoes/${idSugestao}/aceitar`);
@@ -137,6 +151,20 @@ export default function PedidoDetalhes() {
         setIsAddItemModalOpen(true);
         setItemParaTrocar(null);
         setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null });
+        setCodigoDna('');
+        
+        if (Object.keys(dicionarioDna).length === 0) {
+            try {
+                const res = await api.get('/api/diversos');
+                const mapa = {};
+                res.data.forEach(d => {
+                    if (d.codigoDiversos) mapa[String(d.codigoDiversos).trim().toUpperCase()] = d.produto;
+                });
+                setDicionarioDna(mapa);
+            } catch (error) {
+                console.error("Erro ao carregar dicionário de DNA:", error);
+            }
+        }
         
         if (pedido?.cotacao?.id) {
             setTipoAdicao('COTACAO');
@@ -147,7 +175,7 @@ export default function PedidoDetalhes() {
                 console.error("Erro ao buscar itens pendentes:", error);
             }
         } else {
-            setTipoAdicao('MANUAL');
+            setTipoAdicao('DNA');
             setItensPendentes([]);
         }
     };
@@ -166,6 +194,17 @@ export default function PedidoDetalhes() {
                 valorUnitarioPedido: '', 
                 itemCotacaoId: itemSel.idItem
             });
+        }
+    };
+
+    const handleBuscarDna = () => {
+        if (!codigoDna) return;
+        const cod = codigoDna.trim().toUpperCase();
+        if (dicionarioDna[cod]) {
+            setNovoItem(prev => ({ ...prev, nomeProduto: dicionarioDna[cod] }));
+        } else {
+            alert(`Código DNA ${cod} não encontrado na base de dados.`);
+            setNovoItem(prev => ({ ...prev, nomeProduto: '' }));
         }
     };
 
@@ -222,7 +261,7 @@ export default function PedidoDetalhes() {
             }));
             
             await api.put(`/api/pedidos/${id}/valores-previstos`, payload);
-            alert('Valores atualizados com sucesso! A cotação vinculada também foi atualizada.');
+            alert('Valores atualizados com sucesso!');
             setIsEditandoValores(false);
             carregarPedido();
         } catch (error) {
@@ -285,8 +324,10 @@ export default function PedidoDetalhes() {
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
     const estaConfirmadoForn = pedido.status === 'CONFIRMADO_FORNECEDOR';
+    
+    // Mostra o botão de refazer caso o pedido já tenha passado pela conferência
+    const podeRefazerConferencia = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO';
 
-    // Cálculos para o painel de Faturamento Mínimo
     const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
     const totalConsiderado = pedido.valorTotalPedido || 0;
     const faltaParaMinimo = valorMinimoSalvo > 0 ? valorMinimoSalvo - totalConsiderado : 0;
@@ -301,7 +342,7 @@ export default function PedidoDetalhes() {
                     <div>
                         <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             Pedido #{pedido.id}
-                            {pedido.cotacao?.id && (
+                            {pedido.cotacao?.id ? (
                                 <button 
                                     onClick={() => navigate(`/cotacao/${pedido.cotacao.id}`)}
                                     style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
@@ -309,6 +350,10 @@ export default function PedidoDetalhes() {
                                 >
                                     Ver Cotação #{pedido.cotacao.id}
                                 </button>
+                            ) : (
+                                <span style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
+                                    Pedido Avulso
+                                </span>
                             )}
                         </h1>
                         <p style={{ color: '#4b5563', fontSize: '15px' }}>
@@ -337,7 +382,6 @@ export default function PedidoDetalhes() {
                     </div>
                 </header>
 
-                {/* ALERTA DE SUGESTÕES PENDENTES NO TOPO */}
                 {pedido.sugestoes && pedido.sugestoes.length > 0 && (
                     <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 'bold' }}>
@@ -393,6 +437,13 @@ export default function PedidoDetalhes() {
                                     <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Conferir Recebimento (Loja)
                                 </button>
                             )}
+
+                            {/* NOVO: BOTÃO DE REFAZER CONFERÊNCIA */}
+                            {podeRefazerConferencia && (
+                                <button onClick={handleRefazerConferencia} style={{ ...styles.btnConferir, backgroundColor: '#3b82f6' }}>
+                                    <RotateCcw size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Refazer Conferência Cega
+                                </button>
+                            )}
                             
                             {temDivergencia && pedido.status !== 'PENDENTE_DEVOLUCAO' && (
                                 <button onClick={aceitarDivergenciaValor} style={{ ...styles.btnConferir, backgroundColor: '#059669' }}>
@@ -410,7 +461,6 @@ export default function PedidoDetalhes() {
                     </div>
                 </div>
 
-                {/* NOVO: Acompanhamento de Faturamento Mínimo */}
                 {valorMinimoSalvo > 0 && (
                     <div style={{ marginTop: '-5px', marginBottom: '20px', padding: '16px 20px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px' }}>
                         <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>
@@ -583,7 +633,6 @@ export default function PedidoDetalhes() {
                     />
                 )}
 
-                {/* MODAL DE SUGESTÕES DO FORNECEDOR */}
                 {isModalSugestoesAberto && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -629,24 +678,32 @@ export default function PedidoDetalhes() {
                                 <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
                             </div>
 
-                            <div style={{ display: 'flex', gap: '15px', marginBottom: '20px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px' }}>
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                                {pedido.cotacao?.id && (
+                                    <button 
+                                        onClick={() => { setTipoAdicao('COTACAO'); setNovoItem({...novoItem, nomeProduto: ''}); }} 
+                                        style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    >
+                                        De Cotações
+                                    </button>
+                                )}
                                 <button 
-                                    onClick={() => setTipoAdicao('COTACAO')} 
-                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    onClick={() => { setTipoAdicao('DNA'); setNovoItem({...novoItem, nomeProduto: ''}); setCodigoDna(''); }} 
+                                    style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'DNA' ? 'white' : 'transparent', color: tipoAdicao === 'DNA' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'DNA' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
                                 >
-                                    De Cotações Abertas
+                                    Por Código DNA
                                 </button>
                                 <button 
-                                    onClick={() => { setTipoAdicao('MANUAL'); setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null }); }} 
-                                    style={{ flex: 1, padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: tipoAdicao === 'MANUAL' ? 'white' : 'transparent', color: tipoAdicao === 'MANUAL' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'MANUAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    onClick={() => { setTipoAdicao('MANUAL'); setNovoItem({...novoItem, nomeProduto: ''}); }} 
+                                    style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'MANUAL' ? 'white' : 'transparent', color: tipoAdicao === 'MANUAL' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'MANUAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
                                 >
-                                    Digitar Manualmente
+                                    Manualmente
                                 </button>
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                 
-                                {tipoAdicao === 'COTACAO' ? (
+                                {tipoAdicao === 'COTACAO' && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione um Produto Pendente</label>
                                         <select style={styles.inputModal} value={novoItem.itemCotacaoId || ''} onChange={handleSelectPendente}>
@@ -658,7 +715,28 @@ export default function PedidoDetalhes() {
                                             ))}
                                         </select>
                                     </div>
-                                ) : (
+                                )}
+
+                                {tipoAdicao === 'DNA' && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Digite o Código DNA</label>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <Search size={18} color="#9ca3af" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                                                <input type="text" style={{...styles.inputModal, paddingLeft: '35px'}} value={codigoDna} onChange={e => setCodigoDna(e.target.value)} placeholder="Ex: 12345" />
+                                            </div>
+                                            <button onClick={handleBuscarDna} style={{ padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Buscar</button>
+                                        </div>
+                                        {novoItem.nomeProduto && (
+                                            <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '14px', fontWeight: '600' }}>
+                                                <CheckCircle size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                                {novoItem.nomeProduto}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {tipoAdicao === 'MANUAL' && (
                                     <div>
                                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
                                         <input type="text" style={styles.inputModal} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
@@ -679,7 +757,7 @@ export default function PedidoDetalhes() {
                                 <button 
                                     onClick={handleSalvarNovoItem} 
                                     disabled={salvandoItem || (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId)}
-                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: ((tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) || !novoItem.nomeProduto) ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: ((tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) || !novoItem.nomeProduto) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
                                 >
                                     <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItem ? 'Adicionando...' : 'Confirmar e Adicionar'}
                                 </button>
