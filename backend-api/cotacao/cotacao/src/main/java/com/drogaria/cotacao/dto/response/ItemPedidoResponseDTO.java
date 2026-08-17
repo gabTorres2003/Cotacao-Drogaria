@@ -14,4 +14,7 @@ public class ItemPedidoResponseDTO {
     private Double valorUnitarioReal;
     private StatusItemRecebimento statusRecebimento;
     private String observacaoDevolucao;
+    private Boolean condicaoAplicada;
+    private Integer qtdCondicao;
+    private Double precoCondicao;
 }

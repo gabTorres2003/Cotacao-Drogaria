@@ -8,4 +8,7 @@ public class ItemGerarPedidoDTO {
     private Integer quantidadePedida;
     private Double valorUnitarioPedido;
     private String nomeProduto;
+    private Boolean condicaoAplicada;
+    private Integer qtdCondicao;
+    private Double precoCondicao;
 }

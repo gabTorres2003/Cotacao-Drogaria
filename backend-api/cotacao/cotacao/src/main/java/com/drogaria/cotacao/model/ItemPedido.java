@@ -51,4 +51,13 @@ public class ItemPedido {
     
     @Column(name = "valor_alterado_apos_pedido")
     private Boolean valorAlteradoAposPedido = false;
+
+    @Column(name = "condicao_aplicada")
+    private Boolean condicaoAplicada = false;
+
+    @Column(name = "qtd_condicao")
+    private Integer qtdCondicao;
+
+    @Column(name = "preco_condicao")
+    private Double precoCondicao;
 }

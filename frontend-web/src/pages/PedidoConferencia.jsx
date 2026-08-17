@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag } from 'lucide-react';
 
 export default function PedidoConferencia() {
   const { id } = useParams();
@@ -128,6 +128,11 @@ export default function PedidoConferencia() {
     }
   };
 
+  const fMoney = (valor) => {
+    if (valor == null) return '-';
+    return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
+  };
+
   if (loading) return <div className="layout"><Sidebar /><main className="main-content"><p>Carregando...</p></main></div>;
   if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
 
@@ -198,9 +203,14 @@ export default function PedidoConferencia() {
                   return (
                     <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isConferido ? '#f0fdf4' : 'white', transition: 'background-color 0.3s' }}>
                       <td style={styles.td}>
-                        <strong style={{ color: isConferido ? '#166534' : '#111827' }}>
+                        <strong style={{ color: isConferido ? '#166534' : '#111827', display: 'block' }}>
                           {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
                         </strong>
+                        {item.condicaoAplicada && (
+                          <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                            <Tag size={10} /> Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
+                          </div>
+                        )}
                       </td>
                       
                       <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>

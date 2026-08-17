@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, DollarSign, PlusCircle, Trash2, Tag, TrendingUp, Tags } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, PlusCircle, Trash2, Tag, TrendingUp, Tags } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -190,24 +190,10 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          
-          /* Ajustes cruciais para quebrar o texto na tabela do celular e evitar scroll */
           .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; }
           .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: fixed; }
-          .responsive-table th, .responsive-table td { 
-            padding: 10px 6px !important; 
-            font-size: 11px !important; 
-            word-wrap: break-word; 
-            white-space: normal !important; 
-          }
-          .btn-acao {
-            padding: 8px 6px !important;
-            font-size: 11px !important;
-            width: 100%;
-            justify-content: center;
-            flex-direction: column;
-            gap: 2px !important;
-          }
+          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; word-wrap: break-word; white-space: normal !important; }
+          .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
         }
       `}</style>
 
@@ -245,7 +231,7 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <div className="mobile-table-wrapper" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID Cotação</th>
@@ -426,7 +412,14 @@ export default function FornecedorDashboard() {
 
                             {pedido.itens.map(item => (
                               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>{item.nomeProduto}</td>
+                                <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
+                                  {item.nomeProduto}
+                                  {item.condicaoAplicada && (
+                                    <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                      <Tags size={10} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
+                                    </div>
+                                  )}
+                                </td>
                                 <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>{item.quantidadePedida}</td>
                                 <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
                                 <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>

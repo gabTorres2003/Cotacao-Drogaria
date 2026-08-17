@@ -40,7 +40,7 @@ public class PedidoService {
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
     private final ItemCotacaoRepository itemCotacaoRepository;
-    private final EncomendaRepository encomendaRepository; // REPOSITÓRIO DAS ENCOMENDAS INJETADO
+    private final EncomendaRepository encomendaRepository; 
 
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
@@ -225,6 +225,9 @@ public class PedidoService {
             itemPedido.setQuantidadeReal(0);
             itemPedido.setValorUnitarioReal(0.0);
             itemPedido.setValorAlteradoAposPedido(false);
+            itemPedido.setCondicaoAplicada(itemDto.getCondicaoAplicada() != null ? itemDto.getCondicaoAplicada() : false);
+            itemPedido.setQtdCondicao(itemDto.getQtdCondicao());
+            itemPedido.setPrecoCondicao(itemDto.getPrecoCondicao());
 
             valorTotal += (itemDto.getQuantidadePedida() * itemDto.getValorUnitarioPedido());
             itens.add(itemPedido);
@@ -454,6 +457,13 @@ public class PedidoService {
         novoItem.setQuantidadeReal(0);
         novoItem.setValorUnitarioReal(0.0);
         novoItem.setValorAlteradoAposPedido(false);
+
+        boolean temCondicao = sugestao.getQuantidadeCondicao() != null && sugestao.getPrecoCondicao() != null;
+        boolean atingiu = temCondicao && sugestao.getQuantidade() >= sugestao.getQuantidadeCondicao();
+        
+        novoItem.setCondicaoAplicada(atingiu);
+        novoItem.setQtdCondicao(sugestao.getQuantidadeCondicao());
+        novoItem.setPrecoCondicao(sugestao.getPrecoCondicao());
 
         pedido.getItens().add(novoItem);
         

@@ -51,7 +51,6 @@ export default function ModalResumoPedidos({
      });
   };
 
-  // INTELIGÊNCIA 1: Recalcular o preço ao editar a quantidade
   const handleQtdChange = (fIndex, iIndex, novaQtd) => {
     setPedidosGerados(prev => {
       const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
@@ -64,7 +63,6 @@ export default function ModalResumoPedidos({
       let precoAplicado = item.precoBase || item.valorUnitarioPedido;
       let condicaoAtiva = false;
 
-      // Aplica ou remove o desconto automaticamente
       if (item.qtdCondicao && item.precoCondicao && qtd >= item.qtdCondicao) {
           precoAplicado = item.precoCondicao;
           condicaoAtiva = true;
@@ -78,7 +76,6 @@ export default function ModalResumoPedidos({
     });
   };
 
-  // INTELIGÊNCIA 2: Botão de 1 clique para aceitar a condição
   const handleAplicarCondicao = (fIndex, iIndex) => {
     setPedidosGerados(prev => {
       const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
@@ -176,7 +173,6 @@ export default function ModalResumoPedidos({
                            }
                        }
 
-                       // Verifica se há condição disponível para este item
                        const temCondicaoDisponivel = item.qtdCondicao && item.precoCondicao;
 
                        return (
@@ -193,7 +189,6 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
 
-                             {/* SEÇÃO DA CONDIÇÃO ESPECIAL NO MODAL (GERAR VÁRIOS) */}
                              {temCondicaoDisponivel && (
                                 <div style={{ marginTop: '4px' }}>
                                   {item.condicaoAplicada ? (
@@ -222,7 +217,6 @@ export default function ModalResumoPedidos({
                              )}
                            </td>
                            
-                           {/* INPUT EDITÁVEL DE QUANTIDADE */}
                            <td style={{ padding: '8px', textAlign: 'center' }}>
                              <input 
                                type="number" 
