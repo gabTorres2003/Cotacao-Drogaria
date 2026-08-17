@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, ArrowRight, Loader2, Trash2, Tag } from 'lucide-react';
+import { X, ArrowRight, Loader2, Trash2, Tag, Tags } from 'lucide-react';
 
 export default function ModalResumoPedidos({
   isOpen, onClose, pedidosGerados, setPedidosGerados,
@@ -49,6 +49,55 @@ export default function ModalResumoPedidos({
         }
         return next;
      });
+  };
+
+  // EDITAR QUANTIDADE DIRETO NO MODAL E RECALCULAR SUBCONDIÇÕES
+  const handleQtdChange = (fIndex, iIndex, novaQtd) => {
+    setPedidosGerados(prev => {
+      const next = prev.map(ped => ({
+         ...ped,
+         itens: ped.itens.map(item => ({ ...item }))
+      }));
+
+      const item = next[fIndex].itens[iIndex];
+      const qtd = Math.max(1, parseInt(novaQtd, 10) || 1);
+      item.quantidadePedida = qtd;
+
+      // Verifica se existe condição de escalonamento associada a este item
+      let precoAplicado = item.precoOriginalOuBase || item.valorUnitarioPedido;
+      let condicaoAtiva = false;
+
+      if (item.qtdCondicao && item.precoCondicao && qtd >= item.qtdCondicao) {
+          precoAplicado = item.precoCondicao;
+          condicaoAtiva = true;
+      }
+
+      item.valorUnitarioPedido = precoAplicado;
+      item.condicaoAplicada = condicaoAtiva;
+      item.subtotal = qtd * precoAplicado;
+
+      return next;
+    });
+  };
+
+  // BOTÃO PARA ACEITAR A CONDIÇÃO ESPECIAL AUTOMATICAMENTE (Inclui a Qtd Mínima e Preço)
+  const handleAplicarCondicao = (fIndex, iIndex) => {
+    setPedidosGerados(prev => {
+      const next = prev.map(ped => ({
+         ...ped,
+         itens: ped.itens.map(item => ({ ...item }))
+      }));
+
+      const item = next[fIndex].itens[iIndex];
+      if (item.qtdCondicao && item.precoCondicao) {
+          item.quantidadePedida = item.qtdCondicao;
+          item.valorUnitarioPedido = item.precoCondicao;
+          item.condicaoAplicada = true;
+          item.subtotal = item.qtdCondicao * item.precoCondicao;
+      }
+
+      return next;
+    });
   };
 
   const totalGeralSelecionado = pedidosGerados.reduce((acc, ped) => {
@@ -102,7 +151,7 @@ export default function ModalResumoPedidos({
                     <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
                       <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
                       <th style={{ padding: '8px', textAlign: 'left' }}>Produto</th>
-                      <th style={{ padding: '8px', textAlign: 'center' }}>Qtd</th>
+                      <th style={{ padding: '8px', textAlign: 'center', width: '90px' }}>Qtd</th>
                       <th style={{ padding: '8px', textAlign: 'right' }}>Preço Unit.</th>
                       <th style={{ padding: '8px', textAlign: 'right' }}>Subtotal</th>
                       <th style={{ padding: '8px', textAlign: 'center' }}>Mover / Trocar</th>
@@ -132,6 +181,10 @@ export default function ModalResumoPedidos({
                            }
                        }
 
+                       // Verifica se há condição disponível para este item
+                       const temCondicaoDisponivel = item.qtdCondicao && item.precoCondicao;
+                       const atingiuCondicao = temCondicaoDisponivel && item.quantidadePedida >= item.qtdCondicao;
+
                        return (
                          <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
@@ -146,10 +199,22 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
 
-                             {/* AVISO VISUAL DE QUE O PREÇO DE VOLUME FOI APLICADO */}
-                             {item.condicaoAplicada && (
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', marginTop: '4px', width: 'fit-content', border: '1px solid #bbf7d0' }}>
-                                  <Tag size={10} /> Desconto por Volume Aplicado
+                             {/* SEÇÃO DA CONDIÇÃO ESPECIAL NO MODAL */}
+                             {temCondicaoDisponivel && (
+                                <div style={{ marginTop: '4px' }}>
+                                  {item.condicaoAplicada || atingiuCondicao ? (
+                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0' }}>
+                                      <Tag size={10} /> Condição Especial Aplicada ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
+                                    </div>
+                                  ) : (
+                                    <button 
+                                      type="button" 
+                                      onClick={() => handleAplicarCondicao(fIndex, iIndex)}
+                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer' }}
+                                    >
+                                      <Tags size={10} /> Aceitar Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
+                                    </button>
+                                  )}
                                 </div>
                              )}
 
@@ -162,7 +227,18 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
                            </td>
-                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>{item.quantidadePedida}</td>
+                           
+                           {/* QUANTIDADE EDITÁVEL DIRETO NO MODAL */}
+                           <td style={{ padding: '8px', textAlign: 'center' }}>
+                             <input 
+                               type="number" 
+                               min="1" 
+                               value={item.quantidadePedida} 
+                               onChange={e => handleQtdChange(fIndex, iIndex, e.target.value)}
+                               style={{ width: '65px', padding: '4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '13px' }} 
+                             />
+                           </td>
+
                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? '#16a34a' : '#9ca3af' }}>
                              {fMoney(item.subtotal)}
