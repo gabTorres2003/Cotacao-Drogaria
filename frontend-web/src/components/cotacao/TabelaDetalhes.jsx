@@ -237,20 +237,16 @@ export default function TabelaDetalhes({
                               const nomeFinal = isTroca ? substituto : item.nomeProduto;
                               const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
                               
-                              // LOGICA DE INTELIGÊNCIA: Verifica se a quantidade solicitada atinge o desconto
-                              let precoFinal = isTroca ? precoSubstituto : precoOriginal;
-                              let condicaoAplicada = false;
+                              let precoBase = isTroca ? precoSubstituto : precoOriginal;
+                              let precoFinal = precoBase;
+                              let condAplicada = false;
+                              
+                              const qC = isTroca ? qtdCondSubst : qtdCond;
+                              const pC = isTroca ? precoCondSubst : precoCond;
 
-                              if (isTroca) {
-                                  if (qtdCondSubst && precoCondSubst && qtdFinal >= qtdCondSubst) {
-                                      precoFinal = precoCondSubst;
-                                      condicaoAplicada = true;
-                                  }
-                              } else {
-                                  if (qtdCond && precoCond && qtdFinal >= qtdCond) {
-                                      precoFinal = precoCond;
-                                      condicaoAplicada = true;
-                                  }
+                              if (qC && pC && qtdFinal >= qC) {
+                                  precoFinal = pC;
+                                  condAplicada = true;
                               }
 
                               onAbrirAddPedidoModal({
@@ -259,7 +255,10 @@ export default function TabelaDetalhes({
                                 quantidade: qtdFinal,
                                 ultimoPreco: precoFinal,
                                 precoCustom: precoFinal,
-                                condicaoAplicada: condicaoAplicada // Manda o aviso pro Resumo
+                                precoBase: precoBase,      
+                                qtdCondicao: qC,           
+                                precoCondicao: pC,         
+                                condicaoAplicada: condAplicada 
                               }, f);
                             }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}

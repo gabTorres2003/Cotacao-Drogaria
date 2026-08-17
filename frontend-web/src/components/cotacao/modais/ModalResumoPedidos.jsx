@@ -51,22 +51,20 @@ export default function ModalResumoPedidos({
      });
   };
 
-  // EDITAR QUANTIDADE DIRETO NO MODAL E RECALCULAR SUBCONDIÇÕES
+  // INTELIGÊNCIA 1: Recalcular o preço ao editar a quantidade
   const handleQtdChange = (fIndex, iIndex, novaQtd) => {
     setPedidosGerados(prev => {
-      const next = prev.map(ped => ({
-         ...ped,
-         itens: ped.itens.map(item => ({ ...item }))
-      }));
-
-      const item = next[fIndex].itens[iIndex];
+      const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
+      const ped = next[fIndex];
+      const item = ped.itens[iIndex];
+      
       const qtd = Math.max(1, parseInt(novaQtd, 10) || 1);
       item.quantidadePedida = qtd;
 
-      // Verifica se existe condição de escalonamento associada a este item
-      let precoAplicado = item.precoOriginalOuBase || item.valorUnitarioPedido;
+      let precoAplicado = item.precoBase || item.valorUnitarioPedido;
       let condicaoAtiva = false;
 
+      // Aplica ou remove o desconto automaticamente
       if (item.qtdCondicao && item.precoCondicao && qtd >= item.qtdCondicao) {
           precoAplicado = item.precoCondicao;
           condicaoAtiva = true;
@@ -80,15 +78,12 @@ export default function ModalResumoPedidos({
     });
   };
 
-  // BOTÃO PARA ACEITAR A CONDIÇÃO ESPECIAL AUTOMATICAMENTE (Inclui a Qtd Mínima e Preço)
+  // INTELIGÊNCIA 2: Botão de 1 clique para aceitar a condição
   const handleAplicarCondicao = (fIndex, iIndex) => {
     setPedidosGerados(prev => {
-      const next = prev.map(ped => ({
-         ...ped,
-         itens: ped.itens.map(item => ({ ...item }))
-      }));
-
+      const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
       const item = next[fIndex].itens[iIndex];
+      
       if (item.qtdCondicao && item.precoCondicao) {
           item.quantidadePedida = item.qtdCondicao;
           item.valorUnitarioPedido = item.precoCondicao;
@@ -183,7 +178,6 @@ export default function ModalResumoPedidos({
 
                        // Verifica se há condição disponível para este item
                        const temCondicaoDisponivel = item.qtdCondicao && item.precoCondicao;
-                       const atingiuCondicao = temCondicaoDisponivel && item.quantidadePedida >= item.qtdCondicao;
 
                        return (
                          <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
@@ -199,10 +193,10 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
 
-                             {/* SEÇÃO DA CONDIÇÃO ESPECIAL NO MODAL */}
+                             {/* SEÇÃO DA CONDIÇÃO ESPECIAL NO MODAL (GERAR VÁRIOS) */}
                              {temCondicaoDisponivel && (
                                 <div style={{ marginTop: '4px' }}>
-                                  {item.condicaoAplicada || atingiuCondicao ? (
+                                  {item.condicaoAplicada ? (
                                     <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0' }}>
                                       <Tag size={10} /> Condição Especial Aplicada ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
                                     </div>
@@ -228,18 +222,21 @@ export default function ModalResumoPedidos({
                              )}
                            </td>
                            
-                           {/* QUANTIDADE EDITÁVEL DIRETO NO MODAL */}
+                           {/* INPUT EDITÁVEL DE QUANTIDADE */}
                            <td style={{ padding: '8px', textAlign: 'center' }}>
                              <input 
                                type="number" 
                                min="1" 
-                               value={item.quantidadePedida} 
+                               value={item.quantidadePedida || 1} 
                                onChange={e => handleQtdChange(fIndex, iIndex, e.target.value)}
-                               style={{ width: '65px', padding: '4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '13px' }} 
+                               onFocus={e => e.target.select()}
+                               style={{ width: '65px', padding: '6px 4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '13px' }} 
                              />
                            </td>
 
-                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', color: item.condicaoAplicada ? '#16a34a' : '#374151', fontWeight: item.condicaoAplicada ? 'bold' : 'normal' }}>
+                             {fMoney(item.valorUnitarioPedido)}
+                           </td>
                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? '#16a34a' : '#9ca3af' }}>
                              {fMoney(item.subtotal)}
                            </td>

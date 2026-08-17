@@ -23,7 +23,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X, PackageOpen } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, PackageOpen, Tag, Tags } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -89,7 +89,6 @@ export default function CotacaoDetalhes() {
   const fMoney = (v) => v != null && v > 0 ? Number(v).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
   const fData = (data) => data ? data : '-';
 
-  // Normalizador agressivo: ignora espaços, acentos, parenteses, etc.
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
   useEffect(() => {
@@ -307,22 +306,29 @@ export default function CotacaoDetalhes() {
           let qtd = itemRelatorio.quantidade || 0;
           let nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
           let nomeOriginal = null;
+          let qC = itemRelatorio.qtdCondicaoPorFornecedor?.[vencedor];
+          let pC = itemRelatorio.precoCondicaoPorFornecedor?.[vencedor];
 
           if (isTrocaAceitaVencedor && nomeSubstituto) {
             preco = itemRelatorio.precosSubstitutosPorFornecedor?.[vencedor] || preco;
             qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[vencedor] || qtd;
             nomeFinal = getNomeRealSempre(nomeSubstituto); 
-            nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto); 
+            nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto);
+            qC = itemRelatorio.qtdCondicaoSubstPorFornecedor?.[vencedor];
+            pC = itemRelatorio.precoCondicaoSubstPorFornecedor?.[vencedor];
           }
+
+          let condAplicada = (qC && pC && qtd >= qC);
+          let precoFinal = condAplicada ? pC : preco;
 
           if (preco > 0) {
             initForn(vencedor);
             pedidosPorFornecedor[vencedor].itens.push({
               idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[vencedor],
-              quantidadePedida: qtd, valorUnitarioPedido: preco, subtotal: qtd * preco, isExtra: false, todosDadosItem: itemRelatorio,
-              selected: true 
+              quantidadePedida: qtd, valorUnitarioPedido: precoFinal, precoBase: preco, subtotal: qtd * precoFinal, isExtra: false, todosDadosItem: itemRelatorio,
+              selected: true, qtdCondicao: qC, precoCondicao: pC, condicaoAplicada: condAplicada
             });
-            pedidosPorFornecedor[vencedor].total += (qtd * preco);
+            pedidosPorFornecedor[vencedor].total += (qtd * precoFinal);
           }
         }
 
@@ -333,21 +339,20 @@ export default function CotacaoDetalhes() {
 
               let precoSubst = itemRelatorio.precosSubstitutosPorFornecedor?.[forn] || itemRelatorio.precosPorFornecedor?.[forn] || 0;
               let qtdSubst = itemRelatorio.qtdsSubstitutosPorFornecedor?.[forn] || itemRelatorio.quantidade || 0;
+              let qCSubst = itemRelatorio.qtdCondicaoSubstPorFornecedor?.[forn];
+              let pCSubst = itemRelatorio.precoCondicaoSubstPorFornecedor?.[forn];
+
+              let condAplicadaSubst = (qCSubst && pCSubst && qtdSubst >= qCSubst);
+              let precoFinalSubst = condAplicadaSubst ? pCSubst : precoSubst;
 
               if (precoSubst > 0) {
                  initForn(forn);
                  pedidosPorFornecedor[forn].itens.push({
-                   idItem,
-                   nomeProduto: getNomeRealSempre(nomeSubstForn),
-                   nomeOriginal: getNomeRealSempre(itemRelatorio.nomeProduto),
+                   idItem, nomeProduto: getNomeRealSempre(nomeSubstForn), nomeOriginal: getNomeRealSempre(itemRelatorio.nomeProduto),
                    observacao: itemRelatorio.observacoesPorFornecedor?.[forn],
-                   quantidadePedida: qtdSubst,
-                   valorUnitarioPedido: precoSubst,
-                   subtotal: qtdSubst * precoSubst,
-                   isExtra: true, 
-                   isSugestaoTroca: true,
-                   todosDadosItem: itemRelatorio,
-                   selected: false 
+                   quantidadePedida: qtdSubst, valorUnitarioPedido: precoFinalSubst, precoBase: precoSubst, subtotal: qtdSubst * precoFinalSubst,
+                   isExtra: true, isSugestaoTroca: true, todosDadosItem: itemRelatorio, selected: false,
+                   qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst
                  });
               }
            }
@@ -365,17 +370,16 @@ export default function CotacaoDetalhes() {
 
         initForn(targetForn);
         
+        let qCPromo = promo.quantidadeCondicao;
+        let pCPromo = promo.precoCondicao;
+        let condAplicadaPromo = (qCPromo && pCPromo && promo.qtdMinima >= qCPromo);
+        let precoFinalPromo = condAplicadaPromo ? pCPromo : promo.preco;
+
         pedidosPorFornecedor[targetForn].itens.push({
-            idItem: null,
-            promocaoId: promo.id,
-            nomeProduto: getNomeRealSempre(promo.nomeProduto),
-            quantidadePedida: promo.qtdMinima,
-            valorUnitarioPedido: promo.preco,
-            subtotal: promo.qtdMinima * promo.preco,
-            isExtra: true,
-            isSugestaoTroca: false,
-            observacao: promo.observacao,
-            selected: false 
+            idItem: null, promocaoId: promo.id, nomeProduto: getNomeRealSempre(promo.nomeProduto),
+            quantidadePedida: promo.qtdMinima, valorUnitarioPedido: precoFinalPromo, precoBase: promo.preco, subtotal: promo.qtdMinima * precoFinalPromo,
+            isExtra: true, isSugestaoTroca: false, observacao: promo.observacao, selected: false,
+            qtdCondicao: qCPromo, precoCondicao: pCPromo, condicaoAplicada: condAplicadaPromo
         });
       });
 
@@ -419,6 +423,8 @@ export default function CotacaoDetalhes() {
       let novoPreco = itemToMove.todosDadosItem?.precosPorFornecedor?.[fornecedorDestino] || 0;
       if (novoPreco > 0) {
           itemToMove.valorUnitarioPedido = novoPreco; itemToMove.subtotal = itemToMove.quantidadePedida * novoPreco;
+          // Ignora a condição quando é movido para não causar confusão
+          itemToMove.condicaoAplicada = false;
       } else {
           alert(`Aviso: O fornecedor ${fornecedorDestino} informou o preço como R$ 0,00 ou falta para este produto.`);
           itemToMove.valorUnitarioPedido = 0; itemToMove.subtotal = 0;
@@ -699,7 +705,6 @@ export default function CotacaoDetalhes() {
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
       />
 
-      {/* BOTÃO PARA ABRIR O MODAL DE ENCOMENDAS DO BALCÃO */}
       {!isEncerrada && (
         <div style={{ marginBottom: '20px' }}>
           <button 
@@ -786,11 +791,10 @@ export default function CotacaoDetalhes() {
       )}
 
       <ModalFornecedoresNotificados isOpen={showVinculosModal} onClose={() => setShowVinculosModal(false)} vinculos={vinculos} removerVinculo={removerVinculo} />
-      <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvandoItemManual} />
+      <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvarItemManual} />
       {isUploadModalOpen && <UploadModal cotacaoId={id} onClose={() => setIsUploadModalOpen(false)} onSuccess={carregarRelatorio} />}
       {isEnviarModalOpen && <EnviarLinkModal idCotacao={id} onClose={() => setIsEnviarModalOpen(false)} onStatusUpdate={() => { carregarCotacao(); carregarVinculos(); }} />}
       
-      {/* MODAL DE IMPORTAR ENCOMENDAS */}
       <ModalImportarEncomendas 
         isOpen={isEncomendasModalOpen} 
         onClose={() => setIsEncomendasModalOpen(false)} 
@@ -822,6 +826,7 @@ export default function CotacaoDetalhes() {
           relatorioOrdenado={relatorioOrdenado} 
       />
       
+      {/* MODAL "+ PEDIDO" INTELIGENTE */}
       {modalAddPedidoAberto && itemAddPedido && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -865,16 +870,65 @@ export default function CotacaoDetalhes() {
              )}
 
              {addPedidoModo === 'UNICO' && (
-                <div style={{ display: 'flex', gap: '15px' }}>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd a Pedir</label>
-                    <input type="number" min="1" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.qtd} onChange={e => setAddPedidoForm({...addPedidoForm, qtd: e.target.value})} onFocus={e => e.target.select()}/>
+                <>
+                  <div style={{ display: 'flex', gap: '15px' }}>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd a Pedir</label>
+                      <input 
+                          type="number" 
+                          min="1" 
+                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} 
+                          value={addPedidoForm.qtd} 
+                          onFocus={e => e.target.select()}
+                          onChange={e => {
+                              const novaQtd = Math.max(1, parseInt(e.target.value, 10) || 1);
+                              let novoPreco = itemAddPedido.precoBase;
+                              let condAplicada = false;
+
+                              if (itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && novaQtd >= itemAddPedido.qtdCondicao) {
+                                  novoPreco = itemAddPedido.precoCondicao;
+                                  condAplicada = true;
+                              }
+
+                              setAddPedidoForm({...addPedidoForm, qtd: novaQtd, valor: novoPreco});
+                              setItemAddPedido({...itemAddPedido, condicaoAplicada: condAplicada});
+                          }} 
+                      />
+                    </div>
+                    <div style={{ flex: 1 }}>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
+                      <input 
+                          type="number" 
+                          step="0.01" 
+                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: itemAddPedido.condicaoAplicada ? '#16a34a' : 'inherit', fontWeight: itemAddPedido.condicaoAplicada ? 'bold' : 'normal' }} 
+                          value={addPedidoForm.valor} 
+                          onChange={e => setAddPedidoForm({...addPedidoForm, valor: e.target.value})} 
+                          onFocus={e => e.target.select()}
+                      />
+                    </div>
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
-                    <input type="number" step="0.01" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} value={addPedidoForm.valor} onChange={e => setAddPedidoForm({...addPedidoForm, valor: e.target.value})} onFocus={e => e.target.select()}/>
-                  </div>
-                </div>
+
+                  {itemAddPedido?.qtdCondicao && itemAddPedido?.precoCondicao && (
+                      <div style={{ marginTop: '10px' }}>
+                          {itemAddPedido.condicaoAplicada ? (
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                                  <Tag size={14} /> Condição Aplicada: {itemAddPedido.qtdCondicao} un por {fMoney(itemAddPedido.precoCondicao)}
+                              </div>
+                          ) : (
+                              <button
+                                  type="button"
+                                  onClick={() => {
+                                      setAddPedidoForm({...addPedidoForm, qtd: itemAddPedido.qtdCondicao, valor: itemAddPedido.precoCondicao});
+                                      setItemAddPedido({...itemAddPedido, condicaoAplicada: true});
+                                  }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#fef08a', color: '#854d0e', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                              >
+                                  <Tags size={14} /> Aceitar Condição: {itemAddPedido.qtdCondicao} un por {fMoney(itemAddPedido.precoCondicao)}
+                              </button>
+                          )}
+                      </div>
+                  )}
+                </>
              )}
 
              <button 
