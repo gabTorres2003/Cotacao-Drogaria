@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaDetalhes({
@@ -126,7 +126,6 @@ export default function TabelaDetalhes({
                         </div>
                       )}
 
-                      {/* TAG VISUAL DE ENCOMENDA ADICIONADA AQUI */}
                       {item.origemItem === 'Encomenda' && (
                         <div style={{ marginTop: '4px', fontSize: '11px', color: '#4338ca', backgroundColor: '#e0e7ff', padding: '4px 8px', borderRadius: '4px', display: 'inline-block', border: '1px solid #c7d2fe' }}>
                           📦 <b>Encomenda</b>
@@ -182,6 +181,7 @@ export default function TabelaDetalhes({
                       return <td key={f} style={{ ...tdStyle, backgroundColor: '#f8fafc', borderLeft: '1px solid #f3f4f6', textAlign: 'center', color: '#cbd5e1' }}>-</td>;
                   }
 
+                  // Variáveis de Preço Normais
                   const precoOriginal = item.precosPorFornecedor?.[f] || 0;
                   const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
                   const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
@@ -192,10 +192,25 @@ export default function TabelaDetalhes({
                   const isEmFaltaOriginal = precoOriginal <= 0; 
                   const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
 
+                  // Variáveis de Condição de Preço (Escalonamento)
+                  const qtdCond = item.qtdCondicaoPorFornecedor?.[f];
+                  const precoCond = item.precoCondicaoPorFornecedor?.[f];
+                  const qtdCondSubst = item.qtdCondicaoSubstPorFornecedor?.[f];
+                  const precoCondSubst = item.precoCondicaoSubstPorFornecedor?.[f];
+
                   return (
                     <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} style={{ ...tdStyle, backgroundColor: isWinner ? '#ecfdf5' : 'inherit', textAlign: 'center', borderLeft: '1px solid #f3f4f6', border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', verticalAlign: 'top', position: 'relative', opacity: isBloqueado ? 0.6 : 1 }}>
                       {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
+                      
                       <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>{isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}</div>
+                      
+                      {/* CONDICAO DO PRECO NORMAL */}
+                      {qtdCond && precoCond && !isEmFaltaOriginal && (
+                        <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                          <Tags size={12} /> A partir de {qtdCond} un: {fMoney(precoCond)}
+                        </div>
+                      )}
+
                       {substituto && (
                         <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
                           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
@@ -203,6 +218,13 @@ export default function TabelaDetalhes({
                             <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
                               <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
                               <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
+                              
+                              {/* CONDICAO DO SUBSTITUTO */}
+                              {qtdCondSubst && precoCondSubst && (
+                                <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                  <Tags size={10} /> A partir de {qtdCondSubst} un: {fMoney(precoCondSubst)}
+                                </div>
+                              )}
                             </div>
                           </label>
                         </div>
@@ -258,7 +280,7 @@ export default function TabelaDetalhes({
                       <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
                     ) : (
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
+                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'padding: 4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
                           <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
                         </button>
                       </div>
