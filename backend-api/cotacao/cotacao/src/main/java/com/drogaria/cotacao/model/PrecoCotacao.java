@@ -15,6 +15,14 @@ public class PrecoCotacao {
     @JoinColumn(name = "item_id")
     private ItemCotacao item;
 
+    @ManyToOne
+    @JoinColumn(name = "fornecedor_id")
+    private Fornecedor fornecedor;
+
+    private Double precoOfertado;
+    private LocalDateTime dataResposta;
+    private Integer quantidadeDisponivel;
+
     @Column(name = "observacao")
     private String observacao;
 
@@ -27,92 +35,57 @@ public class PrecoCotacao {
     @Column(name = "quantidade_substituto")
     private Integer quantidadeSubstituto;
 
-    @ManyToOne
-    @JoinColumn(name = "fornecedor_id")
-    private Fornecedor fornecedor;
+    @Column(name = "quantidade_condicao")
+    private Integer quantidadeCondicao;
 
-    private Double precoOfertado;
-    private LocalDateTime dataResposta;
-    private Integer quantidadeDisponivel;
+    @Column(name = "preco_condicao")
+    private Double precoCondicao;
 
-    // Getters e Setters
-    public Long getId() {
-        return id;
-    }
+    @Column(name = "quantidade_condicao_substituto")
+    private Integer quantidadeCondicaoSubstituto;
 
-    public void setId(Long id) {
-        this.id = id;
-    }
+    @Column(name = "preco_condicao_substituto")
+    private Double precoCondicaoSubstituto;
 
-    public ItemCotacao getItem() {
-        return item;
-    }
+    public Long getId() { return id; }
+    public void setId(Long id) { this.id = id; }
 
-    public void setItem(ItemCotacao item) {
-        this.item = item;
-    }
+    public ItemCotacao getItem() { return item; }
+    public void setItem(ItemCotacao item) { this.item = item; }
 
-    public String getObservacao() {
-        return observacao;
-    }
+    public Fornecedor getFornecedor() { return fornecedor; }
+    public void setFornecedor(Fornecedor fornecedor) { this.fornecedor = fornecedor; }
 
-    public void setObservacao(String observacao) {
-        this.observacao = observacao;
-    }
+    public Double getPrecoOfertado() { return precoOfertado; }
+    public void setPrecoOfertado(Double precoOfertado) { this.precoOfertado = precoOfertado; }
 
-    public String getProdutoSubstituto() {
-        return produtoSubstituto;
-    }
+    public LocalDateTime getDataResposta() { return dataResposta; }
+    public void setDataResposta(LocalDateTime dataResposta) { this.dataResposta = dataResposta; }
 
-    public void setProdutoSubstituto(String produtoSubstituto) {
-        this.produtoSubstituto = produtoSubstituto;
-    }
+    public Integer getQuantidadeDisponivel() { return quantidadeDisponivel; }
+    public void setQuantidadeDisponivel(Integer quantidadeDisponivel) { this.quantidadeDisponivel = quantidadeDisponivel; }
 
-    public Fornecedor getFornecedor() {
-        return fornecedor;
-    }
+    public String getObservacao() { return observacao; }
+    public void setObservacao(String observacao) { this.observacao = observacao; }
 
-    public void setFornecedor(Fornecedor fornecedor) {
-        this.fornecedor = fornecedor;
-    }
+    public String getProdutoSubstituto() { return produtoSubstituto; }
+    public void setProdutoSubstituto(String produtoSubstituto) { this.produtoSubstituto = produtoSubstituto; }
 
-    public Double getPrecoOfertado() {
-        return precoOfertado;
-    }
+    public Double getPrecoSubstituto() { return precoSubstituto; }
+    public void setPrecoSubstituto(Double precoSubstituto) { this.precoSubstituto = precoSubstituto; }
 
-    public void setPrecoOfertado(Double precoOfertado) {
-        this.precoOfertado = precoOfertado;
-    }
+    public Integer getQuantidadeSubstituto() { return quantidadeSubstituto; }
+    public void setQuantidadeSubstituto(Integer quantidadeSubstituto) { this.quantidadeSubstituto = quantidadeSubstituto; }
 
-    public LocalDateTime getDataResposta() {
-        return dataResposta;
-    }
+    public Integer getQuantidadeCondicao() { return quantidadeCondicao; }
+    public void setQuantidadeCondicao(Integer quantidadeCondicao) { this.quantidadeCondicao = quantidadeCondicao; }
 
-    public void setDataResposta(LocalDateTime dataResposta) {
-        this.dataResposta = dataResposta;
-    }
+    public Double getPrecoCondicao() { return precoCondicao; }
+    public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
 
-    public Integer getQuantidadeDisponivel() {
-        return quantidadeDisponivel;
-    }
+    public Integer getQuantidadeCondicaoSubstituto() { return quantidadeCondicaoSubstituto; }
+    public void setQuantidadeCondicaoSubstituto(Integer quantidadeCondicaoSubstituto) { this.quantidadeCondicaoSubstituto = quantidadeCondicaoSubstituto; }
 
-    public void setQuantidadeDisponivel(Integer quantidadeDisponivel) {
-        this.quantidadeDisponivel = quantidadeDisponivel;
-    }
-
-    public Double getPrecoSubstituto() {
-        return precoSubstituto;
-    }
-
-    public void setPrecoSubstituto(Double precoSubstituto) {
-        this.precoSubstituto = precoSubstituto;
-    }
-
-    public Integer getQuantidadeSubstituto() {
-        return quantidadeSubstituto;
-    }
-
-    public void setQuantidadeSubstituto(Integer quantidadeSubstituto) {
-        this.quantidadeSubstituto = quantidadeSubstituto;
-    }
+    public Double getPrecoCondicaoSubstituto() { return precoCondicaoSubstituto; }
+    public void setPrecoCondicaoSubstituto(Double precoCondicaoSubstituto) { this.precoCondicaoSubstituto = precoCondicaoSubstituto; }
 }

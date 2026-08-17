@@ -1,16 +1,23 @@
 package com.drogaria.cotacao.dto.request;
 
 public class SalvarPrecoDTO {
-    private Long idItem;       
-    private Long idFornecedor; 
-    private Double preco;      
+
+    private Long idItem;
+    private Long idFornecedor; // CORREÇÃO: Adicionado para funcionar com o FornecedorService
+    
+    private Double preco;
     private Integer quantidadeDisponivel;
     private String observacao;
+    
     private String produtoSubstituto;
     private Double precoSubstituto;
     private Integer quantidadeSubstituto;
 
-    // Getters e Setters
+    private Integer quantidadeCondicao;
+    private Double precoCondicao;
+    private Integer quantidadeCondicaoSubstituto;
+    private Double precoCondicaoSubstituto;
+
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
 
@@ -34,4 +41,16 @@ public class SalvarPrecoDTO {
 
     public Integer getQuantidadeSubstituto() { return quantidadeSubstituto; }
     public void setQuantidadeSubstituto(Integer quantidadeSubstituto) { this.quantidadeSubstituto = quantidadeSubstituto; }
+
+    public Integer getQuantidadeCondicao() { return quantidadeCondicao; }
+    public void setQuantidadeCondicao(Integer quantidadeCondicao) { this.quantidadeCondicao = quantidadeCondicao; }
+
+    public Double getPrecoCondicao() { return precoCondicao; }
+    public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
+
+    public Integer getQuantidadeCondicaoSubstituto() { return quantidadeCondicaoSubstituto; }
+    public void setQuantidadeCondicaoSubstituto(Integer quantidadeCondicaoSubstituto) { this.quantidadeCondicaoSubstituto = quantidadeCondicaoSubstituto; }
+
+    public Double getPrecoCondicaoSubstituto() { return precoCondicaoSubstituto; }
+    public void setPrecoCondicaoSubstituto(Double precoCondicaoSubstituto) { this.precoCondicaoSubstituto = precoCondicaoSubstituto; }
 }

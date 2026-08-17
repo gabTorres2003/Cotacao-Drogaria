@@ -7,7 +7,7 @@ public class ItemComparativoDTO {
 
     private Long idItem;
     private String nomeProduto;
-    private Integer quantidade;
+    private Integer quantidade; // CORREÇÃO: Alterado para Integer para bater com a Entidade
     
     private Double estoque;
     private String grupo;
@@ -18,11 +18,9 @@ public class ItemComparativoDTO {
     private Double vendidoAposUltCompra;
     private Double ultimoPreco;
     private String origemItem;
-    
+
     private Boolean editadoManual;
     private Boolean excluido;
-
-    // NOVOS CAMPOS AQUI
     private Boolean devolvidoPorAlteracaoPreco;
     private Long pedidoOrigemId;
 
@@ -32,13 +30,17 @@ public class ItemComparativoDTO {
     private String dataUltimaCompra;
 
     private Map<String, Double> precosPorFornecedor = new HashMap<>();
-    private Map<String, String> substitutosPorFornecedor = new HashMap<>();
     private Map<String, String> observacoesPorFornecedor = new HashMap<>();
     
+    private Map<String, String> substitutosPorFornecedor = new HashMap<>();
     private Map<String, Double> precosSubstitutosPorFornecedor = new HashMap<>();
     private Map<String, Integer> qtdsSubstitutosPorFornecedor = new HashMap<>();
 
-    // Getters e Setters
+    private Map<String, Integer> qtdCondicaoPorFornecedor = new HashMap<>();
+    private Map<String, Double> precoCondicaoPorFornecedor = new HashMap<>();
+    private Map<String, Integer> qtdCondicaoSubstPorFornecedor = new HashMap<>();
+    private Map<String, Double> precoCondicaoSubstPorFornecedor = new HashMap<>();
+
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
 
@@ -81,7 +83,6 @@ public class ItemComparativoDTO {
     public Boolean getExcluido() { return excluido; }
     public void setExcluido(Boolean excluido) { this.excluido = excluido; }
 
-    // GETTERS E SETTERS DOS NOVOS CAMPOS
     public Boolean getDevolvidoPorAlteracaoPreco() { return devolvidoPorAlteracaoPreco; }
     public void setDevolvidoPorAlteracaoPreco(Boolean devolvidoPorAlteracaoPreco) { this.devolvidoPorAlteracaoPreco = devolvidoPorAlteracaoPreco; }
 
@@ -103,15 +104,27 @@ public class ItemComparativoDTO {
     public Map<String, Double> getPrecosPorFornecedor() { return precosPorFornecedor; }
     public void setPrecosPorFornecedor(Map<String, Double> precosPorFornecedor) { this.precosPorFornecedor = precosPorFornecedor; }
 
-    public Map<String, String> getSubstitutosPorFornecedor() { return substitutosPorFornecedor; }
-    public void setSubstitutosPorFornecedor(Map<String, String> substitutosPorFornecedor) { this.substitutosPorFornecedor = substitutosPorFornecedor; }
-
     public Map<String, String> getObservacoesPorFornecedor() { return observacoesPorFornecedor; }
     public void setObservacoesPorFornecedor(Map<String, String> observacoesPorFornecedor) { this.observacoesPorFornecedor = observacoesPorFornecedor; }
+
+    public Map<String, String> getSubstitutosPorFornecedor() { return substitutosPorFornecedor; }
+    public void setSubstitutosPorFornecedor(Map<String, String> substitutosPorFornecedor) { this.substitutosPorFornecedor = substitutosPorFornecedor; }
 
     public Map<String, Double> getPrecosSubstitutosPorFornecedor() { return precosSubstitutosPorFornecedor; }
     public void setPrecosSubstitutosPorFornecedor(Map<String, Double> precosSubstitutosPorFornecedor) { this.precosSubstitutosPorFornecedor = precosSubstitutosPorFornecedor; }
 
     public Map<String, Integer> getQtdsSubstitutosPorFornecedor() { return qtdsSubstitutosPorFornecedor; }
     public void setQtdsSubstitutosPorFornecedor(Map<String, Integer> qtdsSubstitutosPorFornecedor) { this.qtdsSubstitutosPorFornecedor = qtdsSubstitutosPorFornecedor; }
+
+    public Map<String, Integer> getQtdCondicaoPorFornecedor() { return qtdCondicaoPorFornecedor; }
+    public void setQtdCondicaoPorFornecedor(Map<String, Integer> qtdCondicaoPorFornecedor) { this.qtdCondicaoPorFornecedor = qtdCondicaoPorFornecedor; }
+
+    public Map<String, Double> getPrecoCondicaoPorFornecedor() { return precoCondicaoPorFornecedor; }
+    public void setPrecoCondicaoPorFornecedor(Map<String, Double> precoCondicaoPorFornecedor) { this.precoCondicaoPorFornecedor = precoCondicaoPorFornecedor; }
+
+    public Map<String, Integer> getQtdCondicaoSubstPorFornecedor() { return qtdCondicaoSubstPorFornecedor; }
+    public void setQtdCondicaoSubstPorFornecedor(Map<String, Integer> qtdCondicaoSubstPorFornecedor) { this.qtdCondicaoSubstPorFornecedor = qtdCondicaoSubstPorFornecedor; }
+
+    public Map<String, Double> getPrecoCondicaoSubstPorFornecedor() { return precoCondicaoSubstPorFornecedor; }
+    public void setPrecoCondicaoSubstPorFornecedor(Map<String, Double> precoCondicaoSubstPorFornecedor) { this.precoCondicaoSubstPorFornecedor = precoCondicaoSubstPorFornecedor; }
 }

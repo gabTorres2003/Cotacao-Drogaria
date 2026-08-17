@@ -30,7 +30,12 @@ public class SugestaoPromocao {
     @Column(name = "observacao")
     private String observacao;
 
-    // Getters e Setters
+    @Column(name = "quantidade_condicao")
+    private Integer quantidadeCondicao;
+
+    @Column(name = "preco_condicao")
+    private Double precoCondicao;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -51,4 +56,10 @@ public class SugestaoPromocao {
 
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+
+    public Integer getQuantidadeCondicao() { return quantidadeCondicao; }
+    public void setQuantidadeCondicao(Integer quantidadeCondicao) { this.quantidadeCondicao = quantidadeCondicao; }
+
+    public Double getPrecoCondicao() { return precoCondicao; }
+    public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
 }

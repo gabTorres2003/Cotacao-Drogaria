@@ -100,8 +100,6 @@ public class ComparativoService {
             
             linha.setEditadoManual(item.getEditadoManual());
             linha.setExcluido(item.getExcluido());
-            
-            // NOVO: Passa os dados do estorno para o Frontend
             linha.setDevolvidoPorAlteracaoPreco(item.getDevolvidoPorAlteracaoPreco() != null ? item.getDevolvidoPorAlteracaoPreco() : false);
             linha.setPedidoOrigemId(item.getPedidoOrigemId());
 
@@ -112,10 +110,22 @@ public class ComparativoService {
                     String nomeForn = oferta.getFornecedor().getNome();
                     linha.getPrecosPorFornecedor().put(nomeForn, oferta.getPrecoOfertado());
 
+                    // NOVA LÓGICA: Enviar as condições do item normal para o React
+                    if (oferta.getQuantidadeCondicao() != null && oferta.getPrecoCondicao() != null) {
+                        linha.getQtdCondicaoPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicao());
+                        linha.getPrecoCondicaoPorFornecedor().put(nomeForn, oferta.getPrecoCondicao());
+                    }
+
                     if (oferta.getProdutoSubstituto() != null && !oferta.getProdutoSubstituto().trim().isEmpty()) {
                         linha.getSubstitutosPorFornecedor().put(nomeForn, oferta.getProdutoSubstituto().trim());
                         linha.getPrecosSubstitutosPorFornecedor().put(nomeForn, oferta.getPrecoSubstituto());
                         linha.getQtdsSubstitutosPorFornecedor().put(nomeForn, oferta.getQuantidadeSubstituto());
+                        
+                        // NOVA LÓGICA: Enviar as condições do produto substituto para o React
+                        if (oferta.getQuantidadeCondicaoSubstituto() != null && oferta.getPrecoCondicaoSubstituto() != null) {
+                            linha.getQtdCondicaoSubstPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicaoSubstituto());
+                            linha.getPrecoCondicaoSubstPorFornecedor().put(nomeForn, oferta.getPrecoCondicaoSubstituto());
+                        }
                     }
                     if (oferta.getObservacao() != null && !oferta.getObservacao().trim().isEmpty()) {
                         linha.getObservacoesPorFornecedor().put(nomeForn, oferta.getObservacao().trim());
@@ -184,6 +194,11 @@ public class ComparativoService {
             dto.setPreco(s.getPreco());
             dto.setQtdMinima(s.getQtdMinima());
             dto.setObservacao(s.getObservacao());
+            
+            // NOVA LÓGICA: Enviar as condições das sugestões
+            dto.setQuantidadeCondicao(s.getQuantidadeCondicao());
+            dto.setPrecoCondicao(s.getPrecoCondicao());
+            
             return dto;
         }).collect(Collectors.toList());
     }
@@ -244,13 +259,18 @@ public class ComparativoService {
                 preco.setProdutoSubstituto(dto.getProdutoSubstituto());
                 preco.setPrecoSubstituto(dto.getPrecoSubstituto());
                 preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
+                
+                // NOVA LÓGICA: Salvar campos de escalonamento no banco
+                preco.setQuantidadeCondicao(dto.getQuantidadeCondicao());
+                preco.setPrecoCondicao(dto.getPrecoCondicao());
+                preco.setQuantidadeCondicaoSubstituto(dto.getQuantidadeCondicaoSubstituto());
+                preco.setPrecoCondicaoSubstituto(dto.getPrecoCondicaoSubstituto());
+
                 preco.setDataResposta(LocalDateTime.now());
 
                 precoRepository.save(preco);
 
-                // ====================================================================
                 // REGRA ANTI-FRAUDE COM SALVAMENTO DA ORIGEM DA EXCLUSÃO
-                // ====================================================================
                 for (Pedido pedido : pedidosAbertosDoFornecedor) {
                     List<ItemPedido> itensParaRemover = new ArrayList<>();
                     
@@ -274,7 +294,6 @@ public class ComparativoService {
                             
                             pedido.setValorTotalPedido(pedido.getValorTotalPedido() - subtotal);
                             
-                            // NOVO: Grava na cotação que o item foi estornado e qual era o pedido
                             item.setDevolvidoPorAlteracaoPreco(true);
                             item.setPedidoOrigemId(pedido.getId());
                             itemRepository.save(item);
@@ -303,6 +322,10 @@ public class ComparativoService {
                 sugestao.setPreco(sugDto.getPreco());
                 sugestao.setQtdMinima(sugDto.getQtdMinima());
                 sugestao.setObservacao(sugDto.getObservacao());
+                
+                // NOVA LÓGICA: Salvar as condições para a sugestão
+                sugestao.setQuantidadeCondicao(sugDto.getQuantidadeCondicao());
+                sugestao.setPrecoCondicao(sugDto.getPrecoCondicao());
 
                 sugestaoPromocaoRepository.save(sugestao);
             }

@@ -33,4 +33,10 @@ public class SugestaoPedido {
 
     @Column(name = "data_sugestao")
     private LocalDateTime dataSugestao = LocalDateTime.now();
+
+    @Column(name = "quantidade_condicao")
+    private Integer quantidadeCondicao;
+
+    @Column(name = "preco_condicao")
+    private Double precoCondicao;
 }

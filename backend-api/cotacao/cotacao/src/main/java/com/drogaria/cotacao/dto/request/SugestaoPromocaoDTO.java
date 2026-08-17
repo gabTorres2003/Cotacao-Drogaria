@@ -7,7 +7,9 @@ public class SugestaoPromocaoDTO {
     private Integer qtdMinima;
     private String observacao;
 
-    // Getters e Setters
+    private Integer quantidadeCondicao;
+    private Double precoCondicao;
+
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
 
@@ -19,4 +21,10 @@ public class SugestaoPromocaoDTO {
 
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+
+    public Integer getQuantidadeCondicao() { return quantidadeCondicao; }
+    public void setQuantidadeCondicao(Integer quantidadeCondicao) { this.quantidadeCondicao = quantidadeCondicao; }
+
+    public Double getPrecoCondicao() { return precoCondicao; }
+    public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
 }
