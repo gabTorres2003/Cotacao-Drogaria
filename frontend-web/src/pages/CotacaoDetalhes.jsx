@@ -318,7 +318,7 @@ export default function CotacaoDetalhes() {
             pC = itemRelatorio.precoCondicaoSubstPorFornecedor?.[vencedor];
           }
 
-          let condAplicada = (qC && pC && qtd >= qC);
+          let condAplicada = !!(qC && pC && qtd >= qC);
           let precoFinal = condAplicada ? pC : preco;
 
           if (preco > 0) {
@@ -342,7 +342,7 @@ export default function CotacaoDetalhes() {
               let qCSubst = itemRelatorio.qtdCondicaoSubstPorFornecedor?.[forn];
               let pCSubst = itemRelatorio.precoCondicaoSubstPorFornecedor?.[forn];
 
-              let condAplicadaSubst = (qCSubst && pCSubst && qtdSubst >= qCSubst);
+              let condAplicadaSubst = !!(qCSubst && pCSubst && qtdSubst >= qCSubst);
               let precoFinalSubst = condAplicadaSubst ? pCSubst : precoSubst;
 
               if (precoSubst > 0) {
@@ -372,7 +372,7 @@ export default function CotacaoDetalhes() {
         
         let qCPromo = promo.quantidadeCondicao;
         let pCPromo = promo.precoCondicao;
-        let condAplicadaPromo = (qCPromo && pCPromo && promo.qtdMinima >= qCPromo);
+        let condAplicadaPromo = !!(qCPromo && pCPromo && promo.qtdMinima >= qCPromo);
         let precoFinalPromo = condAplicadaPromo ? pCPromo : promo.preco;
 
         pedidosPorFornecedor[targetForn].itens.push({
@@ -705,6 +705,7 @@ export default function CotacaoDetalhes() {
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
       />
 
+      {/* BOTÃO PARA ABRIR O MODAL DE ENCOMENDAS DO BALCÃO */}
       {!isEncerrada && (
         <div style={{ marginBottom: '20px' }}>
           <button 
@@ -791,7 +792,7 @@ export default function CotacaoDetalhes() {
       )}
 
       <ModalFornecedoresNotificados isOpen={showVinculosModal} onClose={() => setShowVinculosModal(false)} vinculos={vinculos} removerVinculo={removerVinculo} />
-      <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvarItemManual} />
+      <ModalProdutoExtra isOpen={isAddItemModalOpen} onClose={() => setIsAddItemModalOpen(false)} novoItemManual={novoItemManual} setNovoItemManual={setNovoItemManual} handleSalvarItemManual={handleSalvarItemManual} salvandoItemManual={salvandoItemManual} />
       {isUploadModalOpen && <UploadModal cotacaoId={id} onClose={() => setIsUploadModalOpen(false)} onSuccess={carregarRelatorio} />}
       {isEnviarModalOpen && <EnviarLinkModal idCotacao={id} onClose={() => setIsEnviarModalOpen(false)} onStatusUpdate={() => { carregarCotacao(); carregarVinculos(); }} />}
       
@@ -882,9 +883,10 @@ export default function CotacaoDetalhes() {
                           onFocus={e => e.target.select()}
                           onChange={e => {
                               const novaQtd = Math.max(1, parseInt(e.target.value, 10) || 1);
-                              let novoPreco = itemAddPedido.precoBase;
+                              let novoPreco = itemAddPedido.precoBase; 
                               let condAplicada = false;
 
+                              // Valida a condição dinamicamente
                               if (itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && novaQtd >= itemAddPedido.qtdCondicao) {
                                   novoPreco = itemAddPedido.precoCondicao;
                                   condAplicada = true;
@@ -908,7 +910,8 @@ export default function CotacaoDetalhes() {
                     </div>
                   </div>
 
-                  {itemAddPedido?.qtdCondicao && itemAddPedido?.precoCondicao && (
+                  {/* BOTÃO E SELO DA CONDIÇÃO ESPECIAL NO MODAL DE +PEDIDO */}
+                  {itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && (
                       <div style={{ marginTop: '10px' }}>
                           {itemAddPedido.condicaoAplicada ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
