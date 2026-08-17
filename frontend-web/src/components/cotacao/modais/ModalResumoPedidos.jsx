@@ -18,10 +18,8 @@ export default function ModalResumoPedidos({
      });
   };
 
-  // ATUALIZADO: Lógica de Vai-e-Vem (Desmarcar sugestão devolve pro vencedor original)
   const handleToggleItem = (fIndex, iIndex, checked) => {
      setPedidosGerados(prev => {
-        // Cria uma cópia profunda para não mutar o estado diretamente
         const next = prev.map(ped => ({
            ...ped,
            itens: ped.itens.map(item => ({ ...item }))
@@ -30,30 +28,25 @@ export default function ModalResumoPedidos({
         const targetItem = next[fIndex].itens[iIndex];
         targetItem.selected = checked;
 
-        // SE MARCOU: e tem idItem, desmarca todos os outros iguais (Original ou outras Trocas)
         if (checked && targetItem.idItem !== null) {
            next.forEach((pedido, idxForn) => {
               pedido.itens.forEach((item, idxItem) => {
                  if (idxForn === fIndex && idxItem === iIndex) return;
-
                  if (item.idItem === targetItem.idItem) {
                     item.selected = false;
                  }
               });
            });
         } 
-        // SE DESMARCOU: e era uma Sugestão, devolve a marcação para o vencedor original
         else if (!checked && targetItem.isExtra && targetItem.idItem !== null) {
            next.forEach((pedido) => {
               pedido.itens.forEach((item) => {
-                 // O produto original é o que tem o mesmo idItem e NÃO é extra (isExtra === false)
                  if (item.idItem === targetItem.idItem && !item.isExtra) {
                     item.selected = true;
                  }
               });
            });
         }
-
         return next;
      });
   };
@@ -63,7 +56,6 @@ export default function ModalResumoPedidos({
   }, 0);
 
   const hasAnySelected = pedidosGerados.some(ped => ped.itens.some(i => i.selected));
-
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
   return (
@@ -85,43 +77,20 @@ export default function ModalResumoPedidos({
                 const emp = normalizeStr(p.fornecedor?.empresa);
                 const nom = normalizeStr(p.fornecedor?.nome);
                 const fNomeApi = normalizeStr(p.fornecedorNome);
-                
-                return (emp && fNameMatch.includes(emp)) || 
-                       (nom && fNameMatch.includes(nom)) || 
-                       (fNomeApi && fNameMatch.includes(fNomeApi)) ||
-                       (emp && nom && fNameMatch === `${emp} (${nom})`) ||
-                       (emp === fNameMatch) || (nom === fNameMatch);
+                return (emp && fNameMatch.includes(emp)) || (nom && fNameMatch.includes(nom)) || (fNomeApi && fNameMatch.includes(fNomeApi)) || (emp && nom && fNameMatch === `${emp} (${nom})`) || (emp === fNameMatch) || (nom === fNameMatch);
             }).sort((a, b) => b.id - a.id);
 
             return (
               <div key={pedido.fornecedorNome} style={{ ...styles.card, opacity: someSelected ? 1 : 0.6 }}>
                 <div style={styles.cardHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <input
-                      type="checkbox"
-                      checked={allSelected}
-                      ref={el => { if(el) el.indeterminate = !allSelected && someSelected; }}
-                      onChange={e => handleToggleFornecedor(fIndex, e.target.checked)}
-                      style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
-                    />
+                    <input type="checkbox" checked={allSelected} ref={el => { if(el) el.indeterminate = !allSelected && someSelected; }} onChange={e => handleToggleFornecedor(fIndex, e.target.checked)} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
                     <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>{pedido.fornecedorNome}</h3>
                   </div>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>Ação:</span>
-                    <select
-                       value={pedido.acaoFornecedor || 'NOVO'}
-                       onChange={e => {
-                           const val = e.target.value;
-                           setPedidosGerados(prev => {
-                              const next = [...prev];
-                              next[fIndex].acaoFornecedor = val;
-                              return next;
-                           });
-                       }}
-                       style={styles.selectAcao}
-                       disabled={!someSelected}
-                    >
+                    <select value={pedido.acaoFornecedor || 'NOVO'} onChange={e => { const val = e.target.value; setPedidosGerados(prev => { const next = [...prev]; next[fIndex].acaoFornecedor = val; return next; }); }} style={styles.selectAcao} disabled={!someSelected}>
                        <option value="NOVO">Gerar Novo Pedido</option>
                        {ordersForn.map(o => <option key={o.id} value={o.id}>Adicionar ao Pedido #{o.id}</option>)}
                     </select>
@@ -147,30 +116,17 @@ export default function ModalResumoPedidos({
                        let rankBadge = null;
                        if (item.isExtra && relatorioOrdenado) {
                            let matchItem = null;
-                           if (item.idItem) {
-                               matchItem = relatorioOrdenado.find(r => r.idItem === item.idItem);
-                           } else {
-                               const nomeNorm = getNomeRealSempre(item.nomeProduto).toLowerCase().trim();
-                               matchItem = relatorioOrdenado.find(r => getNomeRealSempre(r.nomeProduto).toLowerCase().trim() === nomeNorm);
-                           }
-                           
+                           if (item.idItem) { matchItem = relatorioOrdenado.find(r => r.idItem === item.idItem); } else { const nomeNorm = getNomeRealSempre(item.nomeProduto).toLowerCase().trim(); matchItem = relatorioOrdenado.find(r => getNomeRealSempre(r.nomeProduto).toLowerCase().trim() === nomeNorm); }
                            if (matchItem) {
                                let precosArr = [];
                                Object.values(matchItem.precosPorFornecedor || {}).forEach(p => { if (p > 0) precosArr.push(p); });
                                Object.values(matchItem.precosSubstitutosPorFornecedor || {}).forEach(p => { if (p > 0) precosArr.push(p); });
                                precosArr.push(item.valorUnitarioPedido);
-                               
                                precosArr = [...new Set(precosArr)].sort((a, b) => a - b);
                                const rankIndex = precosArr.indexOf(item.valorUnitarioPedido) + 1;
-                               
                                const corFundo = rankIndex === 1 ? '#dcfce7' : (rankIndex === 2 ? '#fef08a' : '#f1f5f9');
                                const corTexto = rankIndex === 1 ? '#166534' : (rankIndex === 2 ? '#854d0e' : '#475569');
-                               
-                               rankBadge = (
-                                 <span style={{ fontSize: '10px', backgroundColor: corFundo, color: corTexto, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '2px' }}>
-                                    <Tag size={10} /> {rankIndex}º Melhor Preço
-                                 </span>
-                               );
+                               rankBadge = (<span style={{ fontSize: '10px', backgroundColor: corFundo, color: corTexto, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> {rankIndex}º Melhor Preço</span>);
                            } else {
                                rankBadge = <span style={{ fontSize: '10px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Item Novo (Extra)</span>;
                            }
@@ -179,20 +135,24 @@ export default function ModalResumoPedidos({
                        return (
                          <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <input 
-                                 type="checkbox" 
-                                 checked={item.selected} 
-                                 onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)}
-                                 style={{ cursor: 'pointer', transform: 'scale(1.1)' }}
-                              />
+                              <input type="checkbox" checked={item.selected} onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                            </td>
                            <td style={{ padding: '8px', fontSize: '13px', fontWeight: '500', color: '#1e293b' }}>
                              {nomeExibir}
+                             
                              {item.nomeOriginal && item.nomeProduto !== item.nomeOriginal && (
                                <div style={{ fontSize: '10px', color: '#d97706', marginTop: '2px' }}>
                                  Troca de: {item.nomeOriginal}
                                </div>
                              )}
+
+                             {/* AVISO VISUAL DE QUE O PREÇO DE VOLUME FOI APLICADO */}
+                             {item.condicaoAplicada && (
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', marginTop: '4px', width: 'fit-content', border: '1px solid #bbf7d0' }}>
+                                  <Tag size={10} /> Desconto por Volume Aplicado
+                                </div>
+                             )}
+
                              {item.isExtra && (
                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
                                  <span style={{ fontSize: '10px', backgroundColor: '#fde047', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
@@ -202,7 +162,7 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
                            </td>
-                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px' }}>{item.quantidadePedida}</td>
+                           <td style={{ padding: '8px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>{item.quantidadePedida}</td>
                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
                            <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? '#16a34a' : '#9ca3af' }}>
                              {fMoney(item.subtotal)}
@@ -212,27 +172,19 @@ export default function ModalResumoPedidos({
                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                                    <ArrowRight size={12} color="#6b7280" />
-                                   <select 
-                                     style={styles.selectSmall}
-                                     value={pedido.fornecedorNome}
-                                     onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, iIndex, e.target.value)}
-                                   >
+                                   <select style={styles.selectSmall} value={pedido.fornecedorNome} onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, iIndex, e.target.value)}>
                                      <option value={pedido.fornecedorNome}>{pedido.fornecedorNome}</option>
                                      {fornecedores.filter(f => f !== pedido.fornecedorNome).map(f => (
                                        <option key={f} value={f}>{f}</option>
                                      ))}
                                    </select>
                                  </div>
-                                 <button onClick={() => irParaProximoMenorPreco(pedido.fornecedorNome, iIndex)} style={styles.btnSmallBlue}>
-                                   Próximo Menor $
-                                 </button>
+                                 <button onClick={() => irParaProximoMenorPreco(pedido.fornecedorNome, iIndex)} style={styles.btnSmallBlue}>Próximo Menor $</button>
                                </div>
                              )}
                            </td>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                             <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, iIndex)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}>
-                               <Trash2 size={16} />
-                             </button>
+                             <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, iIndex)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
                            </td>
                          </tr>
                        )
@@ -251,12 +203,10 @@ export default function ModalResumoPedidos({
           <div style={styles.footerOptions}>
             <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>Após processar os pedidos, o que deseja fazer com a cotação?</p>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: '500' }}>
-              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} />
-              Deixar em Aberto (Aguardando outros pedidos)
+              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} /> Deixar em Aberto (Aguardando outros pedidos)
             </label>
             <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#dc2626', fontWeight: '500', marginTop: '4px' }}>
-              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} />
-              Encerrar Cotação (Mover para o Histórico)
+              <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} /> Encerrar Cotação (Mover para o Histórico)
             </label>
           </div>
 

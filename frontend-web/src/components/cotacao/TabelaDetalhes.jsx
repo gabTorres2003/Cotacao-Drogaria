@@ -181,7 +181,6 @@ export default function TabelaDetalhes({
                       return <td key={f} style={{ ...tdStyle, backgroundColor: '#f8fafc', borderLeft: '1px solid #f3f4f6', textAlign: 'center', color: '#cbd5e1' }}>-</td>;
                   }
 
-                  // Variáveis de Preço Normais
                   const precoOriginal = item.precosPorFornecedor?.[f] || 0;
                   const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
                   const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
@@ -192,7 +191,6 @@ export default function TabelaDetalhes({
                   const isEmFaltaOriginal = precoOriginal <= 0; 
                   const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
 
-                  // Variáveis de Condição de Preço (Escalonamento)
                   const qtdCond = item.qtdCondicaoPorFornecedor?.[f];
                   const precoCond = item.precoCondicaoPorFornecedor?.[f];
                   const qtdCondSubst = item.qtdCondicaoSubstPorFornecedor?.[f];
@@ -204,7 +202,6 @@ export default function TabelaDetalhes({
                       
                       <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>{isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}</div>
                       
-                      {/* CONDICAO DO PRECO NORMAL */}
                       {qtdCond && precoCond && !isEmFaltaOriginal && (
                         <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                           <Tags size={12} /> A partir de {qtdCond} un: {fMoney(precoCond)}
@@ -219,7 +216,6 @@ export default function TabelaDetalhes({
                               <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
                               <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
                               
-                              {/* CONDICAO DO SUBSTITUTO */}
                               {qtdCondSubst && precoCondSubst && (
                                 <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                   <Tags size={10} /> A partir de {qtdCondSubst} un: {fMoney(precoCondSubst)}
@@ -240,30 +236,33 @@ export default function TabelaDetalhes({
                               const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
                               const nomeFinal = isTroca ? substituto : item.nomeProduto;
                               const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
-                              const precoFinal = isTroca ? precoSubstituto : precoOriginal;
+                              
+                              // LOGICA DE INTELIGÊNCIA: Verifica se a quantidade solicitada atinge o desconto
+                              let precoFinal = isTroca ? precoSubstituto : precoOriginal;
+                              let condicaoAplicada = false;
+
+                              if (isTroca) {
+                                  if (qtdCondSubst && precoCondSubst && qtdFinal >= qtdCondSubst) {
+                                      precoFinal = precoCondSubst;
+                                      condicaoAplicada = true;
+                                  }
+                              } else {
+                                  if (qtdCond && precoCond && qtdFinal >= qtdCond) {
+                                      precoFinal = precoCond;
+                                      condicaoAplicada = true;
+                                  }
+                              }
 
                               onAbrirAddPedidoModal({
                                 idItem: item.idItem,
                                 nomeProduto: nomeFinal,
                                 quantidade: qtdFinal,
                                 ultimoPreco: precoFinal,
-                                precoCustom: precoFinal
+                                precoCustom: precoFinal,
+                                condicaoAplicada: condicaoAplicada // Manda o aviso pro Resumo
                               }, f);
                             }}
-                            style={{
-                              display: 'inline-flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              fontSize: '11px',
-                              fontWeight: 'bold',
-                              backgroundColor: '#10b981',
-                              color: 'white',
-                              border: 'none',
-                              borderRadius: '4px',
-                              padding: '4px 8px',
-                              cursor: 'pointer',
-                              boxShadow: '0 1px 2px rgba(0,0,0,0.1)'
-                            }}
+                            style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
                             title={`Adicionar ${substituto && (isTrocaAceita || isEmFaltaOriginal) ? substituto : item.nomeProduto} ao pedido de ${f}`}
                           >
                             <ShoppingCart size={12} /> + Pedido
@@ -280,7 +279,7 @@ export default function TabelaDetalhes({
                       <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
                     ) : (
                       <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'padding: 4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
+                        <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
                           <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
                         </button>
                       </div>
