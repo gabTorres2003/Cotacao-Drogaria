@@ -21,7 +21,6 @@ export default function FornecedorDashboard() {
   const [isSugestaoModalOpen, setIsSugestaoModalOpen] = useState(false)
   const [pedidoAtualSugestao, setPedidoAtualSugestao] = useState(null)
   
-  // ESTADO DA SUGESTÃO ATUALIZADO
   const [novaSugestao, setNovaSugestao] = useState({ 
       nomeProduto: '', quantidade: '', precoUnitario: '', observacao: '',
       exibirCondicao: false, quantidadeCondicao: '', precoCondicao: ''
@@ -191,11 +190,9 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .table-container { display: none !important; }
-          .mobile-cards { display: flex !important; flex-direction: column; gap: 12px; }
+          .table-container { overflow-x: auto !important; display: block !important; }
           .pedido-scroll { overflow-x: auto; }
         }
-        @media (min-width: 769px) { .mobile-cards { display: none !important; } }
       `}</style>
 
       <header className="dash-header" style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box' }}>
@@ -233,7 +230,7 @@ export default function FornecedorDashboard() {
             ) : (
               <>
                 <div className="table-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden' }}>
-                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID Cotação</th>
@@ -257,7 +254,7 @@ export default function FornecedorDashboard() {
                               <span style={{ padding: '4px 10px', borderRadius: '9999px', fontSize: '12px', fontWeight: '600', backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7', color: isRespondida ? '#15803d' : '#b45309' }}>{isRespondida ? 'Respondida' : 'Pendente'}</span>
                             </td>
                             <td style={{ padding: '16px 24px', textAlign: 'right' }}>
-                              <button onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer' }}>
+                              <button onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', whiteSpace: 'nowrap' }}>
                                 {isRespondida ? 'Ver / Editar' : 'Responder'}
                               </button>
                             </td>

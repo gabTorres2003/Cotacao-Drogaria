@@ -48,7 +48,6 @@ export default function ResponderCotacao() {
   const [isInitialLoadDone, setIsInitialLoadDone] = useState(false)
   const [enviado, setEnviado] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
   const [busca, setBusca] = useState('')
   const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
@@ -174,8 +173,8 @@ export default function ResponderCotacao() {
 
         setPrecos(novosPrecos); setEmFalta(novasFaltas); setQuantidades(novasQtds); setObservacoes(novasObs);
         setProdutoSubstituto(novosSubstitutos); setPrecoSubstituto(novosPrecosSubst); setQtdSubstituto(novasQtdsSubst); setExibirTroca(novasExibicoes);
-        setExibirCondicao(nExibCond); setQtdCondicao(nQtdCond); setPrecoCond(nPrecoCond);
-        setExibirCondicaoSubst(nExibCondS); setQtdCondicaoSubst(nQtdCondS); setPrecoCondSubst(nPrecoCondS);
+        setExibirCondicao(nExibCond); setQtdCondicao(nQtdCond); setPrecoCondicao(nPrecoCond);
+        setExibirCondicaoSubst(nExibCondS); setQtdCondicaoSubst(nQtdCondS); setPrecoCondicaoSubst(nPrecoCondS);
       }
 
       const resSug = await api.get(`/api/cotacao/sugestoes/${idCotacao}`)
@@ -405,7 +404,7 @@ export default function ResponderCotacao() {
                           <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
                           <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={qtdCondicao[item.idItem] || ''} onChange={e => setQtdCondicao(p => ({...p, [item.idItem]: e.target.value}))}/>
                           <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>unidades, sai por R$</span>
-                          <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicao[item.idItem] || ''} onChange={e => setPrecoCond(p => ({...p, [item.idItem]: e.target.value}))}/>
+                          <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicao[item.idItem] || ''} onChange={e => setPrecoCondicao(p => ({...p, [item.idItem]: e.target.value}))}/>
                         </div>
                       )}
                     </div>
@@ -443,7 +442,7 @@ export default function ResponderCotacao() {
                                 <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
                                 <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={qtdCondicaoSubst[item.idItem] || ''} onChange={e => setQtdCondicaoSubst(p => ({...p, [item.idItem]: e.target.value}))}/>
                                 <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>unidades, sai por R$</span>
-                                <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicaoSubst[item.idItem] || ''} onChange={e => setPrecoCondSubst(p => ({...p, [item.idItem]: e.target.value}))}/>
+                                <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicaoSubst[item.idItem] || ''} onChange={e => setPrecoCondicaoSubst(p => ({...p, [item.idItem]: e.target.value}))}/>
                                 </div>
                             )}
                         </div>
