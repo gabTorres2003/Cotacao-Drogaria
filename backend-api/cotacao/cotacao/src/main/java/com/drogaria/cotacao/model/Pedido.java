@@ -49,6 +49,9 @@ public class Pedido {
     @Column(name = "numero_nota")
     private String numeroNota;
 
+    @Column(name = "motivo_cancelamento")
+    private String motivoCancelamento;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;
@@ -56,4 +59,7 @@ public class Pedido {
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL, orphanRemoval = true)
     @JsonIgnoreProperties("pedido") 
     private List<SugestaoPedido> sugestoes;
+
+    public String getMotivoCancelamento() { return motivoCancelamento; }
+    public void setMotivoCancelamento(String motivoCancelamento) { this.motivoCancelamento = motivoCancelamento; }
 }

@@ -83,7 +83,7 @@ export default function TabelaDetalhes({
                     <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
                   ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                         <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
                           {getNomeExibicao(item.nomeProduto)}
                         </strong>
@@ -104,6 +104,14 @@ export default function TabelaDetalhes({
                             ⚠️ Alterado no Pedido
                           </span>
                         )}
+
+                        {/* NOVO: AVISO VISUAL DE ITEM RETORNADO PARA A COTAÇÃO DEVIDO A FALHA DE ENTREGA */}
+                        {item.motivoRetorno && !isBloqueado && (
+                            <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} title="Este item retornou à cotação devido a uma falha de entrega anterior">
+                                <AlertTriangle size={10} /> Retornado: {item.motivoRetorno}
+                            </span>
+                        )}
+
                         <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>
                           {copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}
                         </button>
@@ -255,10 +263,10 @@ export default function TabelaDetalhes({
                                 quantidade: qtdFinal,
                                 ultimoPreco: precoFinal,
                                 precoCustom: precoFinal,
-                                precoBase: precoBase,      
-                                qtdCondicao: qC,           
-                                precoCondicao: pC,         
-                                condicaoAplicada: condAplicada 
+                                precoBase: precoBase,
+                                qtdCondicao: qC,     
+                                precoCondicao: pC,       
+                                condicaoAplicada: condAplicada
                               }, f);
                             }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}

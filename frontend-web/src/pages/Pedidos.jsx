@@ -3,8 +3,8 @@ import { useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
-import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' // NOVO MODAL
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus } from 'lucide-react'
+import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' 
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -26,8 +26,20 @@ export default function Pedidos() {
   const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
 
-  // NOVO ESTADO
   const [isModalManualOpen, setIsModalManualOpen] = useState(false)
+
+  // ESTADOS DO MODAL DE FALHA/CANCELAMENTO
+  const [modalFalhaAberto, setModalFalhaAberto] = useState(false)
+  const [pedidoFalha, setPedidoFalha] = useState(null)
+  const [motivoFalha, setMotivoFalha] = useState('')
+
+  // RELÓGIO EM TEMPO REAL PARA O SLA DE 24H
+  const [agora, setAgora] = useState(new Date().getTime());
+  
+  useEffect(() => {
+      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); // Atualiza a cada 1 minuto
+      return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     carregarPedidos()
@@ -87,6 +99,24 @@ export default function Pedidos() {
         setIsDeleting(false);
       }
     }
+  };
+
+  const abrirModalFalha = (pedido) => {
+      setPedidoFalha(pedido);
+      setMotivoFalha('');
+      setModalFalhaAberto(true);
+  };
+
+  const registrarFalhaEntrega = async () => {
+      if (!motivoFalha.trim()) return alert('Por favor, selecione ou informe o motivo do cancelamento.');
+      try {
+          await api.patch(`/api/pedidos/${pedidoFalha.id}/falha-entrega`, { motivo: motivoFalha });
+          alert('Pedido marcado como NÃO ENTREGUE. Os itens foram devolvidos para a cotação!');
+          setModalFalhaAberto(false);
+          carregarPedidos();
+      } catch (e) {
+          alert('Erro ao registrar falha de entrega: ' + (e.response?.data?.message || e.message));
+      }
   };
 
   const handleAvisarEmMassa = () => {
@@ -202,16 +232,35 @@ export default function Pedidos() {
     setModalDevolucaoAberto(true)
   }
 
-  const getStatusFormatado = (status) => {
-    const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-block' };
+  // INTELIGÊNCIA: Verifica SLA de 24h e retorna Status Formatado
+  const getStatusFormatado = (p) => {
+    const status = p.status;
+    const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' };
+
+    if (status === 'PENDENTE_ENTREGA') {
+        const dataCriacao = new Date(p.dataCriacao).getTime();
+        const prazoFinal = dataCriacao + (24 * 60 * 60 * 1000); 
+        const tempoRestante = prazoFinal - agora;
+
+        if (tempoRestante <= 0) {
+            return { texto: 'Prazo Estourado (> 24h)', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }, estourado: true };
+        }
+
+        const horas = Math.floor((tempoRestante % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutos = Math.floor((tempoRestante % (1000 * 60 * 60)) / (1000 * 60));
+        const isCritico = horas < 4;
+
+        return { texto: `Aguardando (⏳ ${horas}h ${minutos}m)`, style: { ...baseStyle, backgroundColor: isCritico ? '#fff7ed' : '#ffedd5', color: isCritico ? '#ea580c' : '#c2410c' } };
+    }
+
     switch (status) {
-      case 'PENDENTE_ENTREGA': return { texto: 'Aguard. Fornecedor', style: { ...baseStyle, backgroundColor: '#ffedd5', color: '#c2410c' } };
       case 'CONFIRMADO_FORNECEDOR': return { texto: 'Confirmado na Fábrica', style: { ...baseStyle, backgroundColor: '#cffafe', color: '#1d4ed8' } };
       case 'ENTREGUE_SUCESSO': return { texto: 'Entregue', style: { ...baseStyle, backgroundColor: '#dcfce7', color: '#15803d' } };
       case 'ENTREGUE_COM_FALTA': return { texto: 'Entregue com Falta', style: { ...baseStyle, backgroundColor: '#fef3c7', color: '#b45309' } };
       case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência: Valor', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
       case 'DIVERGENCIA': return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
       case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: '#f3e8ff', color: '#7e22ce' } };
+      case 'CANCELADO': return { texto: 'Cancelado / Falha na Entrega', style: { ...baseStyle, backgroundColor: '#f1f5f9', color: '#475569', textDecoration: 'line-through' } };
       default: return { texto: status, style: { ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' } };
     }
   }
@@ -307,7 +356,7 @@ export default function Pedidos() {
                 <>
                   <option value="ENTREGUE_SUCESSO">Entregue com Sucesso</option>
                   <option value="ENTREGUE_COM_FALTA">Entregue com Falta</option>
-                  <option value="CANCELADO">Cancelado</option>
+                  <option value="CANCELADO">Cancelado / Falha</option>
                 </>
               )}
             </select>
@@ -399,7 +448,7 @@ export default function Pedidos() {
                 </tr>
               ) : (
                 pedidosProcessados.map((p) => {
-                  const statusInfo = getStatusFormatado(p.status)
+                  const statusInfo = getStatusFormatado(p)
                   
                   const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
                   const vend = p.fornecedor?.nome || p.fornecedorNome || '';
@@ -475,6 +524,13 @@ export default function Pedidos() {
                             </button>
                           )}
 
+                          {/* BOTÃO PARA CANCELAR OU MARCAR COMO NÃO ENTREGUE */}
+                          {isAguardando && (
+                            <button className="btn-icon" title="Registrar Falha na Entrega / Cancelar" onClick={() => abrirModalFalha(p)}>
+                              <XCircle size={18} color="#ef4444" />
+                            </button>
+                          )}
+
                           {p.status === 'PENDENTE_DEVOLUCAO' && (
                             <button className="btn-icon" title="Tratar Devolução" onClick={() => abrirModalDevolucao(p)}>
                               <RotateCcw size={18} color="#ef4444" />
@@ -502,12 +558,54 @@ export default function Pedidos() {
           />
         )}
         
-        {/* MODAL DE CRIAR PEDIDO MANUAL */}
         {isModalManualOpen && (
             <ModalPedidoManual 
                 isOpen={isModalManualOpen} 
                 onClose={() => { setIsModalManualOpen(false); carregarPedidos(); }} 
             />
+        )}
+
+        {/* MODAL DE FALHA NA ENTREGA */}
+        {modalFalhaAberto && pedidoFalha && (
+            <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                        <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <XCircle size={20} color="#ef4444" /> Registrar Falha de Entrega
+                        </h3>
+                        <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                    </div>
+                    
+                    <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+                        O Pedido <strong>#{pedidoFalha.id}</strong> ({pedidoFalha.fornecedor?.nome || pedidoFalha.fornecedorNome}) será marcado como Falha/Cancelado.
+                        <br/><br/>
+                        <strong style={{ color: '#111827' }}>Os itens vinculados a este pedido serão devolvidos para a aba "Cotações" para que você possa comprá-los novamente.</strong>
+                    </p>
+
+                    <div style={{ marginBottom: '20px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
+                        <select 
+                            value={motivoFalha} 
+                            onChange={e => setMotivoFalha(e.target.value)}
+                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}
+                        >
+                            <option value="">-- Selecione o Motivo --</option>
+                            <option value="Prazo Estourado (24h)">Prazo Estourado (24h)</option>
+                            <option value="Pedido não confirmado pelo fornecedor">Pedido não confirmado pelo fornecedor</option>
+                            <option value="Faturamento não realizado">Faturamento não realizado</option>
+                            <option value="Ruptura na Entrega (Não Entregue)">Ruptura na Entrega (Não Entregue)</option>
+                            <option value="Outro Motivo">Outro...</option>
+                        </select>
+                    </div>
+
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                        <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                        <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            Confirmar Cancelamento
+                        </button>
+                    </div>
+                </div>
+            </div>
         )}
 
       </main>

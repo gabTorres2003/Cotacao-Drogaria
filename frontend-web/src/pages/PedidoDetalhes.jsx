@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -27,6 +27,17 @@ export default function PedidoDetalhes() {
 
     const [codigoDna, setCodigoDna] = useState('');
 
+    // ESTADOS DO MODAL DE FALHA/CANCELAMENTO
+    const [modalFalhaAberto, setModalFalhaAberto] = useState(false)
+    const [motivoFalha, setMotivoFalha] = useState('')
+
+    // RELÓGIO 24H
+    const [agora, setAgora] = useState(new Date().getTime());
+    useEffect(() => {
+        const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
+        return () => clearInterval(interval);
+    }, []);
+
     const carregarPedido = async () => {
         try {
             const response = await api.get(`/api/pedidos/${id}`);
@@ -35,7 +46,20 @@ export default function PedidoDetalhes() {
             if (response.data.sugestoes) {
                 const sugMap = {};
                 response.data.sugestoes.forEach(s => {
-                    sugMap[s.id] = { ...s };
+                    let condAtiva = false;
+                    let precoAtual = s.precoUnitario;
+
+                    if (s.quantidadeCondicao && s.precoCondicao && s.quantidade >= s.quantidadeCondicao) {
+                        condAtiva = true;
+                        precoAtual = s.precoCondicao;
+                    }
+
+                    sugMap[s.id] = { 
+                        ...s,
+                        quantidadeAtualizada: s.quantidade,
+                        precoAplicado: precoAtual,
+                        condicaoAplicada: condAtiva
+                    };
                 });
                 setSugestoesEditaveis(sugMap);
             }
@@ -98,6 +122,18 @@ export default function PedidoDetalhes() {
         }
     };
 
+    const registrarFalhaEntrega = async () => {
+        if (!motivoFalha.trim()) return alert('Por favor, selecione ou informe o motivo do cancelamento.');
+        try {
+            await api.patch(`/api/pedidos/${id}/falha-entrega`, { motivo: motivoFalha });
+            alert('Pedido marcado como NÃO ENTREGUE. Os itens foram devolvidos para a cotação!');
+            setModalFalhaAberto(false);
+            carregarPedido();
+        } catch (e) {
+            alert('Erro ao registrar falha de entrega: ' + (e.response?.data?.message || e.message));
+        }
+    };
+
     const handleQtdSugestaoChange = (idSugestao, novaQtd) => {
         setSugestoesEditaveis(prev => {
             const currentSugestao = prev[idSugestao];
@@ -139,7 +175,6 @@ export default function PedidoDetalhes() {
     };
 
     const handleAceitarSugestao = async (idSugestao) => {
-        // Fallback para caso não tenha sido editado na tela
         const sugOriginal = pedido.sugestoes.find(s => s.id === idSugestao);
         const sugEditada = sugestoesEditaveis[idSugestao] || sugOriginal;
 
@@ -147,7 +182,6 @@ export default function PedidoDetalhes() {
         let precoFinal = sugEditada.precoAplicado || sugEditada.precoUnitario;
         let condAtiva = sugEditada.condicaoAplicada || false;
 
-        // Ultima verificação de segurança antes de disparar pra API
         if (sugEditada.quantidadeCondicao && sugEditada.precoCondicao && qtdFinal >= sugEditada.quantidadeCondicao) {
             precoFinal = sugEditada.precoCondicao;
             condAtiva = true;
@@ -347,8 +381,16 @@ export default function PedidoDetalhes() {
         if (!pedidoObj) return '';
         const status = pedidoObj.status;
         
+        if (status === 'PENDENTE_ENTREGA') {
+            const dataCriacao = new Date(pedidoObj.dataCriacao).getTime();
+            const prazoFinal = dataCriacao + (24 * 60 * 60 * 1000); 
+            const tempoRestante = prazoFinal - agora;
+            if (tempoRestante <= 0) return 'PRAZO ESTOURADO (> 24H)';
+            return 'AGUARDANDO FORNECEDOR';
+        }
+
+        if (status === 'CANCELADO') return 'CANCELADO / FALHA NA ENTREGA';
         if (status === 'CONFIRMADO_FORNECEDOR') return 'CONFIRMADO NA FÁBRICA (AGUARDANDO ENTREGA)';
-        if (status === 'PENDENTE_ENTREGA') return 'AGUARDANDO FORNECEDOR';
 
         if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status)) {
             let faltas = 0, avarias = 0, incorretos = 0;
@@ -436,6 +478,14 @@ export default function PedidoDetalhes() {
                               <MessageCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Avisar Fornecedor
                           </button>
                         )}
+                        
+                        {/* NOVO BOTÃO DE CANCELAMENTO PARA A FARMÁCIA */}
+                        {(pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR') && (
+                            <button style={{ ...styles.btnVoltar, backgroundColor: '#f97316', color: 'white' }} onClick={() => setModalFalhaAberto(true)}>
+                                <XCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Registrar Falha de Entrega
+                            </button>
+                        )}
+
                         <button style={{ ...styles.btnVoltar, backgroundColor: '#ef4444', color: 'white' }} onClick={handleExcluirPedido}>
                             <Trash2 size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} /> Excluir Pedido
                         </button>
@@ -445,7 +495,21 @@ export default function PedidoDetalhes() {
                     </div>
                 </header>
 
-                {pedido.sugestoes && pedido.sugestoes.length > 0 && (
+                {pedido.status === 'CANCELADO' && (
+                    <div style={{ backgroundColor: '#fee2e2', border: '1px solid #fca5a5', padding: '16px', borderRadius: '8px', marginBottom: '20px' }}>
+                        <h4 style={{ margin: '0 0 8px 0', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <AlertTriangle size={18} /> Pedido Cancelado / Falha na Entrega
+                        </h4>
+                        <p style={{ margin: 0, color: '#7f1d1d', fontSize: '14px' }}>
+                            <strong>Motivo registrado:</strong> {pedido.motivoCancelamento || 'Não informado'}
+                        </p>
+                        <p style={{ margin: '8px 0 0 0', color: '#7f1d1d', fontSize: '13px' }}>
+                            Os itens deste pedido foram devolvidos para a Cotação para serem comprados novamente (se desejado).
+                        </p>
+                    </div>
+                )}
+
+                {pedido.sugestoes && pedido.sugestoes.length > 0 && pedido.status !== 'CANCELADO' && (
                     <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 'bold' }}>
                             <Tag size={20} />
@@ -463,7 +527,7 @@ export default function PedidoDetalhes() {
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status)}>{getStatusExibicao(pedido)}</span></p>
+                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status, getStatusExibicao(pedido))}>{getStatusExibicao(pedido)}</span></p>
                             
                             <p style={{ fontSize: '14px', marginBottom: '8px', color: '#4b5563' }}>
                                 <strong>Gerado (Enviado) em:</strong> {fDataHora(pedido.dataCriacao)}
@@ -523,7 +587,7 @@ export default function PedidoDetalhes() {
                     </div>
                 </div>
 
-                {valorMinimoSalvo > 0 && (
+                {valorMinimoSalvo > 0 && pedido.status !== 'CANCELADO' && (
                     <div style={{ marginTop: '-5px', marginBottom: '20px', padding: '16px 20px', backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px' }}>
                         <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '15px' }}>
                             <TrendingUp size={18}/> Faturamento Mínimo do Fornecedor
@@ -583,7 +647,7 @@ export default function PedidoDetalhes() {
                                 return (
                                     <tr key={item.id}>
                                         <td style={styles.td}>
-                                            <strong style={{ display: 'block' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                            <strong style={{ display: 'block', textDecoration: pedido.status === 'CANCELADO' ? 'line-through' : 'none' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
                                             
                                             {item.condicaoAplicada && (
                                               <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
@@ -669,10 +733,12 @@ export default function PedidoDetalhes() {
                                         )}
 
                                         <td style={{ ...styles.td, textAlign: 'center' }}>
-                                            <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida)}>
-                                                {mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
+                                            <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
+                                                {pedido.status === 'CANCELADO' ? 'CANCELADO' : (
+                                                mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
                                                     ? 'FALTA PARCIAL' 
-                                                    : (item.statusRecebimento || 'AGUARDANDO')}
+                                                    : (item.statusRecebimento || 'AGUARDANDO')
+                                                )}
                                             </span>
                                         </td>
 
@@ -702,6 +768,50 @@ export default function PedidoDetalhes() {
                     />
                 )}
 
+                {/* MODAL DE FALHA NA ENTREGA */}
+                {modalFalhaAberto && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <XCircle size={20} color="#ef4444" /> Registrar Falha de Entrega
+                                </h3>
+                                <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+                            
+                            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+                                O Pedido <strong>#{pedido.id}</strong> ({pedido.fornecedor?.nome || pedido.fornecedorNome}) será marcado como Falha/Cancelado.
+                                <br/><br/>
+                                <strong style={{ color: '#111827' }}>Os itens vinculados a este pedido serão devolvidos para a aba "Cotações" para que você possa comprá-los novamente.</strong>
+                            </p>
+
+                            <div style={{ marginBottom: '20px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
+                                <select 
+                                    value={motivoFalha} 
+                                    onChange={e => setMotivoFalha(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}
+                                >
+                                    <option value="">-- Selecione o Motivo --</option>
+                                    <option value="Prazo Estourado (24h)">Prazo Estourado (24h)</option>
+                                    <option value="Pedido não confirmado pelo fornecedor">Pedido não confirmado pelo fornecedor</option>
+                                    <option value="Faturamento não realizado">Faturamento não realizado</option>
+                                    <option value="Ruptura na Entrega (Não Entregue)">Ruptura na Entrega (Não Entregue)</option>
+                                    <option value="Outro Motivo">Outro...</option>
+                                </select>
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                                <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    Confirmar Cancelamento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {/* MODAL DE VISUALIZAR E ACEITAR SUGESTÕES */}
                 {isModalSugestoesAberto && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -747,14 +857,14 @@ export default function PedidoDetalhes() {
                                                             <input 
                                                                 type="number" 
                                                                 min="1"
-                                                                value={state.quantidadeAtualizada || 1}
+                                                                value={state.quantidadeAtualizada || ''}
                                                                 onChange={(e) => handleQtdSugestaoChange(sug.id, e.target.value)}
                                                                 onFocus={(e) => e.target.select()}
                                                                 style={{ width: '60px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: 'bold' }}
                                                             />
                                                         </div>
                                                         <span>Preço Unit: <strong style={{ color: state.condicaoAplicada ? '#16a34a' : '#1e293b', fontSize: '15px' }}>{fMoney(state.precoAplicado)}</strong></span>
-                                                        <span style={{ color: '#16a34a', borderLeft: '1px solid #cbd5e1', paddingLeft: '16px' }}>Subtotal: <strong style={{fontSize: '15px'}}>{fMoney((state.quantidadeAtualizada || 1) * (state.precoAplicado || 0))}</strong></span>
+                                                        <span style={{ color: '#16a34a', borderLeft: '1px solid #cbd5e1', paddingLeft: '16px' }}>Subtotal: <strong style={{fontSize: '15px'}}>{fMoney((state.quantidadeAtualizada || 0) * (state.precoAplicado || 0))}</strong></span>
                                                     </div>
                                                 </div>
                                                 <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
@@ -778,7 +888,7 @@ export default function PedidoDetalhes() {
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
+                                <h3 style={{ margin: '0 0 18px 0', color: '#1f2937' }}>Adicionar Produto Extra</h3>
                                 <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
                             </div>
 
@@ -885,10 +995,10 @@ const styles = {
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnAddItem: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', fontSize: '13px' },
     inputModal: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' },
-    statusBadge: (status) => ({ fontWeight: '700', color: ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) ? '#dc2626' : '#2563eb' }),
-    itemStatus: (status, qtdReal, qtdPedida) => {
+    statusBadge: (status, label) => ({ fontWeight: '700', color: status === 'CANCELADO' ? '#991b1b' : ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) || label.includes('ESTOURADO') ? '#dc2626' : '#2563eb' }),
+    itemStatus: (status, qtdReal, qtdPedida, pedidoStatus) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
-        const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta;
+        const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta || pedidoStatus === 'CANCELADO';
         return {
             padding: '4px 8px',
             borderRadius: '4px',

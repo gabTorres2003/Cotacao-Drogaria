@@ -228,4 +228,10 @@ public class PedidoController {
         );
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/falha-entrega")
+    public ResponseEntity<Pedido> registrarFalhaEntrega(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String motivo = payload.get("motivo");
+        return ResponseEntity.ok(pedidoService.registrarFalhaEntrega(id, motivo));
+    }
 }

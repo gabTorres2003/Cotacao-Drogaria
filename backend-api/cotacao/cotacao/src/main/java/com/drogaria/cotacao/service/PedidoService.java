@@ -475,6 +475,21 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+    @Transactional
+    public Pedido registrarFalhaEntrega(Long pedidoId, String motivo) {
+        Pedido pedido = buscarPorId(pedidoId);
+        pedido.setStatus(StatusPedido.CANCELADO);
+        pedido.setMotivoCancelamento(motivo);
+        for (ItemPedido ip : pedido.getItens()) {
+            if (ip.getItemCotacao() != null) {
+                ItemCotacao ic = ip.getItemCotacao();
+                ic.setMotivoRetorno(motivo);
+                itemCotacaoRepository.save(ic);
+            }
+        }
+        return pedidoRepository.save(pedido);
+    }
+
     @SuppressWarnings("unchecked")
     public List<Map<String, Object>> buscarItensPendentesPorCotacao(Long cotacaoId) {
         String sql = "SELECT ic.id, ic.nome_produto, c.id AS cotacao_id, ic.quantidade " +
@@ -482,14 +497,17 @@ public class PedidoService {
                      "JOIN tb_cotacoes c ON ic.cotacao_id = c.id " +
                      "WHERE c.id = :cotacaoId " +
                      "AND (ic.excluido IS NULL OR ic.excluido = false) " +
-                     "AND NOT EXISTS (SELECT 1 FROM tb_itens_pedido ip WHERE ip.item_cotacao_id = ic.id)";
+                     "AND NOT EXISTS (" +
+                     "   SELECT 1 FROM tb_itens_pedido ip " +
+                     "   JOIN tb_pedidos p ON ip.pedido_id = p.id " +
+                     "   WHERE ip.item_cotacao_id = ic.id AND p.status != 'CANCELADO'" +
+                     ")";
 
         List<Object[]> results = entityManager.createNativeQuery(sql)
                 .setParameter("cotacaoId", cotacaoId)
                 .getResultList();
         
         List<java.util.Map<String, Object>> lista = new java.util.ArrayList<>();
-        
         for (Object[] row : results) {
             java.util.Map<String, Object> map = new java.util.HashMap<>();
             map.put("idItem", row[0]);

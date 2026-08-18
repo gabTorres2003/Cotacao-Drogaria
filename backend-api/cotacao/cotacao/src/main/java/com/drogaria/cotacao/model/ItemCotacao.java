@@ -50,12 +50,14 @@ public class ItemCotacao {
     @Column(name = "pedido_origem_id")
     private Long pedidoOrigemId;
 
-    // NOVOS CAMPOS PARA ENCOMENDAS
     @Column(name = "encomenda_id")
     private UUID encomendaId;
 
     @Column(name = "fornecedor_sugerido")
     private String fornecedorSugerido;
+
+    @Column(name = "motivo_retorno")
+    private String motivoRetorno;
 
     @ManyToOne
     @JoinColumn(name = "cotacao_id")
@@ -110,10 +112,12 @@ public class ItemCotacao {
     public Long getPedidoOrigemId() { return pedidoOrigemId; }
     public void setPedidoOrigemId(Long pedidoOrigemId) { this.pedidoOrigemId = pedidoOrigemId; }
 
-    // GETTERS E SETTERS DAS ENCOMENDAS
     public UUID getEncomendaId() { return encomendaId; }
     public void setEncomendaId(UUID encomendaId) { this.encomendaId = encomendaId; }
 
     public String getFornecedorSugerido() { return fornecedorSugerido; }
     public void setFornecedorSugerido(String fornecedorSugerido) { this.fornecedorSugerido = fornecedorSugerido; }
+
+    public String getMotivoRetorno() { return motivoRetorno; }
+    public void setMotivoRetorno(String motivoRetorno) { this.motivoRetorno = motivoRetorno; }
 }

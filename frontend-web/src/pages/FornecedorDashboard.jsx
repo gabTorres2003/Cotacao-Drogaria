@@ -177,10 +177,39 @@ export default function FornecedorDashboard() {
     modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
-  const getBadgeFornecedor = (status) => {
-    if (status === 'PENDENTE_ENTREGA') return null;
-    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> CONFIRMADO</span>;
-    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> ENTREGUE</span>;
+  const getBadgeFornecedor = (pedido) => {
+    const status = pedido.status;
+    
+    if (status === 'PENDENTE_ENTREGA') {
+        const dataCriacao = new Date(pedido.dataCriacao).getTime();
+        const prazoFinal = dataCriacao + (24 * 60 * 60 * 1000); 
+        const agora = new Date().getTime();
+        const tempoRestante = prazoFinal - agora;
+
+        if (tempoRestante <= 0) {
+            return (
+              <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', textAlign: 'center' }}>
+                <AlertTriangle size={14} /> PRAZO DE 24H ESTOURADO
+              </span>
+            );
+        }
+
+        const horas = Math.floor((tempoRestante % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const minutos = Math.floor((tempoRestante % (1000 * 60 * 60)) / (1000 * 60));
+        
+        const isCritico = horas < 4; 
+
+        return (
+           <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: isCritico ? '#fff7ed' : '#f0fdf4', color: isCritico ? '#c2410c' : '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: `1px solid ${isCritico ? '#fed7aa' : '#bbf7d0'}`, textAlign: 'center' }}>
+              ⏳ Confirme em: {horas}h {minutos}m
+           </span>
+        );
+    }
+
+    if (status === 'CANCELADO') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center' }}><X size={14} /> CANCELADO</span>;
+    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center' }}><CheckCircle size={14} /> CONFIRMADO</span>;
+    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center' }}><CheckCircle size={14} /> ENTREGUE</span>;
+    
     return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center' }}>{status}</span>;
   }
 
