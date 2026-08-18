@@ -209,7 +209,7 @@ export default function FornecedorDashboard() {
 
         if (tempoRestante <= 0) {
             return (
-              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', textAlign: 'center', whiteSpace: 'nowrap' }}>
+              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', textAlign: 'center' }}>
                 <AlertTriangle size={12} /> ESTOURADO
               </span>
             );
@@ -220,17 +220,17 @@ export default function FornecedorDashboard() {
         const isCritico = horas < 4; 
 
         return (
-           <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: isCritico ? '#fff7ed' : '#f0fdf4', color: isCritico ? '#c2410c' : '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: `1px solid ${isCritico ? '#fed7aa' : '#bbf7d0'}`, textAlign: 'center', whiteSpace: 'nowrap' }}>
+           <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: isCritico ? '#fff7ed' : '#f0fdf4', color: isCritico ? '#c2410c' : '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: `1px solid ${isCritico ? '#fed7aa' : '#bbf7d0'}`, textAlign: 'center' }}>
               ⏳ {horas}h {minutos}m
            </span>
         );
     }
 
-    if (status === 'CANCELADO') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center', whiteSpace: 'nowrap' }}><X size={12} /> CANCELADO</span>;
-    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> CONFIRMADO</span>;
-    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center', whiteSpace: 'nowrap' }}><CheckCircle size={12} /> ENTREGUE</span>;
+    if (status === 'CANCELADO') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center' }}><X size={12} /> CANCELADO</span>;
+    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={12} /> CONFIRMADO</span>;
+    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={12} /> ENTREGUE</span>;
     
-    return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center', whiteSpace: 'nowrap' }}>{status}</span>;
+    return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center' }}>{status}</span>;
   }
 
   return (
@@ -240,22 +240,24 @@ export default function FornecedorDashboard() {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
           
-          /* LÓGICA DE ROLAGEM E QUEBRA SUAVE PARA MOBILE */
+          /* LÓGICA DE QUEBRA SUAVE E SEM ROLAGEM HORIZONTAL PARA MOBILE */
           .mobile-table-wrapper { 
-              overflow-x: auto !important; /* Permite rolagem lateral dentro da caixa */
-              -webkit-overflow-scrolling: touch;
+              overflow: hidden !important; /* Bloqueia a rolagem que joga pra fora */
               border-radius: 8px; 
               width: 100%; 
           }
           .responsive-table { 
-              min-width: 500px !important; /* Força a tabela a ter espaço respirável */
               width: 100% !important; 
-              table-layout: auto; 
+              table-layout: auto !important; 
           }
           .responsive-table th, .responsive-table td { 
               padding: 10px 8px !important; 
               font-size: 12px !important; 
+              white-space: normal !important; /* Permite quebra de linha natural */
+              word-break: break-word !important; /* Quebra caso haja uma palavra muito grande */
           }
+          .col-center { text-align: center !important; }
+          .col-right { text-align: right !important; }
           
           .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
           .action-buttons-container { flex-direction: column; gap: 8px; }
@@ -297,13 +299,13 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <div className="mobile-table-wrapper" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
-                        <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', whiteSpace: 'nowrap' }}>ID Cotação</th>
-                        <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', whiteSpace: 'nowrap' }}>Data de Envio</th>
-                        <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', whiteSpace: 'nowrap' }}>Status</th>
-                        <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', whiteSpace: 'nowrap' }}>Ação</th>
+                        <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '20%' }}>ID Cotação</th>
+                        <th className="col-center" style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', width: '35%' }}>Data de Envio</th>
+                        <th className="col-center" style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', width: '25%' }}>Status</th>
+                        <th className="col-center" style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center', width: '20%' }}>Ação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -315,15 +317,15 @@ export default function FornecedorDashboard() {
 
                         return (
                           <tr key={vinculo.id} style={{ borderBottom: '1px solid #e2e8f0' }}>
-                            <td style={{ padding: '16px 24px', fontWeight: '600', color: '#334155' }}>#{idCotacao}</td>
-                            <td style={{ padding: '16px 24px', color: '#64748b', textAlign: 'center', whiteSpace: 'nowrap' }}>{formatarDataHora(dataEnvio)}</td>
-                            <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7', color: isRespondida ? '#15803d' : '#b45309', display: 'inline-block', textAlign: 'center', lineHeight: '1.2', whiteSpace: 'nowrap' }}>
+                            <td style={{ padding: '16px', fontWeight: '600', color: '#334155' }}>#{idCotacao}</td>
+                            <td className="col-center" style={{ padding: '16px', color: '#64748b', textAlign: 'center' }}>{formatarDataHora(dataEnvio)}</td>
+                            <td className="col-center" style={{ padding: '16px', textAlign: 'center' }}>
+                              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: isRespondida ? '#dcfce7' : '#fef3c7', color: isRespondida ? '#15803d' : '#b45309', display: 'inline-block', textAlign: 'center', lineHeight: '1.2' }}>
                                 {isRespondida ? 'Respondida' : 'Pendente'}
                               </span>
                             </td>
-                            <td style={{ padding: '16px 24px', textAlign: 'center' }}>
-                              <button className="btn-acao" onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center', whiteSpace: 'nowrap' }}>
+                            <td className="col-center" style={{ padding: '16px', textAlign: 'center' }}>
+                              <button className="btn-acao" onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? '#2563eb' : '#16a34a', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', width: '100%', justifyContent: 'center' }}>
                                 {isRespondida ? <Edit2 size={14}/> : <FileText size={14}/>}
                                 {isRespondida ? 'Ver/Editar' : 'Responder'}
                               </button>
@@ -370,7 +372,7 @@ export default function FornecedorDashboard() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
                           <div style={{ textAlign: 'right' }}>
                             <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Valor Total</div>
-                            <span style={{ fontWeight: '900', fontSize: '16px', color: '#16a34a', whiteSpace: 'nowrap' }}>{fMoney(pedido.valorTotalPedido)}</span>
+                            <span style={{ fontWeight: '900', fontSize: '16px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
                           </div>
                           
                           <div style={{ display: 'flex', justifyContent: 'center' }}>
@@ -390,7 +392,7 @@ export default function FornecedorDashboard() {
                           {/* BARRA DE AÇÕES */}
                           <div className="action-buttons-container" style={{ padding: '12px 20px', backgroundColor: 'white', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
                             {idCotacaoOrigem && (
-                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                                  <Edit2 size={16} /> Editar Cotação Origem
                                </button>
                             )}
@@ -399,12 +401,12 @@ export default function FornecedorDashboard() {
                               <>
                                 <button 
                                   onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)', whiteSpace: 'nowrap' }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
                                 >
                                   <PlusCircle size={16} /> Adicionar Sugestão
                                 </button>
 
-                                <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)', whiteSpace: 'nowrap' }}>
+                                <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
                                   <CheckCircle size={16} /> Confirmar Separação
                                 </button>
                               </>
@@ -416,9 +418,9 @@ export default function FornecedorDashboard() {
                             <div style={{ flex: 1, minWidth: '100%' }}>
                               <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><TrendingUp size={16}/> Acompanhamento do Mínimo</h4>
                               <div style={{ display: 'flex', gap: '10px', fontSize: '12px', color: '#9a3412', marginBottom: '12px', flexWrap: 'wrap' }}>
-                                <span>Pedido: <strong style={{whiteSpace: 'nowrap'}}>{fMoney(pedido.valorTotalPedido)}</strong></span>
-                                {somaSugestoes > 0 && <span>+ Sugestões: <strong style={{whiteSpace: 'nowrap'}}>{fMoney(somaSugestoes)}</strong></span>}
-                                <span style={{ paddingLeft: '8px', borderLeft: '2px solid #fdba74' }}>Total: <strong style={{whiteSpace: 'nowrap'}}>{fMoney(totalConsiderado)}</strong></span>
+                                <span>Pedido: <strong>{fMoney(pedido.valorTotalPedido)}</strong></span>
+                                {somaSugestoes > 0 && <span>+ Sugestões: <strong>{fMoney(somaSugestoes)}</strong></span>}
+                                <span style={{ paddingLeft: '8px', borderLeft: '2px solid #fdba74' }}>Total: <strong>{fMoney(totalConsiderado)}</strong></span>
                               </div>
 
                               {valorMinimoSalvo > 0 && (
@@ -456,25 +458,23 @@ export default function FornecedorDashboard() {
                             )}
                           </div>
 
-                          {/* TABELA DE ITENS - ADAPTADA PARA MANTER NÚMEROS E AÇÕES INTEIROS */}
+                          {/* TABELA DE ITENS - ADAPTADA PARA QUEBRAR TEXTO NO CELULAR SEM ROLAGEM */}
                           <div className="mobile-table-wrapper" style={{ padding: '0', borderTop: '1px solid #e2e8f0' }}>
                             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
                                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
-                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', minWidth: '220px' }}>Produto</th>
-                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'center', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Qtd</th>
-                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Unitário</th>
-                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>Subtotal</th>
-                                  <th style={{ padding: '12px 16px', width: '40px' }}></th>
+                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', width: '50%' }}>Produto</th>
+                                  <th className="col-center" style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'center', textTransform: 'uppercase', width: '15%' }}>Qtd</th>
+                                  <th className="col-right" style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase', width: '15%' }}>Unitário</th>
+                                  <th className="col-right" style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase', width: '20%' }}>Subtotal</th>
                                 </tr>
                               </thead>
                               <tbody>
                                 {pedido.sugestoes && pedido.sugestoes.map(sug => (
                                   <tr key={`sug-${sug.id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
-                                    <td style={{ padding: '12px 16px', whiteSpace: 'normal' }}>
+                                    <td style={{ padding: '12px 16px' }}>
                                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
                                         <span style={{ fontSize: '9px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>SUGESTÃO</span>
-                                        <span style={{ fontSize: '10px', color: '#d97706', fontWeight: '700' }}>Aguardando análise</span>
                                       </div>
                                       <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '13px', display: 'block' }}>{sug.nomeProduto}</span>
                                       
@@ -483,33 +483,26 @@ export default function FornecedorDashboard() {
                                             <Tags size={12} style={{marginTop: '2px', flexShrink: 0}}/> Condição: {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
                                          </div>
                                       )}
-                                      {sug.observacao && <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px', fontStyle: 'italic' }}>Obs: {sug.observacao}</div>}
                                     </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center', color: '#9a3412', fontWeight: '600', fontSize: '13px', whiteSpace: 'nowrap' }}>{sug.quantidade}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right', color: '#9a3412', fontSize: '13px', whiteSpace: 'nowrap' }}>{fMoney(sug.precoUnitario)}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '13px', whiteSpace: 'nowrap' }}>{fMoney(sug.quantidade * sug.precoUnitario)}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                      {pedido.status === 'PENDENTE_ENTREGA' && (
-                                        <button onClick={() => handleRemoverSugestao(pedido.id, sug.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
-                                      )}
-                                    </td>
+                                    <td className="col-center" style={{ padding: '12px 16px', textAlign: 'center', color: '#9a3412', fontWeight: '600', fontSize: '13px' }}>{sug.quantidade}</td>
+                                    <td className="col-right" style={{ padding: '12px 16px', textAlign: 'right', color: '#9a3412', fontSize: '13px' }}>{fMoney(sug.precoUnitario)}</td>
+                                    <td className="col-right" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '13px' }}>{fMoney(sug.quantidade * sug.precoUnitario)}</td>
                                   </tr>
                                 ))}
 
                                 {pedido.itens.map(item => (
                                   <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', whiteSpace: 'normal' }}>
+                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>
                                       <span style={{display: 'block'}}>{item.nomeProduto}</span>
                                       {item.condicaoAplicada && (
-                                        <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', whiteSpace: 'normal' }}>
+                                        <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                           <Tags size={10} style={{flexShrink: 0}} /> Escalonamento ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
                                         </div>
                                       )}
                                     </td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontSize: '13px', fontWeight: '600', whiteSpace: 'nowrap' }}>{item.quantidadePedida}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontSize: '13px', whiteSpace: 'nowrap' }}>{fMoney(item.valorUnitarioPedido)}</td>
-                                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '800', color: '#0f172a', fontSize: '13px', whiteSpace: 'nowrap' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
-                                    <td style={{ padding: '12px 16px' }}></td>
+                                    <td className="col-center" style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontSize: '13px', fontWeight: '600' }}>{item.quantidadePedida}</td>
+                                    <td className="col-right" style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                                    <td className="col-right" style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '800', color: '#0f172a', fontSize: '13px' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
                                   </tr>
                                 ))}
                               </tbody>
@@ -549,7 +542,6 @@ export default function FornecedorDashboard() {
                 </div>
               </div>
 
-              {/* BOX DA NOVA FUNCAO: CONDIÇÃO DE ESCALONAMENTO */}
               <div>
                   <button type="button" onClick={() => setNovaSugestao(p => ({...p, exibirCondicao: !p.exibirCondicao}))} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}>
                       <Tags size={14} /> {novaSugestao.exibirCondicao ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
@@ -593,16 +585,16 @@ export default function FornecedorDashboard() {
               </p>
             </div>
 
-            {/* TABELA DE CONFIRMAÇÃO COM LARGURA MÍNIMA RESPONSIVA */}
+            {/* TABELA DE CONFIRMAÇÃO FLUIDA NO MOBILE */}
             <div className="mobile-table-wrapper" style={{ maxHeight: '350px', backgroundColor: '#ffffff' }}>
               <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead style={{ backgroundColor: '#f1f5f9', position: 'sticky', top: 0, zIndex: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                   <tr>
                     <th style={{ padding: '12px', width: '40px', textAlign: 'center' }}>✓</th>
-                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold', minWidth: '220px' }}>Produto</th>
-                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'center', textTransform: 'uppercase', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Qtd</th>
-                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Unitário</th>
-                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold', whiteSpace: 'nowrap' }}>Subtotal</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold', width: '45%' }}>Produto</th>
+                    <th className="col-center" style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'center', textTransform: 'uppercase', fontWeight: 'bold', width: '15%' }}>Qtd</th>
+                    <th className="col-right" style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold', width: '20%' }}>Unitário</th>
+                    <th className="col-right" style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold', width: '20%' }}>Subtotal</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -618,18 +610,18 @@ export default function FornecedorDashboard() {
                             style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                           />
                         </td>
-                        <td style={{ padding: '12px', fontSize: '13px', color: '#1e293b', fontWeight: '600', whiteSpace: 'normal' }}>
+                        <td style={{ padding: '12px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>
                           <label style={{cursor: 'pointer', display: 'block'}} onClick={() => setChecklistEstoque(prev => ({ ...prev, [item.id]: !isChecked }))}>
                             {item.nomeProduto}
                           </label>
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569', whiteSpace: 'nowrap' }}>
+                        <td className="col-center" style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>
                           {item.quantidadePedida} un
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#64748b', whiteSpace: 'nowrap' }}>
+                        <td className="col-right" style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>
                           {fMoney(item.valorUnitarioPedido)}
                         </td>
-                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: isChecked ? '#16a34a' : '#9ca3af', whiteSpace: 'nowrap' }}>
+                        <td className="col-right" style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: isChecked ? '#16a34a' : '#9ca3af' }}>
                           {fMoney(item.quantidadePedida * item.valorUnitarioPedido)}
                         </td>
                       </tr>
