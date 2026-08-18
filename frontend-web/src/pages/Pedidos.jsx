@@ -40,7 +40,7 @@ export default function Pedidos() {
   const [agora, setAgora] = useState(new Date().getTime());
   
   useEffect(() => {
-      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
+      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); // Atualiza a cada 1 minuto
       return () => clearInterval(interval);
   }, []);
 
@@ -112,8 +112,9 @@ export default function Pedidos() {
       
       try {
           const res = await api.get('/api/cotacao');
-          const abertas = res.data.filter(c => c.status === 'ABERTA' || c.status === 'PENDENTE');
-          setCotacoesAtivas(abertas);
+          // CORREÇÃO AQUI: Lista todas as cotações que estão em andamento
+          const ativas = res.data.filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
+          setCotacoesAtivas(ativas);
       } catch (error) {
           console.error("Erro ao carregar cotações ativas", error);
       }
@@ -251,7 +252,6 @@ export default function Pedidos() {
     setModalDevolucaoAberto(true)
   }
 
-  // INTELIGÊNCIA: Verifica SLA de 24h e retorna Status Formatado
   const getStatusFormatado = (p) => {
     const status = p.status;
     const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' };
@@ -543,7 +543,6 @@ export default function Pedidos() {
                             </button>
                           )}
 
-                          {/* NOVO: BOTÃO PARA CANCELAR OU MARCAR COMO NÃO ENTREGUE */}
                           {isAguardando && (
                             <button className="btn-icon" title="Registrar Falha na Entrega / Cancelar" onClick={() => abrirModalFalha(p)}>
                               <XCircle size={18} color="#ef4444" />
@@ -584,12 +583,12 @@ export default function Pedidos() {
             />
         )}
 
-        {/* MODAL DE FALHA NA ENTREGA COM ESCOLHA DE DESTINO */}
+        {/* MODAL DE FALHA NA ENTREGA */}
         {modalFalhaAberto && pedidoFalha && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                 <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <h3 style={{ margin: '0 0 18px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                             <XCircle size={20} color="#ef4444" /> Registrar Falha de Entrega
                         </h3>
                         <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>

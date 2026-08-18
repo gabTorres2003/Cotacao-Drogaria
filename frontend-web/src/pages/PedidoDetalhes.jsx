@@ -132,8 +132,8 @@ export default function PedidoDetalhes() {
         
         try {
             const res = await api.get('/api/cotacao');
-            const abertas = res.data.filter(c => c.status === 'ABERTA' || c.status === 'PENDENTE');
-            setCotacoesAtivas(abertas);
+            const ativas = res.data.filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
+            setCotacoesAtivas(ativas);
         } catch (error) {
             console.error("Erro ao carregar cotações ativas", error);
         }
