@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags } from 'lucide-react';
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -374,7 +374,7 @@ export default function PedidoDetalhes() {
                     <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 'bold' }}>
                             <Tag size={20} />
-                            <span>O fornecedor enviou {pedido.sugestoes.length} sugestão(ões) de produtos extras!</span>
+                            <span>O fornecedor enviou {pedido.sugestoes.length} sugestão(ões) de produtos extras/promoções!</span>
                         </div>
                         <button 
                             onClick={() => setIsModalSugestoesAberto(true)}
@@ -509,11 +509,14 @@ export default function PedidoDetalhes() {
                                     <tr key={item.id}>
                                         <td style={styles.td}>
                                             <strong style={{ display: 'block' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                            
+                                            {/* EXIBE A CONDIÇÃO SE TIVER SIDO APLICADA NO PEDIDO */}
                                             {item.condicaoAplicada && (
                                               <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                                <Tag size={12} /> Condição Especial ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
+                                                <Tags size={12} /> Escalonamento: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
                                               </div>
                                             )}
+
                                             {item.valorAlteradoAposPedido && (
                                                 <span style={{ display: 'inline-block', fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}>
                                                     <AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> Valor/Qtd editado pós-pedido
@@ -639,6 +642,14 @@ export default function PedidoDetalhes() {
                                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
                                             <div>
                                                 <h4 style={{ margin: '0 0 4px 0', color: '#1e293b', fontSize: '16px' }}>{sug.nomeProduto}</h4>
+                                                
+                                                {/* MOSTRANDO A CONDIÇÃO DENTRO DO MODAL DE SUGESTÃO */}
+                                                {sug.quantidadeCondicao && sug.precoCondicao && (
+                                                   <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginBottom: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                                     <Tags size={12} /> Condição Especial: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                                   </div>
+                                                )}
+
                                                 {sug.observacao && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>Obs: {sug.observacao}</p>}
                                                 <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569' }}>
                                                     <span>Qtd: <strong>{sug.quantidade}</strong></span>
@@ -666,7 +677,7 @@ export default function PedidoDetalhes() {
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                                <h3 style={{ margin: '0 0 18px 0', color: '#1f2937' }}>Adicionar Produto Extra</h3>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar Produto Extra</h3>
                                 <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
                             </div>
 

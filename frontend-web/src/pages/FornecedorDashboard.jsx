@@ -174,7 +174,7 @@ export default function FornecedorDashboard() {
   const styles = {
     tabButton: (isActive) => ({ padding: '12px 24px', fontSize: '15px', fontWeight: '600', border: 'none', borderBottom: isActive ? '3px solid #2563eb' : '3px solid transparent', backgroundColor: 'transparent', color: isActive ? '#2563eb' : '#64748b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }),
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
+    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
   const getBadgeFornecedor = (status) => {
@@ -190,9 +190,9 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; }
-          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: fixed; }
-          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; word-wrap: break-word; white-space: normal !important; }
+          .mobile-table-wrapper { overflow: auto !important; border-radius: 8px; }
+          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: auto; }
+          .responsive-table th, .responsive-table td { padding: 10px 8px !important; font-size: 12px !important; word-wrap: break-word; white-space: normal !important; }
           .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
         }
       `}</style>
@@ -231,7 +231,7 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <div className="mobile-table-wrapper" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID Cotação</th>
@@ -414,6 +414,7 @@ export default function FornecedorDashboard() {
                               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
                                   {item.nomeProduto}
+                                  {/* ADICIONANDO O SELO VISUAL NA TABELA DO FORNECEDOR */}
                                   {item.condicaoAplicada && (
                                     <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                       <Tags size={10} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
@@ -437,44 +438,6 @@ export default function FornecedorDashboard() {
           )
         )}
       </main>
-
-      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE */}
-      {pedidoConfirmacao && (
-        <div style={styles.modalOverlay}>
-          <div style={styles.modalContent}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Confirmar Separação - Pedido #{pedidoConfirmacao.id}</h3>
-              <button onClick={() => setPedidoConfirmacao(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
-            </div>
-            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
-              Desmarque os itens que estiverem <strong>em falta</strong> no seu estoque. Os itens desmarcados serão removidos do pedido.
-            </p>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', marginBottom: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
-              {pedidoConfirmacao.itens.map(item => (
-                <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#334155', cursor: 'pointer', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={checklistEstoque[item.id] ?? true} 
-                    onChange={e => setChecklistEstoque(prev => ({ ...prev, [item.id]: e.target.checked }))}
-                    style={{ transform: 'scale(1.2)' }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <strong>{item.nomeProduto}</strong> ({item.quantidadePedida} un)
-                  </div>
-                </label>
-              ))}
-            </div>
-
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setPedidoConfirmacao(null)} disabled={salvandoConfirmacao} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
-              <button onClick={processarConfirmacaoPedido} disabled={salvandoConfirmacao} style={{ padding: '10px 16px', background: '#10b981', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                {salvandoConfirmacao ? 'Processando...' : 'Confirmar Envio'}
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* MODAL DE ADICIONAR SUGESTÃO */}
       {isSugestaoModalOpen && (
@@ -522,6 +485,89 @@ export default function FornecedorDashboard() {
               <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginTop: '10px' }}>
                 <button onClick={() => { setIsSugestaoModalOpen(false); setPedidoAtualSugestao(null); }} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
                 <button onClick={handleSalvarSugestao} disabled={isSalvando} style={{ padding: '10px 16px', background: '#3b82f6', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer' }}>{isSalvando ? 'Enviando...' : 'Enviar Sugestão'}</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE ATUALIZADO */}
+      {pedidoConfirmacao && (
+        <div style={styles.modalOverlay}>
+          <div style={{...styles.modalContent, maxWidth: '700px', padding: '0'}}>
+            <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '12px 12px 0 0' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b', fontWeight: 'bold' }}>Confirmar Separação - Pedido #{pedidoConfirmacao.id}</h3>
+              <button onClick={() => setPedidoConfirmacao(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+            
+            <div style={{ padding: '16px 24px', backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+              <p style={{ fontSize: '13px', color: '#475569', margin: 0 }}>
+                Desmarque os itens que estiverem <strong style={{ color: '#dc2626' }}>em falta</strong> no seu estoque. Os itens desmarcados serão removidos do pedido.
+              </p>
+            </div>
+
+            <div className="mobile-table-wrapper" style={{ maxHeight: '350px', overflowY: 'auto', backgroundColor: '#ffffff' }}>
+              <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+                <thead style={{ backgroundColor: '#f1f5f9', position: 'sticky', top: 0, zIndex: 1, boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                  <tr>
+                    <th style={{ padding: '12px', width: '40px', textAlign: 'center' }}>✓</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textTransform: 'uppercase', fontWeight: 'bold' }}>Produto</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'center', textTransform: 'uppercase', fontWeight: 'bold' }}>Qtd</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold' }}>Unitário</th>
+                    <th style={{ padding: '12px', color: '#475569', fontSize: '12px', textAlign: 'right', textTransform: 'uppercase', fontWeight: 'bold' }}>Subtotal</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {pedidoConfirmacao.itens.map(item => {
+                    const isChecked = checklistEstoque[item.id] ?? true;
+                    return (
+                      <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isChecked ? 'white' : '#f8fafc', opacity: isChecked ? 1 : 0.5, transition: 'background-color 0.2s, opacity 0.2s' }}>
+                        <td style={{ padding: '12px', textAlign: 'center' }}>
+                          <input
+                            type="checkbox"
+                            checked={isChecked}
+                            onChange={e => setChecklistEstoque(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                            style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                          />
+                        </td>
+                        <td style={{ padding: '12px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>
+                          <label style={{cursor: 'pointer'}} onClick={() => setChecklistEstoque(prev => ({ ...prev, [item.id]: !isChecked }))}>
+                            {item.nomeProduto}
+                          </label>
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'center', fontSize: '13px', color: '#475569' }}>
+                          {item.quantidadePedida} un
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', color: '#64748b' }}>
+                          {fMoney(item.valorUnitarioPedido)}
+                        </td>
+                        <td style={{ padding: '12px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: isChecked ? '#16a34a' : '#9ca3af' }}>
+                          {fMoney(item.quantidadePedida * item.valorUnitarioPedido)}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+            
+            <div style={{ padding: '20px 24px', backgroundColor: '#f8fafc', borderRadius: '0 0 12px 12px', borderTop: '1px solid #e2e8f0', display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ textAlign: 'right' }}>
+                <span style={{ fontSize: '13px', color: '#64748b', fontWeight: 'bold', marginRight: '10px' }}>Total Confirmado: </span>
+                <span style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>
+                  {fMoney(pedidoConfirmacao.itens.reduce((acc, item) => {
+                    if (checklistEstoque[item.id] ?? true) {
+                       return acc + (item.quantidadePedida * item.valorUnitarioPedido);
+                    }
+                    return acc;
+                  }, 0))}
+                </span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                <button onClick={() => setPedidoConfirmacao(null)} disabled={salvandoConfirmacao} style={{ padding: '10px 20px', background: 'white', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                <button onClick={processarConfirmacaoPedido} disabled={salvandoConfirmacao} style={{ padding: '10px 20px', background: '#10b981', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  {salvandoConfirmacao ? 'Processando...' : 'Confirmar Envio'}
+                </button>
               </div>
             </div>
           </div>
