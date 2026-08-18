@@ -1,6 +1,8 @@
 package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
+import com.drogaria.cotacao.dto.request.CriarCotacaoRequestDTO;
+import com.drogaria.cotacao.dto.request.ItemCriarCotacaoDTO;
 import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
@@ -18,6 +20,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.Map;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.ArrayList;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -51,6 +54,36 @@ public class CotacaoController {
         return cotacaoRepository.findById(id)
                 .map(ResponseEntity::ok)
                 .orElse(ResponseEntity.notFound().build());
+    }
+
+    @PostMapping
+    public ResponseEntity<Cotacao> criarCotacaoManual(@RequestBody CriarCotacaoRequestDTO request) {
+        try {
+            Cotacao novaCotacao = new Cotacao();
+            novaCotacao.setDescricao(request.getDescricao() != null ? request.getDescricao() : "Cotação Manual");
+            novaCotacao.setStatus("ABERTA");
+            novaCotacao.setDataCriacao(LocalDateTime.now());
+            
+            List<ItemCotacao> itens = new ArrayList<>();
+            if (request.getItens() != null) {
+                for (ItemCriarCotacaoDTO itemDto : request.getItens()) {
+                    ItemCotacao item = new ItemCotacao();
+                    item.setNomeProduto(itemDto.getNomeProduto());
+                    item.setQuantidade(itemDto.getQuantidade());
+                    item.setOrigemItem(request.getOrigem() != null ? request.getOrigem() : "Manual");
+                    item.setEditadoManual(true);
+                    item.setCotacao(novaCotacao);
+                    itens.add(item);
+                }
+            }
+            novaCotacao.setItens(itens);
+            
+            Cotacao salva = cotacaoRepository.save(novaCotacao);
+            return ResponseEntity.ok(salva);
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().build();
+        }
     }
 
     @PostMapping("/importar")

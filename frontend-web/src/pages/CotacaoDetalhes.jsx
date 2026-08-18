@@ -423,7 +423,6 @@ export default function CotacaoDetalhes() {
       let novoPreco = itemToMove.todosDadosItem?.precosPorFornecedor?.[fornecedorDestino] || 0;
       if (novoPreco > 0) {
           itemToMove.valorUnitarioPedido = novoPreco; itemToMove.subtotal = itemToMove.quantidadePedida * novoPreco;
-          // Ignora a condição quando é movido para não causar confusão
           itemToMove.condicaoAplicada = false;
       } else {
           alert(`Aviso: O fornecedor ${fornecedorDestino} informou o preço como R$ 0,00 ou falta para este produto.`);
@@ -545,7 +544,10 @@ export default function CotacaoDetalhes() {
                     itemCotacaoId: item.idItem || null,
                     nomeProduto: item.nomeProduto,
                     quantidadePedida: item.quantidadePedida,
-                    valorUnitarioPedido: item.valorUnitarioPedido
+                    valorUnitarioPedido: item.valorUnitarioPedido,
+                    condicaoAplicada: item.condicaoAplicada || false,
+                    qtdCondicao: item.qtdCondicao || null,
+                    precoCondicao: item.precoCondicao || null
                 }))
             });
         } else {
@@ -554,7 +556,10 @@ export default function CotacaoDetalhes() {
                     nomeProduto: item.nomeProduto,
                     quantidadePedida: item.quantidadePedida,
                     valorUnitarioPedido: item.valorUnitarioPedido,
-                    itemCotacao: item.idItem ? { id: item.idItem } : null
+                    itemCotacao: item.idItem ? { id: item.idItem } : null,
+                    condicaoAplicada: item.condicaoAplicada || false,
+                    qtdCondicao: item.qtdCondicao || null,
+                    precoCondicao: item.precoCondicao || null
                 });
             }
         }
@@ -638,7 +643,10 @@ export default function CotacaoDetalhes() {
             nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
             quantidadePedida: Number(addPedidoForm.qtd),
             valorUnitarioPedido: Number(addPedidoForm.valor),
-            itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null
+            itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null,
+            condicaoAplicada: itemAddPedido.condicaoAplicada || false,
+            qtdCondicao: itemAddPedido.qtdCondicao || null,
+            precoCondicao: itemAddPedido.precoCondicao || null
           });
           
           if (itemAddPedido.idItem) {
@@ -654,18 +662,27 @@ export default function CotacaoDetalhes() {
              let preco = i.precosPorFornecedor?.[fornecedorTargetToModal] || 0;
              let qtd = i.quantidade || 0;
              let nomeFinal = getNomeRealSempre(i.nomeProduto);
+             
+             let qC = i.qtdCondicaoPorFornecedor?.[fornecedorTargetToModal];
+             let pC = i.precoCondicaoPorFornecedor?.[fornecedorTargetToModal];
 
              if (isTrocaAceita && nomeSubstituto) {
                 preco = i.precosSubstitutosPorFornecedor?.[fornecedorTargetToModal] || preco;
                 qtd = i.qtdsSubstitutosPorFornecedor?.[fornecedorTargetToModal] || qtd;
                 nomeFinal = getNomeRealSempre(nomeSubstituto);
+                qC = i.qtdCondicaoSubstPorFornecedor?.[fornecedorTargetToModal];
+                pC = i.precoCondicaoSubstPorFornecedor?.[fornecedorTargetToModal];
              }
+
+             let condAplicada = !!(qC && pC && qtd >= qC);
+             let precoFinal = condAplicada ? pC : preco;
 
              if (preco > 0) {
                 await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
-                  nomeProduto: nomeFinal, quantidadePedida: qtd, valorUnitarioPedido: preco, itemCotacao: { id: i.idItem }
+                  nomeProduto: nomeFinal, quantidadePedida: qtd, valorUnitarioPedido: precoFinal, itemCotacao: { id: i.idItem },
+                  condicaoAplicada: condAplicada, qtdCondicao: qC, precoCondicao: pC
                 });
-                newComprados[i.idItem] = { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(preco), quantidade: Number(qtd) };
+                newComprados[i.idItem] = { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(precoFinal), quantidade: Number(qtd) };
              }
           }
           setItensJaComprados(newComprados);
@@ -673,6 +690,7 @@ export default function CotacaoDetalhes() {
 
       alert('Produto(s) injetado(s) no pedido com sucesso!');
       setModalAddPedidoAberto(false);
+      carregarPedido();
     } catch(e) {
       alert('Erro ao adicionar produto: ' + (e.response?.data?.message || e.message));
     } finally {
@@ -705,7 +723,6 @@ export default function CotacaoDetalhes() {
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
       />
 
-      {/* BOTÃO PARA ABRIR O MODAL DE ENCOMENDAS DO BALCÃO */}
       {!isEncerrada && (
         <div style={{ marginBottom: '20px' }}>
           <button 
@@ -883,10 +900,9 @@ export default function CotacaoDetalhes() {
                           onFocus={e => e.target.select()}
                           onChange={e => {
                               const novaQtd = Math.max(1, parseInt(e.target.value, 10) || 1);
-                              let novoPreco = itemAddPedido.precoBase; 
+                              let novoPreco = itemAddPedido.precoBase;
                               let condAplicada = false;
 
-                              // Valida a condição dinamicamente
                               if (itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && novaQtd >= itemAddPedido.qtdCondicao) {
                                   novoPreco = itemAddPedido.precoCondicao;
                                   condAplicada = true;
@@ -910,8 +926,7 @@ export default function CotacaoDetalhes() {
                     </div>
                   </div>
 
-                  {/* BOTÃO E SELO DA CONDIÇÃO ESPECIAL NO MODAL DE +PEDIDO */}
-                  {itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && (
+                  {itemAddPedido?.qtdCondicao && itemAddPedido?.precoCondicao && (
                       <div style={{ marginTop: '10px' }}>
                           {itemAddPedido.condicaoAplicada ? (
                               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
