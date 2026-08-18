@@ -27,7 +27,6 @@ export default function FornecedorDashboard() {
   })
   const [isSalvando, setIsSalvando] = useState(false)
 
-  // ESTADO PARA CONTROLAR QUAIS PEDIDOS ESTÃO EXPANDIDOS
   const [expandedPedidos, setExpandedPedidos] = useState({})
 
   const navigate = useNavigate()
@@ -56,8 +55,6 @@ export default function FornecedorDashboard() {
           const response = await api.get(`/api/pedidos/fornecedor/${usuarioId}`)
           setPedidos(response.data)
 
-          // LÓGICA DE MINIMIZAR: Define o estado inicial. 
-          // Apenas 'PENDENTE_ENTREGA' começa aberto. O resto começa fechado.
           const initialExpanded = {};
           response.data.forEach(p => {
             initialExpanded[p.id] = p.status === 'PENDENTE_ENTREGA';
@@ -243,10 +240,21 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .mobile-table-wrapper { overflow-x: auto !important; border-radius: 8px; }
-          .responsive-table { min-width: 500px !important; width: 100% !important; table-layout: auto; }
-          .responsive-table th, .responsive-table td { padding: 10px 8px !important; font-size: 12px !important; white-space: normal !important; }
+          
+          /* LÓGICA DE QUEBRA DE TEXTO NA TABELA NO MOBILE */
+          .mobile-table-wrapper { overflow-x: hidden !important; border-radius: 8px; width: 100%; }
+          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: fixed; }
+          .responsive-table th, .responsive-table td { 
+            padding: 8px 4px !important; 
+            font-size: 11px !important; 
+            white-space: normal !important; 
+            word-wrap: break-word; 
+            overflow-wrap: break-word;
+          }
+          
           .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
+          .action-buttons-container { flex-direction: column; gap: 8px; }
+          .action-buttons-container button { width: 100%; justify-content: center; }
         }
       `}</style>
 
@@ -284,7 +292,7 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <div className="mobile-table-wrapper" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID Cotação</th>
@@ -360,7 +368,7 @@ export default function FornecedorDashboard() {
                             <span style={{ fontWeight: '900', fontSize: '16px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
                           </div>
                           
-                          <div style={{ minWidth: '100px', display: 'flex', justifyContent: 'center' }}>
+                          <div style={{ display: 'flex', justifyContent: 'center' }}>
                             {badge}
                           </div>
 
@@ -375,7 +383,7 @@ export default function FornecedorDashboard() {
                         <div style={{ borderTop: '1px solid #e2e8f0' }}>
                           
                           {/* BARRA DE AÇÕES */}
-                          <div style={{ padding: '12px 20px', backgroundColor: 'white', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
+                          <div className="action-buttons-container" style={{ padding: '12px 20px', backgroundColor: 'white', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
                             {idCotacaoOrigem && (
                                <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
                                  <Edit2 size={16} /> Editar Cotação Origem
@@ -443,9 +451,9 @@ export default function FornecedorDashboard() {
                             )}
                           </div>
 
-                          {/* TABELA DE ITENS */}
-                          <div className="mobile-table-wrapper" style={{ padding: '0', overflowX: 'auto', borderTop: '1px solid #e2e8f0' }}>
-                            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
+                          {/* TABELA DE ITENS - ADAPTADA PARA QUEBRAR TEXTO NO CELULAR */}
+                          <div className="mobile-table-wrapper" style={{ padding: '0', borderTop: '1px solid #e2e8f0' }}>
+                            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
                                 <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
                                   <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', width: '45%' }}>Produto</th>
@@ -463,7 +471,7 @@ export default function FornecedorDashboard() {
                                         <span style={{ fontSize: '9px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>SUGESTÃO</span>
                                         <span style={{ fontSize: '10px', color: '#d97706', fontWeight: '700' }}>Aguardando análise</span>
                                       </div>
-                                      <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '13px', display: 'block', wordBreak: 'break-word' }}>{sug.nomeProduto}</span>
+                                      <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '13px', display: 'block' }}>{sug.nomeProduto}</span>
                                       
                                       {sug.precoCondicao && (
                                          <div style={{ fontSize: '11px', color: '#166534', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
@@ -485,10 +493,10 @@ export default function FornecedorDashboard() {
 
                                 {pedido.itens.map(item => (
                                   <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
+                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px' }}>
                                       {item.nomeProduto}
                                       {item.condicaoAplicada && (
-                                        <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', whiteSpace: 'normal' }}>
+                                        <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                           <Tags size={10} style={{flexShrink: 0}} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
                                         </div>
                                       )}
