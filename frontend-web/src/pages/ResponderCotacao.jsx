@@ -26,20 +26,13 @@ export default function ResponderCotacao() {
   const [quantidades, setQuantidades] = useState({})
   const [observacoes, setObservacoes] = useState({})
   
-  // Condição para Itens Normais
-  const [exibirCondicao, setExibirCondicao] = useState({})
-  const [qtdCondicao, setQtdCondicao] = useState({})
-  const [precoCondicao, setPrecoCondicao] = useState({})
+  const [condicoesNormal, setCondicoesNormal] = useState({}) 
+  const [condicoesSubst, setCondicoesSubst] = useState({}) 
 
   const [produtoSubstituto, setProdutoSubstituto] = useState({})
   const [precoSubstituto, setPrecoSubstituto] = useState({})
   const [qtdSubstituto, setQtdSubstituto] = useState({})
   const [exibirTroca, setExibirTroca] = useState({})
-  
-  // Condição para Substitutos
-  const [exibirCondicaoSubst, setExibirCondicaoSubst] = useState({})
-  const [qtdCondicaoSubst, setQtdCondicaoSubst] = useState({})
-  const [precoCondicaoSubst, setPrecoCondicaoSubst] = useState({})
 
   const [emFalta, setEmFalta] = useState({})
   const [sugestoes, setSugestoes] = useState([])
@@ -58,7 +51,7 @@ export default function ResponderCotacao() {
 
   useEffect(() => {
     if (!isPrimeiroAcesso) {
-      carregarDicionario()
+      carregarDicionario() 
       carregarItens()
     }
   }, [isPrimeiroAcesso])
@@ -69,15 +62,14 @@ export default function ResponderCotacao() {
         const draft = {
           precos, quantidades, observacoes, produtoSubstituto, 
           precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes,
-          exibirCondicao, qtdCondicao, precoCondicao,
-          exibirCondicaoSubst, qtdCondicaoSubst, precoCondicaoSubst
+          condicoesNormal, condicoesSubst
         }
         localStorage.setItem(draftKey, JSON.stringify(draft))
       } catch (error) {
         setErroGeral('Aviso: Armazenamento local cheio. O rascunho pode não ser salvo.')
       }
     }
-  }, [precos, quantidades, observacoes, produtoSubstituto, precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes, exibirCondicao, qtdCondicao, precoCondicao, exibirCondicaoSubst, qtdCondicaoSubst, precoCondicaoSubst, isInitialLoadDone, draftKey])
+  }, [precos, quantidades, observacoes, produtoSubstituto, precoSubstituto, qtdSubstituto, exibirTroca, emFalta, sugestoes, condicoesNormal, condicoesSubst, isInitialLoadDone, draftKey])
 
   const handlePrimeiroAcesso = async (e) => {
     e.preventDefault()
@@ -117,12 +109,8 @@ export default function ResponderCotacao() {
         setExibirTroca(draft.exibirTroca || {})
         setEmFalta(draft.emFalta || {})
         setSugestoes(draft.sugestoes || [])
-        setExibirCondicao(draft.exibirCondicao || {})
-        setQtdCondicao(draft.qtdCondicao || {})
-        setPrecoCondicao(draft.precoCondicao || {})
-        setExibirCondicaoSubst(draft.exibirCondicaoSubst || {})
-        setQtdCondicaoSubst(draft.qtdCondicaoSubst || {})
-        setPrecoCondicaoSubst(draft.precoCondicaoSubst || {})
+        setCondicoesNormal(draft.condicoesNormal || {})
+        setCondicoesSubst(draft.condicoesSubst || {})
         return true
       }
     } catch (error) { console.error("Erro rascunho", error) }
@@ -157,8 +145,7 @@ export default function ResponderCotacao() {
       if (respostas && respostas.length > 0) {
         const novosPrecos = {}, novasFaltas = {}, novasQtds = {}, novasObs = {}
         const novosSubstitutos = {}, novosPrecosSubst = {}, novasQtdsSubst = {}, novasExibicoes = {}
-        const nExibCond = {}, nQtdCond = {}, nPrecoCond = {}
-        const nExibCondS = {}, nQtdCondS = {}, nPrecoCondS = {}
+        const nConds = {}, nCondsSubst = {}
 
         respostas.forEach((r) => {
           if (r.preco === -1) {
@@ -168,11 +155,13 @@ export default function ResponderCotacao() {
             novosPrecos[r.idItem] = r.preco
             novasQtds[r.idItem] = r.quantidadeDisponivel
             
-            if (r.quantidadeCondicao && r.precoCondicao) {
-                nExibCond[r.idItem] = true
-                nQtdCond[r.idItem] = r.quantidadeCondicao
-                nPrecoCond[r.idItem] = r.precoCondicao
+            // Tenta carregar o array novo JSON, se não existir faz fallback pro modelo antigo
+            let condsArr = [];
+            try { if (r.condicoesEscalonamento) condsArr = JSON.parse(r.condicoesEscalonamento); } catch(e){}
+            if (condsArr.length === 0 && r.quantidadeCondicao && r.precoCondicao) {
+                condsArr.push({ qtd: r.quantidadeCondicao, preco: r.precoCondicao });
             }
+            nConds[r.idItem] = condsArr;
           }
           if (r.observacao) novasObs[r.idItem] = r.observacao
           if (r.produtoSubstituto) {
@@ -181,37 +170,67 @@ export default function ResponderCotacao() {
             novasQtdsSubst[r.idItem] = r.quantidadeSubstituto || r.quantidadeDisponivel
             novasExibicoes[r.idItem] = true
             
-            if (r.quantidadeCondicaoSubstituto && r.precoCondicaoSubstituto) {
-                nExibCondS[r.idItem] = true
-                nQtdCondS[r.idItem] = r.quantidadeCondicaoSubstituto
-                nPrecoCondS[r.idItem] = r.precoCondicaoSubstituto
+            let condsSubstArr = [];
+            try { if (r.condicoesEscalonamentoSubstituto) condsSubstArr = JSON.parse(r.condicoesEscalonamentoSubstituto); } catch(e){}
+            if (condsSubstArr.length === 0 && r.quantidadeCondicaoSubstituto && r.precoCondicaoSubstituto) {
+                condsSubstArr.push({ qtd: r.quantidadeCondicaoSubstituto, preco: r.precoCondicaoSubstituto });
             }
+            nCondsSubst[r.idItem] = condsSubstArr;
           }
         })
 
         setPrecos(novosPrecos); setEmFalta(novasFaltas); setQuantidades(novasQtds); setObservacoes(novasObs);
         setProdutoSubstituto(novosSubstitutos); setPrecoSubstituto(novosPrecosSubst); setQtdSubstituto(novasQtdsSubst); setExibirTroca(novasExibicoes);
-        setExibirCondicao(nExibCond); setQtdCondicao(nQtdCond); setPrecoCondicao(nPrecoCond);
-        setExibirCondicaoSubst(nExibCondS); setQtdCondicaoSubst(nQtdCondS); setPrecoCondicaoSubst(nPrecoCondS);
+        setCondicoesNormal(nConds); setCondicoesSubst(nCondsSubst);
       }
 
       const resSug = await api.get(`/api/cotacao/sugestoes/${idCotacao}`)
       if (resSug.data && resSug.data.length > 0) {
         const minhasSugestoes = resSug.data
           .filter((s) => s.fornecedorNome === nomeUsuario)
-          .map((s) => ({
-            tempId: s.id || Date.now() + Math.random(),
-            nomeProduto: s.nomeProduto,
-            preco: s.preco,
-            qtdMinima: s.qtdMinima,
-            observacao: s.observacao || '',
-            exibirCondicao: !!s.quantidadeCondicao,
-            quantidadeCondicao: s.quantidadeCondicao || '',
-            precoCondicao: s.precoCondicao || ''
-          }))
+          .map((s) => {
+            let sConds = [];
+            try { if (s.condicoesEscalonamento) sConds = JSON.parse(s.condicoesEscalonamento); } catch(e){}
+            if (sConds.length === 0 && s.quantidadeCondicao && s.precoCondicao) {
+                sConds.push({ qtd: s.quantidadeCondicao, preco: s.precoCondicao });
+            }
+            return {
+              tempId: s.id || Date.now() + Math.random(),
+              nomeProduto: s.nomeProduto,
+              preco: s.preco,
+              qtdMinima: s.qtdMinima,
+              observacao: s.observacao || '',
+              condicoes: sConds
+            }
+          })
         setSugestoes(minhasSugestoes)
       }
-    } catch (error) { console.error('Erro ao carregar respostas anteriores', error) }
+    } catch (error) { console.error('Erro ao carregar respostas', error) }
+  }
+
+  // LÓGICA DO ARRAY DE ESCALONAMENTO
+  const addCondicao = (idItem, tipo) => {
+    if (tipo === 'NORMAL') {
+        setCondicoesNormal(prev => ({ ...prev, [idItem]: [...(prev[idItem] || []), { qtd: '', preco: '' }] }))
+    } else {
+        setCondicoesSubst(prev => ({ ...prev, [idItem]: [...(prev[idItem] || []), { qtd: '', preco: '' }] }))
+    }
+  }
+
+  const removeCondicao = (idItem, index, tipo) => {
+    if (tipo === 'NORMAL') {
+        setCondicoesNormal(prev => ({ ...prev, [idItem]: prev[idItem].filter((_, i) => i !== index) }))
+    } else {
+        setCondicoesSubst(prev => ({ ...prev, [idItem]: prev[idItem].filter((_, i) => i !== index) }))
+    }
+  }
+
+  const handleCondicaoChange = (idItem, index, field, value, tipo) => {
+    if (tipo === 'NORMAL') {
+        setCondicoesNormal(prev => ({ ...prev, [idItem]: prev[idItem].map((cond, i) => i === index ? { ...cond, [field]: value } : cond) }))
+    } else {
+        setCondicoesSubst(prev => ({ ...prev, [idItem]: prev[idItem].map((cond, i) => i === index ? { ...cond, [field]: value } : cond) }))
+    }
   }
 
   const handlePrecoChange = (idItem, valor) => {
@@ -237,14 +256,23 @@ export default function ResponderCotacao() {
   }
 
   const adicionarSugestao = () => {
-    setSugestoes((prev) => [
-      ...prev,
-      { tempId: Date.now(), nomeProduto: '', preco: '', qtdMinima: 1, observacao: '', exibirCondicao: false, quantidadeCondicao: '', precoCondicao: '' },
-    ])
+    setSugestoes((prev) => [...prev, { tempId: Date.now(), nomeProduto: '', preco: '', qtdMinima: 1, observacao: '', condicoes: [] }])
   }
 
   const handleSugestaoChange = (tempId, campo, valor) => {
     setSugestoes((prev) => prev.map((item) => item.tempId === tempId ? { ...item, [campo]: valor } : item))
+  }
+
+  const addCondicaoSugestao = (tempId) => {
+    setSugestoes(prev => prev.map(s => s.tempId === tempId ? { ...s, condicoes: [...s.condicoes, { qtd: '', preco: '' }] } : s))
+  }
+
+  const removeCondicaoSugestao = (tempId, index) => {
+    setSugestoes(prev => prev.map(s => s.tempId === tempId ? { ...s, condicoes: s.condicoes.filter((_, i) => i !== index) } : s))
+  }
+
+  const handleCondicaoSugestaoChange = (tempId, index, field, value) => {
+    setSugestoes(prev => prev.map(s => s.tempId === tempId ? { ...s, condicoes: s.condicoes.map((c, i) => i === index ? { ...c, [field]: value } : c) } : s))
   }
 
   const removerSugestao = (tempId) => {
@@ -262,6 +290,10 @@ export default function ResponderCotacao() {
         let qtdFinal = isFalta ? 0 : quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
         const temTroca = !!exibirTroca[item.idItem] && produtoSubstituto[item.idItem]?.trim() !== ''
 
+        // FILTRA CONDIÇÕES VÁLIDAS (Que possuem QTD e PREÇO)
+        const condsValidas = (condicoesNormal[item.idItem] || []).filter(c => c.qtd && c.preco);
+        const condsSubstValidas = (condicoesSubst[item.idItem] || []).filter(c => c.qtd && c.preco);
+
         return {
           idItem: item.idItem,
           idFornecedor: parseInt(usuarioId),
@@ -269,28 +301,36 @@ export default function ResponderCotacao() {
           quantidadeDisponivel: qtdFinal,
           observacao: observacoes[item.idItem] || '',
           
-          quantidadeCondicao: (!isFalta && exibirCondicao[item.idItem] && qtdCondicao[item.idItem]) ? Number(qtdCondicao[item.idItem]) : null,
-          precoCondicao: (!isFalta && exibirCondicao[item.idItem] && precoCondicao[item.idItem]) ? parseFloat(String(precoCondicao[item.idItem]).replace(',', '.')) : null,
+          // Manda a primeira condição no campo antigo por segurança
+          quantidadeCondicao: (!isFalta && condsValidas.length > 0) ? Number(condsValidas[0].qtd) : null,
+          precoCondicao: (!isFalta && condsValidas.length > 0) ? parseFloat(String(condsValidas[0].preco).replace(',', '.')) : null,
+          condicoesEscalonamento: (!isFalta && condsValidas.length > 0) ? JSON.stringify(condsValidas) : null,
           
           produtoSubstituto: temTroca ? produtoSubstituto[item.idItem].trim() : '',
           precoSubstituto: temTroca ? parseFloat(String(precoSubstituto[item.idItem] || '0').replace(',', '.')) || 0 : null,
           quantidadeSubstituto: temTroca ? parseInt(qtdSubstituto[item.idItem] || item.quantidade, 10) : null,
           
-          quantidadeCondicaoSubstituto: (temTroca && exibirCondicaoSubst[item.idItem] && qtdCondicaoSubst[item.idItem]) ? Number(qtdCondicaoSubst[item.idItem]) : null,
-          precoCondicaoSubstituto: (temTroca && exibirCondicaoSubst[item.idItem] && precoCondicaoSubst[item.idItem]) ? parseFloat(String(precoCondicaoSubst[item.idItem]).replace(',', '.')) : null,
+          // Condições da Troca
+          quantidadeCondicaoSubstituto: (temTroca && condsSubstValidas.length > 0) ? Number(condsSubstValidas[0].qtd) : null,
+          precoCondicaoSubstituto: (temTroca && condsSubstValidas.length > 0) ? parseFloat(String(condsSubstValidas[0].preco).replace(',', '.')) : null,
+          condicoesEscalonamentoSubstituto: (temTroca && condsSubstValidas.length > 0) ? JSON.stringify(condsSubstValidas) : null
         }
       })
 
       const sugestoesFormatadas = sugestoes
         .filter((s) => s.nomeProduto.trim() !== '' && Number(s.preco) > 0)
-        .map((s) => ({
-          nomeProduto: s.nomeProduto.trim(),
-          preco: parseFloat(String(s.preco).replace(',', '.')),
-          qtdMinima: Number(s.qtdMinima) || 1,
-          observacao: s.observacao || '',
-          quantidadeCondicao: (s.exibirCondicao && s.quantidadeCondicao) ? Number(s.quantidadeCondicao) : null,
-          precoCondicao: (s.exibirCondicao && s.precoCondicao) ? parseFloat(String(s.precoCondicao).replace(',', '.')) : null
-        }))
+        .map((s) => {
+            const condsValidas = s.condicoes.filter(c => c.qtd && c.preco);
+            return {
+              nomeProduto: s.nomeProduto.trim(),
+              preco: parseFloat(String(s.preco).replace(',', '.')),
+              qtdMinima: Number(s.qtdMinima) || 1,
+              observacao: s.observacao || '',
+              quantidadeCondicao: condsValidas.length > 0 ? Number(condsValidas[0].qtd) : null,
+              precoCondicao: condsValidas.length > 0 ? parseFloat(String(condsValidas[0].preco).replace(',', '.')) : null,
+              condicoesEscalonamento: condsValidas.length > 0 ? JSON.stringify(condsValidas) : null
+            }
+        })
 
       const payload = {
         cotacaoId: Number(idCotacao),
@@ -332,7 +372,6 @@ export default function ResponderCotacao() {
   const itensProcessados = itens
     .filter(item => {
       if (item.excluido) return false; 
-      
       if (!busca) return true;
       return getNomeReal(item.nomeProduto).toLowerCase().includes(busca.toLowerCase());
     })
@@ -400,8 +439,8 @@ export default function ResponderCotacao() {
               const isFalta = !!emFalta[item.idItem]
               const qtdNaTela = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
               const temTrocaAtiva = !!exibirTroca[item.idItem]
-              const condicaoAtiva = !!exibirCondicao[item.idItem]
-              const condicaoSubstAtiva = !!exibirCondicaoSubst[item.idItem]
+              const condsAtivas = condicoesNormal[item.idItem] || []
+              const condsSubstAtivas = condicoesSubst[item.idItem] || []
 
               return (
                 <div key={item.idItem} style={mobileStyles.card}>
@@ -420,20 +459,24 @@ export default function ResponderCotacao() {
                     <button type="button" style={mobileStyles.btnFalta(isFalta)} onClick={() => toggleEmFalta(item.idItem)}>{isFalta ? 'Em falta' : 'Falta?'}</button>
                   </div>
 
-                  {/* BOX: CONDIÇÃO ITEM NORMAL */}
+                  {/* BOX: CONDIÇÕES MÚLTIPLAS - ITEM NORMAL */}
                   {!isFalta && (
                     <div style={{ marginTop: '8px' }}>
-                      <button type="button" onClick={() => setExibirCondicao(p => ({...p, [item.idItem]: !p[item.idItem]}))} style={mobileStyles.btnLinkAdd}>
-                        <Tags size={14} /> {condicaoAtiva ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
+                      <button type="button" onClick={() => addCondicao(item.idItem, 'NORMAL')} style={mobileStyles.btnLinkAdd}>
+                        <Plus size={14} /> Adicionar Condição / Escalonamento
                       </button>
-                      {condicaoAtiva && (
-                        <div style={mobileStyles.boxCondicao}>
+                      
+                      {condsAtivas.map((cond, idx) => (
+                        <div key={idx} style={mobileStyles.boxCondicao}>
                           <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
-                          <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={qtdCondicao[item.idItem] || ''} onChange={e => setQtdCondicao(p => ({...p, [item.idItem]: e.target.value}))}/>
-                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>unidades, sai por R$</span>
-                          <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicao[item.idItem] || ''} onChange={e => setPrecoCondicao(p => ({...p, [item.idItem]: e.target.value}))}/>
+                          <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoChange(item.idItem, idx, 'qtd', e.target.value, 'NORMAL')}/>
+                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                          <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoChange(item.idItem, idx, 'preco', e.target.value, 'NORMAL')}/>
+                          <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'NORMAL')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                            <Trash2 size={16} />
+                          </button>
                         </div>
-                      )}
+                      ))}
                     </div>
                   )}
 
@@ -445,7 +488,7 @@ export default function ResponderCotacao() {
                     {temTrocaAtiva && (
                       <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div>
-                          <label style={mobileStyles.labelMini}>Nome do Produto Substituto *</label>
+                          <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
                           <input type="text" placeholder="Ex: Cimegripe 1g c/ 20 - Medley" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={produtoSubstituto[item.idItem] || ''} onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
@@ -459,20 +502,23 @@ export default function ResponderCotacao() {
                           </div>
                         </div>
 
-                        {/* BOX: CONDIÇÃO SUBSTITUTO */}
+                        {/* BOX: CONDIÇÕES MÚLTIPLAS - SUBSTITUTO */}
                         <div style={{ marginTop: '4px' }}>
-                            <button type="button" onClick={() => setExibirCondicaoSubst(p => ({...p, [item.idItem]: !p[item.idItem]}))} style={mobileStyles.btnLinkAdd}>
-                                <Tags size={14} /> {condicaoSubstAtiva ? 'Remover Condição' : 'Adicionar Condição na Troca'}
+                            <button type="button" onClick={() => addCondicao(item.idItem, 'SUBST')} style={mobileStyles.btnLinkAdd}>
+                                <Plus size={14} /> Adicionar Condição na Troca
                             </button>
                             
-                            {condicaoSubstAtiva && (
-                                <div style={mobileStyles.boxCondicao}>
-                                <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
-                                <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={qtdCondicaoSubst[item.idItem] || ''} onChange={e => setQtdCondicaoSubst(p => ({...p, [item.idItem]: e.target.value}))}/>
-                                <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>unidades, sai por R$</span>
-                                <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={precoCondicaoSubst[item.idItem] || ''} onChange={e => setPrecoCondicaoSubst(p => ({...p, [item.idItem]: e.target.value}))}/>
+                            {condsSubstAtivas.map((cond, idx) => (
+                                <div key={idx} style={mobileStyles.boxCondicao}>
+                                    <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
+                                    <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoChange(item.idItem, idx, 'qtd', e.target.value, 'SUBST')}/>
+                                    <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                                    <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoChange(item.idItem, idx, 'preco', e.target.value, 'SUBST')}/>
+                                    <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'SUBST')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                                        <Trash2 size={16} />
+                                    </button>
                                 </div>
-                            )}
+                            ))}
                         </div>
                       </div>
                     )}
@@ -504,19 +550,23 @@ export default function ResponderCotacao() {
                     <input type="number" min="1" placeholder="Qtd Mínima *" style={mobileStyles.inputFieldItem} value={sug.qtdMinima} onWheel={(e) => e.target.blur()} onChange={(e) => handleSugestaoChange(sug.tempId, 'qtdMinima', e.target.value)} />
                   </div>
                   
-                  {/* BOX: CONDIÇÃO SUGESTÃO EXTRA */}
+                  {/* BOX: CONDIÇÃO MÚLTIPLA SUGESTÃO EXTRA */}
                   <div>
-                      <button type="button" onClick={() => handleSugestaoChange(sug.tempId, 'exibirCondicao', !sug.exibirCondicao)} style={mobileStyles.btnLinkAdd}>
-                          <Tags size={14} /> {sug.exibirCondicao ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
+                      <button type="button" onClick={() => addCondicaoSugestao(sug.tempId)} style={mobileStyles.btnLinkAdd}>
+                          <Plus size={14} /> Adicionar Condição / Escalonamento
                       </button>
-                      {sug.exibirCondicao && (
-                          <div style={mobileStyles.boxCondicao}>
-                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
-                          <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={sug.quantidadeCondicao || ''} onChange={e => handleSugestaoChange(sug.tempId, 'quantidadeCondicao', e.target.value)}/>
-                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>unidades, sai por R$</span>
-                          <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={sug.precoCondicao || ''} onChange={e => handleSugestaoChange(sug.tempId, 'precoCondicao', e.target.value)}/>
+                      
+                      {sug.condicoes?.map((cond, idx) => (
+                          <div key={idx} style={mobileStyles.boxCondicao}>
+                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
+                            <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoSugestaoChange(sug.tempId, idx, 'qtd', e.target.value)}/>
+                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                            <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoSugestaoChange(sug.tempId, idx, 'preco', e.target.value)}/>
+                            <button type="button" onClick={() => removeCondicaoSugestao(sug.tempId, idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                                <Trash2 size={16} />
+                            </button>
                           </div>
-                      )}
+                      ))}
                   </div>
 
                   <input type="text" placeholder="Observação..." style={mobileStyles.inputFieldItem} value={sug.observacao} onChange={(e) => handleSugestaoChange(sug.tempId, 'observacao', e.target.value)} />
@@ -557,7 +607,7 @@ const mobileStyles = {
   inputFieldItem: { width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '15px', boxSizing: 'border-box' },
   inputMini: { padding: '6px', borderRadius: '4px', border: '1px solid #86efac', fontSize: '13px', width: '70px', textAlign: 'center', outline: 'none' },
   boxCondicao: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px', padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px dashed #4ade80' },
-  btnLinkAdd: { background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 },
+  btnLinkAdd: { background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0' },
   btnFalta: (ativo) => ({ padding: '8px 12px', borderRadius: '6px', border: '1px solid', borderColor: ativo ? '#ef4444' : '#d1d5db', backgroundColor: ativo ? '#fee2e2' : 'white', color: ativo ? '#b91c1c' : '#6b7280', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '39px' }),
   btnAddSugestao: { padding: '6px 12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer' },
   submitButton: { width: '100%', padding: '14px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
