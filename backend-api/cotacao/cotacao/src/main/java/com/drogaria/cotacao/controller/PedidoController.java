@@ -232,6 +232,14 @@ public class PedidoController {
     @PatchMapping("/{id}/falha-entrega")
     public ResponseEntity<Pedido> registrarFalhaEntrega(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         String motivo = payload.get("motivo");
-        return ResponseEntity.ok(pedidoService.registrarFalhaEntrega(id, motivo));
+        String acaoDestino = payload.get("acaoDestino");
+        String cotacaoIdStr = payload.get("cotacaoDestinoId");
+        
+        Long cotacaoDestinoId = null;
+        if (cotacaoIdStr != null && !cotacaoIdStr.trim().isEmpty()) {
+            cotacaoDestinoId = Long.valueOf(cotacaoIdStr);
+        }
+        
+        return ResponseEntity.ok(pedidoService.registrarFalhaEntrega(id, motivo, acaoDestino, cotacaoDestinoId));
     }
 }

@@ -476,15 +476,48 @@ public class PedidoService {
     }
 
     @Transactional
-    public Pedido registrarFalhaEntrega(Long pedidoId, String motivo) {
+    public Pedido registrarFalhaEntrega(Long pedidoId, String motivo, String acaoDestino, Long cotacaoDestinoId) {
         Pedido pedido = buscarPorId(pedidoId);
         pedido.setStatus(StatusPedido.CANCELADO);
         pedido.setMotivoCancelamento(motivo);
-        for (ItemPedido ip : pedido.getItens()) {
-            if (ip.getItemCotacao() != null) {
-                ItemCotacao ic = ip.getItemCotacao();
-                ic.setMotivoRetorno(motivo);
-                itemCotacaoRepository.save(ic);
+
+        if ("ORIGINAL".equals(acaoDestino) || acaoDestino == null) {
+            for (ItemPedido ip : pedido.getItens()) {
+                if (ip.getItemCotacao() != null) {
+                    ItemCotacao ic = ip.getItemCotacao();
+                    ic.setMotivoRetorno(motivo);
+                    itemCotacaoRepository.save(ic);
+                }
+            }
+        } else {
+            Cotacao cotacaoDestino = null;
+            if ("NOVA".equals(acaoDestino)) {
+                cotacaoDestino = new Cotacao();
+                cotacaoDestino.setDescricao("Recompra - Falha Pedido #" + pedidoId);
+                cotacaoDestino.setStatus("ABERTA");
+                cotacaoDestino.setDataCriacao(LocalDateTime.now());
+                cotacaoDestino = cotacaoRepository.save(cotacaoDestino);
+            } else if ("EXISTENTE".equals(acaoDestino) && cotacaoDestinoId != null) {
+                cotacaoDestino = cotacaoRepository.findById(cotacaoDestinoId)
+                    .orElseThrow(() -> new RuntimeException("Cotação destino não encontrada"));
+            }
+
+            if (cotacaoDestino != null) {
+                for (ItemPedido ip : pedido.getItens()) {
+                    ItemCotacao novoItem = new ItemCotacao();
+                    novoItem.setCotacao(cotacaoDestino);
+                    novoItem.setNomeProduto(ip.getNomeProduto());
+                    novoItem.setQuantidade(ip.getQuantidadePedida());
+                    novoItem.setOrigemItem("Retorno Pedido #" + pedidoId);
+                    novoItem.setMotivoRetorno(motivo);
+                    novoItem.setEditadoManual(true);
+                    itemCotacaoRepository.save(novoItem);
+                    if (ip.getItemCotacao() != null) {
+                        ItemCotacao icAntigo = ip.getItemCotacao();
+                        icAntigo.setExcluido(true); 
+                        itemCotacaoRepository.save(icAntigo);
+                    }
+                }
             }
         }
         return pedidoRepository.save(pedido);

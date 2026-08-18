@@ -32,12 +32,15 @@ export default function Pedidos() {
   const [modalFalhaAberto, setModalFalhaAberto] = useState(false)
   const [pedidoFalha, setPedidoFalha] = useState(null)
   const [motivoFalha, setMotivoFalha] = useState('')
+  const [acaoDestino, setAcaoDestino] = useState('ORIGINAL')
+  const [cotacoesAtivas, setCotacoesAtivas] = useState([])
+  const [cotacaoDestinoId, setCotacaoDestinoId] = useState('')
 
   // RELÓGIO EM TEMPO REAL PARA O SLA DE 24H
   const [agora, setAgora] = useState(new Date().getTime());
   
   useEffect(() => {
-      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); // Atualiza a cada 1 minuto
+      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
       return () => clearInterval(interval);
   }, []);
 
@@ -101,17 +104,33 @@ export default function Pedidos() {
     }
   };
 
-  const abrirModalFalha = (pedido) => {
+  const abrirModalFalha = async (pedido) => {
       setPedidoFalha(pedido);
       setMotivoFalha('');
+      setAcaoDestino('ORIGINAL');
+      setCotacaoDestinoId('');
+      
+      try {
+          const res = await api.get('/api/cotacao');
+          const abertas = res.data.filter(c => c.status === 'ABERTA' || c.status === 'PENDENTE');
+          setCotacoesAtivas(abertas);
+      } catch (error) {
+          console.error("Erro ao carregar cotações ativas", error);
+      }
       setModalFalhaAberto(true);
   };
 
   const registrarFalhaEntrega = async () => {
       if (!motivoFalha.trim()) return alert('Por favor, selecione ou informe o motivo do cancelamento.');
+      if (acaoDestino === 'EXISTENTE' && !cotacaoDestinoId) return alert('Por favor, selecione em qual cotação deseja adicionar os itens.');
+
       try {
-          await api.patch(`/api/pedidos/${pedidoFalha.id}/falha-entrega`, { motivo: motivoFalha });
-          alert('Pedido marcado como NÃO ENTREGUE. Os itens foram devolvidos para a cotação!');
+          await api.patch(`/api/pedidos/${pedidoFalha.id}/falha-entrega`, { 
+              motivo: motivoFalha,
+              acaoDestino: acaoDestino,
+              cotacaoDestinoId: cotacaoDestinoId
+          });
+          alert('Pedido marcado como NÃO ENTREGUE. Os itens foram redirecionados com sucesso!');
           setModalFalhaAberto(false);
           carregarPedidos();
       } catch (e) {
@@ -524,7 +543,7 @@ export default function Pedidos() {
                             </button>
                           )}
 
-                          {/* BOTÃO PARA CANCELAR OU MARCAR COMO NÃO ENTREGUE */}
+                          {/* NOVO: BOTÃO PARA CANCELAR OU MARCAR COMO NÃO ENTREGUE */}
                           {isAguardando && (
                             <button className="btn-icon" title="Registrar Falha na Entrega / Cancelar" onClick={() => abrirModalFalha(p)}>
                               <XCircle size={18} color="#ef4444" />
@@ -565,7 +584,7 @@ export default function Pedidos() {
             />
         )}
 
-        {/* MODAL DE FALHA NA ENTREGA */}
+        {/* MODAL DE FALHA NA ENTREGA COM ESCOLHA DE DESTINO */}
         {modalFalhaAberto && pedidoFalha && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                 <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -578,11 +597,9 @@ export default function Pedidos() {
                     
                     <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
                         O Pedido <strong>#{pedidoFalha.id}</strong> ({pedidoFalha.fornecedor?.nome || pedidoFalha.fornecedorNome}) será marcado como Falha/Cancelado.
-                        <br/><br/>
-                        <strong style={{ color: '#111827' }}>Os itens vinculados a este pedido serão devolvidos para a aba "Cotações" para que você possa comprá-los novamente.</strong>
                     </p>
 
-                    <div style={{ marginBottom: '20px' }}>
+                    <div style={{ marginBottom: '15px' }}>
                         <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
                         <select 
                             value={motivoFalha} 
@@ -598,8 +615,42 @@ export default function Pedidos() {
                         </select>
                     </div>
 
+                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '12px' }}>O que fazer com os itens deste pedido?</label>
+                        
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                            <input type="radio" checked={acaoDestino === 'ORIGINAL'} onChange={() => setAcaoDestino('ORIGINAL')} style={{ transform: 'scale(1.2)' }} />
+                            <span>Devolver para a <strong>Cotação Original</strong> (se houver)</span>
+                        </label>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                            <input type="radio" checked={acaoDestino === 'NOVA'} onChange={() => setAcaoDestino('NOVA')} style={{ transform: 'scale(1.2)' }} />
+                            <span>Gerar uma <strong>Nova Cotação</strong> com estes itens</span>
+                        </label>
+
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                            <input type="radio" checked={acaoDestino === 'EXISTENTE'} onChange={() => setAcaoDestino('EXISTENTE')} style={{ transform: 'scale(1.2)' }} />
+                            <span>Adicionar em uma <strong>Cotação Ativa</strong></span>
+                        </label>
+
+                        {acaoDestino === 'EXISTENTE' && (
+                            <div style={{ marginTop: '10px', marginLeft: '24px' }}>
+                                <select 
+                                    value={cotacaoDestinoId} 
+                                    onChange={e => setCotacaoDestinoId(e.target.value)}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px' }}
+                                >
+                                    <option value="">-- Selecione a Cotação --</option>
+                                    {cotacoesAtivas.map(c => (
+                                        <option key={c.id} value={c.id}>#{c.id} - {c.descricao} ({c.status})</option>
+                                    ))}
+                                </select>
+                            </div>
+                        )}
+                    </div>
+
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                        <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
                         <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             Confirmar Cancelamento
                         </button>
