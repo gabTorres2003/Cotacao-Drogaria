@@ -9,7 +9,6 @@ public class SalvarRespostaFornecedorRequestDTO {
     private List<SalvarPrecoDTO> itens;
     private List<SugestaoPromocaoDTO> sugestoes;
 
-    // Getters e Setters
     public Long getCotacaoId() { return cotacaoId; }
     public void setCotacaoId(Long cotacaoId) { this.cotacaoId = cotacaoId; }
 

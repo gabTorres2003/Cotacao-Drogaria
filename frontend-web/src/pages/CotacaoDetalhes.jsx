@@ -69,7 +69,6 @@ export default function CotacaoDetalhes() {
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
 
-  // Estados do Modal + Pedido Avulso
   const [modalAddPedidoAberto, setModalAddPedidoAberto] = useState(false);
   const [itemAddPedido, setItemAddPedido] = useState(null);
   const [fornecedorTargetToModal, setFornecedorTargetToModal] = useState(null);
@@ -306,27 +305,52 @@ export default function CotacaoDetalhes() {
           let qtd = itemRelatorio.quantidade || 0;
           let nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
           let nomeOriginal = null;
-          let qC = itemRelatorio.qtdCondicaoPorFornecedor?.[vencedor];
-          let pC = itemRelatorio.precoCondicaoPorFornecedor?.[vencedor];
+          
+          let condsArr = [];
+          const strConds = itemRelatorio.condicoesEscalonamentoPorFornecedor?.[vencedor];
+          try { if (strConds) condsArr = JSON.parse(strConds); } catch(e){}
+          if (condsArr.length === 0 && itemRelatorio.qtdCondicaoPorFornecedor?.[vencedor]) {
+              condsArr.push({ qtd: itemRelatorio.qtdCondicaoPorFornecedor[vencedor], preco: itemRelatorio.precoCondicaoPorFornecedor[vencedor] });
+          }
 
           if (isTrocaAceitaVencedor && nomeSubstituto) {
             preco = itemRelatorio.precosSubstitutosPorFornecedor?.[vencedor] || preco;
             qtd = itemRelatorio.qtdsSubstitutosPorFornecedor?.[vencedor] || qtd;
             nomeFinal = getNomeRealSempre(nomeSubstituto); 
             nomeOriginal = getNomeRealSempre(itemRelatorio.nomeProduto);
-            qC = itemRelatorio.qtdCondicaoSubstPorFornecedor?.[vencedor];
-            pC = itemRelatorio.precoCondicaoSubstPorFornecedor?.[vencedor];
+            
+            condsArr = [];
+            const strCondsSubst = itemRelatorio.condicoesEscalonamentoSubstPorFornecedor?.[vencedor];
+            try { if (strCondsSubst) condsArr = JSON.parse(strCondsSubst); } catch(e){}
+            if (condsArr.length === 0 && itemRelatorio.qtdCondicaoSubstPorFornecedor?.[vencedor]) {
+                condsArr.push({ qtd: itemRelatorio.qtdCondicaoSubstPorFornecedor[vencedor], preco: itemRelatorio.precoCondicaoSubstPorFornecedor[vencedor] });
+            }
           }
 
-          let condAplicada = !!(qC && pC && qtd >= qC);
-          let precoFinal = condAplicada ? pC : preco;
+          let precoFinal = preco;
+          let condAplicada = false;
+          let qCAplicada = null;
+          let pCAplicada = null;
+
+          if (condsArr.length > 0) {
+              const sorted = [...condsArr].sort((a,b) => b.qtd - a.qtd);
+              for (let c of sorted) {
+                  if (qtd >= c.qtd) {
+                      precoFinal = c.preco;
+                      qCAplicada = c.qtd;
+                      pCAplicada = c.preco;
+                      condAplicada = true;
+                      break;
+                  }
+              }
+          }
 
           if (preco > 0) {
             initForn(vencedor);
             pedidosPorFornecedor[vencedor].itens.push({
               idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[vencedor],
               quantidadePedida: qtd, valorUnitarioPedido: precoFinal, precoBase: preco, subtotal: qtd * precoFinal, isExtra: false, todosDadosItem: itemRelatorio,
-              selected: true, qtdCondicao: qC, precoCondicao: pC, condicaoAplicada: condAplicada
+              selected: true, condicoes: condsArr, qtdCondicao: qCAplicada, precoCondicao: pCAplicada, condicaoAplicada: condAplicada
             });
             pedidosPorFornecedor[vencedor].total += (qtd * precoFinal);
           }
@@ -339,11 +363,31 @@ export default function CotacaoDetalhes() {
 
               let precoSubst = itemRelatorio.precosSubstitutosPorFornecedor?.[forn] || itemRelatorio.precosPorFornecedor?.[forn] || 0;
               let qtdSubst = itemRelatorio.qtdsSubstitutosPorFornecedor?.[forn] || itemRelatorio.quantidade || 0;
-              let qCSubst = itemRelatorio.qtdCondicaoSubstPorFornecedor?.[forn];
-              let pCSubst = itemRelatorio.precoCondicaoSubstPorFornecedor?.[forn];
+              
+              let condsArrSubst = [];
+              const strCondsSubst = itemRelatorio.condicoesEscalonamentoSubstPorFornecedor?.[forn];
+              try { if (strCondsSubst) condsArrSubst = JSON.parse(strCondsSubst); } catch(e){}
+              if (condsArrSubst.length === 0 && itemRelatorio.qtdCondicaoSubstPorFornecedor?.[forn]) {
+                  condsArrSubst.push({ qtd: itemRelatorio.qtdCondicaoSubstPorFornecedor[forn], preco: itemRelatorio.precoCondicaoSubstPorFornecedor[forn] });
+              }
 
-              let condAplicadaSubst = !!(qCSubst && pCSubst && qtdSubst >= qCSubst);
-              let precoFinalSubst = condAplicadaSubst ? pCSubst : precoSubst;
+              let precoFinalSubst = precoSubst;
+              let condAplicadaSubst = false;
+              let qCSubst = null;
+              let pCSubst = null;
+
+              if (condsArrSubst.length > 0) {
+                  const sorted = [...condsArrSubst].sort((a,b) => b.qtd - a.qtd);
+                  for (let c of sorted) {
+                      if (qtdSubst >= c.qtd) {
+                          precoFinalSubst = c.preco;
+                          qCSubst = c.qtd;
+                          pCSubst = c.preco;
+                          condAplicadaSubst = true;
+                          break;
+                      }
+                  }
+              }
 
               if (precoSubst > 0) {
                  initForn(forn);
@@ -352,7 +396,7 @@ export default function CotacaoDetalhes() {
                    observacao: itemRelatorio.observacoesPorFornecedor?.[forn],
                    quantidadePedida: qtdSubst, valorUnitarioPedido: precoFinalSubst, precoBase: precoSubst, subtotal: qtdSubst * precoFinalSubst,
                    isExtra: true, isSugestaoTroca: true, todosDadosItem: itemRelatorio, selected: false,
-                   qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst
+                   condicoes: condsArrSubst, qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst
                  });
               }
            }
@@ -374,12 +418,15 @@ export default function CotacaoDetalhes() {
         let pCPromo = promo.precoCondicao;
         let condAplicadaPromo = !!(qCPromo && pCPromo && promo.qtdMinima >= qCPromo);
         let precoFinalPromo = condAplicadaPromo ? pCPromo : promo.preco;
+        
+        let condsPromo = [];
+        if (qCPromo && pCPromo) condsPromo.push({ qtd: qCPromo, preco: pCPromo });
 
         pedidosPorFornecedor[targetForn].itens.push({
             idItem: null, promocaoId: promo.id, nomeProduto: getNomeRealSempre(promo.nomeProduto),
             quantidadePedida: promo.qtdMinima, valorUnitarioPedido: precoFinalPromo, precoBase: promo.preco, subtotal: promo.qtdMinima * precoFinalPromo,
             isExtra: true, isSugestaoTroca: false, observacao: promo.observacao, selected: false,
-            qtdCondicao: qCPromo, precoCondicao: pCPromo, condicaoAplicada: condAplicadaPromo
+            condicoes: condsPromo, qtdCondicao: qCPromo, precoCondicao: pCPromo, condicaoAplicada: condAplicadaPromo
         });
       });
 
@@ -663,24 +710,48 @@ export default function CotacaoDetalhes() {
              let qtd = i.quantidade || 0;
              let nomeFinal = getNomeRealSempre(i.nomeProduto);
              
-             let qC = i.qtdCondicaoPorFornecedor?.[fornecedorTargetToModal];
-             let pC = i.precoCondicaoPorFornecedor?.[fornecedorTargetToModal];
+             let condsArr = [];
+             const strConds = i.condicoesEscalonamentoPorFornecedor?.[fornecedorTargetToModal];
+             try { if (strConds) condsArr = JSON.parse(strConds); } catch(e){}
+             if (condsArr.length === 0 && i.qtdCondicaoPorFornecedor?.[fornecedorTargetToModal]) {
+                 condsArr.push({ qtd: i.qtdCondicaoPorFornecedor[fornecedorTargetToModal], preco: i.precoCondicaoPorFornecedor[fornecedorTargetToModal] });
+             }
 
              if (isTrocaAceita && nomeSubstituto) {
                 preco = i.precosSubstitutosPorFornecedor?.[fornecedorTargetToModal] || preco;
                 qtd = i.qtdsSubstitutosPorFornecedor?.[fornecedorTargetToModal] || qtd;
                 nomeFinal = getNomeRealSempre(nomeSubstituto);
-                qC = i.qtdCondicaoSubstPorFornecedor?.[fornecedorTargetToModal];
-                pC = i.precoCondicaoSubstPorFornecedor?.[fornecedorTargetToModal];
+                
+                condsArr = [];
+                const strCondsSubst = i.condicoesEscalonamentoSubstPorFornecedor?.[fornecedorTargetToModal];
+                try { if (strCondsSubst) condsArr = JSON.parse(strCondsSubst); } catch(e){}
+                if (condsArr.length === 0 && i.qtdCondicaoSubstPorFornecedor?.[fornecedorTargetToModal]) {
+                    condsArr.push({ qtd: i.qtdCondicaoSubstPorFornecedor[fornecedorTargetToModal], preco: i.precoCondicaoSubstPorFornecedor[fornecedorTargetToModal] });
+                }
              }
 
-             let condAplicada = !!(qC && pC && qtd >= qC);
-             let precoFinal = condAplicada ? pC : preco;
+             let precoFinal = preco;
+             let condAplicada = false;
+             let qCAplicada = null;
+             let pCAplicada = null;
+
+             if (condsArr.length > 0) {
+                 const sorted = [...condsArr].sort((a,b) => b.qtd - a.qtd);
+                 for (let c of sorted) {
+                     if (qtd >= c.qtd) {
+                         precoFinal = c.preco;
+                         qCAplicada = c.qtd;
+                         pCAplicada = c.preco;
+                         condAplicada = true;
+                         break;
+                     }
+                 }
+             }
 
              if (preco > 0) {
                 await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
                   nomeProduto: nomeFinal, quantidadePedida: qtd, valorUnitarioPedido: precoFinal, itemCotacao: { id: i.idItem },
-                  condicaoAplicada: condAplicada, qtdCondicao: qC, precoCondicao: pC
+                  condicaoAplicada: condAplicada, qtdCondicao: qCAplicada, precoCondicao: pCAplicada
                 });
                 newComprados[i.idItem] = { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(precoFinal), quantidade: Number(qtd) };
              }
@@ -844,7 +915,7 @@ export default function CotacaoDetalhes() {
           relatorioOrdenado={relatorioOrdenado} 
       />
       
-      {/* MODAL "+ PEDIDO" INTELIGENTE */}
+      {/* MODAL "+ PEDIDO" INTELIGENTE ATUALIZADO COM LOOP DE CONDIÇÕES */}
       {modalAddPedidoAberto && itemAddPedido && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -902,14 +973,24 @@ export default function CotacaoDetalhes() {
                               const novaQtd = Math.max(1, parseInt(e.target.value, 10) || 1);
                               let novoPreco = itemAddPedido.precoBase;
                               let condAplicada = false;
+                              let qCAplicada = null;
+                              let pCAplicada = null;
 
-                              if (itemAddPedido.qtdCondicao && itemAddPedido.precoCondicao && novaQtd >= itemAddPedido.qtdCondicao) {
-                                  novoPreco = itemAddPedido.precoCondicao;
-                                  condAplicada = true;
+                              if (itemAddPedido.condicoes && itemAddPedido.condicoes.length > 0) {
+                                  const sortedConds = [...itemAddPedido.condicoes].sort((a,b) => b.qtd - a.qtd);
+                                  for (let cond of sortedConds) {
+                                      if (novaQtd >= cond.qtd) {
+                                          novoPreco = cond.preco;
+                                          qCAplicada = cond.qtd;
+                                          pCAplicada = cond.preco;
+                                          condAplicada = true;
+                                          break;
+                                      }
+                                  }
                               }
 
                               setAddPedidoForm({...addPedidoForm, qtd: novaQtd, valor: novoPreco});
-                              setItemAddPedido({...itemAddPedido, condicaoAplicada: condAplicada});
+                              setItemAddPedido({...itemAddPedido, condicaoAplicada: condAplicada, qtdCondicao: qCAplicada, precoCondicao: pCAplicada});
                           }} 
                       />
                     </div>
@@ -926,24 +1007,31 @@ export default function CotacaoDetalhes() {
                     </div>
                   </div>
 
-                  {itemAddPedido?.qtdCondicao && itemAddPedido?.precoCondicao && (
+                  {itemAddPedido.condicoes && itemAddPedido.condicoes.length > 0 && (
                       <div style={{ marginTop: '10px' }}>
-                          {itemAddPedido.condicaoAplicada ? (
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
-                                  <Tag size={14} /> Condição Aplicada: {itemAddPedido.qtdCondicao} un por {fMoney(itemAddPedido.precoCondicao)}
-                              </div>
-                          ) : (
-                              <button
-                                  type="button"
-                                  onClick={() => {
-                                      setAddPedidoForm({...addPedidoForm, qtd: itemAddPedido.qtdCondicao, valor: itemAddPedido.precoCondicao});
-                                      setItemAddPedido({...itemAddPedido, condicaoAplicada: true});
-                                  }}
-                                  style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#fef08a', color: '#854d0e', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
-                              >
-                                  <Tags size={14} /> Aceitar Condição: {itemAddPedido.qtdCondicao} un por {fMoney(itemAddPedido.precoCondicao)}
-                              </button>
-                          )}
+                          {itemAddPedido.condicoes.map((cond, idx) => {
+                              const isAtiva = itemAddPedido.condicaoAplicada && itemAddPedido.qtdCondicao === cond.qtd;
+                              return (
+                                  <div key={idx} style={{ marginBottom: '6px' }}>
+                                      {isAtiva ? (
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                                              <Tag size={14} /> Condição Aplicada: {cond.qtd} un por {fMoney(cond.preco)}
+                                          </div>
+                                      ) : (
+                                          <button
+                                              type="button"
+                                              onClick={() => {
+                                                  setAddPedidoForm({...addPedidoForm, qtd: cond.qtd, valor: cond.preco});
+                                                  setItemAddPedido({...itemAddPedido, condicaoAplicada: true, qtdCondicao: cond.qtd, precoCondicao: cond.preco});
+                                              }}
+                                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#fef08a', color: '#854d0e', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                                          >
+                                              <Tags size={14} /> Aceitar Condição: {cond.qtd} un por {fMoney(cond.preco)}
+                                          </button>
+                                      )}
+                                  </div>
+                              )
+                          })}
                       </div>
                   )}
                 </>

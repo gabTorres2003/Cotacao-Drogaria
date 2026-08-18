@@ -12,6 +12,9 @@ public class SugestaoPromocaoResponseDTO {
     private Integer quantidadeCondicao;
     private Double precoCondicao;
 
+    // NOVO CAMPO: Para transportar o Array JSON com múltiplas condições
+    private String condicoesEscalonamento;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -35,4 +38,7 @@ public class SugestaoPromocaoResponseDTO {
 
     public Double getPrecoCondicao() { return precoCondicao; }
     public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
+
+    public String getCondicoesEscalonamento() { return condicoesEscalonamento; }
+    public void setCondicoesEscalonamento(String condicoesEscalonamento) { this.condicoesEscalonamento = condicoesEscalonamento; }
 }

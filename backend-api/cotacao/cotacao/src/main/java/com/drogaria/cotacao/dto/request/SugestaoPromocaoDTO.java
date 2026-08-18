@@ -9,6 +9,7 @@ public class SugestaoPromocaoDTO {
 
     private Integer quantidadeCondicao;
     private Double precoCondicao;
+    private String condicoesEscalonamento;
 
     public String getNomeProduto() { return nomeProduto; }
     public void setNomeProduto(String nomeProduto) { this.nomeProduto = nomeProduto; }
@@ -27,4 +28,7 @@ public class SugestaoPromocaoDTO {
 
     public Double getPrecoCondicao() { return precoCondicao; }
     public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
+
+    public String getCondicoesEscalonamento() { return condicoesEscalonamento; }
+    public void setCondicoesEscalonamento(String condicoesEscalonamento) { this.condicoesEscalonamento = condicoesEscalonamento; }
 }

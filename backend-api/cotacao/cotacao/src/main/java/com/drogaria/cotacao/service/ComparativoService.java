@@ -110,10 +110,12 @@ public class ComparativoService {
                     String nomeForn = oferta.getFornecedor().getNome();
                     linha.getPrecosPorFornecedor().put(nomeForn, oferta.getPrecoOfertado());
 
-                    // NOVA LÓGICA: Enviar as condições do item normal para o React
                     if (oferta.getQuantidadeCondicao() != null && oferta.getPrecoCondicao() != null) {
                         linha.getQtdCondicaoPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicao());
                         linha.getPrecoCondicaoPorFornecedor().put(nomeForn, oferta.getPrecoCondicao());
+                    }
+                    if (oferta.getCondicoesEscalonamento() != null) {
+                        linha.getCondicoesEscalonamentoPorFornecedor().put(nomeForn, oferta.getCondicoesEscalonamento());
                     }
 
                     if (oferta.getProdutoSubstituto() != null && !oferta.getProdutoSubstituto().trim().isEmpty()) {
@@ -121,10 +123,12 @@ public class ComparativoService {
                         linha.getPrecosSubstitutosPorFornecedor().put(nomeForn, oferta.getPrecoSubstituto());
                         linha.getQtdsSubstitutosPorFornecedor().put(nomeForn, oferta.getQuantidadeSubstituto());
                         
-                        // NOVA LÓGICA: Enviar as condições do produto substituto para o React
                         if (oferta.getQuantidadeCondicaoSubstituto() != null && oferta.getPrecoCondicaoSubstituto() != null) {
                             linha.getQtdCondicaoSubstPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicaoSubstituto());
                             linha.getPrecoCondicaoSubstPorFornecedor().put(nomeForn, oferta.getPrecoCondicaoSubstituto());
+                        }
+                        if (oferta.getCondicoesEscalonamentoSubstituto() != null) {
+                            linha.getCondicoesEscalonamentoSubstPorFornecedor().put(nomeForn, oferta.getCondicoesEscalonamentoSubstituto());
                         }
                     }
                     if (oferta.getObservacao() != null && !oferta.getObservacao().trim().isEmpty()) {
@@ -194,18 +198,11 @@ public class ComparativoService {
             dto.setPreco(s.getPreco());
             dto.setQtdMinima(s.getQtdMinima());
             dto.setObservacao(s.getObservacao());
-            
-            // NOVA LÓGICA: Enviar as condições das sugestões
             dto.setQuantidadeCondicao(s.getQuantidadeCondicao());
             dto.setPrecoCondicao(s.getPrecoCondicao());
-            
+            dto.setCondicoesEscalonamento(s.getCondicoesEscalonamento());
             return dto;
         }).collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {
-        // Lógica mantida...
     }
 
     @Transactional
@@ -246,10 +243,6 @@ public class ComparativoService {
                 ItemCotacao item = itemRepository.findById(dto.getIdItem())
                         .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + dto.getIdItem()));
 
-                if (dto.getPreco() == null) {
-                    throw new IllegalArgumentException("O preço do produto '" + item.getNomeProduto() + "' não pode ser nulo.");
-                }
-
                 PrecoCotacao preco = new PrecoCotacao();
                 preco.setItem(item);
                 preco.setFornecedor(fornecedor);
@@ -260,23 +253,21 @@ public class ComparativoService {
                 preco.setPrecoSubstituto(dto.getPrecoSubstituto());
                 preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
                 
-                // NOVA LÓGICA: Salvar campos de escalonamento no banco
                 preco.setQuantidadeCondicao(dto.getQuantidadeCondicao());
                 preco.setPrecoCondicao(dto.getPrecoCondicao());
                 preco.setQuantidadeCondicaoSubstituto(dto.getQuantidadeCondicaoSubstituto());
                 preco.setPrecoCondicaoSubstituto(dto.getPrecoCondicaoSubstituto());
+                preco.setCondicoesEscalonamento(dto.getCondicoesEscalonamento());
+                preco.setCondicoesEscalonamentoSubstituto(dto.getCondicoesEscalonamentoSubstituto());
 
                 preco.setDataResposta(LocalDateTime.now());
-
                 precoRepository.save(preco);
 
-                // REGRA ANTI-FRAUDE COM SALVAMENTO DA ORIGEM DA EXCLUSÃO
                 for (Pedido pedido : pedidosAbertosDoFornecedor) {
                     List<ItemPedido> itensParaRemover = new ArrayList<>();
                     
                     for (ItemPedido ip : pedido.getItens()) {
                         if (ip.getItemCotacao() != null && ip.getItemCotacao().getId().equals(item.getId())) {
-                            
                             boolean precoPrincipalDiferente = dto.getPreco() != null && !dto.getPreco().equals(ip.getValorUnitarioPedido());
                             boolean precoSubstitutoDiferente = dto.getPrecoSubstituto() == null || !dto.getPrecoSubstituto().equals(ip.getValorUnitarioPedido());
                             
@@ -311,10 +302,6 @@ public class ComparativoService {
 
         if (possuiSugestoes) {
             for (SugestaoPromocaoDTO sugDto : request.getSugestoes()) {
-                if (sugDto.getNomeProduto() == null || sugDto.getNomeProduto().trim().isEmpty()) {
-                    throw new IllegalArgumentException("O nome do produto em promoção é obrigatório.");
-                }
-
                 SugestaoPromocao sugestao = new SugestaoPromocao();
                 sugestao.setCotacao(cotacao);
                 sugestao.setFornecedor(fornecedor);
@@ -322,10 +309,9 @@ public class ComparativoService {
                 sugestao.setPreco(sugDto.getPreco());
                 sugestao.setQtdMinima(sugDto.getQtdMinima());
                 sugestao.setObservacao(sugDto.getObservacao());
-                
-                // NOVA LÓGICA: Salvar as condições para a sugestão
                 sugestao.setQuantidadeCondicao(sugDto.getQuantidadeCondicao());
                 sugestao.setPrecoCondicao(sugDto.getPrecoCondicao());
+                sugestao.setCondicoesEscalonamento(sugDto.getCondicoesEscalonamento());
 
                 sugestaoPromocaoRepository.save(sugestao);
             }

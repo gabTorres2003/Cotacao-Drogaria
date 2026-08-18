@@ -39,4 +39,7 @@ public class SugestaoPedido {
 
     @Column(name = "preco_condicao")
     private Double precoCondicao;
+
+    @Column(name = "condicoes_escalonamento", columnDefinition = "TEXT")
+    private String condicoesEscalonamento;
 }

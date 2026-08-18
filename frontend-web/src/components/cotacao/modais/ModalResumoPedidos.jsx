@@ -54,39 +54,48 @@ export default function ModalResumoPedidos({
   const handleQtdChange = (fIndex, iIndex, novaQtd) => {
     setPedidosGerados(prev => {
       const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
-      const ped = next[fIndex];
-      const item = ped.itens[iIndex];
-      
+      const item = next[fIndex].itens[iIndex];
       const qtd = Math.max(1, parseInt(novaQtd, 10) || 1);
       item.quantidadePedida = qtd;
 
       let precoAplicado = item.precoBase || item.valorUnitarioPedido;
       let condicaoAtiva = false;
+      let condQtdAtiva = null;
+      let condPrecoAtiva = null;
 
-      if (item.qtdCondicao && item.precoCondicao && qtd >= item.qtdCondicao) {
-          precoAplicado = item.precoCondicao;
-          condicaoAtiva = true;
+      if (item.condicoes && item.condicoes.length > 0) {
+          const sortedConds = [...item.condicoes].sort((a,b) => b.qtd - a.qtd);
+          for (let cond of sortedConds) {
+              if (qtd >= cond.qtd) {
+                  precoAplicado = cond.preco;
+                  condicaoAtiva = true;
+                  condQtdAtiva = cond.qtd;
+                  condPrecoAtiva = cond.preco;
+                  break;
+              }
+          }
       }
 
       item.valorUnitarioPedido = precoAplicado;
       item.condicaoAplicada = condicaoAtiva;
+      item.qtdCondicao = condQtdAtiva;
+      item.precoCondicao = condPrecoAtiva;
       item.subtotal = qtd * precoAplicado;
-
       return next;
     });
   };
 
-  const handleAplicarCondicao = (fIndex, iIndex) => {
+  const handleAplicarCondicao = (fIndex, iIndex, condQtd, condPreco) => {
     setPedidosGerados(prev => {
       const next = prev.map(ped => ({ ...ped, itens: ped.itens.map(item => ({ ...item })) }));
       const item = next[fIndex].itens[iIndex];
       
-      if (item.qtdCondicao && item.precoCondicao) {
-          item.quantidadePedida = item.qtdCondicao;
-          item.valorUnitarioPedido = item.precoCondicao;
-          item.condicaoAplicada = true;
-          item.subtotal = item.qtdCondicao * item.precoCondicao;
-      }
+      item.quantidadePedida = condQtd;
+      item.valorUnitarioPedido = condPreco;
+      item.condicaoAplicada = true;
+      item.qtdCondicao = condQtd;
+      item.precoCondicao = condPreco;
+      item.subtotal = condQtd * condPreco;
 
       return next;
     });
@@ -173,8 +182,6 @@ export default function ModalResumoPedidos({
                            }
                        }
 
-                       const temCondicaoDisponivel = item.qtdCondicao && item.precoCondicao;
-
                        return (
                          <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
@@ -189,21 +196,25 @@ export default function ModalResumoPedidos({
                                </div>
                              )}
 
-                             {temCondicaoDisponivel && (
-                                <div style={{ marginTop: '4px' }}>
-                                  {item.condicaoAplicada ? (
-                                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0' }}>
-                                      <Tag size={10} /> Condição Especial Aplicada ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
-                                    </div>
-                                  ) : (
-                                    <button 
-                                      type="button" 
-                                      onClick={() => handleAplicarCondicao(fIndex, iIndex)}
-                                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer' }}
-                                    >
-                                      <Tags size={10} /> Aceitar Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
-                                    </button>
-                                  )}
+                             {item.condicoes && item.condicoes.length > 0 && (
+                                <div style={{ marginTop: '4px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                                  {item.condicoes.map((cond, idx) => {
+                                      const isAtiva = item.condicaoAplicada && item.qtdCondicao === cond.qtd;
+                                      return isAtiva ? (
+                                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', width: 'fit-content' }}>
+                                          <Tag size={10} /> Condição Aplicada ({cond.qtd} un por {fMoney(cond.preco)})
+                                        </div>
+                                      ) : (
+                                        <button 
+                                          key={idx}
+                                          type="button" 
+                                          onClick={() => handleAplicarCondicao(fIndex, iIndex, cond.qtd, cond.preco)}
+                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: 'fit-content' }}
+                                        >
+                                          <Tags size={10} /> Aceitar Condição: {cond.qtd} un por {fMoney(cond.preco)}
+                                        </button>
+                                      )
+                                  })}
                                 </div>
                              )}
 

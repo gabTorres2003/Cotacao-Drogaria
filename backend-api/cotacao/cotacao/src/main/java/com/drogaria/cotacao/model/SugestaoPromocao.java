@@ -36,6 +36,9 @@ public class SugestaoPromocao {
     @Column(name = "preco_condicao")
     private Double precoCondicao;
 
+    @Column(name = "condicoes_escalonamento", columnDefinition = "TEXT")
+    private String condicoesEscalonamento;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -62,4 +65,7 @@ public class SugestaoPromocao {
 
     public Double getPrecoCondicao() { return precoCondicao; }
     public void setPrecoCondicao(Double precoCondicao) { this.precoCondicao = precoCondicao; }
+
+    public String getCondicoesEscalonamento() { return condicoesEscalonamento; }
+    public void setCondicoesEscalonamento(String condicoesEscalonamento) { this.condicoesEscalonamento = condicoesEscalonamento; }
 }

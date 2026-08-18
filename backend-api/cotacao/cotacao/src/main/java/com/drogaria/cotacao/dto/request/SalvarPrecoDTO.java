@@ -3,7 +3,7 @@ package com.drogaria.cotacao.dto.request;
 public class SalvarPrecoDTO {
 
     private Long idItem;
-    private Long idFornecedor; // CORREÇÃO: Adicionado para funcionar com o FornecedorService
+    private Long idFornecedor; 
     
     private Double preco;
     private Integer quantidadeDisponivel;
@@ -17,6 +17,10 @@ public class SalvarPrecoDTO {
     private Double precoCondicao;
     private Integer quantidadeCondicaoSubstituto;
     private Double precoCondicaoSubstituto;
+
+    // CAMPOS PARA RECEBER O JSON DO FRONTEND
+    private String condicoesEscalonamento;
+    private String condicoesEscalonamentoSubstituto;
 
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -53,4 +57,10 @@ public class SalvarPrecoDTO {
 
     public Double getPrecoCondicaoSubstituto() { return precoCondicaoSubstituto; }
     public void setPrecoCondicaoSubstituto(Double precoCondicaoSubstituto) { this.precoCondicaoSubstituto = precoCondicaoSubstituto; }
+
+    public String getCondicoesEscalonamento() { return condicoesEscalonamento; }
+    public void setCondicoesEscalonamento(String condicoesEscalonamento) { this.condicoesEscalonamento = condicoesEscalonamento; }
+
+    public String getCondicoesEscalonamentoSubstituto() { return condicoesEscalonamentoSubstituto; }
+    public void setCondicoesEscalonamentoSubstituto(String condicoesEscalonamentoSubstituto) { this.condicoesEscalonamentoSubstituto = condicoesEscalonamentoSubstituto; }
 }

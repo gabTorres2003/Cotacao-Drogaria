@@ -7,7 +7,7 @@ public class ItemComparativoDTO {
 
     private Long idItem;
     private String nomeProduto;
-    private Integer quantidade; // CORREÇÃO: Alterado para Integer para bater com a Entidade
+    private Integer quantidade;
     
     private Double estoque;
     private String grupo;
@@ -40,6 +40,10 @@ public class ItemComparativoDTO {
     private Map<String, Double> precoCondicaoPorFornecedor = new HashMap<>();
     private Map<String, Integer> qtdCondicaoSubstPorFornecedor = new HashMap<>();
     private Map<String, Double> precoCondicaoSubstPorFornecedor = new HashMap<>();
+
+    // NOVOS MAPS: Para transportar o Array JSON com múltiplas condições
+    private Map<String, String> condicoesEscalonamentoPorFornecedor = new HashMap<>();
+    private Map<String, String> condicoesEscalonamentoSubstPorFornecedor = new HashMap<>();
 
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -127,4 +131,10 @@ public class ItemComparativoDTO {
 
     public Map<String, Double> getPrecoCondicaoSubstPorFornecedor() { return precoCondicaoSubstPorFornecedor; }
     public void setPrecoCondicaoSubstPorFornecedor(Map<String, Double> precoCondicaoSubstPorFornecedor) { this.precoCondicaoSubstPorFornecedor = precoCondicaoSubstPorFornecedor; }
+
+    public Map<String, String> getCondicoesEscalonamentoPorFornecedor() { return condicoesEscalonamentoPorFornecedor; }
+    public void setCondicoesEscalonamentoPorFornecedor(Map<String, String> condicoesEscalonamentoPorFornecedor) { this.condicoesEscalonamentoPorFornecedor = condicoesEscalonamentoPorFornecedor; }
+
+    public Map<String, String> getCondicoesEscalonamentoSubstPorFornecedor() { return condicoesEscalonamentoSubstPorFornecedor; }
+    public void setCondicoesEscalonamentoSubstPorFornecedor(Map<String, String> condicoesEscalonamentoSubstPorFornecedor) { this.condicoesEscalonamentoSubstPorFornecedor = condicoesEscalonamentoSubstPorFornecedor; }
 }

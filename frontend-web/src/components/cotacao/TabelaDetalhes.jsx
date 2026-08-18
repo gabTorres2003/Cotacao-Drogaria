@@ -65,11 +65,9 @@ export default function TabelaDetalhes({
                 let pO = item.precosPorFornecedor?.[forn] || 0;
                 let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
                 let val = Infinity;
-                
                 if (pO > 0) val = pO;
                 if (pS > 0 && pS < val) val = pS; 
                 if (pO <= 0 && pS > 0) val = pS;
-                
                 return { forn, val };
             }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
 
@@ -88,66 +86,17 @@ export default function TabelaDetalhes({
                           {getNomeExibicao(item.nomeProduto)}
                         </strong>
                         {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
-                        
-                        {item.excluido && (
-                          <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>
-                            🗑️ Excluído (Ignorado)
-                          </span>
-                        )}
-                        {item.editadoManual && !item.excluido && (
-                          <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>
-                            ✏️ Editado
-                          </span>
-                        )}
-                        {item.isValorAlteradoPosPedido && (
-                          <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#d97706', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fcd34d', fontWeight: 'bold', marginLeft: '6px' }} title="Este valor foi editado na tela de Pedidos">
-                            ⚠️ Alterado no Pedido
-                          </span>
-                        )}
-
-                        {/* NOVO: AVISO VISUAL DE ITEM RETORNADO PARA A COTAÇÃO DEVIDO A FALHA DE ENTREGA */}
-                        {item.motivoRetorno && !isBloqueado && (
-                            <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }} title="Este item retornou à cotação devido a uma falha de entrega anterior">
-                                <AlertTriangle size={10} /> Retornado: {item.motivoRetorno}
-                            </span>
-                        )}
-
-                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>
-                          {copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}
-                        </button>
+                        {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
+                        {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
+                        {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
+                        <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
                       </div>
-
-                      {item.devolvidoPorAlteracaoPreco && !isBloqueado && (
-                        <div style={{ marginTop: '2px' }}>
-                          <button 
-                            onClick={(e) => { e.stopPropagation(); navigate(`/pedidos/${item.pedidoOrigemId}`); }}
-                            style={{ 
-                              display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', 
-                              backgroundColor: '#fee2e2', color: '#b91c1c', padding: '2px 6px', 
-                              borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', 
-                              cursor: 'pointer' 
-                            }}
-                            title="O fornecedor alterou o preço após a compra. O item foi removido do pedido por segurança."
-                          >
-                            <AlertTriangle size={10} /> Estorno de Preço (Ver Pedido #{item.pedidoOrigemId})
-                          </button>
-                        </div>
-                      )}
-
-                      {item.origemItem === 'Encomenda' && (
-                        <div style={{ marginTop: '4px', fontSize: '11px', color: '#4338ca', backgroundColor: '#e0e7ff', padding: '4px 8px', borderRadius: '4px', display: 'inline-block', border: '1px solid #c7d2fe' }}>
-                          📦 <b>Encomenda</b>
-                          {item.fornecedorSugerido && <span> | Sugestão do Balcão: <b style={{ color: '#312e81' }}>{item.fornecedorSugerido}</b></span>}
-                        </div>
-                      )}
                       
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                         <BadgeOrigem origem={item.origemItem} />
                         {isBloqueado && (
                           <>
-                            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>
-                              ✓ Ver Pedido #{itensJaComprados[item.idItem].id}
-                            </button>
+                            <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
                             {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
                           </>
                         )}
@@ -199,10 +148,20 @@ export default function TabelaDetalhes({
                   const isEmFaltaOriginal = precoOriginal <= 0; 
                   const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
 
-                  const qtdCond = item.qtdCondicaoPorFornecedor?.[f];
-                  const precoCond = item.precoCondicaoPorFornecedor?.[f];
-                  const qtdCondSubst = item.qtdCondicaoSubstPorFornecedor?.[f];
-                  const precoCondSubst = item.precoCondicaoSubstPorFornecedor?.[f];
+                  // EXTRAÇÃO DO ARRAY JSON DE CONDIÇÕES MÚLTIPLAS
+                  let condsArr = [];
+                  const jsonStr = item.condicoesEscalonamentoPorFornecedor?.[f];
+                  try { if (jsonStr) condsArr = JSON.parse(jsonStr); } catch(e){}
+                  if (condsArr.length === 0 && item.qtdCondicaoPorFornecedor?.[f]) {
+                      condsArr.push({ qtd: item.qtdCondicaoPorFornecedor[f], preco: item.precoCondicaoPorFornecedor[f] });
+                  }
+                  
+                  let condsArrSubst = [];
+                  const jsonStrSubst = item.condicoesEscalonamentoSubstPorFornecedor?.[f];
+                  try { if (jsonStrSubst) condsArrSubst = JSON.parse(jsonStrSubst); } catch(e){}
+                  if (condsArrSubst.length === 0 && item.qtdCondicaoSubstPorFornecedor?.[f]) {
+                      condsArrSubst.push({ qtd: item.qtdCondicaoSubstPorFornecedor[f], preco: item.precoCondicaoSubstPorFornecedor[f] });
+                  }
 
                   return (
                     <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} style={{ ...tdStyle, backgroundColor: isWinner ? '#ecfdf5' : 'inherit', textAlign: 'center', borderLeft: '1px solid #f3f4f6', border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', verticalAlign: 'top', position: 'relative', opacity: isBloqueado ? 0.6 : 1 }}>
@@ -210,23 +169,32 @@ export default function TabelaDetalhes({
                       
                       <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>{isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}</div>
                       
-                      {qtdCond && precoCond && !isEmFaltaOriginal && (
-                        <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                          <Tags size={12} /> A partir de {qtdCond} un: {fMoney(precoCond)}
-                        </div>
+                      {/* RENDERIZAR MÚLTIPLAS CONDIÇÕES */}
+                      {!isEmFaltaOriginal && condsArr.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                              {condsArr.map((cond, idx) => (
+                                  <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                                      <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                                  </div>
+                              ))}
+                          </div>
                       )}
 
                       {substituto && (
                         <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
                           <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
                             <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
-                            <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none' }}>
+                            <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
                               <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
                               <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
                               
-                              {qtdCondSubst && precoCondSubst && (
-                                <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                  <Tags size={10} /> A partir de {qtdCondSubst} un: {fMoney(precoCondSubst)}
+                              {condsArrSubst.length > 0 && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                                    {condsArrSubst.map((cond, idx) => (
+                                        <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                            <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                                        </div>
+                                    ))}
                                 </div>
                               )}
                             </div>
@@ -244,17 +212,25 @@ export default function TabelaDetalhes({
                               const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
                               const nomeFinal = isTroca ? substituto : item.nomeProduto;
                               const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
-                              
+                              const condicoesPassadas = isTroca ? condsArrSubst : condsArr;
                               let precoBase = isTroca ? precoSubstituto : precoOriginal;
+                              
                               let precoFinal = precoBase;
                               let condAplicada = false;
+                              let qCAplicada = null;
+                              let pCAplicada = null;
                               
-                              const qC = isTroca ? qtdCondSubst : qtdCond;
-                              const pC = isTroca ? precoCondSubst : precoCond;
-
-                              if (qC && pC && qtdFinal >= qC) {
-                                  precoFinal = pC;
-                                  condAplicada = true;
+                              if (condicoesPassadas.length > 0) {
+                                  const sorted = [...condicoesPassadas].sort((a,b) => b.qtd - a.qtd);
+                                  for (let c of sorted) {
+                                      if (qtdFinal >= c.qtd) {
+                                          precoFinal = c.preco;
+                                          qCAplicada = c.qtd;
+                                          pCAplicada = c.preco;
+                                          condAplicada = true;
+                                          break;
+                                      }
+                                  }
                               }
 
                               onAbrirAddPedidoModal({
@@ -264,13 +240,13 @@ export default function TabelaDetalhes({
                                 ultimoPreco: precoFinal,
                                 precoCustom: precoFinal,
                                 precoBase: precoBase,
-                                qtdCondicao: qC,     
-                                precoCondicao: pC,       
+                                condicoes: condicoesPassadas,     
+                                qtdCondicao: qCAplicada,     
+                                precoCondicao: pCAplicada,       
                                 condicaoAplicada: condAplicada
                               }, f);
                             }}
                             style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                            title={`Adicionar ${substituto && (isTrocaAceita || isEmFaltaOriginal) ? substituto : item.nomeProduto} ao pedido de ${f}`}
                           >
                             <ShoppingCart size={12} /> + Pedido
                           </button>

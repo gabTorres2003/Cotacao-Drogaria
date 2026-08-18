@@ -47,6 +47,12 @@ public class PrecoCotacao {
     @Column(name = "preco_condicao_substituto")
     private Double precoCondicaoSubstituto;
 
+    @Column(name = "condicoes_escalonamento", columnDefinition = "TEXT")
+    private String condicoesEscalonamento;
+
+    @Column(name = "condicoes_escalonamento_substituto", columnDefinition = "TEXT")
+    private String condicoesEscalonamentoSubstituto;
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -88,4 +94,10 @@ public class PrecoCotacao {
 
     public Double getPrecoCondicaoSubstituto() { return precoCondicaoSubstituto; }
     public void setPrecoCondicaoSubstituto(Double precoCondicaoSubstituto) { this.precoCondicaoSubstituto = precoCondicaoSubstituto; }
+
+    public String getCondicoesEscalonamento() { return condicoesEscalonamento; }
+    public void setCondicoesEscalonamento(String condicoesEscalonamento) { this.condicoesEscalonamento = condicoesEscalonamento; }
+
+    public String getCondicoesEscalonamentoSubstituto() { return condicoesEscalonamentoSubstituto; }
+    public void setCondicoesEscalonamentoSubstituto(String condicoesEscalonamentoSubstituto) { this.condicoesEscalonamentoSubstituto = condicoesEscalonamentoSubstituto; }
 }
