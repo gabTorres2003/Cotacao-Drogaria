@@ -52,10 +52,15 @@ export default function ResponderCotacao() {
   const [busca, setBusca] = useState('')
   const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
 
+  const [dicionarioDiversos, setDicionarioDiversos] = useState({})
+
   const draftKey = `cotacao_draft_${idCotacao}_${usuarioId}`
 
   useEffect(() => {
-    if (!isPrimeiroAcesso) carregarItens()
+    if (!isPrimeiroAcesso) {
+      carregarDicionario()
+      carregarItens()
+    }
   }, [isPrimeiroAcesso])
 
   useEffect(() => {
@@ -83,6 +88,19 @@ export default function ResponderCotacao() {
       localStorage.setItem('primeiroAcesso', 'false')
       setIsPrimeiroAcesso(false)
     } catch (error) { setErroLogin('Erro ao atualizar senha.') }
+  }
+
+  const carregarDicionario = async () => {
+    try {
+      const divRes = await api.get('/api/diversos')
+      if (Array.isArray(divRes.data)) {
+        const dict = {}
+        divRes.data.forEach(d => { dict[d.codigoDiversos] = d.produto })
+        setDicionarioDiversos(dict)
+      }
+    } catch (e) {
+      console.warn("Aviso: Não foi possível carregar o dicionário de genéricos.", e)
+    }
   }
 
   const tentarCarregarRascunhoLocal = () => {
@@ -302,10 +320,19 @@ export default function ResponderCotacao() {
   const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
   const scrollToBottom = () => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'smooth' });
 
-  const getNomeReal = (nomeProduto) => nomeProduto;
+  const getNomeReal = (nomeProduto) => {
+    if (!nomeProduto) return '';
+    if (nomeProduto.toUpperCase().startsWith('DIVERSOS')) {
+      const codigo = nomeProduto.replace('DIVERSOS', '').trim();
+      return dicionarioDiversos[codigo] || nomeProduto;
+    }
+    return nomeProduto;
+  };
 
   const itensProcessados = itens
     .filter(item => {
+      if (item.excluido) return false; 
+      
       if (!busca) return true;
       return getNomeReal(item.nomeProduto).toLowerCase().includes(busca.toLowerCase());
     })
@@ -418,8 +445,8 @@ export default function ResponderCotacao() {
                     {temTrocaAtiva && (
                       <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div>
-                          <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
-                          <input type="text" placeholder="Ex: Paracetamol 500mg C/ 20 - Medley" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={produtoSubstituto[item.idItem] || ''} onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
+                          <label style={mobileStyles.labelMini}>Nome do Produto Substituto *</label>
+                          <input type="text" placeholder="Ex: Cimegripe 1g c/ 20 - Medley" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={produtoSubstituto[item.idItem] || ''} onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                           <div>
@@ -437,6 +464,7 @@ export default function ResponderCotacao() {
                             <button type="button" onClick={() => setExibirCondicaoSubst(p => ({...p, [item.idItem]: !p[item.idItem]}))} style={mobileStyles.btnLinkAdd}>
                                 <Tags size={14} /> {condicaoSubstAtiva ? 'Remover Condição' : 'Adicionar Condição na Troca'}
                             </button>
+                            
                             {condicaoSubstAtiva && (
                                 <div style={mobileStyles.boxCondicao}>
                                 <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
