@@ -174,7 +174,7 @@ export default function FornecedorDashboard() {
   const styles = {
     tabButton: (isActive) => ({ padding: '12px 24px', fontSize: '15px', fontWeight: '600', border: 'none', borderBottom: isActive ? '3px solid #2563eb' : '3px solid transparent', backgroundColor: 'transparent', color: isActive ? '#2563eb' : '#64748b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }),
     modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
+    modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
   const getBadgeFornecedor = (status) => {
@@ -231,7 +231,7 @@ export default function FornecedorDashboard() {
               </div>
             ) : (
               <div className="mobile-table-wrapper" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '600px' }}>
+                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
                       <tr>
                         <th style={{ padding: '16px 24px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID Cotação</th>
@@ -437,6 +437,44 @@ export default function FornecedorDashboard() {
           )
         )}
       </main>
+
+      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE */}
+      {pedidoConfirmacao && (
+        <div style={styles.modalOverlay}>
+          <div style={styles.modalContent}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b' }}>Confirmar Separação - Pedido #{pedidoConfirmacao.id}</h3>
+              <button onClick={() => setPedidoConfirmacao(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}><X size={20} /></button>
+            </div>
+            <p style={{ fontSize: '13px', color: '#64748b', marginBottom: '16px' }}>
+              Desmarque os itens que estiverem <strong>em falta</strong> no seu estoque. Os itens desmarcados serão removidos do pedido.
+            </p>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '300px', overflowY: 'auto', marginBottom: '20px', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '12px' }}>
+              {pedidoConfirmacao.itens.map(item => (
+                <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#334155', cursor: 'pointer', padding: '6px 0', borderBottom: '1px solid #f1f5f9' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={checklistEstoque[item.id] ?? true} 
+                    onChange={e => setChecklistEstoque(prev => ({ ...prev, [item.id]: e.target.checked }))}
+                    style={{ transform: 'scale(1.2)' }}
+                  />
+                  <div style={{ flex: 1 }}>
+                    <strong>{item.nomeProduto}</strong> ({item.quantidadePedida} un)
+                  </div>
+                </label>
+              ))}
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setPedidoConfirmacao(null)} disabled={salvandoConfirmacao} style={{ padding: '10px 16px', background: '#f1f5f9', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+              <button onClick={processarConfirmacaoPedido} disabled={salvandoConfirmacao} style={{ padding: '10px 16px', background: '#10b981', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                {salvandoConfirmacao ? 'Processando...' : 'Confirmar Envio'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE ADICIONAR SUGESTÃO */}
       {isSugestaoModalOpen && (
