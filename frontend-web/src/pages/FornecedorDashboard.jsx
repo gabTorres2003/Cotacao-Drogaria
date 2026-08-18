@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, PlusCircle, Trash2, Tag, TrendingUp, Tags } from 'lucide-react'
+import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, PlusCircle, Trash2, Tag, TrendingUp, Tags, ChevronDown, ChevronUp } from 'lucide-react'
 import api from '../services/api'
 
 export default function FornecedorDashboard() {
@@ -27,6 +27,9 @@ export default function FornecedorDashboard() {
   })
   const [isSalvando, setIsSalvando] = useState(false)
 
+  // ESTADO PARA CONTROLAR QUAIS PEDIDOS ESTÃO EXPANDIDOS
+  const [expandedPedidos, setExpandedPedidos] = useState({})
+
   const navigate = useNavigate()
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor'
   const usuarioId = localStorage.getItem('usuarioId')
@@ -52,6 +55,14 @@ export default function FornecedorDashboard() {
         } else {
           const response = await api.get(`/api/pedidos/fornecedor/${usuarioId}`)
           setPedidos(response.data)
+
+          // LÓGICA DE MINIMIZAR: Define o estado inicial. 
+          // Apenas 'PENDENTE_ENTREGA' começa aberto. O resto começa fechado.
+          const initialExpanded = {};
+          response.data.forEach(p => {
+            initialExpanded[p.id] = p.status === 'PENDENTE_ENTREGA';
+          });
+          setExpandedPedidos(initialExpanded);
         }
       }
     } catch (error) {
@@ -59,6 +70,13 @@ export default function FornecedorDashboard() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const togglePedidoExpandido = (pedidoId) => {
+    setExpandedPedidos(prev => ({
+      ...prev,
+      [pedidoId]: !prev[pedidoId]
+    }))
   }
 
   const handleLogout = async () => {
@@ -184,7 +202,6 @@ export default function FornecedorDashboard() {
     modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
-  // FUNÇÃO CORRIGIDA PARA RECEBER O PEDIDO INTEIRO E FAZER O CALCULO DE SLA
   const getBadgeFornecedor = (p) => {
     if (!p) return null;
     const status = p.status || '';
@@ -196,8 +213,8 @@ export default function FornecedorDashboard() {
 
         if (tempoRestante <= 0) {
             return (
-              <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', textAlign: 'center' }}>
-                <AlertTriangle size={14} /> PRAZO DE 24H ESTOURADO
+              <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', textAlign: 'center' }}>
+                <AlertTriangle size={12} /> ESTOURADO
               </span>
             );
         }
@@ -207,17 +224,17 @@ export default function FornecedorDashboard() {
         const isCritico = horas < 4; 
 
         return (
-           <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: isCritico ? '#fff7ed' : '#f0fdf4', color: isCritico ? '#c2410c' : '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: `1px solid ${isCritico ? '#fed7aa' : '#bbf7d0'}`, textAlign: 'center' }}>
-              ⏳ Confirme em: {horas}h {minutos}m
+           <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: isCritico ? '#fff7ed' : '#f0fdf4', color: isCritico ? '#c2410c' : '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: `1px solid ${isCritico ? '#fed7aa' : '#bbf7d0'}`, textAlign: 'center' }}>
+              ⏳ {horas}h {minutos}m
            </span>
         );
     }
 
-    if (status === 'CANCELADO') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center' }}><X size={14} /> CANCELADO</span>;
-    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> CONFIRMADO</span>;
-    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> ENTREGUE</span>;
+    if (status === 'CANCELADO') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center' }}><X size={12} /> CANCELADO</span>;
+    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={12} /> CONFIRMADO</span>;
+    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={12} /> ENTREGUE</span>;
     
-    return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center' }}>{status}</span>;
+    return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center' }}>{status}</span>;
   }
 
   return (
@@ -226,9 +243,9 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; }
-          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: fixed; }
-          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; word-wrap: break-word; white-space: normal !important; }
+          .mobile-table-wrapper { overflow-x: auto !important; border-radius: 8px; }
+          .responsive-table { min-width: 500px !important; width: 100% !important; table-layout: auto; }
+          .responsive-table th, .responsive-table td { padding: 10px 8px !important; font-size: 12px !important; white-space: normal !important; }
           .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
         }
       `}</style>
@@ -312,9 +329,10 @@ export default function FornecedorDashboard() {
                 <p style={{ margin: 0, fontSize: '16px' }}>Nenhum pedido de compra aprovado para você ainda.</p>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {pedidos.map((pedido) => {
-                  const badge = getBadgeFornecedor(pedido); // <-- CORRIGIDO! ENVIANDO O PEDIDO INTEIRO AQUI
+                  const badge = getBadgeFornecedor(pedido);
+                  const isExpanded = expandedPedidos[pedido.id];
                   const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
                   const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
                   const somaSugestoes = pedido.sugestoes?.reduce((acc, s) => acc + (s.quantidade * s.precoUnitario), 0) || 0;
@@ -324,147 +342,168 @@ export default function FornecedorDashboard() {
                   const pctProgresso = valorMinimoSalvo > 0 ? (totalConsiderado / valorMinimoSalvo) * 100 : 0;
 
                   return (
-                    <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 4px 6px rgba(0,0,0,0.02)' }}>
-                      <div style={{ backgroundColor: '#f8fafc', padding: '20px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-                        <div>
-                          <h3 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '20px', fontWeight: '800' }}>Pedido #{pedido.id}</h3>
-                          <span style={{ fontSize: '13px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
+                    <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
+                      
+                      {/* HEADER - SEMPRE VISÍVEL E CLICÁVEL PARA EXPANDIR/RECOLHER */}
+                      <div 
+                        onClick={() => togglePedidoExpandido(pedido.id)}
+                        style={{ backgroundColor: isExpanded ? '#f8fafc' : 'white', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', cursor: 'pointer', transition: 'background-color 0.2s' }}
+                      >
+                        <div style={{ minWidth: '150px' }}>
+                          <h3 style={{ margin: '0 0 4px 0', color: '#0f172a', fontSize: '18px', fontWeight: '800' }}>Pedido #{pedido.id}</h3>
+                          <span style={{ fontSize: '12px', color: '#64748b' }}>Data: {formatarDataHora(pedido.dataCriacao)}</span>
                         </div>
                         
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
-                          <span style={{ fontWeight: 'bold', fontSize: '18px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
+                          <div style={{ textAlign: 'right' }}>
+                            <div style={{ fontSize: '11px', color: '#64748b', fontWeight: '600' }}>Valor Total</div>
+                            <span style={{ fontWeight: '900', fontSize: '16px', color: '#16a34a' }}>{fMoney(pedido.valorTotalPedido)}</span>
+                          </div>
                           
-                          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', width: '100%' }}>
+                          <div style={{ minWidth: '100px', display: 'flex', justifyContent: 'center' }}>
+                            {badge}
+                          </div>
+
+                          <button style={{ background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: '4px', color: '#3b82f6', fontWeight: '700', fontSize: '13px', cursor: 'pointer', padding: '6px' }}>
+                             {isExpanded ? <><ChevronUp size={18}/> Ocultar</> : <><ChevronDown size={18}/> Detalhes</>}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      {/* CORPO DO PEDIDO - SÓ APARECE SE EXPANDIDO */}
+                      {isExpanded && (
+                        <div style={{ borderTop: '1px solid #e2e8f0' }}>
+                          
+                          {/* BARRA DE AÇÕES */}
+                          <div style={{ padding: '12px 20px', backgroundColor: 'white', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
                             {idCotacaoOrigem && (
-                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 12px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '12px', flex: 1, justifyContent: 'center' }}>
-                                 <Edit2 size={14} /> Editar Cotação
+                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
+                                 <Edit2 size={16} /> Editar Cotação Origem
                                </button>
                             )}
 
                             {pedido.status === 'PENDENTE_ENTREGA' && (
-                              <button 
-                                onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
-                                style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', color: 'white', padding: '8px 12px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '12px', flex: 1, justifyContent: 'center' }}
-                              >
-                                <PlusCircle size={14} /> Adicionar Sugestão
-                              </button>
-                            )}
-
-                            <div style={{ width: '100%' }}>
-                              {pedido.status === 'PENDENTE_ENTREGA' ? (
-                                <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
-                                  <CheckCircle size={14} /> Confirmar Separação
+                              <>
+                                <button 
+                                  onClick={() => { setPedidoAtualSugestao(pedido.id); setIsSugestaoModalOpen(true); }}
+                                  style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#3b82f6', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(59, 130, 246, 0.2)' }}
+                                >
+                                  <PlusCircle size={16} /> Adicionar Sugestão
                                 </button>
-                              ) : (
-                                <div style={{width: '100%'}}>{badge}</div>
+
+                                <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
+                                  <CheckCircle size={16} /> Confirmar Separação
+                                </button>
+                              </>
+                            )}
+                          </div>
+
+                          {/* ACOMPANHAMENTO DO MÍNIMO */}
+                          <div style={{ backgroundColor: '#fff7ed', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+                            <div style={{ flex: 1, minWidth: '100%' }}>
+                              <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><TrendingUp size={16}/> Acompanhamento do Mínimo</h4>
+                              <div style={{ display: 'flex', gap: '10px', fontSize: '12px', color: '#9a3412', marginBottom: '12px', flexWrap: 'wrap' }}>
+                                <span>Pedido: <strong>{fMoney(pedido.valorTotalPedido)}</strong></span>
+                                {somaSugestoes > 0 && <span>+ Sugestões: <strong>{fMoney(somaSugestoes)}</strong></span>}
+                                <span style={{ paddingLeft: '8px', borderLeft: '2px solid #fdba74' }}>Total: <strong>{fMoney(totalConsiderado)}</strong></span>
+                              </div>
+
+                              {valorMinimoSalvo > 0 && (
+                                <div>
+                                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px', fontWeight: 'bold', color: atingiuMinimo ? '#166534' : '#b45309' }}>
+                                    <span>{atingiuMinimo ? 'Mínimo Alcançado!' : `Falta ${fMoney(faltaParaMinimo)}`}</span>
+                                    <span>{Math.min(pctProgresso, 100).toFixed(0)}%</span>
+                                  </div>
+                                  <div style={{ width: '100%', height: '8px', backgroundColor: '#fed7aa', borderRadius: '4px', overflow: 'hidden' }}>
+                                    <div style={{ width: `${Math.min(pctProgresso, 100)}%`, height: '100%', backgroundColor: atingiuMinimo ? '#22c55e' : '#f97316', transition: 'width 0.4s ease' }}></div>
+                                  </div>
+                                </div>
                               )}
                             </div>
+
+                            {pedido.status === 'PENDENTE_ENTREGA' && (
+                              <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #fdba74' }}>
+                                <div style={{ flex: 1 }}>
+                                  <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#c2410c', display: 'block', marginBottom: '4px' }}>Definir Mínimo (R$):</label>
+                                  <input 
+                                    type="number" step="0.01" placeholder={valorMinimoSalvo || "0,00"}
+                                    value={valoresMinimos[pedido.id] !== undefined ? valoresMinimos[pedido.id] : ''}
+                                    onChange={(e) => handleValorMinimoChange(pedido.id, e.target.value)}
+                                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', outline: 'none', fontSize: '13px', fontWeight: 'bold', color: '#1e293b', boxSizing: 'border-box' }}
+                                  />
+                                </div>
+                                <button 
+                                  onClick={() => handleSalvarValorMinimo(pedido.id, valoresMinimos[pedido.id])}
+                                  disabled={isSalvando || !valoresMinimos[pedido.id]}
+                                  style={{ backgroundColor: '#f97316', color: 'white', padding: '6px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', height: '34px', marginTop: '18px', opacity: (!valoresMinimos[pedido.id] || isSalvando) ? 0.6 : 1 }}
+                                >
+                                  Salvar
+                                </button>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* TABELA DE ITENS */}
+                          <div className="mobile-table-wrapper" style={{ padding: '0', overflowX: 'auto', borderTop: '1px solid #e2e8f0' }}>
+                            <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '500px' }}>
+                              <thead>
+                                <tr style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textTransform: 'uppercase', width: '45%' }}>Produto</th>
+                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'center', textTransform: 'uppercase' }}>Qtd</th>
+                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase' }}>Unitário</th>
+                                  <th style={{ padding: '12px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase' }}>Subtotal</th>
+                                  <th style={{ padding: '12px 16px', width: '40px' }}></th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {pedido.sugestoes && pedido.sugestoes.map(sug => (
+                                  <tr key={`sug-${sug.id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
+                                    <td style={{ padding: '12px 16px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
+                                        <span style={{ fontSize: '9px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>SUGESTÃO</span>
+                                        <span style={{ fontSize: '10px', color: '#d97706', fontWeight: '700' }}>Aguardando análise</span>
+                                      </div>
+                                      <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '13px', display: 'block', wordBreak: 'break-word' }}>{sug.nomeProduto}</span>
+                                      
+                                      {sug.precoCondicao && (
+                                         <div style={{ fontSize: '11px', color: '#166534', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
+                                            <Tags size={12} style={{marginTop: '2px', flexShrink: 0}}/> Condição: {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                         </div>
+                                      )}
+                                      {sug.observacao && <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px', fontStyle: 'italic' }}>Obs: {sug.observacao}</div>}
+                                    </td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center', color: '#9a3412', fontWeight: '600', fontSize: '13px' }}>{sug.quantidade}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'right', color: '#9a3412', fontSize: '13px' }}>{fMoney(sug.precoUnitario)}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '13px' }}>{fMoney(sug.quantidade * sug.precoUnitario)}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center' }}>
+                                      {pedido.status === 'PENDENTE_ENTREGA' && (
+                                        <button onClick={() => handleRemoverSugestao(pedido.id, sug.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
+                                      )}
+                                    </td>
+                                  </tr>
+                                ))}
+
+                                {pedido.itens.map(item => (
+                                  <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                                    <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
+                                      {item.nomeProduto}
+                                      {item.condicaoAplicada && (
+                                        <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', whiteSpace: 'normal' }}>
+                                          <Tags size={10} style={{flexShrink: 0}} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
+                                        </div>
+                                      )}
+                                    </td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontSize: '13px', fontWeight: '600' }}>{item.quantidadePedida}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
+                                    <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '800', color: '#0f172a', fontSize: '13px' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
+                                    <td style={{ padding: '12px 16px' }}></td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
                           </div>
                         </div>
-                      </div>
-                      
-                      <div style={{ backgroundColor: '#fff7ed', borderTop: '1px solid #e2e8f0', borderBottom: '1px solid #e2e8f0', padding: '16px 24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-                        <div style={{ flex: 1, minWidth: '100%' }}>
-                          <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><TrendingUp size={16}/> Acompanhamento do Mínimo</h4>
-                          <div style={{ display: 'flex', gap: '10px', fontSize: '12px', color: '#9a3412', marginBottom: '12px', flexWrap: 'wrap' }}>
-                            <span>Pedido: <strong>{fMoney(pedido.valorTotalPedido)}</strong></span>
-                            {somaSugestoes > 0 && <span>+ Sugestões: <strong>{fMoney(somaSugestoes)}</strong></span>}
-                            <span style={{ paddingLeft: '8px', borderLeft: '2px solid #fdba74' }}>Total: <strong>{fMoney(totalConsiderado)}</strong></span>
-                          </div>
-
-                          {valorMinimoSalvo > 0 && (
-                            <div>
-                              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '12px', marginBottom: '6px', fontWeight: 'bold', color: atingiuMinimo ? '#166534' : '#b45309' }}>
-                                <span>{atingiuMinimo ? 'Mínimo Alcançado!' : `Falta ${fMoney(faltaParaMinimo)}`}</span>
-                                <span>{Math.min(pctProgresso, 100).toFixed(0)}%</span>
-                              </div>
-                              <div style={{ width: '100%', height: '8px', backgroundColor: '#fed7aa', borderRadius: '4px', overflow: 'hidden' }}>
-                                <div style={{ width: `${Math.min(pctProgresso, 100)}%`, height: '100%', backgroundColor: atingiuMinimo ? '#22c55e' : '#f97316', transition: 'width 0.4s ease' }}></div>
-                              </div>
-                            </div>
-                          )}
-                        </div>
-
-                        {pedido.status === 'PENDENTE_ENTREGA' && (
-                          <div style={{ display: 'flex', gap: '8px', width: '100%', alignItems: 'center', padding: '10px', backgroundColor: 'white', borderRadius: '8px', border: '1px solid #fdba74' }}>
-                            <div style={{ flex: 1 }}>
-                              <label style={{ fontSize: '11px', fontWeight: 'bold', color: '#c2410c', display: 'block', marginBottom: '4px' }}>Definir Mínimo (R$):</label>
-                              <input 
-                                type="number" step="0.01" placeholder={valorMinimoSalvo || "0,00"}
-                                value={valoresMinimos[pedido.id] !== undefined ? valoresMinimos[pedido.id] : ''}
-                                onChange={(e) => handleValorMinimoChange(pedido.id, e.target.value)}
-                                style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', width: '100%', outline: 'none', fontSize: '13px', fontWeight: 'bold', color: '#1e293b', boxSizing: 'border-box' }}
-                              />
-                            </div>
-                            <button 
-                              onClick={() => handleSalvarValorMinimo(pedido.id, valoresMinimos[pedido.id])}
-                              disabled={isSalvando || !valoresMinimos[pedido.id]}
-                              style={{ backgroundColor: '#f97316', color: 'white', padding: '6px 12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', height: '34px', marginTop: '18px', opacity: (!valoresMinimos[pedido.id] || isSalvando) ? 0.6 : 1 }}
-                            >
-                              Salvar
-                            </button>
-                          </div>
-                        )}
-                      </div>
-
-                      <div className="mobile-table-wrapper" style={{ padding: '0' }}>
-                        <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '2px solid #e2e8f0', backgroundColor: '#f8fafc' }}>
-                              <th style={{ padding: '10px 16px', color: '#64748b', fontSize: '11px', textTransform: 'uppercase' }}>Produto</th>
-                              <th style={{ padding: '10px 16px', color: '#64748b', fontSize: '11px', textAlign: 'center', textTransform: 'uppercase' }}>Qtd</th>
-                              <th style={{ padding: '10px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase' }}>Unitário</th>
-                              <th style={{ padding: '10px 16px', color: '#64748b', fontSize: '11px', textAlign: 'right', textTransform: 'uppercase' }}>Subtotal</th>
-                              <th style={{ padding: '10px 16px', width: '40px' }}></th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {pedido.sugestoes && pedido.sugestoes.map(sug => (
-                              <tr key={`sug-${sug.id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
-                                <td style={{ padding: '12px 16px' }}>
-                                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', flexWrap: 'wrap' }}>
-                                    <span style={{ fontSize: '9px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold' }}>SUGESTÃO</span>
-                                    <span style={{ fontSize: '10px', color: '#d97706', fontWeight: '700' }}>Aguardando análise</span>
-                                  </div>
-                                  <span style={{ color: '#9a3412', fontWeight: '700', fontSize: '13px', display: 'block', wordBreak: 'break-word' }}>{sug.nomeProduto}</span>
-                                  
-                                  {sug.precoCondicao && (
-                                     <div style={{ fontSize: '11px', color: '#166534', marginTop: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'flex-start', gap: '4px' }}>
-                                        <Tags size={12} style={{marginTop: '2px', flexShrink: 0}}/> Condição: {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
-                                     </div>
-                                  )}
-                                  {sug.observacao && <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px', fontStyle: 'italic' }}>Obs: {sug.observacao}</div>}
-                                </td>
-                                <td style={{ padding: '12px 16px', textAlign: 'center', color: '#9a3412', fontWeight: '600', fontSize: '13px' }}>{sug.quantidade}</td>
-                                <td style={{ padding: '12px 16px', textAlign: 'right', color: '#9a3412', fontSize: '13px' }}>{fMoney(sug.precoUnitario)}</td>
-                                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#16a34a', fontSize: '13px' }}>{fMoney(sug.quantidade * sug.precoUnitario)}</td>
-                                <td style={{ padding: '12px 16px', textAlign: 'center' }}>
-                                  {pedido.status === 'PENDENTE_ENTREGA' && (
-                                    <button onClick={() => handleRemoverSugestao(pedido.id, sug.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', padding: '4px' }}><Trash2 size={16} /></button>
-                                  )}
-                                </td>
-                              </tr>
-                            ))}
-
-                            {pedido.itens.map(item => (
-                              <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
-                                <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
-                                  {item.nomeProduto}
-                                  {item.condicaoAplicada && (
-                                    <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                      <Tags size={10} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
-                                    </div>
-                                  )}
-                                </td>
-                                <td style={{ padding: '12px 16px', textAlign: 'center', color: '#475569', fontSize: '13px' }}>{item.quantidadePedida}</td>
-                                <td style={{ padding: '12px 16px', textAlign: 'right', color: '#64748b', fontSize: '13px' }}>{fMoney(item.valorUnitarioPedido)}</td>
-                                <td style={{ padding: '12px 16px', textAlign: 'right', fontWeight: '700', color: '#1e293b', fontSize: '13px' }}>{fMoney(item.quantidadePedida * item.valorUnitarioPedido)}</td>
-                                <td style={{ padding: '12px 16px' }}></td>
-                              </tr>
-                            ))}
-                          </tbody>
-                        </table>
-                      </div>
+                      )}
                     </div>
                   )
                 })}
@@ -497,6 +536,7 @@ export default function FornecedorDashboard() {
                 </div>
               </div>
 
+              {/* BOX DA NOVA FUNCAO: CONDIÇÃO DE ESCALONAMENTO */}
               <div>
                   <button type="button" onClick={() => setNovaSugestao(p => ({...p, exibirCondicao: !p.exibirCondicao}))} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}>
                       <Tags size={14} /> {novaSugestao.exibirCondicao ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
@@ -525,7 +565,7 @@ export default function FornecedorDashboard() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE */}
+      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE ATUALIZADO */}
       {pedidoConfirmacao && (
         <div style={styles.modalOverlay}>
           <div style={{...styles.modalContent, maxWidth: '700px', padding: '0'}}>
