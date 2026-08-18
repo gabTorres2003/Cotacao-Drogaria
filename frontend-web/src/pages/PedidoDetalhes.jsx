@@ -23,6 +23,9 @@ export default function PedidoDetalhes() {
     const [valoresEditados, setValoresEditados] = useState({});
     
     const [isModalSugestoesAberto, setIsModalSugestoesAberto] = useState(false);
+    
+    // NOVO: Estado para as sugestões manipuláveis dentro do modal
+    const [sugestoesEditaveis, setSugestoesEditaveis] = useState({});
 
     const [codigoDna, setCodigoDna] = useState('');
 
@@ -30,6 +33,15 @@ export default function PedidoDetalhes() {
         try {
             const response = await api.get(`/api/pedidos/${id}`);
             setPedido(response.data);
+            
+            // Inicializar as sugestões editáveis com a quantidade base para que o input funcione
+            if (response.data.sugestoes) {
+                const sugMap = {};
+                response.data.sugestoes.forEach(s => {
+                    sugMap[s.id] = { ...s };
+                });
+                setSugestoesEditaveis(sugMap);
+            }
         } catch (error) {
             console.error('Erro ao carregar pedido:', error);
             alert('Erro ao carregar detalhes do pedido.');
@@ -89,9 +101,72 @@ export default function PedidoDetalhes() {
         }
     };
 
+    // FUNÇÃO QUE RODA AO MODIFICAR A QUANTIDADE NA SUGESTÃO
+    const handleQtdSugestaoChange = (idSugestao, novaQtd) => {
+        setSugestoesEditaveis(prev => {
+            const currentSugestao = prev[idSugestao];
+            const qtd = Math.max(1, parseInt(novaQtd, 10) || 1);
+            
+            // Logica de Escalonamento
+            let precoAplicado = currentSugestao.precoUnitario;
+            let condicaoAtiva = false;
+
+            if (currentSugestao.quantidadeCondicao && currentSugestao.precoCondicao && qtd >= currentSugestao.quantidadeCondicao) {
+                precoAplicado = currentSugestao.precoCondicao;
+                condicaoAtiva = true;
+            }
+
+            return {
+                ...prev,
+                [idSugestao]: {
+                    ...currentSugestao,
+                    quantidadeAtualizada: qtd,
+                    precoAplicado: precoAplicado,
+                    condicaoAplicada: condicaoAtiva
+                }
+            };
+        });
+    };
+
+    // NOVO: Função para o usuário forçar aceitar a condição (preenche a qtd e baixa o preço)
+    const handleForcarAceitarCondicaoSugestao = (idSugestao) => {
+        setSugestoesEditaveis(prev => {
+            const currentSugestao = prev[idSugestao];
+            return {
+                ...prev,
+                [idSugestao]: {
+                    ...currentSugestao,
+                    quantidadeAtualizada: currentSugestao.quantidadeCondicao,
+                    precoAplicado: currentSugestao.precoCondicao,
+                    condicaoAplicada: true
+                }
+            };
+        });
+    };
+
+    // INTELIGÊNCIA: Aceitar sugestão empurrando os dados atualizados com/sem desconto para o backend
     const handleAceitarSugestao = async (idSugestao) => {
+        const sugEditada = sugestoesEditaveis[idSugestao];
+        
         try {
-            await api.post(`/api/pedidos/${id}/sugestoes/${idSugestao}/aceitar`);
+            // Em vez de só aceitar, a gente recria a sugestão como um item manual,
+            // que é a forma segura do Java receber dados sobrepostos.
+            const payloadNovoItem = {
+                nomeProduto: sugEditada.nomeProduto + " (Sugestão Aceita)",
+                quantidadePedida: sugEditada.quantidadeAtualizada || sugEditada.quantidade,
+                valorUnitarioPedido: sugEditada.precoAplicado || sugEditada.precoUnitario,
+                itemCotacao: null,
+                condicaoAplicada: sugEditada.condicaoAplicada || false,
+                qtdCondicao: sugEditada.quantidadeCondicao || null,
+                precoCondicao: sugEditada.precoCondicao || null
+            };
+
+            // Adiciona o item manualmente
+            await api.post(`/api/pedidos/${id}/itens`, payloadNovoItem);
+            
+            // Deleta a sugestão porque ela já foi "consumida"
+            await api.delete(`/api/pedidos/${id}/sugestoes/${idSugestao}`);
+
             alert('Sugestão aceita e adicionada ao pedido com sucesso!');
             carregarPedido();
             if (pedido.sugestoes.length === 1) setIsModalSugestoesAberto(false);
@@ -509,14 +584,11 @@ export default function PedidoDetalhes() {
                                     <tr key={item.id}>
                                         <td style={styles.td}>
                                             <strong style={{ display: 'block' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
-                                            
-                                            {/* EXIBE A CONDIÇÃO SE TIVER SIDO APLICADA NO PEDIDO */}
                                             {item.condicaoAplicada && (
                                               <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                                <Tags size={12} /> Escalonamento: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
+                                                <Tags size={10} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
                                               </div>
                                             )}
-
                                             {item.valorAlteradoAposPedido && (
                                                 <span style={{ display: 'inline-block', fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}>
                                                     <AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> Valor/Qtd editado pós-pedido
@@ -628,6 +700,7 @@ export default function PedidoDetalhes() {
                     />
                 )}
 
+                {/* MODAL DE VISUALIZAR E ACEITAR SUGESTÕES ATUALIZADO */}
                 {isModalSugestoesAberto && (
                     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                         <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
@@ -637,37 +710,64 @@ export default function PedidoDetalhes() {
                             </div>
 
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                                {pedido.sugestoes?.map(sug => (
-                                    <div key={sug.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', backgroundColor: '#f8fafc' }}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
-                                            <div>
-                                                <h4 style={{ margin: '0 0 4px 0', color: '#1e293b', fontSize: '16px' }}>{sug.nomeProduto}</h4>
-                                                
-                                                {/* MOSTRANDO A CONDIÇÃO DENTRO DO MODAL DE SUGESTÃO */}
-                                                {sug.quantidadeCondicao && sug.precoCondicao && (
-                                                   <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginBottom: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                                     <Tags size={12} /> Condição Especial: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
-                                                   </div>
-                                                )}
+                                {pedido.sugestoes?.map(sug => {
+                                    const state = sugestoesEditaveis[sug.id] || { ...sug, quantidadeAtualizada: sug.quantidade, precoAplicado: sug.precoUnitario, condicaoAplicada: false };
+                                    const temCondicao = sug.quantidadeCondicao && sug.precoCondicao;
 
-                                                {sug.observacao && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>Obs: {sug.observacao}</p>}
-                                                <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569' }}>
-                                                    <span>Qtd: <strong>{sug.quantidade}</strong></span>
-                                                    <span>Preço Unit: <strong>{fMoney(sug.precoUnitario)}</strong></span>
-                                                    <span style={{ color: '#16a34a' }}>Subtotal: <strong>{fMoney(sug.quantidade * sug.precoUnitario)}</strong></span>
+                                    return (
+                                        <div key={sug.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', backgroundColor: '#f8fafc' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                                                <div style={{ flex: 1, minWidth: '250px' }}>
+                                                    <h4 style={{ margin: '0 0 4px 0', color: '#1e293b', fontSize: '16px' }}>{sug.nomeProduto}</h4>
+                                                    
+                                                    {/* INFORMAÇÃO DA CONDIÇÃO NA TELA E BOTÃO PARA FORÇAR ACEITE */}
+                                                    {temCondicao && (
+                                                        <div style={{ marginBottom: '8px' }}>
+                                                            {state.condicaoAplicada ? (
+                                                                <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                                                    <Tags size={12} /> Condição Especial: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                                                </div>
+                                                            ) : (
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => handleForcarAceitarCondicaoSugestao(sug.id)}
+                                                                    style={{ fontSize: '11px', color: '#854d0e', backgroundColor: '#fef08a', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047', cursor: 'pointer' }}
+                                                                >
+                                                                    <Tags size={12} /> Aceitar Condição: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {sug.observacao && <p style={{ margin: '0 0 8px 0', fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>Obs: {sug.observacao}</p>}
+                                                    
+                                                    <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569', alignItems: 'center' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span style={{fontSize: '13px', fontWeight: 'bold'}}>Qtd:</span>
+                                                            <input 
+                                                                type="number" 
+                                                                min="1"
+                                                                value={state.quantidadeAtualizada || 1}
+                                                                onChange={(e) => handleQtdSugestaoChange(sug.id, e.target.value)}
+                                                                style={{ width: '60px', padding: '4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1', outline: 'none' }}
+                                                            />
+                                                        </div>
+                                                        <span>Preço Unit: <strong style={{ color: state.condicaoAplicada ? '#16a34a' : 'inherit' }}>{fMoney(state.precoAplicado)}</strong></span>
+                                                        <span style={{ color: '#16a34a' }}>Subtotal: <strong>{fMoney((state.quantidadeAtualizada || 1) * (state.precoAplicado || 0))}</strong></span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px' }}>
+                                                    <button onClick={() => handleRecusarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <X size={14}/> Recusar
+                                                    </button>
+                                                    <button onClick={() => handleAceitarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <Check size={14}/> Aceitar e Incluir
+                                                    </button>
                                                 </div>
                                             </div>
-                                            <div style={{ display: 'flex', gap: '8px' }}>
-                                                <button onClick={() => handleRecusarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <X size={14}/> Recusar
-                                                </button>
-                                                <button onClick={() => handleAceitarSugestao(sug.id)} style={{ padding: '6px 12px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                                    <Check size={14}/> Aceitar e Incluir
-                                                </button>
-                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     </div>
