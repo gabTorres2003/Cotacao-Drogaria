@@ -18,7 +18,6 @@ public class SalvarPrecoDTO {
     private Integer quantidadeCondicaoSubstituto;
     private Double precoCondicaoSubstituto;
 
-    // CAMPOS PARA RECEBER O JSON DO FRONTEND
     private String condicoesEscalonamento;
     private String condicoesEscalonamentoSubstituto;
 

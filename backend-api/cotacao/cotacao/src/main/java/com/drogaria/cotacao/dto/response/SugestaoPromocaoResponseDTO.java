@@ -11,8 +11,6 @@ public class SugestaoPromocaoResponseDTO {
 
     private Integer quantidadeCondicao;
     private Double precoCondicao;
-
-    // NOVO CAMPO: Para transportar o Array JSON com múltiplas condições
     private String condicoesEscalonamento;
 
     public Long getId() { return id; }

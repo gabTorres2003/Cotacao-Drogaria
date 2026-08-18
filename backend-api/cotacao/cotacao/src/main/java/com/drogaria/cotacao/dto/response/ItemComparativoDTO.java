@@ -41,7 +41,6 @@ public class ItemComparativoDTO {
     private Map<String, Integer> qtdCondicaoSubstPorFornecedor = new HashMap<>();
     private Map<String, Double> precoCondicaoSubstPorFornecedor = new HashMap<>();
 
-    // NOVOS MAPS: Para transportar o Array JSON com múltiplas condições
     private Map<String, String> condicoesEscalonamentoPorFornecedor = new HashMap<>();
     private Map<String, String> condicoesEscalonamentoSubstPorFornecedor = new HashMap<>();
 

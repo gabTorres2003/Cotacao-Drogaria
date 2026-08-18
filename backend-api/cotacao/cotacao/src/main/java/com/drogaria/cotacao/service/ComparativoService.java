@@ -206,6 +206,37 @@ public class ComparativoService {
     }
 
     @Transactional
+    public void salvarPrecos(List<SalvarPrecoDTO> precosDtos) {
+        for (SalvarPrecoDTO dto : precosDtos) {
+            ItemCotacao item = itemRepository.findById(dto.getIdItem())
+                    .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
+
+            Fornecedor fornecedor = fornecedorRepository.findById(dto.getIdFornecedor())
+                    .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado"));
+
+            PrecoCotacao preco = new PrecoCotacao();
+            preco.setItem(item);
+            preco.setFornecedor(fornecedor);
+            preco.setPrecoOfertado(dto.getPreco());
+            preco.setQuantidadeDisponivel(dto.getQuantidadeDisponivel());
+            preco.setObservacao(dto.getObservacao());
+            preco.setProdutoSubstituto(dto.getProdutoSubstituto());
+            preco.setPrecoSubstituto(dto.getPrecoSubstituto());
+            preco.setQuantidadeSubstituto(dto.getQuantidadeSubstituto());
+            
+            preco.setQuantidadeCondicao(dto.getQuantidadeCondicao());
+            preco.setPrecoCondicao(dto.getPrecoCondicao());
+            preco.setQuantidadeCondicaoSubstituto(dto.getQuantidadeCondicaoSubstituto());
+            preco.setPrecoCondicaoSubstituto(dto.getPrecoCondicaoSubstituto());
+            preco.setCondicoesEscalonamento(dto.getCondicoesEscalonamento());
+            preco.setCondicoesEscalonamentoSubstituto(dto.getCondicoesEscalonamentoSubstituto());
+
+            preco.setDataResposta(LocalDateTime.now());
+            precoRepository.save(preco);
+        }
+    }
+
+    @Transactional
     public void salvarRespostasFornecedor(SalvarRespostaFornecedorRequestDTO request) {
         if (request == null || request.getCotacaoId() == null || request.getFornecedorId() == null) {
             throw new IllegalArgumentException("Identificadores da cotação e do fornecedor são obrigatórios.");
