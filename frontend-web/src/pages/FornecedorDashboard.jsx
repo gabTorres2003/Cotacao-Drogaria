@@ -31,6 +31,13 @@ export default function FornecedorDashboard() {
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'Fornecedor'
   const usuarioId = localStorage.getItem('usuarioId')
 
+  // MOTOR DO RELÓGIO DE 24 HORAS
+  const [agora, setAgora] = useState(new Date().getTime());
+  useEffect(() => {
+      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
+      return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     fetchDados()
   }, [usuarioId, activeTab])
@@ -177,13 +184,14 @@ export default function FornecedorDashboard() {
     modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
-  const getBadgeFornecedor = (pedido) => {
-    const status = pedido.status;
+  // FUNÇÃO CORRIGIDA PARA RECEBER O PEDIDO INTEIRO E FAZER O CALCULO DE SLA
+  const getBadgeFornecedor = (p) => {
+    if (!p) return null;
+    const status = p.status || '';
     
     if (status === 'PENDENTE_ENTREGA') {
-        const dataCriacao = new Date(pedido.dataCriacao).getTime();
+        const dataCriacao = new Date(p.dataCriacao).getTime();
         const prazoFinal = dataCriacao + (24 * 60 * 60 * 1000); 
-        const agora = new Date().getTime();
         const tempoRestante = prazoFinal - agora;
 
         if (tempoRestante <= 0) {
@@ -196,7 +204,6 @@ export default function FornecedorDashboard() {
 
         const horas = Math.floor((tempoRestante % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutos = Math.floor((tempoRestante % (1000 * 60 * 60)) / (1000 * 60));
-        
         const isCritico = horas < 4; 
 
         return (
@@ -207,8 +214,8 @@ export default function FornecedorDashboard() {
     }
 
     if (status === 'CANCELADO') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#fee2e2', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #fecaca', justifyContent: 'center' }}><X size={14} /> CANCELADO</span>;
-    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center' }}><CheckCircle size={14} /> CONFIRMADO</span>;
-    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center' }}><CheckCircle size={14} /> ENTREGUE</span>;
+    if (status === 'CONFIRMADO_FORNECEDOR') return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #c7d2fe', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> CONFIRMADO</span>;
+    if (status.includes('ENTREGUE') || status.includes('DIVERGENCIA') || status.includes('VALORES') || status.includes('DEVOLUCAO')) return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#166534', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #86efac', justifyContent: 'center', textAlign: 'center' }}><CheckCircle size={14} /> ENTREGUE</span>;
     
     return <span style={{ padding: '6px 10px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center' }}>{status}</span>;
   }
@@ -219,9 +226,9 @@ export default function FornecedorDashboard() {
         @media (max-width: 768px) {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
-          .mobile-table-wrapper { overflow: auto !important; border-radius: 8px; }
-          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: auto; }
-          .responsive-table th, .responsive-table td { padding: 10px 8px !important; font-size: 12px !important; word-wrap: break-word; white-space: normal !important; }
+          .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; }
+          .responsive-table { min-width: 100% !important; width: 100% !important; table-layout: fixed; }
+          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; word-wrap: break-word; white-space: normal !important; }
           .btn-acao { padding: 8px 6px !important; font-size: 11px !important; width: 100%; justify-content: center; flex-direction: column; gap: 2px !important; }
         }
       `}</style>
@@ -307,7 +314,7 @@ export default function FornecedorDashboard() {
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 {pedidos.map((pedido) => {
-                  const badge = getBadgeFornecedor(pedido.status);
+                  const badge = getBadgeFornecedor(pedido); // <-- CORRIGIDO! ENVIANDO O PEDIDO INTEIRO AQUI
                   const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
                   const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
                   const somaSugestoes = pedido.sugestoes?.reduce((acc, s) => acc + (s.quantidade * s.precoUnitario), 0) || 0;
@@ -344,7 +351,7 @@ export default function FornecedorDashboard() {
                             )}
 
                             <div style={{ width: '100%' }}>
-                              {badge === null ? (
+                              {pedido.status === 'PENDENTE_ENTREGA' ? (
                                 <button onClick={() => abrirModalConfirmacao(pedido)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: '#10b981', color: 'white', padding: '8px 12px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', width: '100%', justifyContent: 'center' }}>
                                   <CheckCircle size={14} /> Confirmar Separação
                                 </button>
@@ -443,7 +450,6 @@ export default function FornecedorDashboard() {
                               <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
                                 <td style={{ padding: '12px 16px', color: '#334155', fontWeight: '600', fontSize: '13px', wordBreak: 'break-word' }}>
                                   {item.nomeProduto}
-                                  {/* ADICIONANDO O SELO VISUAL NA TABELA DO FORNECEDOR */}
                                   {item.condicaoAplicada && (
                                     <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                       <Tags size={10} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
@@ -491,7 +497,6 @@ export default function FornecedorDashboard() {
                 </div>
               </div>
 
-              {/* BOX DA NOVA FUNCAO: CONDIÇÃO DE ESCALONAMENTO */}
               <div>
                   <button type="button" onClick={() => setNovaSugestao(p => ({...p, exibirCondicao: !p.exibirCondicao}))} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}>
                       <Tags size={14} /> {novaSugestao.exibirCondicao ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
@@ -520,7 +525,7 @@ export default function FornecedorDashboard() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE ATUALIZADO */}
+      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE */}
       {pedidoConfirmacao && (
         <div style={styles.modalOverlay}>
           <div style={{...styles.modalContent, maxWidth: '700px', padding: '0'}}>
