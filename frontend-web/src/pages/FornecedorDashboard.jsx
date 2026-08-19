@@ -9,6 +9,9 @@ export default function FornecedorDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('cotacoes') 
   
+  // NOVO ESTADO: Controla a sub-aba de pedidos
+  const [subAbaPedidos, setSubAbaPedidos] = useState('ANDAMENTO')
+  
   const [showPrimeiroAcesso, setShowPrimeiroAcesso] = useState(localStorage.getItem('primeiroAcesso') === 'true')
   const [novaSenha, setNovaSenha] = useState('')
   const [salvandoSenha, setSalvandoSenha] = useState(false)
@@ -190,7 +193,6 @@ export default function FornecedorDashboard() {
     return data.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' }) + ' às ' + data.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
   }
 
-  // NOVO FORMATADOR APENAS PARA A DATA (USADO NAS COTAÇÕES PARA ECONOMIZAR ESPAÇO)
   const formatarDataCurta = (dataIso) => {
     if (!dataIso) return 'N/A'
     const data = new Date(dataIso)
@@ -241,6 +243,16 @@ export default function FornecedorDashboard() {
     return <span style={{ padding: '4px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #e5e7eb', textAlign: 'center', whiteSpace: 'nowrap' }}>{status}</span>;
   }
 
+  const cotacoesVisiveis = cotacoes.filter(vinculo => {
+      const statusGlobal = vinculo.cotacao ? vinculo.cotacao.status : null;
+      return statusGlobal !== 'FINALIZADA' && statusGlobal !== 'CANCELADA';
+  });
+
+  const pedidosVisiveis = pedidos.filter(pedido => {
+      const isAndamento = ['PENDENTE_ENTREGA', 'CONFIRMADO_FORNECEDOR'].includes(pedido.status);
+      return subAbaPedidos === 'ANDAMENTO' ? isAndamento : !isAndamento;
+  });
+
   return (
     <div style={{ minHeight: '100vh', backgroundColor: '#f8fafc', display: 'flex', flexDirection: 'column', fontFamily: "'Segoe UI', sans-serif" }}>
       <style>{`
@@ -248,37 +260,12 @@ export default function FornecedorDashboard() {
           .dash-header { padding: 12px 16px !important; flex-direction: column; gap: 12px; align-items: flex-start !important; }
           .dash-main { padding: 16px !important; }
           
-          /* LÓGICA DE TABELA COM LARGURA DINÂMICA (SEM ROLAGEM HORIZONTAL) */
-          .mobile-table-wrapper { 
-              overflow: hidden !important; 
-              border-radius: 8px; 
-              width: 100%; 
-          }
-          .responsive-table { 
-              width: 100% !important; 
-              table-layout: auto !important; 
-          }
+          .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; width: 100%; }
+          .responsive-table { width: 100% !important; table-layout: auto !important; }
           
-          /* ESPAÇAMENTO COMPACTO PARA O MOBILE */
-          .responsive-table th, .responsive-table td { 
-              padding: 10px 6px !important; 
-              font-size: 11px !important; 
-          }
-
-          /* COLUNA PRODUTO ABRAÇA O ESPAÇO E QUEBRA TEXTO LIVREMENTE */
-          .col-produto {
-              white-space: normal !important;
-              word-break: break-word !important;
-              width: 100% !important; 
-          }
-
-          /* COLUNAS DE NÚMEROS FICAM INQUEBRÁVEIS E COMPACTAS */
-          .col-nowrap {
-              white-space: nowrap !important;
-              word-break: normal !important;
-              width: 1% !important; 
-          }
-
+          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; }
+          .col-produto { white-space: normal !important; word-break: break-word !important; width: 100% !important; }
+          .col-nowrap { white-space: nowrap !important; word-break: normal !important; width: 1% !important; }
           .col-center { text-align: center !important; }
           .col-right { text-align: right !important; }
         }
@@ -303,15 +290,35 @@ export default function FornecedorDashboard() {
       </div>
 
       <main className="dash-main" style={{ flex: 1, padding: '32px', maxWidth: '1200px', margin: '0 auto', width: '100%', boxSizing: 'border-box' }}>
-        <div style={{ marginBottom: '24px' }}>
-          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: '0 0 8px 0' }}>{activeTab === 'cotacoes' ? 'Cotações Ativas' : 'Meus Pedidos'}</h2>
+        <div style={{ marginBottom: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
+          <h2 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1e293b', margin: 0 }}>
+            {activeTab === 'cotacoes' ? 'Cotações Ativas' : 'Meus Pedidos'}
+          </h2>
         </div>
+
+        {/* SUB-ABAS DE PEDIDOS */}
+        {activeTab === 'pedidos' && !loading && (
+            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' }}>
+              <button 
+                onClick={() => setSubAbaPedidos('ANDAMENTO')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaPedidos === 'ANDAMENTO' ? 'white' : 'transparent', color: subAbaPedidos === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: subAbaPedidos === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Em Andamento
+              </button>
+              <button 
+                onClick={() => setSubAbaPedidos('HISTORICO')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: subAbaPedidos === 'HISTORICO' ? 'white' : 'transparent', color: subAbaPedidos === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: subAbaPedidos === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Histórico (Encerrados)
+              </button>
+            </div>
+        )}
 
         {loading ? (
           <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px', textAlign: 'center', color: '#64748b' }}>Buscando dados...</div>
         ) : (
           activeTab === 'cotacoes' ? (
-            cotacoes.length === 0 ? (
+            cotacoesVisiveis.length === 0 ? (
               <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px 24px', textAlign: 'center', color: '#64748b' }}>
                 <FileText size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
                 <p style={{ margin: 0, fontSize: '16px' }}>Nenhuma cotação ativa enviada para você no momento.</p>
@@ -328,7 +335,7 @@ export default function FornecedorDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {cotacoes.map((vinculo) => {
+                      {cotacoesVisiveis.map((vinculo) => {
                         const idCotacao = vinculo.cotacao ? vinculo.cotacao.id : vinculo.id
                         const dataEnvio = vinculo.cotacao ? vinculo.cotacao.dataCriacao || vinculo.dataEnvio : vinculo.dataEnvio
                         const status = vinculo.status || 'PENDENTE'
@@ -357,14 +364,14 @@ export default function FornecedorDashboard() {
                 </div>
             )
           ) : (
-            pedidos.length === 0 ? (
+            pedidosVisiveis.length === 0 ? (
               <div style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', padding: '40px 24px', textAlign: 'center', color: '#64748b' }}>
                 <PackageSearch size={48} color="#cbd5e1" style={{ marginBottom: '16px' }} />
-                <p style={{ margin: 0, fontSize: '16px' }}>Nenhum pedido de compra aprovado para você ainda.</p>
+                <p style={{ margin: 0, fontSize: '16px' }}>Nenhum pedido {subAbaPedidos === 'ANDAMENTO' ? 'em andamento' : 'no histórico'} encontrado.</p>
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                {pedidos.map((pedido) => {
+                {pedidosVisiveis.map((pedido) => {
                   const badge = getBadgeFornecedor(pedido);
                   const isExpanded = expandedPedidos[pedido.id];
                   const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
@@ -477,7 +484,7 @@ export default function FornecedorDashboard() {
                             )}
                           </div>
 
-                          {/* TABELA DE ITENS - ADAPTADA PARA QUEBRAR TEXTO NO PRODUTO SEM ROLAGEM */}
+                          {/* TABELA DE ITENS */}
                           <div className="mobile-table-wrapper" style={{ padding: '0', borderTop: '1px solid #e2e8f0' }}>
                             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
@@ -561,7 +568,6 @@ export default function FornecedorDashboard() {
                 </div>
               </div>
 
-              {/* BOX DA NOVA FUNCAO: CONDIÇÃO DE ESCALONAMENTO */}
               <div>
                   <button type="button" onClick={() => setNovaSugestao(p => ({...p, exibirCondicao: !p.exibirCondicao}))} style={{ background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: 0 }}>
                       <Tags size={14} /> {novaSugestao.exibirCondicao ? 'Remover Condição' : 'Adicionar Condição / Escalonamento'}
