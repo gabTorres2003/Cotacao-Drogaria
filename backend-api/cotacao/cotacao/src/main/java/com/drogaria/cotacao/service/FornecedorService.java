@@ -114,6 +114,8 @@ public class FornecedorService {
                     dto.setPrecoCondicao(p.getPrecoCondicao());
                     dto.setQuantidadeCondicaoSubstituto(p.getQuantidadeCondicaoSubstituto());
                     dto.setPrecoCondicaoSubstituto(p.getPrecoCondicaoSubstituto());
+                    dto.setCondicoesEscalonamento(p.getCondicoesEscalonamento());
+                    dto.setCondicoesEscalonamentoSubstituto(p.getCondicoesEscalonamentoSubstituto());
 
                     return dto;
                 }).collect(Collectors.toList());
