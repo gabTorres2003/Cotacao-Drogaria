@@ -551,4 +551,68 @@ public class PedidoService {
         }
         return lista;
     }
+
+    @Transactional
+    public Pedido recebimentoRapido(Long pedidoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+        double totalReal = 0.0;
+
+        for (ItemPedido item : pedido.getItens()) {
+            item.setQuantidadeReal(item.getQuantidadePedida());
+            item.setValorUnitarioReal(item.getValorUnitarioPedido());
+            // Se o Enum na sua classe chamar diferente, adapte para "OK" ou "RECEBIDO"
+            item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.OK); 
+            
+            totalReal += (item.getQuantidadePedida() * item.getValorUnitarioPedido());
+        }
+
+        pedido.setValorTotalReal(totalReal);
+        pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
+        pedido.setDataConfirmacao(java.time.LocalDateTime.now());
+        
+        return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido ajustarValoresReais(Long pedidoId, java.util.List<com.drogaria.cotacao.dto.request.ItemRecebidoDTO> itensAtualizados) {
+        Pedido pedido = buscarPorId(pedidoId);
+        double totalReal = 0.0;
+        boolean temDivergencia = false;
+        boolean temFalta = false;
+
+        for (ItemPedido item : pedido.getItens()) {
+            for (com.drogaria.cotacao.dto.request.ItemRecebidoDTO dto : itensAtualizados) {
+                if (item.getId().equals(dto.getId())) {
+                    item.setQuantidadeReal(dto.getQuantidadeReal());
+                    item.setValorUnitarioReal(dto.getValorUnitarioReal());
+
+                    if (item.getQuantidadeReal() < item.getQuantidadePedida()) {
+                        item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.FALTANTE);
+                        temFalta = true;
+                    } else {
+                        item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.OK);
+                    }
+                    
+                    if (!item.getValorUnitarioReal().equals(item.getValorUnitarioPedido())) {
+                        temDivergencia = true;
+                    }
+                }
+            }
+            if (item.getQuantidadeReal() != null && item.getValorUnitarioReal() != null) {
+                totalReal += (item.getQuantidadeReal() * item.getValorUnitarioReal());
+            }
+        }
+
+        pedido.setValorTotalReal(totalReal);
+        
+        if (temFalta) {
+            pedido.setStatus(StatusPedido.ENTREGUE_COM_FALTA);
+        } else if (temDivergencia) {
+            pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
+        } else {
+            pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
+        }
+
+        return pedidoRepository.save(pedido);
+    }
 }

@@ -242,4 +242,14 @@ public class PedidoController {
         
         return ResponseEntity.ok(pedidoService.registrarFalhaEntrega(id, motivo, acaoDestino, cotacaoDestinoId));
     }
+
+    @PatchMapping("/{id}/recebimento-rapido")
+    public ResponseEntity<Pedido> recebimentoRapido(@PathVariable Long id) {
+        return ResponseEntity.ok(pedidoService.recebimentoRapido(id));
+    }
+
+    @PutMapping("/{id}/valores-reais")
+    public ResponseEntity<Pedido> ajustarValoresReais(@PathVariable Long id, @RequestBody java.util.List<com.drogaria.cotacao.dto.request.ItemRecebidoDTO> itens) {
+        return ResponseEntity.ok(pedidoService.ajustarValoresReais(id, itens));
+    }
 }
