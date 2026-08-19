@@ -3,13 +3,10 @@ package com.drogaria.cotacao.service;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.CotacaoFornecedor;
 import com.drogaria.cotacao.model.Fornecedor;
-import com.drogaria.cotacao.model.PrecoCotacao;
-import com.drogaria.cotacao.model.SugestaoPromocao;
 import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
-import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
-import com.drogaria.cotacao.repository.SugestaoPromocaoRepository;
+import jakarta.persistence.EntityManager;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -25,8 +22,7 @@ public class CotacaoFornecedorService {
     private final CotacaoFornecedorRepository repository;
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
-    private final PrecoCotacaoRepository precoCotacaoRepository;
-    private final SugestaoPromocaoRepository sugestaoPromocaoRepository;
+    private final EntityManager entityManager;
 
     @Transactional
     public void vincularFornecedores(Long cotacaoId, List<Long> fornecedorIds) {
@@ -67,23 +63,23 @@ public class CotacaoFornecedorService {
     @Transactional
     public void desvincularFornecedor(Long idVinculo) {
         CotacaoFornecedor vinculo = repository.findById(idVinculo)
-            .orElseThrow(() -> new RuntimeException("Vínculo não encontrado"));
+                .orElseThrow(() -> new RuntimeException("Vínculo não encontrado"));
 
         Long idCotacao = vinculo.getCotacao().getId();
         Long idFornecedor = vinculo.getFornecedor().getId();
 
-        List<PrecoCotacao> precosDoFornecedor = precoCotacaoRepository.findByItem_Cotacao_IdAndFornecedorId(idCotacao, idFornecedor);
-        if (!precosDoFornecedor.isEmpty()) {
-            precoCotacaoRepository.deleteAll(precosDoFornecedor);
-        }
+        entityManager.createNativeQuery("DELETE FROM tb_precos_cotacao WHERE item_id IN (SELECT id FROM tb_itens_cotacao WHERE cotacao_id = :cotacaoId) AND fornecedor_id = :fornecedorId")
+                .setParameter("cotacaoId", idCotacao)
+                .setParameter("fornecedorId", idFornecedor)
+                .executeUpdate();
 
-        List<SugestaoPromocao> sugestoesDoFornecedor = sugestaoPromocaoRepository.findByCotacaoIdAndFornecedorId(idCotacao, idFornecedor);
-        if (!sugestoesDoFornecedor.isEmpty()) {
-            sugestaoPromocaoRepository.deleteAll(sugestoesDoFornecedor);
-        }
+        entityManager.createNativeQuery("DELETE FROM tb_sugestoes_promocao WHERE cotacao_id = :cotacaoId AND fornecedor_id = :fornecedorId")
+                .setParameter("cotacaoId", idCotacao)
+                .setParameter("fornecedorId", idFornecedor)
+                .executeUpdate();
 
         repository.deleteById(idVinculo);
-        
+
         Cotacao cotacao = cotacaoRepository.findById(idCotacao).orElse(null);
         if (cotacao != null && !"FINALIZADA".equals(cotacao.getStatus()) && !"CANCELADA".equals(cotacao.getStatus())) {
             List<CotacaoFornecedor> todosVinculos = repository.findByCotacaoId(idCotacao);

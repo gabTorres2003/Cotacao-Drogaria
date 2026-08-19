@@ -1,5 +1,5 @@
-import React from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, ChevronLeft, ChevronRight } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaDetalhes({
@@ -10,6 +10,42 @@ export default function TabelaDetalhes({
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
   onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN
 }) {
+
+  const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
+  const [supplierOrder, setSupplierOrder] = useState([]);
+
+  useEffect(() => {
+      setSupplierOrder(prev => {
+          const newOrder = [...prev];
+          fornecedores.forEach(f => {
+              if (!newOrder.includes(f)) newOrder.push(f);
+          });
+          return newOrder.filter(f => fornecedores.includes(f));
+      });
+  }, [fornecedores]);
+
+  const togglePin = (f) => {
+      setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
+  };
+
+  const moveSupplier = (f, direction) => {
+      const idx = supplierOrder.indexOf(f);
+      if (idx < 0) return;
+      const newOrder = [...supplierOrder];
+      if (direction === 'left' && idx > 0) {
+          [newOrder[idx - 1], newOrder[idx]] = [newOrder[idx], newOrder[idx - 1]];
+      } else if (direction === 'right' && idx < newOrder.length - 1) {
+          [newOrder[idx + 1], newOrder[idx]] = [newOrder[idx], newOrder[idx + 1]];
+      }
+      setSupplierOrder(newOrder);
+  };
+
+  const getPinnedLeft = (f) => {
+      const idx = pinnedSuppliers.indexOf(f);
+      if (idx === -1) return 'auto';
+      return 250 + (idx * 180); 
+  };
+
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
   const inputEdicao = { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' };
@@ -24,7 +60,7 @@ export default function TabelaDetalhes({
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
         <thead>
           <tr>
-            <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, zIndex: 20, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
+            <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, zIndex: 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
             {colunasVisiveis.quantidade && <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('quantidade')}><div style={{ display: 'flex', alignItems: 'center' }}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div></th>}
             {colunasVisiveis.estoque && <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '130px' }} onClick={() => requestSort('estoque')}><div style={{ display: 'flex', alignItems: 'center' }}>Estoque Atual <SortIcon sortKey="estoque" /></div></th>}
             {isItens && (
@@ -38,20 +74,52 @@ export default function TabelaDetalhes({
             )}
             {colunasVisiveis.ultimoPreco && <th style={{ ...thStyle, color: '#4f46e5', textAlign: 'right', cursor: 'pointer', userSelect: 'none', minWidth: '150px' }} onClick={() => requestSort('ultimoPreco')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end' }}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div></th>}
             
-            {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => (
-                <th key={f} style={{ ...thStyle, backgroundColor: '#f9fafb', textAlign: 'center', borderLeft: '1px solid #e5e7eb', minWidth: '180px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
-                        {f}
-                        <button
-                            title={`Filtrar apenas itens ganhos por ${f}`}
-                            onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)}
-                            style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? '#dbeafe' : 'transparent', display: 'flex', alignItems: 'center' }}
-                        >
-                            <Filter size={14} color={filtroVencedor === f ? '#2563eb' : '#9ca3af'} />
-                        </button>
-                    </div>
-                </th>
-            ))}
+            {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+                const isPinned = pinnedSuppliers.includes(f);
+                const leftPos = getPinnedLeft(f);
+
+                return (
+                    <th key={f} style={{ 
+                        ...thStyle, 
+                        backgroundColor: isPinned ? '#f0fdf4' : '#f9fafb', 
+                        textAlign: 'center', 
+                        borderLeft: '1px solid #e5e7eb', 
+                        minWidth: '180px',
+                        position: isPinned ? 'sticky' : 'static',
+                        left: isPinned ? `${leftPos}px` : 'auto',
+                        zIndex: isPinned ? 25 : 10,
+                        boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
+                    }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                                <button title="Mover para esquerda" onClick={() => moveSupplier(f, 'left')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af' }}>
+                                    <ChevronLeft size={16} />
+                                </button>
+                                <span style={{ fontWeight: 'bold', color: isPinned ? '#166534' : '#374151' }}>{f}</span>
+                                <button title="Mover para direita" onClick={() => moveSupplier(f, 'right')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, color: '#9ca3af' }}>
+                                    <ChevronRight size={16} />
+                                </button>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px' }}>
+                                <button
+                                    title={isPinned ? "Descongelar Coluna" : "Congelar Coluna (Fixar na tela)"}
+                                    onClick={() => togglePin(f)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : '#e2e8f0', display: 'flex', alignItems: 'center' }}
+                                >
+                                    <Pin size={14} color={isPinned ? '#166534' : '#64748b'} />
+                                </button>
+                                <button
+                                    title={`Filtrar apenas itens ganhos por ${f}`}
+                                    onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)}
+                                    style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? '#dbeafe' : 'transparent', display: 'flex', alignItems: 'center' }}
+                                >
+                                    <Filter size={14} color={filtroVencedor === f ? '#2563eb' : '#9ca3af'} />
+                                </button>
+                            </div>
+                        </div>
+                    </th>
+                );
+            })}
             
             {isItens && <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
           </tr>
@@ -85,7 +153,7 @@ export default function TabelaDetalhes({
 
             return (
               <tr key={item.idItem} style={{ backgroundColor: '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
-                <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+                <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                   {editandoItem === `${item.idItem}-nome` ? (
                     <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
                   ) : (
@@ -138,7 +206,7 @@ export default function TabelaDetalhes({
 
                 {colunasVisiveis.ultimoPreco && <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '500' }}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>}
 
-                {isComparativo && fornecedores.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+                {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
                   
                   const rank = rankMap[f];
                   const isTopN = filtroTopN === 'TODOS' || (filtroTopN === 'TOP_2' && rank <= 2) || (filtroTopN === 'TOP_3' && rank <= 3);
@@ -178,15 +246,31 @@ export default function TabelaDetalhes({
                       condsArrSubst.push({ qtd: item.qtdCondicaoSubstPorFornecedor[f], preco: item.precoCondicaoSubstPorFornecedor[f] });
                   }
 
+                  const isPinned = pinnedSuppliers.includes(f);
+                  const leftPos = getPinnedLeft(f);
+
                   return (
-                    <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} style={{ ...tdStyle, backgroundColor: isWinner ? '#ecfdf5' : 'inherit', textAlign: 'center', borderLeft: '1px solid #f3f4f6', border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', verticalAlign: 'top', position: 'relative', opacity: isBloqueado ? 0.6 : 1 }}>
-                      {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
+                    <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} 
+                        style={{ 
+                            ...tdStyle, 
+                            backgroundColor: isWinner ? '#ecfdf5' : (isPinned ? '#f8fafc' : 'inherit'), 
+                            textAlign: 'center', 
+                            borderLeft: '1px solid #f3f4f6', 
+                            border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
+                            cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', 
+                            verticalAlign: 'top', 
+                            position: isPinned ? 'sticky' : 'relative', 
+                            left: isPinned ? `${leftPos}px` : 'auto',
+                            zIndex: isPinned ? 15 : 1,
+                            boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
+                            opacity: isBloqueado ? 0.6 : 1 
+                        }}>
+                      {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
                       
                       <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isPrecoDiscrepante ? '#b91c1c' : '#374151'), textDecoration: isBloqueado ? 'line-through' : 'none' }}>
                           {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
                       </div>
                       
-                      {/* ALERTA DE PREÇO DISCREPANTE */}
                       {isPrecoDiscrepante && !isEmFaltaOriginal && (
                          <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '4px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', border: '1px solid #fca5a5' }} title="O fornecedor digitou um preço com mais de 100% de diferença do valor da sua última compra. Revise antes de fechar o pedido!">
                             <AlertTriangle size={12} /> Divergência Alta
@@ -280,7 +364,7 @@ export default function TabelaDetalhes({
                 })}
 
                 {isItens && (
-                  <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 10, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+                  <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                     {subAbaItens === 'comprados' ? (
                       <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
                     ) : (

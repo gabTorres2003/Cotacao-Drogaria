@@ -23,7 +23,18 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
     try {
         const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna.trim())}`);
         if (res.data) {
-            setItemAtual({ ...itemAtual, nomeProduto: res.data.descricao, codBarras: codigoDna.trim() });
+            setItemAtual({ 
+                ...itemAtual, 
+                nomeProduto: res.data.descricao, 
+                codBarras: codigoDna.trim(),
+                estoque: res.data.estoque,
+                ultimoPreco: res.data.ultimoPreco,
+                vendidoNoMes: res.data.vendidoNoMes,
+                ultCompraData: res.data.ultCompraData,
+                ultCompraQtde: res.data.ultCompraQtde,
+                ultVendaData: res.data.ultVendaData,
+                vendidoAposUltCompra: res.data.vendidoAposUltCompra
+            });
         }
     } catch (error) {
         console.error("Erro na API:", error.response || error);
@@ -62,24 +73,20 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
               itens: listaItens.map(i => ({
                   nomeProduto: i.nomeProduto,
                   quantidade: Number(i.quantidade),
-                  origemItem: abaDna ? 'Adição por Código' : 'Manual'
+                  origemItem: abaDna ? 'Adição por Código' : 'Manual',
+                  estoque: i.estoque,
+                  ultimoPreco: i.ultimoPreco,
+                  vendidoNoMes: i.vendidoNoMes,
+                  ultCompraData: i.ultCompraData,
+                  ultCompraQtde: i.ultCompraQtde,
+                  ultVendaData: i.ultVendaData,
+                  vendidoAposUltCompra: i.vendidoAposUltCompra
               }))
           };
 
           const response = await api.post('/api/cotacao', payload);
-          const cotacaoCriadaId = response.data.id;
-
-          const codigos = listaItens.filter(i => i.codigo !== '-').map(i => i.codigo);
-          if (codigos.length > 0) {
-              try {
-                  await api.post(`/api/cotacao/${cotacaoCriadaId}/sincronizar-informacoes`, codigos);
-              } catch (e) {
-                  console.warn("Falha silenciosa ao tentar puxar dados complementares do DNA", e);
-              }
-          }
-
           alert('Cotação criada com sucesso!');
-          navigate(`/cotacao/${cotacaoCriadaId}`);
+          navigate(`/cotacao/${response.data.id}`);
           onClose();
       } catch (error) {
           alert('Erro ao gerar cotação: ' + (error.response?.data?.message || error.message));
