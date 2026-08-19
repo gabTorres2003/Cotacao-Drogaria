@@ -11,14 +11,15 @@ export default function TabelaDetalhes({
   onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
+  const [isHeaderPinned, setIsHeaderPinned] = useState(false); // NOVO: Controle de congelamento do cabeçalho geral
 
-  // ESTADOS DE ARRASTAR, SOLTAR E CONGELAR
+  // ESTADOS DE ARRASTAR, SOLTAR E CONGELAR COLUNAS
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
   const [draggedSupplier, setDraggedSupplier] = useState(null);
   const [pinnedStats, setPinnedStats] = useState([]);
 
-  // NOVO: Estado para armazenar os preços marcados manualmente como irreais
+  // ESTADO PARA PREÇOS IRREAIS
   const [valoresIrreais, setValoresIrreais] = useState({});
 
   useEffect(() => {
@@ -35,7 +36,7 @@ export default function TabelaDetalhes({
   const togglePinStat = (stat) => setPinnedStats(prev => prev.includes(stat) ? prev.filter(s => s !== stat) : [...prev, stat]);
 
   const getLeftOffset = (colKey, type = 'stat') => {
-      let offset = 250; 
+      let offset = 250; // Começa após a largura fixa da coluna "Produto"
       const statsOrder = ['quantidade', 'estoque', 'vendidoNoMes', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco'];
       const widths = { quantidade: 130, estoque: 130, vendidoNoMes: 140, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150 };
       
@@ -46,13 +47,16 @@ export default function TabelaDetalhes({
           }
       }
       if (type === 'supplier') {
+          for (let stat of statsOrder) {
+              if (pinnedStats.includes(stat) && colunasVisiveis[stat]) offset += widths[stat];
+          }
           const idx = pinnedSuppliers.indexOf(colKey);
           if (idx > -1) offset += (idx * 180); 
       }
       return offset;
   };
 
-  const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
+  const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', backgroundColor: '#ffffff' };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
   const inputEdicao = { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' };
 
@@ -61,24 +65,42 @@ export default function TabelaDetalhes({
     return sortConfig.direction === 'asc' ? <ChevronUp size={14} color="#2563eb" style={{ marginLeft: '6px' }} /> : <ChevronDown size={14} color="#2563eb" style={{ marginLeft: '6px' }} />;
   };
 
-  const getHeaderStyle = (isPinned, leftPos, minWidth, isRight = false) => ({
-      ...thStyle, minWidth, textAlign: isRight ? 'right' : 'left',
-      left: isPinned ? `${leftPos}px` : 'auto', zIndex: isPinned ? 30 : 10,
-      backgroundColor: isPinned ? '#f0fdf4' : '#ffffff',
-      boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
-  });
+  const getHeaderStyle = (isPinnedCol, leftPos, minWidth, isRight = false) => {
+      const isPinned = isHeaderPinned || isPinnedCol;
+      return {
+          ...thStyle,
+          minWidth,
+          textAlign: isRight ? 'right' : 'left',
+          position: isPinned ? 'sticky' : 'relative',
+          top: isHeaderPinned ? '0' : 'auto',
+          left: isPinnedCol ? `${leftPos}px` : 'auto',
+          zIndex: isHeaderPinned && isPinnedCol ? 40 : (isHeaderPinned ? 30 : (isPinnedCol ? 20 : 10)),
+          backgroundColor: isPinnedCol ? '#f0fdf4' : '#ffffff',
+          boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : (isHeaderPinned ? '0 2px 5px -2px rgba(0,0,0,0.1)' : 'none')
+      };
+  };
 
-  const getCellColStyle = (isPinned, leftPos, isRight = false, isBold = false, color = '#374151') => ({
-      ...tdStyle, textAlign: isRight ? 'right' : 'center', fontWeight: isBold ? '500' : 'normal', color: color,
-      position: isPinned ? 'sticky' : 'static', left: isPinned ? `${leftPos}px` : 'auto', zIndex: isPinned ? 15 : 1,
-      backgroundColor: isPinned ? '#f8fafc' : 'inherit',
-      boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
+  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151') => ({
+      ...tdStyle,
+      textAlign: isRight ? 'right' : 'center',
+      fontWeight: isBold ? '500' : 'normal',
+      color: color,
+      position: isPinnedCol ? 'sticky' : 'relative',
+      left: isPinnedCol ? `${leftPos}px` : 'auto',
+      zIndex: isPinnedCol ? 15 : 1,
+      backgroundColor: isPinnedCol ? '#f8fafc' : 'inherit',
+      boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
   });
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {isComparativo && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px' }}>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                  <input type="checkbox" checked={isHeaderPinned} onChange={(e) => setIsHeaderPinned(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                  <Pin size={14} color={isHeaderPinned ? '#2563eb' : '#9ca3af'} />
+                  Fixar Cabeçalho no Topo
+              </label>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
                   <input type="checkbox" checked={mostrarAlertasPreco} onChange={(e) => setMostrarAlertasPreco(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                   <AlertTriangle size={14} color={mostrarAlertasPreco ? '#d97706' : '#9ca3af'} />
@@ -91,7 +113,7 @@ export default function TabelaDetalhes({
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
           <thead>
             <tr>
-              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, zIndex: 40, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
               
               {colunasVisiveis.quantidade && (() => {
                   const isPinned = pinnedStats.includes('quantidade');
@@ -99,7 +121,7 @@ export default function TabelaDetalhes({
                       <th style={getHeaderStyle(isPinned, getLeftOffset('quantidade', 'stat'), '130px')}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
-                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar (Soltar linha e cabeçalho)" : "Congelar (Fixar na tela inteira)"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
                           </div>
                       </th>
                   );
@@ -111,7 +133,7 @@ export default function TabelaDetalhes({
                       <th style={getHeaderStyle(isPinned, getLeftOffset('estoque', 'stat'), '130px')}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>Estoque Atual <SortIcon sortKey="estoque" /></div>
-                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('estoque')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('estoque')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
                           </div>
                       </th>
                   );
@@ -119,11 +141,11 @@ export default function TabelaDetalhes({
 
               {isItens && (
                 <>
-                  {colunasVisiveis.vendidoNoMes && <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '140px' }} onClick={() => requestSort('vendidoNoMes')}><div style={{ display: 'flex', alignItems: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div></th>}
-                  {colunasVisiveis.vendidoAposUltCompra && <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '160px' }} onClick={() => requestSort('vendidoAposUltCompra')}><div style={{ display: 'flex', alignItems: 'center' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div></th>}
-                  {colunasVisiveis.ultCompraData && <th style={{...thStyle, minWidth: '130px'}}>Data Últ. Compra</th>}
-                  {colunasVisiveis.ultCompraQtde && <th style={{...thStyle, minWidth: '130px'}}>Qtd. Últ. Compra</th>}
-                  {colunasVisiveis.ultVendaData && <th style={{...thStyle, minWidth: '130px'}}>Data Últ. Venda</th>}
+                  {colunasVisiveis.vendidoNoMes && <th style={getHeaderStyle(false, 0, '140px')} onClick={() => requestSort('vendidoNoMes')}><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div></th>}
+                  {colunasVisiveis.vendidoAposUltCompra && <th style={getHeaderStyle(false, 0, '160px')} onClick={() => requestSort('vendidoAposUltCompra')}><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div></th>}
+                  {colunasVisiveis.ultCompraData && <th style={getHeaderStyle(false, 0, '130px')}>Data Últ. Compra</th>}
+                  {colunasVisiveis.ultCompraQtde && <th style={getHeaderStyle(false, 0, '130px')}>Qtd. Últ. Compra</th>}
+                  {colunasVisiveis.ultVendaData && <th style={getHeaderStyle(false, 0, '130px')}>Data Últ. Venda</th>}
                 </>
               )}
 
@@ -132,7 +154,7 @@ export default function TabelaDetalhes({
                   return (
                       <th style={getHeaderStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), '150px', true)}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('ultimoPreco')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent', marginRight: '6px' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('ultimoPreco')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent', marginRight: '6px' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none', color: '#4f46e5' }} onClick={() => requestSort('ultimoPreco')}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
                           </div>
                       </th>
@@ -147,14 +169,8 @@ export default function TabelaDetalhes({
                       <th 
                         key={f} 
                         draggable
-                        onDragStart={(e) => {
-                            setDraggedSupplier(f);
-                            e.dataTransfer.effectAllowed = 'move';
-                        }}
-                        onDragOver={(e) => {
-                            e.preventDefault();
-                            e.dataTransfer.dropEffect = 'move';
-                        }}
+                        onDragStart={(e) => { setDraggedSupplier(f); e.dataTransfer.effectAllowed = 'move'; }}
+                        onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; }}
                         onDrop={(e) => {
                             e.preventDefault();
                             if (draggedSupplier && draggedSupplier !== f) {
@@ -169,15 +185,9 @@ export default function TabelaDetalhes({
                         }}
                         onDragEnd={() => setDraggedSupplier(null)}
                         style={{ 
-                          ...thStyle, 
-                          backgroundColor: isPinned ? '#f0fdf4' : '#f9fafb', 
-                          textAlign: 'center', 
-                          borderLeft: '1px solid #e5e7eb', 
-                          minWidth: '180px',
-                          position: isPinned ? 'sticky' : 'static',
-                          left: isPinned ? `${leftPos}px` : 'auto',
-                          zIndex: isPinned ? 30 : 10,
-                          boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
+                          ...getHeaderStyle(isPinned, leftPos, '180px'),
+                          textAlign: 'center', borderLeft: '1px solid #e5e7eb',
+                          backgroundColor: isPinned ? '#f0fdf4' : '#f9fafb',
                           opacity: draggedSupplier === f ? 0.5 : 1,
                           cursor: 'grab'
                       }}>
@@ -188,7 +198,7 @@ export default function TabelaDetalhes({
                                       <span style={{ fontWeight: 'bold', color: isPinned ? '#166534' : '#374151' }}>{f}</span>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <button title={isPinned ? "Descongelar Coluna" : "Congelar Coluna (Fixar na tela)"} onClick={() => togglePin(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : '#e2e8f0', display: 'flex', alignItems: 'center' }}>
+                                      <button title={isPinned ? "Descongelar Coluna inteira" : "Congelar (Fixar coluna inteira na tela)"} onClick={() => togglePin(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : '#e2e8f0', display: 'flex', alignItems: 'center' }}>
                                           <Pin size={14} color={isPinned ? '#166534' : '#64748b'} />
                                       </button>
                                       <button title={`Filtrar apenas itens ganhos por ${f}`} onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? '#dbeafe' : 'transparent', display: 'flex', alignItems: 'center' }}>
@@ -201,14 +211,13 @@ export default function TabelaDetalhes({
                   );
               })}
               
-              {isItens && <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
+              {isItens && <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
             </tr>
           </thead>
           <tbody>
             {relatorioExibicao.map((item) => {
               const isBloqueado = !!itensJaComprados[item.idItem];
               const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
-
               const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
 
               const ofertasValidas = supplierOrder.map(forn => {
@@ -230,9 +239,9 @@ export default function TabelaDetalhes({
                   
                   if (val !== Infinity) {
                       if (isIrreal) {
-                          val = Infinity; // Sempre excluído se foi marcado como irreal
+                          val = Infinity; 
                       } else if (mostrarAlertasPreco && isDiscrepante) {
-                          val = Infinity; // Excluído temporariamente se o alerta estiver ligado
+                          val = Infinity; 
                       }
                   }
                   
@@ -241,6 +250,11 @@ export default function TabelaDetalhes({
 
               const rankMap = {};
               ofertasValidas.forEach((vo, index) => { rankMap[vo.forn] = index + 1; });
+
+              const bestValidForn = ofertasValidas.length > 0 ? ofertasValidas[0].forn : null;
+              let currentWinner = decisaoCompra[item.idItem];
+              const isCurrentWinnerDisqualified = currentWinner && !ofertasValidas.some(o => o.forn === currentWinner);
+              const displayWinner = isCurrentWinnerDisqualified ? bestValidForn : currentWinner;
 
               return (
                 <tr key={item.idItem} style={{ backgroundColor: '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
@@ -309,18 +323,13 @@ export default function TabelaDetalhes({
                   {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
                     
                     const rank = rankMap[f];
-                    const isTopN = filtroTopN === 'TODOS' || (filtroTopN === 'TOP_2' && rank <= 2) || (filtroTopN === 'TOP_3' && rank <= 3);
-
-                    if (!isTopN) {
-                        return <td key={f} style={{ ...tdStyle, backgroundColor: '#f8fafc', borderLeft: '1px solid #f3f4f6', textAlign: 'center', color: '#cbd5e1' }}>-</td>;
-                    }
+                    const isWinner = displayWinner === f;
 
                     const precoOriginal = item.precosPorFornecedor?.[f] || 0;
                     const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
                     const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
                     const obs = item.observacoesPorFornecedor?.[f];
                     const substituto = item.substitutosPorFornecedor?.[f];
-                    const isWinner = decisaoCompra[item.idItem] === f;
                     const isTrocaAceita = aceitesTroca[item.idItem];
                     const isEmFaltaOriginal = precoOriginal <= 0; 
                     const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
