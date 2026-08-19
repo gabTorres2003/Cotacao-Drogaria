@@ -19,11 +19,9 @@ export default function PedidoDetalhes() {
     const [salvandoItem, setSalvandoItem] = useState(false);
     const [itemParaTrocar, setItemParaTrocar] = useState(null);
 
-    // Edição de valores PREVISTOS (Antes de receber)
     const [isEditandoValores, setIsEditandoValores] = useState(false);
     const [valoresEditados, setValoresEditados] = useState({});
 
-    // NOVO: Edição de valores REAIS (Após já ter conferido)
     const [isEditandoReais, setIsEditandoReais] = useState(false);
     const [valoresReaisEditados, setValoresReaisEditados] = useState({});
     
@@ -117,7 +115,6 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // NOVA FUNÇÃO: Conferência Rápida
     const handleConferenciaRapida = async () => {
         if (window.confirm('Tem certeza que deseja fazer o recebimento rápido?\n\nIsso confirmará que TODOS os itens chegaram exatamente com as quantidades e valores previstos no pedido.')) {
             try {
@@ -230,7 +227,6 @@ export default function PedidoDetalhes() {
         }
     };
 
-    // Demais funções da página (Sugestões, Extras, WhatsApp, etc)
     const handleQtdSugestaoChange = (idSugestao, novaQtd) => {
         setSugestoesEditaveis(prev => {
             const currentSugestao = prev[idSugestao];
@@ -311,13 +307,21 @@ export default function PedidoDetalhes() {
     };
 
     const abrirModalAdicao = async () => {
-        setIsAddItemModalOpen(true); setItemParaTrocar(null); setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null }); setCodigoDna('');
+        setIsAddItemModalOpen(true); 
+        setItemParaTrocar(null); 
+        setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null }); 
+        setCodigoDna('');
+        
         if (pedido?.cotacao?.id) {
             setTipoAdicao('COTACAO');
-            try { const res = await api.get(`/api/pedidos/cotacao/${pedido.cotacao.id}/itens-pendentes`); setItensPendentes(res.data || []); } 
+            try { 
+                const res = await api.get(`/api/pedidos/cotacao/${pedido.cotacao.id}/itens-pendentes`); 
+                setItensPendentes(res.data || []); 
+            } 
             catch (error) { console.error("Erro ao buscar itens pendentes:", error); }
         } else {
-            setTipoAdicao('DNA'); setItensPendentes([]);
+            setTipoAdicao('DNA'); 
+            setItensPendentes([]);
         }
     };
 
@@ -341,7 +345,8 @@ export default function PedidoDetalhes() {
             const payload = { nomeProduto: novoItem.nomeProduto, quantidadePedida: Number(novoItem.quantidadePedida), valorUnitarioPedido: Number(novoItem.valorUnitarioPedido), itemCotacao: novoItem.itemCotacaoId ? { id: novoItem.itemCotacaoId } : null };
             if (itemParaTrocar) { await api.put(`/api/pedidos/${id}/itens/${itemParaTrocar}/trocar`, payload); alert('Produto trocado com sucesso!'); } 
             else { await api.post(`/api/pedidos/${id}/itens`, payload); alert('Produto adicionado com sucesso!'); }
-            setIsAddItemModalOpen(false); carregarPedido();
+            setIsAddItemModalOpen(false); 
+            carregarPedido();
         } catch (error) { alert('Erro ao processar: ' + (error.response?.data?.message || error.message)); } 
         finally { setSalvandoItem(false); }
     };
@@ -493,15 +498,12 @@ export default function PedidoDetalhes() {
                                     ) : (
                                         <>
                                             <button onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} style={styles.btnConferir}><CheckCircle size={18} style={{ marginRight: '6px' }} /> Conferência Item a Item</button>
-                                            
-                                            {/* BOTÃO DA CONFERÊNCIA RÁPIDA */}
                                             <button onClick={handleConferenciaRapida} style={{ ...styles.btnConferir, backgroundColor: '#0284c7' }} title="Aceita as quantidades e valores originais do pedido"><Zap size={18} style={{ marginRight: '6px' }} /> Conferência Rápida (Tudo OK)</button>
                                         </>
                                     )}
                                 </>
                             )}
                             
-                            {/* BOTÕES PÓS-CONFERÊNCIA (Editar Reais, Refazer, Aceitar Divergencia) */}
                             {mostrarReais && (
                                 <>
                                     <button onClick={isEditandoReais ? () => setIsEditandoReais(false) : iniciarEdicaoReais} style={{ ...styles.btnConferir, backgroundColor: isEditandoReais ? '#6b7280' : '#8b5cf6' }}>
@@ -550,131 +552,370 @@ export default function PedidoDetalhes() {
                         )}
                     </div>
 
-                    <table style={styles.table}>
-                        <thead>
-                            <tr>
-                                <th style={styles.th}>Produto</th>
-                                <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f9fafb' }}>Qtd (Prevista)</th>
-                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f0fdf4' }}>Qtd Real (NF)</th>}
-                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Valor Unit. (Prev)</th>
-                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Vlr Unit. (NF)</th>}
-                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'center' }}>% Divergência</th>}
-                                <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
-                                {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>}
-                                <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
-                                {podeAdicionarProduto && !isEditandoValores && <th style={{ ...styles.th, textAlign: 'center' }}>Ação</th>}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {pedido.itens?.map(item => {
-                                const qtdPedida = item.quantidadePedida || 0;
-                                const qtdReal = item.quantidadeReal;
-                                const vlrPrevisto = item.valorUnitarioPedido || 0;
-                                const vlrReal = item.valorUnitarioReal;
+                    <div style={{ overflowX: 'auto' }}>
+                        <table style={styles.table}>
+                            <thead>
+                                <tr>
+                                    <th style={styles.th}>Produto</th>
+                                    <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f9fafb' }}>Qtd (Prevista)</th>
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'center', backgroundColor: '#f0fdf4' }}>Qtd Real (NF)</th>}
+                                    <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Valor Unit. (Prev)</th>
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Vlr Unit. (NF)</th>}
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'center' }}>% Divergência</th>}
+                                    <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f9fafb' }}>Subtotal (Prev)</th>
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: '#f0fdf4' }}>Subtotal (Real)</th>}
+                                    <th style={{ ...styles.th, textAlign: 'center' }}>Status Item</th>
+                                    {podeAdicionarProduto && !isEditandoValores && <th style={{ ...styles.th, textAlign: 'center' }}>Ação</th>}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {pedido.itens?.map(item => {
+                                    const qtdPedida = item.quantidadePedida || 0;
+                                    const qtdReal = item.quantidadeReal;
+                                    const vlrPrevisto = item.valorUnitarioPedido || 0;
+                                    const vlrReal = item.valorUnitarioReal;
 
-                                let pctImposto = 0; let alertImposto = false;
-                                if (mostrarReais && vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
-                                    pctImposto = ((vlrReal - vlrPrevisto) / vlrPrevisto) * 100;
-                                    if (pctImposto > 5) alertImposto = true;
-                                }
+                                    let pctImposto = 0; let alertImposto = false;
+                                    if (mostrarReais && vlrReal !== null && vlrPrevisto > 0 && vlrReal > vlrPrevisto) {
+                                        pctImposto = ((vlrReal - vlrPrevisto) / vlrPrevisto) * 100;
+                                        if (pctImposto > 5) alertImposto = true;
+                                    }
 
-                                return (
-                                    <tr key={item.id}>
-                                        <td style={styles.td}>
-                                            <strong style={{ display: 'block', textDecoration: pedido.status === 'CANCELADO' ? 'line-through' : 'none' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
-                                            {item.condicaoAplicada && (
-                                              <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                                <Tags size={12} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
-                                              </div>
-                                            )}
-                                            {item.valorAlteradoAposPedido && <span style={{ display: 'inline-block', fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}><AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> Valor/Qtd editado pós-pedido</span>}
-                                        </td>
-                                        
-                                        {/* EDIÇÃO DE VALORES PREVISTOS */}
-                                        <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>
-                                            {isEditandoValores ? (
-                                                <input type="number" min="1" value={valoresEditados[item.id]?.quantidadePedida || ''} onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantidadePedida: e.target.value } }))} style={styles.inputTable} />
-                                            ) : (`${qtdPedida} un`)}
-                                        </td>
-                                        
-                                        {/* EDIÇÃO DE VALORES REAIS (NF) */}
-                                        {mostrarReais && (
-                                            <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
-                                                {isEditandoReais ? (
-                                                    <input type="number" min="0" value={valoresReaisEditados[item.id]?.quantidadeReal || ''} onChange={e => setValoresReaisEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantidadeReal: e.target.value } }))} style={{...styles.inputTable, borderColor: '#4ade80'}} />
-                                                ) : (qtdReal !== null ? `${qtdReal} un` : '-')}
-                                            </td>
-                                        )}
-                                        
-                                        <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
-                                            {isEditandoValores ? (
-                                                <input type="number" step="0.01" value={valoresEditados[item.id]?.valorUnitarioPedido || ''} onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], valorUnitarioPedido: e.target.value } }))} style={{...styles.inputTable, width: '90px'}} />
-                                            ) : (fMoney(vlrPrevisto))}
-                                        </td>
-                                        
-                                        {mostrarReais && (
-                                            <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
-                                                {isEditandoReais ? (
-                                                    <input type="number" step="0.01" value={valoresReaisEditados[item.id]?.valorUnitarioReal || ''} onChange={e => setValoresReaisEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], valorUnitarioReal: e.target.value } }))} style={{...styles.inputTable, width: '90px', borderColor: '#4ade80'}} />
-                                                ) : (vlrReal !== null ? fMoney(vlrReal) : '-')}
-                                            </td>
-                                        )}
-
-                                        {mostrarReais && (
-                                            <td style={{ ...styles.td, textAlign: 'center' }}>
-                                                {(() => {
-                                                    const currentVlrReal = isEditandoReais ? Number(valoresReaisEditados[item.id]?.valorUnitarioReal || 0) : vlrReal;
-                                                    if (currentVlrReal !== null && vlrPrevisto > 0 && currentVlrReal > 0) {
-                                                        if (currentVlrReal > vlrPrevisto) {
-                                                            const diff = ((currentVlrReal - vlrPrevisto) / vlrPrevisto) * 100;
-                                                            return <span style={{ color: diff > 5 ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>{diff > 5 && <AlertTriangle size={14} />} +{diff.toFixed(1)}%</span>;
-                                                        } else if (currentVlrReal < vlrPrevisto) {
-                                                            const diff = ((vlrPrevisto - currentVlrReal) / vlrPrevisto) * 100;
-                                                            return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>-{diff.toFixed(1)}%</span>;
-                                                        }
-                                                    }
-                                                    return <span style={{ color: '#9ca3af' }}>-</span>;
-                                                })()}
-                                            </td>
-                                        )}
-
-                                        <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
-                                            {isEditandoValores ? fMoney((valoresEditados[item.id]?.valorUnitarioPedido || 0) * (valoresEditados[item.id]?.quantidadePedida || 0)) : fMoney(vlrPrevisto * qtdPedida)}
-                                        </td>
-
-                                        {mostrarReais && (
-                                            <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
-                                                {isEditandoReais 
-                                                    ? fMoney((valoresReaisEditados[item.id]?.valorUnitarioReal || 0) * (valoresReaisEditados[item.id]?.quantidadeReal || 0))
-                                                    : (qtdReal !== null && vlrReal !== null ? fMoney(vlrReal * qtdReal) : '-')}
-                                            </td>
-                                        )}
-
-                                        <td style={{ ...styles.td, textAlign: 'center' }}>
-                                            <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
-                                                {pedido.status === 'CANCELADO' ? 'CANCELADO' : (
-                                                mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
-                                                    ? 'FALTA PARCIAL' : (item.statusRecebimento || 'AGUARDANDO')
+                                    return (
+                                        <tr key={item.id}>
+                                            <td style={styles.td}>
+                                                <strong style={{ display: 'block', textDecoration: pedido.status === 'CANCELADO' ? 'line-through' : 'none' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                                {item.condicaoAplicada && (
+                                                  <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                                    <Tags size={12} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
+                                                  </div>
                                                 )}
-                                            </span>
-                                        </td>
-
-                                        {podeAdicionarProduto && !isEditandoValores && (
-                                            <td style={{ ...styles.td, textAlign: 'center' }}>
-                                                <button onClick={() => handleRemoverItemDoPedido(item.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover produto (retorna para Cotação Aberta)"><Trash2 size={18} /></button>
+                                                {item.valorAlteradoAposPedido && <span style={{ display: 'inline-block', fontSize: '11px', color: '#d97706', fontWeight: 'bold', marginTop: '4px' }}><AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '2px' }} /> Valor/Qtd editado pós-pedido</span>}
                                             </td>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                            
+                                            <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f9fafb' }}>
+                                                {isEditandoValores ? (
+                                                    <input type="number" min="1" value={valoresEditados[item.id]?.quantidadePedida || ''} onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantidadePedida: e.target.value } }))} style={styles.inputTable} />
+                                                ) : (`${qtdPedida} un`)}
+                                            </td>
+                                            
+                                            {mostrarReais && (
+                                                <td style={{ ...styles.td, textAlign: 'center', backgroundColor: '#f0fdf4', fontWeight: 'bold', color: (qtdReal !== null && qtdReal !== qtdPedida) ? '#dc2626' : '#16a34a' }}>
+                                                    {isEditandoReais ? (
+                                                        <input type="number" min="0" value={valoresReaisEditados[item.id]?.quantidadeReal || ''} onChange={e => setValoresReaisEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], quantidadeReal: e.target.value } }))} style={{...styles.inputTable, borderColor: '#4ade80'}} />
+                                                    ) : (qtdReal !== null ? `${qtdReal} un` : '-')}
+                                                </td>
+                                            )}
+                                            
+                                            <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
+                                                {isEditandoValores ? (
+                                                    <input type="number" step="0.01" value={valoresEditados[item.id]?.valorUnitarioPedido || ''} onChange={e => setValoresEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], valorUnitarioPedido: e.target.value } }))} style={{...styles.inputTable, width: '90px'}} />
+                                                ) : (fMoney(vlrPrevisto))}
+                                            </td>
+                                            
+                                            {mostrarReais && (
+                                                <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                                    {isEditandoReais ? (
+                                                        <input type="number" step="0.01" value={valoresReaisEditados[item.id]?.valorUnitarioReal || ''} onChange={e => setValoresReaisEditados(prev => ({ ...prev, [item.id]: { ...prev[item.id], valorUnitarioReal: e.target.value } }))} style={{...styles.inputTable, width: '90px', borderColor: '#4ade80'}} />
+                                                    ) : (vlrReal !== null ? fMoney(vlrReal) : '-')}
+                                                </td>
+                                            )}
+
+                                            {mostrarReais && (
+                                                <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                    {(() => {
+                                                        const currentVlrReal = isEditandoReais ? Number(valoresReaisEditados[item.id]?.valorUnitarioReal || 0) : vlrReal;
+                                                        if (currentVlrReal !== null && vlrPrevisto > 0 && currentVlrReal > 0) {
+                                                            if (currentVlrReal > vlrPrevisto) {
+                                                                const diff = ((currentVlrReal - vlrPrevisto) / vlrPrevisto) * 100;
+                                                                return <span style={{ color: diff > 5 ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>{diff > 5 && <AlertTriangle size={14} />} +{diff.toFixed(1)}%</span>;
+                                                            } else if (currentVlrReal < vlrPrevisto) {
+                                                                const diff = ((vlrPrevisto - currentVlrReal) / vlrPrevisto) * 100;
+                                                                return <span style={{ color: '#16a34a', fontWeight: 'bold' }}>-{diff.toFixed(1)}%</span>;
+                                                            }
+                                                        }
+                                                        return <span style={{ color: '#9ca3af' }}>-</span>;
+                                                    })()}
+                                                </td>
+                                            )}
+
+                                            <td style={{ ...styles.td, textAlign: 'right', color: '#6b7280', backgroundColor: '#f9fafb' }}>
+                                                {isEditandoValores ? fMoney((valoresEditados[item.id]?.valorUnitarioPedido || 0) * (valoresEditados[item.id]?.quantidadePedida || 0)) : fMoney(vlrPrevisto * qtdPedida)}
+                                            </td>
+
+                                            {mostrarReais && (
+                                                <td style={{ ...styles.td, textAlign: 'right', fontWeight: 'bold', color: '#1f2937', backgroundColor: '#f0fdf4' }}>
+                                                    {isEditandoReais 
+                                                        ? fMoney((valoresReaisEditados[item.id]?.valorUnitarioReal || 0) * (valoresReaisEditados[item.id]?.quantidadeReal || 0))
+                                                        : (qtdReal !== null && vlrReal !== null ? fMoney(vlrReal * qtdReal) : '-')}
+                                                </td>
+                                            )}
+
+                                            <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
+                                                    {pedido.status === 'CANCELADO' ? 'CANCELADO' : (
+                                                    mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
+                                                        ? 'FALTA PARCIAL' : (item.statusRecebimento || 'AGUARDANDO')
+                                                    )}
+                                                </span>
+                                            </td>
+
+                                            {podeAdicionarProduto && !isEditandoValores && (
+                                                <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                    <button onClick={() => handleRemoverItemDoPedido(item.id)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover produto (retorna para Cotação Aberta)"><Trash2 size={18} /></button>
+                                                </td>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
-                {/* MODAIS (SUGESTÕES, ADD ITEM, DEVOLUÇÃO, ETC) */}
                 {isDevolucaoModalOpen && <DevolucaoModal pedidoId={pedido.id} onClose={() => setIsDevolucaoModalOpen(false)} onSuccess={() => { setIsDevolucaoModalOpen(false); carregarPedido(); }} />}
                 
-                {/* Ocultado da visualização por limites de caractere, o restante dos modais da tela original permanecem intactos aqui... */}
+                {modalFalhaAberto && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: 0, fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <XCircle size={20} color="#ef4444" /> Registrar Falha de Entrega
+                                </h3>
+                                <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+                            
+                            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+                                O Pedido <strong>#{pedido.id}</strong> será marcado como Falha/Cancelado.
+                            </p>
+
+                            <div style={{ marginBottom: '15px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
+                                <select 
+                                    value={motivoFalha} 
+                                    onChange={e => setMotivoFalha(e.target.value)}
+                                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}
+                                >
+                                    <option value="">-- Selecione o Motivo --</option>
+                                    <option value="Prazo Estourado (24h)">Prazo Estourado (24h)</option>
+                                    <option value="Pedido não confirmado pelo fornecedor">Pedido não confirmado pelo fornecedor</option>
+                                    <option value="Faturamento não realizado">Faturamento não realizado</option>
+                                    <option value="Ruptura na Entrega (Não Entregue)">Ruptura na Entrega (Não Entregue)</option>
+                                    <option value="Outro Motivo">Outro...</option>
+                                </select>
+                            </div>
+
+                            <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
+                                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '12px' }}>O que fazer com os itens deste pedido?</label>
+                                
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                                    <input type="radio" checked={acaoDestino === 'ORIGINAL'} onChange={() => setAcaoDestino('ORIGINAL')} style={{ transform: 'scale(1.2)' }} />
+                                    <span>Devolver para a <strong>Cotação Original</strong> (se houver)</span>
+                                </label>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                                    <input type="radio" checked={acaoDestino === 'NOVA'} onChange={() => setAcaoDestino('NOVA')} style={{ transform: 'scale(1.2)' }} />
+                                    <span>Gerar uma <strong>Nova Cotação</strong> com estes itens</span>
+                                </label>
+
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                                    <input type="radio" checked={acaoDestino === 'EXISTENTE'} onChange={() => setAcaoDestino('EXISTENTE')} style={{ transform: 'scale(1.2)' }} />
+                                    <span>Adicionar em uma <strong>Cotação Ativa</strong></span>
+                                </label>
+
+                                {acaoDestino === 'EXISTENTE' && (
+                                    <div style={{ marginTop: '10px', marginLeft: '24px' }}>
+                                        <select 
+                                            value={cotacaoDestinoId} 
+                                            onChange={e => setCotacaoDestinoId(e.target.value)}
+                                            style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px' }}
+                                        >
+                                            <option value="">-- Selecione a Cotação --</option>
+                                            {cotacoesAtivas.map(c => (
+                                                <option key={c.id} value={c.id}>#{c.id} - {c.descricao} ({c.status})</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+                            </div>
+
+                            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+                                <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
+                                <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    Confirmar Cancelamento
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isModalSugestoesAberto && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '600px', maxHeight: '80vh', overflowY: 'auto' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: '0 0 18px 0', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}><Tag size={20} color="#eab308"/> Sugestões do Fornecedor</h3>
+                                <button onClick={() => setIsModalSugestoesAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                {pedido.sugestoes?.map(sug => {
+                                    const state = sugestoesEditaveis[sug.id] || { ...sug, quantidadeAtualizada: sug.quantidade, precoAplicado: sug.precoUnitario, condicaoAplicada: false };
+                                    const temCondicao = sug.quantidadeCondicao && sug.precoCondicao;
+
+                                    return (
+                                        <div key={sug.id} style={{ border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', backgroundColor: '#f8fafc' }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '10px', flexWrap: 'wrap' }}>
+                                                <div style={{ flex: 1, minWidth: '250px' }}>
+                                                    <h4 style={{ margin: '0 0 4px 0', color: '#1e293b', fontSize: '16px' }}>{sug.nomeProduto}</h4>
+                                                    
+                                                    {temCondicao && (
+                                                        <div style={{ marginBottom: '10px', marginTop: '6px' }}>
+                                                            {state.condicaoAplicada ? (
+                                                                <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                                                    <Tags size={14} /> Condição Ativada: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                                                </div>
+                                                            ) : (
+                                                                <button 
+                                                                    type="button"
+                                                                    onClick={() => handleForcarAceitarCondicaoSugestao(sug.id)}
+                                                                    style={{ fontSize: '11px', color: '#854d0e', backgroundColor: '#fef08a', padding: '6px 12px', borderRadius: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '6px', border: '1px solid #fde047', cursor: 'pointer', transition: '0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}
+                                                                >
+                                                                    <Tags size={14} /> Aceitar Condição: A partir de {sug.quantidadeCondicao} un por {fMoney(sug.precoCondicao)}
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
+
+                                                    {sug.observacao && <p style={{ margin: '0 0 10px 0', fontSize: '13px', color: '#64748b', fontStyle: 'italic' }}>Obs: {sug.observacao}</p>}
+                                                    
+                                                    <div style={{ display: 'flex', gap: '16px', fontSize: '14px', color: '#475569', alignItems: 'center', backgroundColor: 'white', padding: '10px', borderRadius: '6px', border: '1px solid #e2e8f0', flexWrap: 'wrap' }}>
+                                                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                                            <span style={{fontSize: '13px', fontWeight: 'bold'}}>Qtd:</span>
+                                                            <input 
+                                                                type="number" 
+                                                                min="1"
+                                                                value={state.quantidadeAtualizada || ''}
+                                                                onChange={(e) => handleQtdSugestaoChange(sug.id, e.target.value)}
+                                                                onFocus={(e) => e.target.select()}
+                                                                style={{ width: '60px', padding: '6px', textAlign: 'center', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontWeight: 'bold' }}
+                                                            />
+                                                        </div>
+                                                        <span>Preço Unit: <strong style={{ color: state.condicaoAplicada ? '#16a34a' : '#1e293b', fontSize: '15px' }}>{fMoney(state.precoAplicado)}</strong></span>
+                                                        <span style={{ color: '#16a34a', borderLeft: '1px solid #cbd5e1', paddingLeft: '16px' }}>Subtotal: <strong style={{fontSize: '15px'}}>{fMoney((state.quantidadeAtualizada || 0) * (state.precoAplicado || 0))}</strong></span>
+                                                    </div>
+                                                </div>
+                                                <div style={{ display: 'flex', gap: '8px', marginTop: '10px' }}>
+                                                    <button onClick={() => handleRecusarSugestao(sug.id)} style={{ padding: '8px 16px', borderRadius: '6px', border: '1px solid #fca5a5', backgroundColor: '#fef2f2', color: '#ef4444', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                                        <X size={16}/> Recusar
+                                                    </button>
+                                                    <button onClick={() => handleAceitarSugestao(sug.id)} style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 2px 4px rgba(16, 185, 129, 0.3)' }}>
+                                                        <Check size={16}/> Aceitar e Incluir
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+                )}
+
+                {isAddItemModalOpen && (
+                    <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+                        <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '480px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+                                <h3 style={{ margin: '0 0 18px 0', color: '#1f2937' }}>Adicionar Produto Extra</h3>
+                                <button onClick={() => setIsAddItemModalOpen(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                            </div>
+
+                            <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#f1f5f9', padding: '6px', borderRadius: '8px', flexWrap: 'wrap' }}>
+                                {pedido.cotacao?.id && (
+                                    <button 
+                                        onClick={() => { setTipoAdicao('COTACAO'); setNovoItem({...novoItem, nomeProduto: ''}); }} 
+                                        style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'COTACAO' ? 'white' : 'transparent', color: tipoAdicao === 'COTACAO' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'COTACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                    >
+                                        De Cotações
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={() => { setTipoAdicao('DNA'); setNovoItem({...novoItem, nomeProduto: ''}); setCodigoDna(''); }} 
+                                    style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'DNA' ? 'white' : 'transparent', color: tipoAdicao === 'DNA' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'DNA' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                >
+                                    Por Código DNA
+                                </button>
+                                <button 
+                                    onClick={() => { setTipoAdicao('MANUAL'); setNovoItem({...novoItem, nomeProduto: ''}); }} 
+                                    style={{ flex: '1 1 120px', padding: '8px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', backgroundColor: tipoAdicao === 'MANUAL' ? 'white' : 'transparent', color: tipoAdicao === 'MANUAL' ? '#2563eb' : '#64748b', boxShadow: tipoAdicao === 'MANUAL' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}
+                                >
+                                    Manualmente
+                                </button>
+                            </div>
+
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                                
+                                {tipoAdicao === 'COTACAO' && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione um Produto Pendente</label>
+                                        <select style={styles.inputModal} value={novoItem.itemCotacaoId || ''} onChange={handleSelectPendente}>
+                                            <option value="">{itensPendentes.length === 0 ? 'Nenhum produto pendente encontrado' : '-- Selecione --'}</option>
+                                            {itensPendentes.map(p => (
+                                                <option key={p.idItem} value={p.idItem}>
+                                                    [Cot. #{p.cotacaoId}] {p.nomeProduto} - Qtd: {p.quantidade}
+                                                </option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                )}
+
+                                {tipoAdicao === 'DNA' && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Digite o Código DNA</label>
+                                        <div style={{ display: 'flex', gap: '10px' }}>
+                                            <div style={{ position: 'relative', flex: 1 }}>
+                                                <Search size={18} color="#9ca3af" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                                                <input type="text" style={{...styles.inputModal, paddingLeft: '35px'}} value={codigoDna} onChange={e => setCodigoDna(e.target.value)} placeholder="Ex: 12345" />
+                                            </div>
+                                            <button onClick={handleBuscarDna} style={{ padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>Buscar</button>
+                                        </div>
+                                        {novoItem.nomeProduto && (
+                                            <div style={{ marginTop: '12px', padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px solid #bbf7d0', color: '#166534', fontSize: '14px', fontWeight: '600' }}>
+                                                <CheckCircle size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                                                {novoItem.nomeProduto}
+                                            </div>
+                                        )}
+                                    </div>
+                                )}
+
+                                {tipoAdicao === 'MANUAL' && (
+                                    <div>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Nome do Produto</label>
+                                        <input type="text" style={styles.inputModal} value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" />
+                                    </div>
+                                )}
+                                
+                                <div style={{ display: 'flex', gap: '15px' }}>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd. Pedida</label>
+                                        <input type="number" min="1" style={styles.inputModal} value={novoItem.quantidadePedida} onChange={e => setNovoItem({...novoItem, quantidadePedida: e.target.value})} onFocus={e => e.target.select()}/>
+                                    </div>
+                                    <div style={{ flex: 1 }}>
+                                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
+                                        <input type="number" step="0.01" style={styles.inputModal} value={novoItem.valorUnitarioPedido} onChange={e => setNovoItem({...novoItem, valorUnitarioPedido: e.target.value})} onFocus={e => e.target.select()}/>
+                                    </div>
+                                </div>
+
+                                <button 
+                                    onClick={handleSalvarNovoItem} 
+                                    disabled={salvandoItem || (tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId)}
+                                    style={{ width: '100%', padding: '12px', marginTop: '10px', backgroundColor: ((tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) || !novoItem.nomeProduto) ? '#9ca3af' : '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: ((tipoAdicao === 'COTACAO' && !novoItem.itemCotacaoId) || !novoItem.nomeProduto) ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                                >
+                                    <Save size={18} style={{ marginRight: '8px' }}/> {salvandoItem ? 'Adicionando...' : 'Confirmar e Adicionar'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
                 
             </main>
         </div>
@@ -692,6 +933,7 @@ const styles = {
     btnConferir: { padding: '10px 20px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnAddItem: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', fontSize: '13px' },
+    inputModal: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' },
     statusBadge: (status, label) => ({ fontWeight: '700', color: status === 'CANCELADO' ? '#991b1b' : ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) || label.includes('ESTOURADO') ? '#dc2626' : '#2563eb' }),
     itemStatus: (status, qtdReal, qtdPedida, pedidoStatus) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
