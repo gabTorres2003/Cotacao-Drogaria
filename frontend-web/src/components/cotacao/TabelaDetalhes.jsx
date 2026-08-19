@@ -11,16 +11,17 @@ export default function TabelaDetalhes({
   onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
-  const [isHeaderPinned, setIsHeaderPinned] = useState(false); // NOVO: Controle de congelamento do cabeçalho geral
+  const [isHeaderPinned, setIsHeaderPinned] = useState(false);
 
-  // ESTADOS DE ARRASTAR, SOLTAR E CONGELAR COLUNAS
+  // CONTROLES DE ARRASTE, COLUNAS E VALORES IRREAIS
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
   const [draggedSupplier, setDraggedSupplier] = useState(null);
   const [pinnedStats, setPinnedStats] = useState([]);
-
-  // ESTADO PARA PREÇOS IRREAIS
   const [valoresIrreais, setValoresIrreais] = useState({});
+
+  // NOVO ESTADO: LINHAS FIXADAS (PIN)
+  const [pinnedRows, setPinnedRows] = useState([]);
 
   useEffect(() => {
       setSupplierOrder(prev => {
@@ -32,19 +33,18 @@ export default function TabelaDetalhes({
       });
   }, [fornecedores]);
 
+  const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
   const togglePinStat = (stat) => setPinnedStats(prev => prev.includes(stat) ? prev.filter(s => s !== stat) : [...prev, stat]);
 
   const getLeftOffset = (colKey, type = 'stat') => {
-      let offset = 250; // Começa após a largura fixa da coluna "Produto"
+      let offset = 250; 
       const statsOrder = ['quantidade', 'estoque', 'vendidoNoMes', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco'];
       const widths = { quantidade: 130, estoque: 130, vendidoNoMes: 140, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150 };
       
       for (let stat of statsOrder) {
           if (stat === colKey && type === 'stat') break;
-          if (pinnedStats.includes(stat) && colunasVisiveis[stat]) {
-              offset += widths[stat];
-          }
+          if (pinnedStats.includes(stat) && colunasVisiveis[stat]) offset += widths[stat];
       }
       if (type === 'supplier') {
           for (let stat of statsOrder) {
@@ -68,29 +68,332 @@ export default function TabelaDetalhes({
   const getHeaderStyle = (isPinnedCol, leftPos, minWidth, isRight = false) => {
       const isPinned = isHeaderPinned || isPinnedCol;
       return {
-          ...thStyle,
-          minWidth,
-          textAlign: isRight ? 'right' : 'left',
-          position: isPinned ? 'sticky' : 'relative',
-          top: isHeaderPinned ? '0' : 'auto',
+          ...thStyle, minWidth, textAlign: isRight ? 'right' : 'left',
+          position: isPinned ? 'sticky' : 'relative', top: isHeaderPinned ? '0' : 'auto',
           left: isPinnedCol ? `${leftPos}px` : 'auto',
           zIndex: isHeaderPinned && isPinnedCol ? 40 : (isHeaderPinned ? 30 : (isPinnedCol ? 20 : 10)),
           backgroundColor: isPinnedCol ? '#f0fdf4' : '#ffffff',
-          boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : (isHeaderPinned ? '0 2px 5px -2px rgba(0,0,0,0.1)' : 'none')
+          boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
       };
   };
 
-  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151') => ({
-      ...tdStyle,
-      textAlign: isRight ? 'right' : 'center',
-      fontWeight: isBold ? '500' : 'normal',
-      color: color,
-      position: isPinnedCol ? 'sticky' : 'relative',
-      left: isPinnedCol ? `${leftPos}px` : 'auto',
+  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151', isPinnedRow = false) => ({
+      ...tdStyle, textAlign: isRight ? 'right' : 'center', fontWeight: isBold ? '500' : 'normal', color: color,
+      position: isPinnedCol ? 'sticky' : 'relative', left: isPinnedCol ? `${leftPos}px` : 'auto',
       zIndex: isPinnedCol ? 15 : 1,
-      backgroundColor: isPinnedCol ? '#f8fafc' : 'inherit',
+      backgroundColor: isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? '#f8fafc' : 'inherit'),
       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
   });
+
+  // SEPARA ITENS FIXADOS DOS DEMAIS
+  const pinnedItems = relatorioExibicao.filter(i => pinnedRows.includes(i.idItem));
+  const unpinnedItems = relatorioExibicao.filter(i => !pinnedRows.includes(i.idItem));
+
+  // RENDERIZAÇÃO COMPARTILHADA DA LINHA
+  const renderItemRow = (item, isPinnedRow) => {
+      const isBloqueado = !!itensJaComprados[item.idItem];
+      const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
+      const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
+
+      const ofertasValidas = supplierOrder.map(forn => {
+          let pO = item.precosPorFornecedor?.[forn] || 0;
+          let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+          let val = Infinity;
+          if (pO > 0) val = pO;
+          if (pS > 0 && pS < val) val = pS; 
+          if (pO <= 0 && pS > 0) val = pS;
+          
+          const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+          let isDiscrepante = false;
+
+          if (precoBaseAlerta > 0 && pO > 0) {
+              if (pO > precoBaseAlerta * 2.0 || pO < precoBaseAlerta * 0.5) {
+                  isDiscrepante = true;
+              }
+          }
+          
+          if (val !== Infinity) {
+              if (isIrreal) {
+                  val = Infinity; 
+              } else if (mostrarAlertasPreco && isDiscrepante) {
+                  val = Infinity; 
+              }
+          }
+          return { forn, val };
+      }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
+
+      const rankMap = {};
+      ofertasValidas.forEach((vo, index) => { rankMap[vo.forn] = index + 1; });
+
+      const bestValidForn = ofertasValidas.length > 0 ? ofertasValidas[0].forn : null;
+      let currentWinner = decisaoCompra[item.idItem];
+      const isCurrentWinnerDisqualified = currentWinner && !ofertasValidas.some(o => o.forn === currentWinner);
+      const displayWinner = isCurrentWinnerDisqualified ? bestValidForn : currentWinner;
+
+      return (
+        <tr key={item.idItem} style={{ backgroundColor: isPinnedRow ? '#f0f9ff' : '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
+          <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#e0f2fe' : '#ffffff', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+            {editandoItem === `${item.idItem}-nome` ? (
+              <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                  
+                  <button type="button" onClick={() => toggleRowPin(item.idItem)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: isPinnedRow ? '#2563eb' : '#9ca3af' }} title={isPinnedRow ? "Descongelar Linha" : "Congelar Linha no Topo"}>
+                    <Pin size={16} />
+                  </button>
+
+                  <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
+                    {getNomeExibicao(item.nomeProduto)}
+                  </strong>
+                  {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
+                  {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
+                  {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
+                  {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
+                </div>
+                
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <BadgeOrigem origem={item.origemItem} />
+                  {isBloqueado && (
+                    <>
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
+                      {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
+                    </>
+                  )}
+                </div>
+              </div>
+            )}
+          </td>
+          
+          {colunasVisiveis.quantidade && (() => {
+              const isPinned = pinnedStats.includes('quantidade');
+              return (
+                <td style={getCellColStyle(isPinned, getLeftOffset('quantidade', 'stat'), false, false, textStyle.color, isPinnedRow)}>
+                  {editandoItem === `${item.idItem}-qtd` ? (
+                    <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
+                  ) : (
+                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
+                  )}
+                </td>
+              );
+          })()}
+          
+          {colunasVisiveis.estoque && (() => {
+              const isPinned = pinnedStats.includes('estoque');
+              return <td style={getCellColStyle(isPinned, getLeftOffset('estoque', 'stat'), false, false, textStyle.color, isPinnedRow)}><span style={textStyle}>{item.estoque ?? '-'}</span></td>;
+          })()}
+
+          {isItens && (
+            <>
+              {colunasVisiveis.vendidoNoMes && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
+              {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
+              {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
+              {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
+              {colunasVisiveis.ultVendaData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
+            </>
+          )}
+
+          {colunasVisiveis.ultimoPreco && (() => {
+              const isPinned = pinnedStats.includes('ultimoPreco');
+              return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
+          })()}
+
+          {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+            
+            const rank = rankMap[f];
+            const isWinner = displayWinner === f;
+
+            const precoOriginal = item.precosPorFornecedor?.[f] || 0;
+            const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
+            const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
+            const obs = item.observacoesPorFornecedor?.[f];
+            const substituto = item.substitutosPorFornecedor?.[f];
+            const isTrocaAceita = aceitesTroca[item.idItem];
+            const isEmFaltaOriginal = precoOriginal <= 0; 
+            const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
+            
+            const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
+            let isPrecoDiscrepante = false;
+
+            if (precoBaseAlerta > 0 && precoOriginal > 0) {
+                if (precoOriginal > precoBaseAlerta * 2.0 || precoOriginal < precoBaseAlerta * 0.5) {
+                    isPrecoDiscrepante = true;
+                }
+            }
+
+            let condsArr = [];
+            const jsonStr = item.condicoesEscalonamentoPorFornecedor?.[f];
+            try { if (jsonStr) condsArr = JSON.parse(jsonStr); } catch(e){}
+            if (condsArr.length === 0 && item.qtdCondicaoPorFornecedor?.[f]) {
+                condsArr.push({ qtd: item.qtdCondicaoPorFornecedor[f], preco: item.precoCondicaoPorFornecedor[f] });
+            }
+            
+            let condsArrSubst = [];
+            const jsonStrSubst = item.condicoesEscalonamentoSubstPorFornecedor?.[f];
+            try { if (jsonStrSubst) condsArrSubst = JSON.parse(jsonStrSubst); } catch(e){}
+            if (condsArrSubst.length === 0 && item.qtdCondicaoSubstPorFornecedor?.[f]) {
+                condsArrSubst.push({ qtd: item.qtdCondicaoSubstPorFornecedor[f], preco: item.precoCondicaoSubstPorFornecedor[f] });
+            }
+
+            const isPinnedCol = pinnedSuppliers.includes(f);
+            const leftPos = getLeftOffset(f, 'supplier');
+
+            return (
+              <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && handleSetWinner(item.idItem, f)} 
+                  style={{ 
+                      ...tdStyle, 
+                      backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? '#f8fafc' : 'inherit')), 
+                      textAlign: 'center', 
+                      borderLeft: '1px solid #f3f4f6', 
+                      border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
+                      cursor: isBloqueado || isEncerrada || item.excluido || isIrreal ? 'not-allowed' : 'pointer', 
+                      verticalAlign: 'top', 
+                      position: isPinnedCol ? 'sticky' : 'relative', 
+                      left: isPinnedCol ? `${leftPos}px` : 'auto',
+                      zIndex: isPinnedCol ? 15 : 1,
+                      boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
+                      opacity: isBloqueado ? 0.6 : (isIrreal ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
+                  }}>
+                
+                {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
+                
+                {rank > 0 && !isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: rank === 1 ? '#4ade80' : '#fde047', color: rank === 1 ? '#064e3b' : '#713f12', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5, border: `1px solid ${rank === 1 ? '#22c55e' : '#facc15'}` }}>{rank}º LUGAR</div>}
+
+                <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
+                    {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
+                </div>
+                
+                {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
+                   <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid #fca5a5' }} title="Preço muito divergente do padrão.">
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <AlertTriangle size={14} /> Divergência Alta
+                      </div>
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => ({...prev, [`${item.idItem}-${f}`]: true})); }}
+                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                      >
+                        Confirmar Valor Irreal
+                      </button>
+                   </div>
+                )}
+
+                {isIrreal && (
+                   <div style={{ fontSize: '11px', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #d1d5db' }}>
+                      ❌ Valor Irreal
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
+                        style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Desfazer
+                      </button>
+                   </div>
+                )}
+                
+                {!isEmFaltaOriginal && condsArr.length > 0 && !isIrreal && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
+                        {condsArr.map((cond, idx) => (
+                            <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                                <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                            </div>
+                        ))}
+                    </div>
+                )}
+
+                {substituto && !isIrreal && (
+                  <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
+                      <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
+                      <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
+                        <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
+                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
+                        
+                        {condsArrSubst.length > 0 && (
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                              {condsArrSubst.map((cond, idx) => (
+                                  <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                      <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                                  </div>
+                              ))}
+                          </div>
+                        )}
+                      </div>
+                    </label>
+                  </div>
+                )}
+                {obs && !isIrreal && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
+
+                {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && !isIrreal && (
+                  <div style={{ marginTop: '10px' }}>
+                    <button
+                      type="button"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
+                        const nomeFinal = isTroca ? substituto : item.nomeProduto;
+                        const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
+                        const condicoesPassadas = isTroca ? condsArrSubst : condsArr;
+                        let precoBase = isTroca ? precoSubstituto : precoOriginal;
+                        
+                        let precoFinal = precoBase;
+                        let condAplicada = false;
+                        let qCAplicada = null;
+                        let pCAplicada = null;
+                        
+                        if (condicoesPassadas.length > 0) {
+                            const sorted = [...condicoesPassadas].sort((a,b) => b.qtd - a.qtd);
+                            for (let c of sorted) {
+                                if (qtdFinal >= c.qtd) {
+                                    precoFinal = c.preco;
+                                    qCAplicada = c.qtd;
+                                    pCAplicada = c.preco;
+                                    condAplicada = true;
+                                    break;
+                                }
+                            }
+                        }
+
+                        onAbrirAddPedidoModal({
+                          idItem: item.idItem,
+                          nomeProduto: nomeFinal,
+                          quantidade: qtdFinal,
+                          ultimoPreco: precoFinal,
+                          precoCustom: precoFinal,
+                          precoBase: precoBase,
+                          condicoes: condicoesPassadas,     
+                          qtdCondicao: qCAplicada,     
+                          precoCondicao: pCAplicada,       
+                          condicaoAplicada: condAplicada
+                        }, f);
+                      }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+                    >
+                      <ShoppingCart size={12} /> + Pedido
+                    </button>
+                  </div>
+                )}
+              </td>
+            );
+          })}
+
+          {isItens && (
+            <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#f0f9ff' : '#ffffff', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+              {subAbaItens === 'comprados' ? (
+                <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
+              ) : (
+                <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
+                  <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
+                    <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
+                  </button>
+                </div>
+              )}
+            </td>
+          )}
+        </tr>
+      );
+  };
+
+  const shouldStickHead = isHeaderPinned || pinnedRows.length > 0;
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
@@ -111,7 +414,8 @@ export default function TabelaDetalhes({
 
       <div style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
-          <thead>
+          
+          <thead style={{ position: shouldStickHead ? 'sticky' : 'static', top: 0, zIndex: 50, backgroundColor: '#ffffff', boxShadow: shouldStickHead ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>
             <tr>
               <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
               
@@ -121,7 +425,7 @@ export default function TabelaDetalhes({
                       <th style={getHeaderStyle(isPinned, getLeftOffset('quantidade', 'stat'), '130px')}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
-                              <button title={isPinned ? "Descongelar (Soltar linha e cabeçalho)" : "Congelar (Fixar na tela inteira)"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
                           </div>
                       </th>
                   );
@@ -213,307 +517,14 @@ export default function TabelaDetalhes({
               
               {isItens && <th style={{ ...thStyle, textAlign: 'center', minWidth: '100px', position: 'sticky', right: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Ações</th>}
             </tr>
+            
+            {pinnedItems.map(item => renderItemRow(item, true))}
           </thead>
+
           <tbody>
-            {relatorioExibicao.map((item) => {
-              const isBloqueado = !!itensJaComprados[item.idItem];
-              const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
-              const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
-
-              const ofertasValidas = supplierOrder.map(forn => {
-                  let pO = item.precosPorFornecedor?.[forn] || 0;
-                  let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
-                  let val = Infinity;
-                  if (pO > 0) val = pO;
-                  if (pS > 0 && pS < val) val = pS; 
-                  if (pO <= 0 && pS > 0) val = pS;
-                  
-                  const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
-                  let isDiscrepante = false;
-
-                  if (precoBaseAlerta > 0 && pO > 0) {
-                      if (pO > precoBaseAlerta * 2.0 || pO < precoBaseAlerta * 0.5) {
-                          isDiscrepante = true;
-                      }
-                  }
-                  
-                  if (val !== Infinity) {
-                      if (isIrreal) {
-                          val = Infinity; 
-                      } else if (mostrarAlertasPreco && isDiscrepante) {
-                          val = Infinity; 
-                      }
-                  }
-                  
-                  return { forn, val };
-              }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
-
-              const rankMap = {};
-              ofertasValidas.forEach((vo, index) => { rankMap[vo.forn] = index + 1; });
-
-              const bestValidForn = ofertasValidas.length > 0 ? ofertasValidas[0].forn : null;
-              let currentWinner = decisaoCompra[item.idItem];
-              const isCurrentWinnerDisqualified = currentWinner && !ofertasValidas.some(o => o.forn === currentWinner);
-              const displayWinner = isCurrentWinnerDisqualified ? bestValidForn : currentWinner;
-
-              return (
-                <tr key={item.idItem} style={{ backgroundColor: '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
-                  <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: 'inherit', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
-                    {editandoItem === `${item.idItem}-nome` ? (
-                      <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
-                    ) : (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                          <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
-                            {getNomeExibicao(item.nomeProduto)}
-                          </strong>
-                          {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
-                          {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
-                          {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
-                          {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
-                          <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
-                        </div>
-                        
-                        <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                          <BadgeOrigem origem={item.origemItem} />
-                          {isBloqueado && (
-                            <>
-                              <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
-                              {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
-                            </>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </td>
-                  
-                  {colunasVisiveis.quantidade && (() => {
-                      const isPinned = pinnedStats.includes('quantidade');
-                      return (
-                        <td style={getCellColStyle(isPinned, getLeftOffset('quantidade', 'stat'), false, false, textStyle.color)}>
-                          {editandoItem === `${item.idItem}-qtd` ? (
-                            <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
-                          ) : (
-                            <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
-                          )}
-                        </td>
-                      );
-                  })()}
-                  
-                  {colunasVisiveis.estoque && (() => {
-                      const isPinned = pinnedStats.includes('estoque');
-                      return <td style={getCellColStyle(isPinned, getLeftOffset('estoque', 'stat'), false, false, textStyle.color)}><span style={textStyle}>{item.estoque ?? '-'}</span></td>;
-                  })()}
-
-                  {isItens && (
-                    <>
-                      {colunasVisiveis.vendidoNoMes && <td style={tdStyle}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
-                      {colunasVisiveis.vendidoAposUltCompra && <td style={tdStyle}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
-                      {colunasVisiveis.ultCompraData && <td style={tdStyle}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
-                      {colunasVisiveis.ultCompraQtde && <td style={tdStyle}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
-                      {colunasVisiveis.ultVendaData && <td style={tdStyle}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
-                    </>
-                  )}
-
-                  {colunasVisiveis.ultimoPreco && (() => {
-                      const isPinned = pinnedStats.includes('ultimoPreco');
-                      return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5')}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
-                  })()}
-
-                  {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
-                    
-                    const rank = rankMap[f];
-                    const isWinner = displayWinner === f;
-
-                    const precoOriginal = item.precosPorFornecedor?.[f] || 0;
-                    const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
-                    const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
-                    const obs = item.observacoesPorFornecedor?.[f];
-                    const substituto = item.substitutosPorFornecedor?.[f];
-                    const isTrocaAceita = aceitesTroca[item.idItem];
-                    const isEmFaltaOriginal = precoOriginal <= 0; 
-                    const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
-                    
-                    const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
-                    let isPrecoDiscrepante = false;
-
-                    if (precoBaseAlerta > 0 && precoOriginal > 0) {
-                        if (precoOriginal > precoBaseAlerta * 2.0 || precoOriginal < precoBaseAlerta * 0.5) {
-                            isPrecoDiscrepante = true;
-                        }
-                    }
-
-                    let condsArr = [];
-                    const jsonStr = item.condicoesEscalonamentoPorFornecedor?.[f];
-                    try { if (jsonStr) condsArr = JSON.parse(jsonStr); } catch(e){}
-                    if (condsArr.length === 0 && item.qtdCondicaoPorFornecedor?.[f]) {
-                        condsArr.push({ qtd: item.qtdCondicaoPorFornecedor[f], preco: item.precoCondicaoPorFornecedor[f] });
-                    }
-                    
-                    let condsArrSubst = [];
-                    const jsonStrSubst = item.condicoesEscalonamentoSubstPorFornecedor?.[f];
-                    try { if (jsonStrSubst) condsArrSubst = JSON.parse(jsonStrSubst); } catch(e){}
-                    if (condsArrSubst.length === 0 && item.qtdCondicaoSubstPorFornecedor?.[f]) {
-                        condsArrSubst.push({ qtd: item.qtdCondicaoSubstPorFornecedor[f], preco: item.precoCondicaoSubstPorFornecedor[f] });
-                    }
-
-                    const isPinned = pinnedSuppliers.includes(f);
-                    const leftPos = getLeftOffset(f, 'supplier');
-
-                    return (
-                      <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && handleSetWinner(item.idItem, f)} 
-                          style={{ 
-                              ...tdStyle, 
-                              backgroundColor: isWinner ? '#ecfdf5' : (isPinned ? '#f8fafc' : 'inherit'), 
-                              textAlign: 'center', 
-                              borderLeft: '1px solid #f3f4f6', 
-                              border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
-                              cursor: isBloqueado || isEncerrada || item.excluido || isIrreal ? 'not-allowed' : 'pointer', 
-                              verticalAlign: 'top', 
-                              position: isPinned ? 'sticky' : 'relative', 
-                              left: isPinned ? `${leftPos}px` : 'auto',
-                              zIndex: isPinned ? 15 : 1,
-                              boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
-                              opacity: isBloqueado ? 0.6 : (isIrreal ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
-                          }}>
-                        
-                        {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
-                        
-                        {rank > 0 && !isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: rank === 1 ? '#4ade80' : '#fde047', color: rank === 1 ? '#064e3b' : '#713f12', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5, border: `1px solid ${rank === 1 ? '#22c55e' : '#facc15'}` }}>{rank}º LUGAR</div>}
-
-                        <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
-                            {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
-                        </div>
-                        
-                        {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
-                           <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid #fca5a5' }} title="Preço muito divergente do padrão.">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                <AlertTriangle size={14} /> Divergência Alta
-                              </div>
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => ({...prev, [`${item.idItem}-${f}`]: true})); }}
-                                style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
-                              >
-                                Confirmar Valor Irreal
-                              </button>
-                           </div>
-                        )}
-
-                        {isIrreal && (
-                           <div style={{ fontSize: '11px', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #d1d5db' }}>
-                              ❌ Valor Irreal
-                              <button 
-                                onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
-                                style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
-                              >
-                                Desfazer
-                              </button>
-                           </div>
-                        )}
-                        
-                        {!isEmFaltaOriginal && condsArr.length > 0 && !isIrreal && (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
-                                {condsArr.map((cond, idx) => (
-                                    <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
-                                        <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
-                        {substituto && !isIrreal && (
-                          <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
-                            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
-                              <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
-                              <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
-                                <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                                <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
-                                
-                                {condsArrSubst.length > 0 && (
-                                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                                      {condsArrSubst.map((cond, idx) => (
-                                          <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                              <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
-                                          </div>
-                                      ))}
-                                  </div>
-                                )}
-                              </div>
-                            </label>
-                          </div>
-                        )}
-                        {obs && !isIrreal && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
-
-                        {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && !isIrreal && (
-                          <div style={{ marginTop: '10px' }}>
-                            <button
-                              type="button"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
-                                const nomeFinal = isTroca ? substituto : item.nomeProduto;
-                                const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
-                                const condicoesPassadas = isTroca ? condsArrSubst : condsArr;
-                                let precoBase = isTroca ? precoSubstituto : precoOriginal;
-                                
-                                let precoFinal = precoBase;
-                                let condAplicada = false;
-                                let qCAplicada = null;
-                                let pCAplicada = null;
-                                
-                                if (condicoesPassadas.length > 0) {
-                                    const sorted = [...condicoesPassadas].sort((a,b) => b.qtd - a.qtd);
-                                    for (let c of sorted) {
-                                        if (qtdFinal >= c.qtd) {
-                                            precoFinal = c.preco;
-                                            qCAplicada = c.qtd;
-                                            pCAplicada = c.preco;
-                                            condAplicada = true;
-                                            break;
-                                        }
-                                    }
-                                }
-
-                                onAbrirAddPedidoModal({
-                                  idItem: item.idItem,
-                                  nomeProduto: nomeFinal,
-                                  quantidade: qtdFinal,
-                                  ultimoPreco: precoFinal,
-                                  precoCustom: precoFinal,
-                                  precoBase: precoBase,
-                                  condicoes: condicoesPassadas,     
-                                  qtdCondicao: qCAplicada,     
-                                  precoCondicao: pCAplicada,       
-                                  condicaoAplicada: condAplicada
-                                }, f);
-                              }}
-                              style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
-                            >
-                              <ShoppingCart size={12} /> + Pedido
-                            </button>
-                          </div>
-                        )}
-                      </td>
-                    );
-                  })}
-
-                  {isItens && (
-                    <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: 'inherit', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
-                      {subAbaItens === 'comprados' ? (
-                        <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
-                      ) : (
-                        <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                          <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
-                            <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
-                          </button>
-                        </div>
-                      )}
-                    </td>
-                  )}
-                </tr>
-              );
-            })}
+            {unpinnedItems.map(item => renderItemRow(item, false))}
           </tbody>
+
         </table>
       </div>
     </div>

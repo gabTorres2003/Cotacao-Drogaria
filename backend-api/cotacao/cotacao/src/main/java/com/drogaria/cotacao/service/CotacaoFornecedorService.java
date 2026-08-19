@@ -3,10 +3,15 @@ package com.drogaria.cotacao.service;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.CotacaoFornecedor;
 import com.drogaria.cotacao.model.Fornecedor;
+import com.drogaria.cotacao.model.PrecoCotacao;
+import com.drogaria.cotacao.model.SugestaoPromocao;
+import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
-import jakarta.persistence.EntityManager;
+import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
+import com.drogaria.cotacao.repository.SugestaoPromocaoRepository;
+import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
@@ -22,7 +27,11 @@ public class CotacaoFornecedorService {
     private final CotacaoFornecedorRepository repository;
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
-    private final EntityManager entityManager;
+    
+    // REPOSITÓRIOS INJETADOS PARA EXCLUSÃO SEGURA
+    private final PrecoCotacaoRepository precoCotacaoRepository;
+    private final SugestaoPromocaoRepository sugestaoPromocaoRepository;
+    private final ItemCotacaoRepository itemCotacaoRepository;
 
     @Transactional
     public void vincularFornecedores(Long cotacaoId, List<Long> fornecedorIds) {
@@ -66,20 +75,26 @@ public class CotacaoFornecedorService {
                 .orElseThrow(() -> new RuntimeException("Vínculo não encontrado"));
 
         Long idCotacao = vinculo.getCotacao().getId();
-        Long idFornecedor = vinculo.getFornecedor().getId();
+        Fornecedor fornecedor = vinculo.getFornecedor();
 
-        entityManager.createNativeQuery("DELETE FROM tb_precos_cotacao WHERE item_id IN (SELECT id FROM tb_itens_cotacao WHERE cotacao_id = :cotacaoId) AND fornecedor_id = :fornecedorId")
-                .setParameter("cotacaoId", idCotacao)
-                .setParameter("fornecedorId", idFornecedor)
-                .executeUpdate();
+        List<ItemCotacao> itens = itemCotacaoRepository.findByCotacao(vinculo.getCotacao());
+        if (itens != null && !itens.isEmpty()) {
+            List<PrecoCotacao> precos = precoCotacaoRepository.findByFornecedorAndItemIn(fornecedor, itens);
+            if (precos != null && !precos.isEmpty()) {
+                precoCotacaoRepository.deleteAll(precos);
+                log.info("Apagados {} preços do fornecedor {}", precos.size(), fornecedor.getNome());
+            }
+        }
 
-        entityManager.createNativeQuery("DELETE FROM tb_sugestoes_promocao WHERE cotacao_id = :cotacaoId AND fornecedor_id = :fornecedorId")
-                .setParameter("cotacaoId", idCotacao)
-                .setParameter("fornecedorId", idFornecedor)
-                .executeUpdate();
+        List<SugestaoPromocao> sugestoes = sugestaoPromocaoRepository.findByCotacaoIdAndFornecedorId(idCotacao, fornecedor.getId());
+        if (sugestoes != null && !sugestoes.isEmpty()) {
+            sugestaoPromocaoRepository.deleteAll(sugestoes);
+            log.info("Apagadas {} sugestões do fornecedor {}", sugestoes.size(), fornecedor.getNome());
+        }
 
         repository.deleteById(idVinculo);
 
+        // 3. REAVALIAR O STATUS DA COTAÇÃO
         Cotacao cotacao = cotacaoRepository.findById(idCotacao).orElse(null);
         if (cotacao != null && !"FINALIZADA".equals(cotacao.getStatus()) && !"CANCELADA".equals(cotacao.getStatus())) {
             List<CotacaoFornecedor> todosVinculos = repository.findByCotacaoId(idCotacao);
