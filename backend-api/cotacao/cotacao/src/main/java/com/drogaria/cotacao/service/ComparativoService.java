@@ -137,22 +137,6 @@ public class ComparativoService {
                 }
             }
 
-            double menorPreco = Double.MAX_VALUE;
-            String nomeVencedor = "Sem ofertas";
-
-            for (Map.Entry<String, Double> entry : linha.getPrecosPorFornecedor().entrySet()) {
-                double precoAtual = entry.getValue();
-                if (precoAtual > 0 && precoAtual < menorPreco) {
-                    menorPreco = precoAtual;
-                    nomeVencedor = entry.getKey();
-                }
-            }
-
-            if (menorPreco != Double.MAX_VALUE) {
-                linha.setMenorPrecoEncontrado(menorPreco);
-                linha.setFornecedorVencedor(nomeVencedor);
-            }
-
             List<PrecoCotacao> historico = historicoPorProduto.getOrDefault(item.getNomeProduto(), new ArrayList<>());
             
             for (PrecoCotacao precoAntigo : historico) {
@@ -166,6 +150,40 @@ public class ComparativoService {
                     break; 
                 }
             }
+
+            double menorPreco = Double.MAX_VALUE;
+            String nomeVencedor = "Sem ofertas";
+            Double precoReferencia = item.getUltimoPreco() != null && item.getUltimoPreco() > 0 
+                                     ? item.getUltimoPreco() 
+                                     : (linha.getUltimoPrecoComprado() != null && linha.getUltimoPrecoComprado() > 0 ? linha.getUltimoPrecoComprado() : null);
+
+            for (Map.Entry<String, Double> entry : linha.getPrecosPorFornecedor().entrySet()) {
+                double precoAtual = entry.getValue();
+                
+                if (precoAtual > 0) {
+                    boolean isPrecoAbsurdo = false;
+                    
+                    if (precoReferencia != null) {
+                        double limiteSuperior = precoReferencia * 2.0;   
+                        double limiteInferior = precoReferencia * 0.5;   
+                        
+                        if (precoAtual > limiteSuperior || precoAtual < limiteInferior) {
+                            isPrecoAbsurdo = true;
+                        }
+                    }
+                    
+                    if (!isPrecoAbsurdo && precoAtual < menorPreco) {
+                        menorPreco = precoAtual;
+                        nomeVencedor = entry.getKey();
+                    }
+                }
+            }
+
+            if (menorPreco != Double.MAX_VALUE) {
+                linha.setMenorPrecoEncontrado(menorPreco);
+                linha.setFornecedorVencedor(nomeVencedor);
+            }
+
             relatorio.add(linha);
         }
         return relatorio;

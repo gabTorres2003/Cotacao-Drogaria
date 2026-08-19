@@ -9,7 +9,7 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
   
   const [listaItens, setListaItens] = useState([]);
   const [codigoDna, setCodigoDna] = useState('');
-  const [itemAtual, setItemAtual] = useState({ nomeProduto: '', quantidade: 1 });
+  const [itemAtual, setItemAtual] = useState({ nomeProduto: '', quantidade: 1, codBarras: '' });
   
   const [isBuscando, setIsBuscando] = useState(false);
   const [isSalvando, setIsSalvando] = useState(false);
@@ -23,12 +23,12 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
     try {
         const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna.trim())}`);
         if (res.data) {
-            setItemAtual({ ...itemAtual, nomeProduto: res.data.descricao });
+            setItemAtual({ ...itemAtual, nomeProduto: res.data.descricao, codBarras: codigoDna.trim() });
         }
     } catch (error) {
         console.error("Erro na API:", error.response || error);
         alert(`Código DNA ${codigoDna} não encontrado na base de dados.`);
-        setItemAtual({ ...itemAtual, nomeProduto: '' });
+        setItemAtual({ ...itemAtual, nomeProduto: '', codBarras: '' });
     } finally {
         setIsBuscando(false);
     }
@@ -38,8 +38,8 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
       if(!itemAtual.nomeProduto || !itemAtual.quantidade) {
           return alert("O Nome do Produto e a Quantidade são obrigatórios.");
       }
-      setListaItens([{ ...itemAtual, codigo: abaDna ? codigoDna : '-', idTemp: Date.now() }, ...listaItens]);
-      setItemAtual({ nomeProduto: '', quantidade: 1 });
+      setListaItens([{ ...itemAtual, codigo: abaDna ? (itemAtual.codBarras || codigoDna) : '-', idTemp: Date.now() }, ...listaItens]);
+      setItemAtual({ nomeProduto: '', quantidade: 1, codBarras: '' });
       setCodigoDna('');
   };
 
@@ -52,19 +52,34 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
       if(!nomeCotacao.trim()) return alert("O título da cotação é obrigatório.");
 
       setIsSalvando(true);
+      const nomeUsuarioLogado = localStorage.getItem('nomeUsuario') || 'Sistema';
+
       try {
           const payload = {
               descricao: nomeCotacao,
               origem: nomeCotacao,
+              nomeUsuario: nomeUsuarioLogado,
               itens: listaItens.map(i => ({
                   nomeProduto: i.nomeProduto,
-                  quantidade: Number(i.quantidade)
+                  quantidade: Number(i.quantidade),
+                  origemItem: abaDna ? 'Adição por Código' : 'Manual'
               }))
           };
 
           const response = await api.post('/api/cotacao', payload);
+          const cotacaoCriadaId = response.data.id;
+
+          const codigos = listaItens.filter(i => i.codigo !== '-').map(i => i.codigo);
+          if (codigos.length > 0) {
+              try {
+                  await api.post(`/api/cotacao/${cotacaoCriadaId}/sincronizar-informacoes`, codigos);
+              } catch (e) {
+                  console.warn("Falha silenciosa ao tentar puxar dados complementares do DNA", e);
+              }
+          }
+
           alert('Cotação criada com sucesso!');
-          navigate(`/cotacao/${response.data.id}`);
+          navigate(`/cotacao/${cotacaoCriadaId}`);
           onClose();
       } catch (error) {
           alert('Erro ao gerar cotação: ' + (error.response?.data?.message || error.message));

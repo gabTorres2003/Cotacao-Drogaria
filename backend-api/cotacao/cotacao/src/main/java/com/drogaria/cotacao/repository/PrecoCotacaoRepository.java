@@ -34,6 +34,8 @@ public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long
            "ORDER BY p.item.cotacao.id DESC, p.precoOfertado ASC")
     List<PrecoCotacao> findHistoricoEmLote(@Param("nomesProdutos") List<String> nomesProdutos);
 
+    List<PrecoCotacao> findByItem_Cotacao_IdAndFornecedorId(Long cotacaoId, Long fornecedorId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM PrecoCotacao p WHERE p.item.cotacao.id = :cotacaoId")

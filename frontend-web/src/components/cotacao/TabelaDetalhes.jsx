@@ -61,6 +61,8 @@ export default function TabelaDetalhes({
             const isBloqueado = !!itensJaComprados[item.idItem];
             const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
 
+            const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
+
             const ofertasValidas = fornecedores.map(forn => {
                 let pO = item.precosPorFornecedor?.[forn] || 0;
                 let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
@@ -68,6 +70,13 @@ export default function TabelaDetalhes({
                 if (pO > 0) val = pO;
                 if (pS > 0 && pS < val) val = pS; 
                 if (pO <= 0 && pS > 0) val = pS;
+                
+                if (val !== Infinity && precoBaseAlerta > 0) {
+                    if (val > precoBaseAlerta * 2.0 || val < precoBaseAlerta * 0.5) {
+                        val = Infinity; 
+                    }
+                }
+                
                 return { forn, val };
             }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
 
@@ -147,8 +156,14 @@ export default function TabelaDetalhes({
                   const isTrocaAceita = aceitesTroca[item.idItem];
                   const isEmFaltaOriginal = precoOriginal <= 0; 
                   const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
+                  
+                  let isPrecoDiscrepante = false;
+                  if (precoBaseAlerta > 0 && precoOriginal > 0) {
+                      if (precoOriginal > precoBaseAlerta * 2.0 || precoOriginal < precoBaseAlerta * 0.5) {
+                          isPrecoDiscrepante = true;
+                      }
+                  }
 
-                  // EXTRAÇÃO DO ARRAY JSON DE CONDIÇÕES MÚLTIPLAS
                   let condsArr = [];
                   const jsonStr = item.condicoesEscalonamentoPorFornecedor?.[f];
                   try { if (jsonStr) condsArr = JSON.parse(jsonStr); } catch(e){}
@@ -167,9 +182,17 @@ export default function TabelaDetalhes({
                     <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} style={{ ...tdStyle, backgroundColor: isWinner ? '#ecfdf5' : 'inherit', textAlign: 'center', borderLeft: '1px solid #f3f4f6', border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', verticalAlign: 'top', position: 'relative', opacity: isBloqueado ? 0.6 : 1 }}>
                       {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold' }}>VENCEDOR</div>}
                       
-                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : '#374151', textDecoration: isBloqueado ? 'line-through' : 'none' }}>{isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}</div>
+                      <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isPrecoDiscrepante ? '#b91c1c' : '#374151'), textDecoration: isBloqueado ? 'line-through' : 'none' }}>
+                          {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
+                      </div>
                       
-                      {/* RENDERIZAR MÚLTIPLAS CONDIÇÕES */}
+                      {/* ALERTA DE PREÇO DISCREPANTE */}
+                      {isPrecoDiscrepante && !isEmFaltaOriginal && (
+                         <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '4px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', border: '1px solid #fca5a5' }} title="O fornecedor digitou um preço com mais de 100% de diferença do valor da sua última compra. Revise antes de fechar o pedido!">
+                            <AlertTriangle size={12} /> Divergência Alta
+                         </div>
+                      )}
+                      
                       {!isEmFaltaOriginal && condsArr.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
                               {condsArr.map((cond, idx) => (
