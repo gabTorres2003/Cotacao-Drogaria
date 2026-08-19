@@ -2,6 +2,8 @@ package com.drogaria.cotacao.service;
 
 import com.drogaria.cotacao.model.Devolucao;
 import com.drogaria.cotacao.repository.DevolucaoRepository;
+import com.drogaria.cotacao.repository.PedidoRepository;
+import com.drogaria.cotacao.repository.FornecedorRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -13,6 +15,8 @@ import java.util.List;
 public class DevolucaoService {
 
     private final DevolucaoRepository devolucaoRepository;
+    private final PedidoRepository pedidoRepository;
+    private final FornecedorRepository fornecedorRepository;
 
     public List<Devolucao> listarTodas() {
         return devolucaoRepository.findAll();
@@ -29,10 +33,20 @@ public class DevolucaoService {
 
     @Transactional
     public Devolucao salvar(Devolucao devolucao) {
+        
+        // Garante que o vínculo com o Pedido seja persistido corretamente no banco
+        if (devolucao.getPedido() != null && devolucao.getPedido().getId() != null) {
+            devolucao.setPedido(pedidoRepository.findById(devolucao.getPedido().getId()).orElse(null));
+        }
+        
+        // Garante que o vínculo com o Fornecedor seja persistido
+        if (devolucao.getFornecedor() != null && devolucao.getFornecedor().getId() != null) {
+            devolucao.setFornecedor(fornecedorRepository.findById(devolucao.getFornecedor().getId()).orElse(null));
+        }
+
         if (devolucao.getItens() != null) {
             devolucao.getItens().forEach(item -> item.setDevolucao(devolucao));
             
-            // Calcula o valor total automaticamente
             double total = devolucao.getItens().stream()
                     .mapToDouble(i -> (i.getQuantidade() != null ? i.getQuantidade() : 0) * 
                                       (i.getValorUnitario() != null ? i.getValorUnitario() : 0.0))

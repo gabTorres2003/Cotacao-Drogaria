@@ -30,7 +30,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
   const [itens, setItens] = useState([]);
   const [novoItem, setNovoItem] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
 
-  // Estados de edição de item na tabela
   const [editingIndex, setEditingIndex] = useState(null);
   const [editItemForm, setEditItemForm] = useState({ nomeProduto: '', quantidade: 1, valorUnitario: 0 });
 
@@ -104,8 +103,9 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       const isFaltaParcial = i.quantidadeReal > 0 && i.quantidadeReal < i.quantidadePedida;
       const isAvariado = i.statusRecebimento === 'AVARIADO';
       const isIncorreto = i.statusRecebimento === 'INCORRETO';
+      const isFaltanteMarcado = i.statusRecebimento === 'FALTANTE';
 
-      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto;
+      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteMarcado;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
 
       let motivoPadrao = 'Devolução Padrão';
@@ -113,21 +113,21 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       let isApenasFinanceiro = false;
       let maxPermitido = i.quantidadePedida;
 
-      if (isFaltaTotal) {
-          motivoPadrao = 'Falta na Caixa (Gerar Crédito)';
+      if (isFaltaTotal || isFaltanteMarcado) {
+          motivoPadrao = 'Falta (Faturado mas não entregue)';
           qtdSugerida = i.quantidadePedida;
           maxPermitido = i.quantidadePedida;
           isApenasFinanceiro = true;
       } else if (isAvariado) {
-          motivoPadrao = 'Produto Avariado';
+          motivoPadrao = 'Produto Avariado / Quebrado';
           qtdSugerida = i.quantidadeReal; 
           maxPermitido = i.quantidadeReal;
       } else if (isIncorreto) {
-          motivoPadrao = 'Produto Incorreto/Invertido';
+          motivoPadrao = 'Produto Incorreto / Invertido';
           qtdSugerida = i.quantidadeReal; 
           maxPermitido = i.quantidadeReal;
       } else if (isFaltaParcial && !isAvariado && !isIncorreto) {
-          motivoPadrao = 'Falta Parcial (Gerar Crédito)';
+          motivoPadrao = 'Falta Parcial';
           qtdSugerida = i.quantidadePedida - i.quantidadeReal;
           maxPermitido = i.quantidadePedida - i.quantidadeReal;
           isApenasFinanceiro = true;
@@ -222,9 +222,11 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
     setLoading(true);
     try {
+      const idPedVinculado = pedidoId || form.pedido?.id;
+      
       const payload = {
         fornecedor: { id: form.fornecedorId },
-        pedido: pedidoId ? { id: pedidoId } : null,
+        pedido: idPedVinculado ? { id: idPedVinculado } : null,
         nfOrigem: form.nfOrigem,
         protocolo: form.protocolo,
         protocoloFalta: form.protocoloFalta,
@@ -243,7 +245,6 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         await api.post('/api/devolucoes', payload);
       }
 
-      const idPedVinculado = pedidoId || form.pedido?.id;
       if (idPedVinculado) {
           let novoStatusPedido = 'PENDENTE_DEVOLUCAO';
           if (form.status === 'CONCLUIDA' || form.status === 'CANCELADA') {
@@ -394,7 +395,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                       <th style={{ padding: '12px', fontSize: '13px', width: '40px', textAlign: 'center' }}></th>
                       <th style={{ padding: '12px', fontSize: '13px' }}>Produto</th>
                       <th style={{ padding: '12px', fontSize: '13px', width: '100px', textAlign: 'center' }}>Qtd Abater</th>
-                      <th style={{ padding: '12px', fontSize: '13px' }}>Motivo</th>
+                      <th style={{ padding: '12px', fontSize: '13px', width: '250px' }}>Motivo</th>
                       <th style={{ padding: '12px', fontSize: '13px', textAlign: 'right' }}>Subtotal</th>
                     </tr>
                   </thead>
@@ -435,13 +436,21 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                             />
                           </td>
                           <td style={{ padding: '12px' }}>
-                            <input 
-                              type="text" 
+                            <select 
                               value={sel.motivo} 
                               onChange={(e) => updateSelecao(item.id, 'motivo', e.target.value)} 
                               disabled={!sel.selected}
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px' }}
-                            />
+                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
+                            >
+                                <option value="Devolução Padrão">Devolução Padrão</option>
+                                <option value="Falta (Faturado mas não entregue)">Falta (Faturado mas não entregue)</option>
+                                <option value="Falta Parcial">Falta Parcial</option>
+                                <option value="Produto Avariado / Quebrado">Produto Avariado / Quebrado</option>
+                                <option value="Produto Incorreto / Invertido">Produto Incorreto / Invertido</option>
+                                <option value="Sobra (Entregue a mais)">Sobra (Entregue a mais)</option>
+                                <option value="Vencimento Próximo">Vencimento Próximo</option>
+                                <option value="Outro Motivo">Outro Motivo</option>
+                            </select>
                           </td>
                           <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? '#16a34a' : '#9ca3af' }}>
                             R$ {(sel.qtd * sel.valorUnitario).toFixed(2)}

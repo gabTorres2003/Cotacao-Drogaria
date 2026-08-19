@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle } from 'lucide-react';
 
 export default function PedidoConferencia() {
   const { id } = useParams();
@@ -28,7 +28,7 @@ export default function PedidoConferencia() {
             id: item.id,
             quantidadeReal: item.quantidadeReal > 0 ? item.quantidadeReal : '',
             valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
-            isAvariadoIncorreto: item.statusRecebimento === 'AVARIADO' || item.statusRecebimento === 'INCORRETO',
+            statusRecebimento: item.statusRecebimento || 'OK',
             conferido: false
           }))
         );
@@ -42,9 +42,16 @@ export default function PedidoConferencia() {
   };
 
   const handleInputChange = (idItem, field, value) => {
-    setConferencia(prev => prev.map(item => 
-      item.id === idItem ? { ...item, [field]: value } : item
-    ));
+    setConferencia(prev => prev.map(item => {
+        if (item.id === idItem) {
+            let newItem = { ...item, [field]: value };
+            if (field === 'statusRecebimento' && value === 'FALTANTE') {
+                newItem.quantidadeReal = 0;
+            }
+            return newItem;
+        }
+        return item;
+    }));
   };
 
   const toggleConferido = (idItem) => {
@@ -91,10 +98,8 @@ export default function PedidoConferencia() {
     e.preventDefault();
     
     if (!numeroNota.trim()) {
-      alert(
-        'Por favor, preencha o Número da NF antes de finalizar a conferência.',
-      )
-      return
+      alert('Por favor, preencha o Número da NF antes de finalizar a conferência.');
+      return;
     }
     
     const itensPendentes = conferencia.filter(c => !c.conferido);
@@ -105,20 +110,37 @@ export default function PedidoConferencia() {
 
     setSalvando(true);
 
+    let teveProblemas = false;
+
     const payload = {
       numeroNota: numeroNota.trim(),
-      itens: conferencia.map(item => ({
-        id: item.id,
-        quantidadeReal: Number(item.quantidadeReal),
-        valorUnitarioReal: Number(item.valorUnitarioReal),
-        statusRecebimento: item.isAvariadoIncorreto ? 'AVARIADO' : 'OK',
-        observacaoDevolucao: item.isAvariadoIncorreto ? 'Marcado na conferência' : ''
-      }))
+      itens: conferencia.map(item => {
+        if (item.statusRecebimento !== 'OK') teveProblemas = true;
+        
+        return {
+            id: item.id,
+            quantidadeReal: Number(item.quantidadeReal),
+            valorUnitarioReal: Number(item.valorUnitarioReal),
+            statusRecebimento: item.statusRecebimento,
+            observacaoDevolucao: item.statusRecebimento !== 'OK' ? 'Divergência marcada na conferência cega' : ''
+        };
+      })
     };
 
     try {
       await api.put(`/api/pedidos/${id}/receber`, payload);
-      alert('Conferência finalizada com sucesso!');
+      
+      if (teveProblemas) {
+          if (window.confirm('Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.\n\nDeseja registrar a devolução / abatimento agora mesmo?')) {
+              // Navega de volta ao detalhe que já tem a inteligência de abrir o modal de devolução (ou pode ser tratado pelo usuário lá)
+              alert('Na tela do pedido, clique no botão "Gerar / Ver Devolução" para registrar os motivos!');
+              navigate(`/pedidos/${id}`);
+              return;
+          }
+      } else {
+          alert('Conferência finalizada com sucesso! Todos os itens chegaram corretamente.');
+      }
+      
       navigate(`/pedidos/${id}`);
     } catch (error) {
       console.error('Erro ao finalizar conferência:', error);
@@ -159,7 +181,7 @@ export default function PedidoConferencia() {
         <div style={styles.card}>
           <div style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#b45309', fontWeight: '500' }}>
-              <strong>Atenção:</strong> Digite as quantidades e valores exatamente como constam na NF, e confirme linha a linha.
+              <strong>Atenção:</strong> Digite as quantidades e valores exatamente como constam na NF. Caso haja algum problema com o produto (Falta, Avariado), selecione o Status correto ao lado.
             </p>
           </div>
 
@@ -183,96 +205,105 @@ export default function PedidoConferencia() {
               </div>
             </div>
 
-            <table style={styles.table}>
-              <thead>
-                <tr>
-                  <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('nomeProduto')}>
-                    Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
-                  </th>
-                  <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Qtd (NF)</th>
-                  <th style={{ ...styles.th, width: '140px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>
-                  <th style={{ ...styles.th, width: '100px', textAlign: 'center' }}>Avariado?</th>
-                  <th style={{ ...styles.th, width: '120px', textAlign: 'center' }}>Ação</th>
-                </tr>
-              </thead>
-              <tbody>
-                {itensOrdenados.map((item) => {
-                  const confState = conferencia.find(c => c.id === item.id) || {};
-                  const isConferido = confState.conferido;
-
-                  return (
-                    <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isConferido ? '#f0fdf4' : 'white', transition: 'background-color 0.3s' }}>
-                      <td style={styles.td}>
-                        <strong style={{ color: isConferido ? '#166534' : '#111827', display: 'block' }}>
-                          {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
-                        </strong>
-                        {item.condicaoAplicada && (
-                          <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                            <Tag size={10} /> Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
-                          </div>
-                        )}
-                      </td>
-                      
-                      <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
-                        <input 
-                          type="number" 
-                          min="0"
-                          disabled={isConferido}
-                          style={{ ...styles.inputField, backgroundColor: isConferido ? 'transparent' : '#f0fdf4', borderColor: isConferido ? 'transparent' : '#cbd5e1' }}
-                          placeholder="0"
-                          value={confState.quantidadeReal ?? ''}
-                          onChange={(e) => handleInputChange(item.id, 'quantidadeReal', e.target.value)}
-                        />
-                      </td>
-                      
-                      <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
-                        <input 
-                          type="number" 
-                          step="0.01"
-                          min="0"
-                          disabled={isConferido}
-                          placeholder="0,00"
-                          style={{ ...styles.inputField, backgroundColor: isConferido ? 'transparent' : '#f0fdf4', borderColor: isConferido ? 'transparent' : '#cbd5e1' }}
-                          value={confState.valorUnitarioReal ?? ''}
-                          onChange={(e) => handleInputChange(item.id, 'valorUnitarioReal', e.target.value)}
-                        />
-                      </td>
-                      
-                      <td style={{ ...styles.td, textAlign: 'center' }}>
-                        <input 
-                          type="checkbox"
-                          disabled={isConferido}
-                          title="Marque se a caixa chegou rasgada ou produto trocado."
-                          style={{ width: '20px', height: '20px', cursor: isConferido ? 'not-allowed' : 'pointer', accentColor: '#ef4444' }}
-                          checked={confState.isAvariadoIncorreto ?? false}
-                          onChange={(e) => handleInputChange(item.id, 'isAvariadoIncorreto', e.target.checked)}
-                        />
-                      </td>
-
-                      <td style={{ ...styles.td, textAlign: 'center' }}>
-                        {isConferido ? (
-                          <button 
-                            type="button" 
-                            onClick={() => toggleConferido(item.id)}
-                            style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center' }}
-                          >
-                            <Edit2 size={14} /> Editar
-                          </button>
-                        ) : (
-                          <button 
-                            type="button" 
-                            onClick={() => toggleConferido(item.id)}
-                            style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
-                          >
-                            <Check size={14} /> Conferir
-                          </button>
-                        )}
-                      </td>
+            <div style={{ overflowX: 'auto' }}>
+                <table style={styles.table}>
+                  <thead>
+                    <tr>
+                      <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
+                        Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
+                      </th>
+                      <th style={{ ...styles.th, width: '100px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Qtd (NF)</th>
+                      <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>
+                      <th style={{ ...styles.th, width: '220px', textAlign: 'center' }}>Condição / Problema</th>
+                      <th style={{ ...styles.th, width: '120px', textAlign: 'center' }}>Ação</th>
                     </tr>
-                  );
-                })}
-              </tbody>
-            </table>
+                  </thead>
+                  <tbody>
+                    {itensOrdenados.map((item) => {
+                      const confState = conferencia.find(c => c.id === item.id) || {};
+                      const isConferido = confState.conferido;
+                      const hasProblema = confState.statusRecebimento !== 'OK';
+
+                      return (
+                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isConferido ? '#f0fdf4' : 'white', transition: 'background-color 0.3s' }}>
+                          <td style={styles.td}>
+                            <strong style={{ color: isConferido ? '#166534' : '#111827', display: 'block' }}>
+                              {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
+                            </strong>
+                            {item.condicaoAplicada && (
+                              <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                <Tag size={10} /> Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
+                              </div>
+                            )}
+                          </td>
+                          
+                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                            <input 
+                              type="number" 
+                              min="0"
+                              disabled={isConferido}
+                              style={{ ...styles.inputField, backgroundColor: isConferido ? 'transparent' : '#f0fdf4', borderColor: isConferido ? 'transparent' : '#cbd5e1' }}
+                              placeholder="0"
+                              value={confState.quantidadeReal ?? ''}
+                              onChange={(e) => handleInputChange(item.id, 'quantidadeReal', e.target.value)}
+                            />
+                          </td>
+                          
+                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                            <input 
+                              type="number" 
+                              step="0.01"
+                              min="0"
+                              disabled={isConferido}
+                              placeholder="0,00"
+                              style={{ ...styles.inputField, backgroundColor: isConferido ? 'transparent' : '#f0fdf4', borderColor: isConferido ? 'transparent' : '#cbd5e1' }}
+                              value={confState.valorUnitarioReal ?? ''}
+                              onChange={(e) => handleInputChange(item.id, 'valorUnitarioReal', e.target.value)}
+                            />
+                          </td>
+                          
+                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${hasProblema ? '#fca5a5' : '#cbd5e1'}`, borderRadius: '6px', padding: '2px', backgroundColor: hasProblema ? '#fef2f2' : 'white' }}>
+                                {hasProblema && <AlertTriangle size={16} color="#ef4444" style={{ marginLeft: '6px' }} />}
+                                <select 
+                                    disabled={isConferido}
+                                    style={{ width: '100%', padding: '8px', border: 'none', background: 'transparent', outline: 'none', color: hasProblema ? '#b91c1c' : '#374151', fontWeight: hasProblema ? 'bold' : 'normal', cursor: isConferido ? 'not-allowed' : 'pointer' }}
+                                    value={confState.statusRecebimento || 'OK'}
+                                    onChange={(e) => handleInputChange(item.id, 'statusRecebimento', e.target.value)}
+                                >
+                                    <option value="OK">Tudo Certo</option>
+                                    <option value="FALTANTE">Não Veio (Falta)</option>
+                                    <option value="INCORRETO">Produto Errado</option>
+                                    <option value="AVARIADO">Avariado / Quebrado</option>
+                                </select>
+                            </div>
+                          </td>
+
+                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                            {isConferido ? (
+                              <button 
+                                type="button" 
+                                onClick={() => toggleConferido(item.id)}
+                                style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center' }}
+                              >
+                                <Edit2 size={14} /> Editar
+                              </button>
+                            ) : (
+                              <button 
+                                type="button" 
+                                onClick={() => toggleConferido(item.id)}
+                                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                              >
+                                <Check size={14} /> Conferir
+                              </button>
+                            )}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+            </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb' }}>
               <button 
