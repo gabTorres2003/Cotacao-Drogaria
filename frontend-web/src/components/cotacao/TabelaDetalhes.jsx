@@ -18,6 +18,9 @@ export default function TabelaDetalhes({
   const [draggedSupplier, setDraggedSupplier] = useState(null);
   const [pinnedStats, setPinnedStats] = useState([]);
 
+  // NOVO: Estado para armazenar os preços marcados manualmente como irreais
+  const [valoresIrreais, setValoresIrreais] = useState({});
+
   useEffect(() => {
       setSupplierOrder(prev => {
           const newOrder = [...prev];
@@ -208,7 +211,7 @@ export default function TabelaDetalhes({
 
               const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
 
-              const ofertasValidas = fornecedores.map(forn => {
+              const ofertasValidas = supplierOrder.map(forn => {
                   let pO = item.precosPorFornecedor?.[forn] || 0;
                   let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
                   let val = Infinity;
@@ -216,9 +219,20 @@ export default function TabelaDetalhes({
                   if (pS > 0 && pS < val) val = pS; 
                   if (pO <= 0 && pS > 0) val = pS;
                   
-                  if (val !== Infinity && precoBaseAlerta > 0) {
-                      if (val > precoBaseAlerta * 2.0 || val < precoBaseAlerta * 0.5) {
-                          val = Infinity; 
+                  const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+                  let isDiscrepante = false;
+
+                  if (precoBaseAlerta > 0 && pO > 0) {
+                      if (pO > precoBaseAlerta * 2.0 || pO < precoBaseAlerta * 0.5) {
+                          isDiscrepante = true;
+                      }
+                  }
+                  
+                  if (val !== Infinity) {
+                      if (isIrreal) {
+                          val = Infinity; // Sempre excluído se foi marcado como irreal
+                      } else if (mostrarAlertasPreco && isDiscrepante) {
+                          val = Infinity; // Excluído temporariamente se o alerta estiver ligado
                       }
                   }
                   
@@ -311,8 +325,10 @@ export default function TabelaDetalhes({
                     const isEmFaltaOriginal = precoOriginal <= 0; 
                     const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
                     
+                    const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
                     let isPrecoDiscrepante = false;
-                    if (mostrarAlertasPreco && precoBaseAlerta > 0 && precoOriginal > 0) {
+
+                    if (precoBaseAlerta > 0 && precoOriginal > 0) {
                         if (precoOriginal > precoBaseAlerta * 2.0 || precoOriginal < precoBaseAlerta * 0.5) {
                             isPrecoDiscrepante = true;
                         }
@@ -336,34 +352,57 @@ export default function TabelaDetalhes({
                     const leftPos = getLeftOffset(f, 'supplier');
 
                     return (
-                      <td key={f} onClick={() => !isBloqueado && !item.excluido && handleSetWinner(item.idItem, f)} 
+                      <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && handleSetWinner(item.idItem, f)} 
                           style={{ 
                               ...tdStyle, 
                               backgroundColor: isWinner ? '#ecfdf5' : (isPinned ? '#f8fafc' : 'inherit'), 
                               textAlign: 'center', 
                               borderLeft: '1px solid #f3f4f6', 
                               border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
-                              cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', 
+                              cursor: isBloqueado || isEncerrada || item.excluido || isIrreal ? 'not-allowed' : 'pointer', 
                               verticalAlign: 'top', 
                               position: isPinned ? 'sticky' : 'relative', 
                               left: isPinned ? `${leftPos}px` : 'auto',
                               zIndex: isPinned ? 15 : 1,
                               boxShadow: isPinned ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
-                              opacity: isBloqueado ? 0.6 : 1 
+                              opacity: isBloqueado ? 0.6 : (isIrreal ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
                           }}>
-                        {isWinner && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
                         
-                        <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isPrecoDiscrepante ? '#b91c1c' : '#374151'), textDecoration: isBloqueado ? 'line-through' : 'none' }}>
+                        {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
+                        
+                        {rank > 0 && !isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: rank === 1 ? '#4ade80' : '#fde047', color: rank === 1 ? '#064e3b' : '#713f12', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5, border: `1px solid ${rank === 1 ? '#22c55e' : '#facc15'}` }}>{rank}º LUGAR</div>}
+
+                        <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
                             {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
                         </div>
                         
-                        {isPrecoDiscrepante && !isEmFaltaOriginal && (
-                           <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '4px', borderRadius: '4px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', border: '1px solid #fca5a5' }} title="O fornecedor digitou um preço com mais de 100% de diferença do valor da sua última compra. Revise antes de fechar o pedido!">
-                              <AlertTriangle size={12} /> Divergência Alta
+                        {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
+                           <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid #fca5a5' }} title="Preço muito divergente do padrão.">
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                <AlertTriangle size={14} /> Divergência Alta
+                              </div>
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => ({...prev, [`${item.idItem}-${f}`]: true})); }}
+                                style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                              >
+                                Confirmar Valor Irreal
+                              </button>
+                           </div>
+                        )}
+
+                        {isIrreal && (
+                           <div style={{ fontSize: '11px', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #d1d5db' }}>
+                              ❌ Valor Irreal
+                              <button 
+                                onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
+                                style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                              >
+                                Desfazer
+                              </button>
                            </div>
                         )}
                         
-                        {!isEmFaltaOriginal && condsArr.length > 0 && (
+                        {!isEmFaltaOriginal && condsArr.length > 0 && !isIrreal && (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
                                 {condsArr.map((cond, idx) => (
                                     <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
@@ -373,7 +412,7 @@ export default function TabelaDetalhes({
                             </div>
                         )}
 
-                        {substituto && (
+                        {substituto && !isIrreal && (
                           <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
                             <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
                               <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
@@ -394,9 +433,9 @@ export default function TabelaDetalhes({
                             </label>
                           </div>
                         )}
-                        {obs && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
+                        {obs && !isIrreal && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
 
-                        {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && (
+                        {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && !isIrreal && (
                           <div style={{ marginTop: '10px' }}>
                             <button
                               type="button"
