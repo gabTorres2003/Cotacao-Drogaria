@@ -4,7 +4,7 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
 import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' 
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X } from 'lucide-react'
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X, Tag } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -28,7 +28,6 @@ export default function Pedidos() {
 
   const [isModalManualOpen, setIsModalManualOpen] = useState(false)
 
-  // ESTADOS DO MODAL DE FALHA/CANCELAMENTO
   const [modalFalhaAberto, setModalFalhaAberto] = useState(false)
   const [pedidoFalha, setPedidoFalha] = useState(null)
   const [motivoFalha, setMotivoFalha] = useState('')
@@ -36,11 +35,10 @@ export default function Pedidos() {
   const [cotacoesAtivas, setCotacoesAtivas] = useState([])
   const [cotacaoDestinoId, setCotacaoDestinoId] = useState('')
 
-  // RELÓGIO EM TEMPO REAL PARA O SLA DE 24H
   const [agora, setAgora] = useState(new Date().getTime());
   
   useEffect(() => {
-      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); // Atualiza a cada 1 minuto
+      const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
       return () => clearInterval(interval);
   }, []);
 
@@ -112,7 +110,6 @@ export default function Pedidos() {
       
       try {
           const res = await api.get('/api/cotacao');
-          // CORREÇÃO AQUI: Lista todas as cotações que estão em andamento
           const ativas = res.data.filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
           setCotacoesAtivas(ativas);
       } catch (error) {
@@ -254,7 +251,7 @@ export default function Pedidos() {
 
   const getStatusFormatado = (p) => {
     const status = p.status;
-    const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px' };
+    const baseStyle = { padding: '4px 10px', borderRadius: '20px', fontWeight: '700', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '4px', justifyContent: 'center' };
 
     if (status === 'PENDENTE_ENTREGA') {
         const dataCriacao = new Date(p.dataCriacao).getTime();
@@ -445,7 +442,7 @@ export default function Pedidos() {
                 <th>Grupos</th>
                 <th>Valor Total</th>
                 <th style={{ width: '100px' }}>Data</th>
-                <th>Status</th>
+                <th style={{ textAlign: 'center' }}>Status</th>
                 <th>Ações</th>
               </tr>
             </thead>
@@ -524,7 +521,20 @@ export default function Pedidos() {
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
                       <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(valorExibir)}</span></td>
                       <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
-                      <td><span style={statusInfo.style}>{statusInfo.texto}</span></td>
+                      
+                      <td style={{ textAlign: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                          <span style={statusInfo.style}>{statusInfo.texto}</span>
+                          
+                          {/* TASK 2: Alerta visual caso exista sugestão pendente do fornecedor */}
+                          {p.sugestoes?.length > 0 && p.status !== 'CANCELADO' && (
+                              <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }} title="Há sugestões extras do fornecedor pendentes de análise">
+                                  <Tag size={10} /> Sugestão Pendente
+                              </span>
+                          )}
+                        </div>
+                      </td>
+
                       <td>
                         <div style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/pedidos/${p.id}`)}>

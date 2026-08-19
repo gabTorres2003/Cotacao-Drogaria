@@ -245,7 +245,12 @@ public class PedidoService {
         Long idCotacao = null;
 
         for (GerarPedidoRequestDTO dto : dtos) {
-            pedidosGerados.add(gerarPedidoEmLote(dto));
+            Pedido pedido = gerarPedidoEmLote(dto);
+            pedido.setStatus(StatusPedido.CONFIRMADO_FORNECEDOR);
+            pedido.setDataConfirmacao(LocalDateTime.now());
+            pedidoRepository.save(pedido);
+
+            pedidosGerados.add(pedido);
             if (dto.getCotacaoId() != null) {
                 idCotacao = dto.getCotacaoId();
             }

@@ -83,6 +83,9 @@ public class FornecedorService {
                 precoAtual.setQuantidadeCondicaoSubstituto(dto.getQuantidadeCondicaoSubstituto());
                 precoAtual.setPrecoCondicaoSubstituto(dto.getPrecoCondicaoSubstituto());
 
+                precoAtual.setCondicoesEscalonamento(dto.getCondicoesEscalonamento());
+                precoAtual.setCondicoesEscalonamentoSubstituto(dto.getCondicoesEscalonamentoSubstituto());
+
                 precoRepository.save(precoAtual);
             }
         }

@@ -408,6 +408,9 @@ export default function PedidoDetalhes() {
     const atingiuMinimo = valorMinimoSalvo > 0 && totalConsiderado >= valorMinimoSalvo;
     const pctProgresso = valorMinimoSalvo > 0 ? (totalConsiderado / valorMinimoSalvo) * 100 : 0;
 
+    // TASK 1: Garantir que o link para a cotação funcione, independente se veio da Cotação Manual ou Via DNA
+    const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
+
     return (
         <div className="layout">
             <Sidebar />
@@ -416,13 +419,13 @@ export default function PedidoDetalhes() {
                     <div>
                         <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             Pedido #{pedido.id}
-                            {pedido.cotacao?.id ? (
+                            {idCotacaoOrigem ? (
                                 <button 
-                                    onClick={() => navigate(`/cotacao/${pedido.cotacao.id}`)}
+                                    onClick={() => navigate(`/cotacao/${idCotacaoOrigem}`)}
                                     style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                                     title="Abrir Cotação vinculada"
                                 >
-                                    Ver Cotação #{pedido.cotacao.id}
+                                    Ver Cotação #{idCotacaoOrigem}
                                 </button>
                             ) : (
                                 <span style={{ backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #cbd5e1', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
@@ -477,7 +480,18 @@ export default function PedidoDetalhes() {
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
-                            <p style={{ fontSize: '15px', marginBottom: '8px' }}><strong>Status Atual:</strong> <span style={styles.statusBadge(pedido.status, getStatusExibicao(pedido))}>{getStatusExibicao(pedido)}</span></p>
+                            {/* TASK 2: Alerta visual de status de Sugestão Pendente */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                                <p style={{ fontSize: '15px', margin: 0 }}><strong>Status Atual:</strong></p>
+                                <span style={styles.statusBadge(pedido.status, getStatusExibicao(pedido))}>{getStatusExibicao(pedido)}</span>
+                                
+                                {pedido.sugestoes && pedido.sugestoes.length > 0 && pedido.status !== 'CANCELADO' && (
+                                    <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '2px 8px', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }}>
+                                        <Tag size={12}/> Sugestão Pendente
+                                    </span>
+                                )}
+                            </div>
+
                             <p style={{ fontSize: '14px', marginBottom: '8px', color: '#4b5563' }}><strong>Enviado em:</strong> {fDataHora(pedido.dataCriacao)}</p>
                             {pedido.dataConfirmacao && <p style={{ fontSize: '14px', marginBottom: '8px', color: '#166534' }}><strong>Confirmado em:</strong> {fDataHora(pedido.dataConfirmacao)}</p>}
                             
@@ -673,6 +687,7 @@ export default function PedidoDetalhes() {
                     </div>
                 </div>
 
+                {/* Demais Modais abaixo... */}
                 {isDevolucaoModalOpen && <DevolucaoModal pedidoId={pedido.id} onClose={() => setIsDevolucaoModalOpen(false)} onSuccess={() => { setIsDevolucaoModalOpen(false); carregarPedido(); }} />}
                 
                 {modalFalhaAberto && (
