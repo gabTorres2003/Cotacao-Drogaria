@@ -16,6 +16,9 @@ export default function Cotacoes() {
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [ordenacao, setOrdenacao] = useState('RECENTES')
   const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
+  
+  // NOVO ESTADO: Setor da Cotação
+  const [setorAtivo, setSetorAtivo] = useState('TODOS')
 
   const [resumo, setResumo] = useState({ total: 0, emAberto: 0, aguardando: 0, finalizadas: 0 })
 
@@ -82,7 +85,15 @@ export default function Cotacoes() {
       
       const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
 
-      return matchTexto && matchStatus;
+      // FILTRO POR SETOR
+      let matchSetor = true;
+      if (setorAtivo !== 'TODOS') {
+          const setorCotacao = (c.setor || c.setorCompra || c.descricao || '').toUpperCase();
+          if (setorAtivo === 'MEDICAMENTOS') matchSetor = setorCotacao.includes('MEDICAMENTO');
+          if (setorAtivo === 'PERFUMARIA') matchSetor = setorCotacao.includes('PERFUMARIA');
+      }
+
+      return matchTexto && matchStatus && matchSetor;
     })
     .sort((a, b) => {
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao) - new Date(a.dataCriacao);
@@ -147,19 +158,42 @@ export default function Cotacoes() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
-          <button 
-            onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-          >
-            Cotações em Andamento
-          </button>
-          <button 
-            onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-          >
-            Histórico (Encerradas)
-          </button>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
+            <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+              <button 
+                onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Cotações em Andamento
+              </button>
+              <button 
+                onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Histórico (Encerradas)
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid #cbd5e1' }}>
+              <button 
+                onClick={() => setSetorAtivo('TODOS')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'white' : 'transparent', color: setorAtivo === 'TODOS' ? '#1e293b' : '#64748b', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Todas Origens
+              </button>
+              <button 
+                onClick={() => setSetorAtivo('MEDICAMENTOS')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'white' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? '#2563eb' : '#64748b', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Medicamentos
+              </button>
+              <button 
+                onClick={() => setSetorAtivo('PERFUMARIA')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'white' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? '#9333ea' : '#64748b', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Perfumaria
+              </button>
+            </div>
         </div>
 
         <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
@@ -203,9 +237,9 @@ export default function Cotacoes() {
             </select>
           </div>
 
-          {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES') && (
+          {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES' || setorAtivo !== 'TODOS') && (
             <button 
-              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
+              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setSetorAtivo('TODOS'); }}
               style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Limpar Filtros
@@ -238,7 +272,7 @@ export default function Cotacoes() {
               ) : cotacoesFiltradas.length === 0 ? (
                 <tr>
                   <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
-                    Nenhuma cotação encontrada nesta aba.
+                    Nenhuma cotação encontrada nesta aba ou setor.
                   </td>
                 </tr>
               ) : (

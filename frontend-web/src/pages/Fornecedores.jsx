@@ -11,6 +11,7 @@ import {
   KeyRound,
   MessageCircle,
   Building2,
+  Tags
 } from 'lucide-react'
 
 export default function Fornecedores() {
@@ -25,6 +26,7 @@ export default function Fornecedores() {
     login: '',
     email: '',
     senha: '0000',
+    setorCompra: 'AMBOS'
   })
 
   const [busca, setBusca] = useState('')
@@ -52,6 +54,7 @@ export default function Fornecedores() {
       login: '',
       email: '',
       senha: '0000',
+      setorCompra: 'AMBOS'
     })
     setModalAberto(true)
   }
@@ -66,6 +69,7 @@ export default function Fornecedores() {
       login: fornecedor.login || '',
       email: fornecedor.email || '',
       senha: '',
+      setorCompra: fornecedor.setorCompra || 'AMBOS'
     })
     setModalAberto(true)
   }
@@ -166,6 +170,7 @@ export default function Fornecedores() {
         login: form.login,
         email: form.email,
         senha: form.senha,
+        setorCompra: form.setorCompra
       }
 
       if (form.id) {
@@ -239,7 +244,7 @@ export default function Fornecedores() {
               <tr>
                 <th style={{ width: '60px' }}>ID</th>
                 <th>Nome / Login</th>
-                <th>Empresa</th>
+                <th>Empresa / Setor</th>
                 <th>Entregue por</th>
                 <th>Telefone (WhatsApp)</th>
                 <th style={{ width: '120px' }}>Ações</th>
@@ -292,17 +297,22 @@ export default function Fornecedores() {
                       </div>
                     </td>
                     <td>
-                      <div
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: '6px',
-                          color: '#4b5563',
-                          fontWeight: '500',
-                        }}
-                      >
-                        <Building2 size={16} color="#9ca3af" />
-                        {f.empresa || f.nomeEmpresa || '-'}
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
+                        <div
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '6px',
+                            color: '#4b5563',
+                            fontWeight: '500',
+                          }}
+                        >
+                          <Building2 size={16} color="#9ca3af" />
+                          {f.empresa || f.nomeEmpresa || '-'}
+                        </div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? '#2563eb' : f.setorCompra === 'PERFUMARIA' ? '#9333ea' : '#475569', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? '#dbeafe' : f.setorCompra === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <Tags size={10} /> {f.setorCompra || 'AMBOS'}
+                        </div>
                       </div>
                     </td>
                     <td>
@@ -413,6 +423,20 @@ export default function Fornecedores() {
                   }
                   placeholder="Ex: Distribuidora Santa Cruz"
                 />
+              </div>
+
+              <div>
+                <label style={styles.label}>Setor de Compra *</label>
+                <select
+                  style={{ ...styles.input, backgroundColor: '#f8fafc', fontWeight: 'bold' }}
+                  value={form.setorCompra}
+                  onChange={(e) => setForm({ ...form, setorCompra: e.target.value })}
+                  required
+                >
+                  <option value="AMBOS">Medicamentos e Perfumaria (Ambos)</option>
+                  <option value="MEDICAMENTOS">Apenas Medicamentos</option>
+                  <option value="PERFUMARIA">Apenas Perfumaria</option>
+                </select>
               </div>
 
               <div>

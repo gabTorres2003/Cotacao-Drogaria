@@ -26,6 +26,9 @@ public class Fornecedor {
     @Column(name = "primeiro_acesso")
     private Boolean primeiroAcesso = true;
 
+    @Column(name = "setor_compra")
+    private String setorCompra;
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -53,4 +56,7 @@ public class Fornecedor {
 
     public Boolean getPrimeiroAcesso() { return primeiroAcesso; }
     public void setPrimeiroAcesso(Boolean primeiroAcesso) { this.primeiroAcesso = primeiroAcesso; }
+
+    public String getSetorCompra() { return setorCompra; }
+    public void setSetorCompra(String setorCompra) { this.setorCompra = setorCompra; }
 }

@@ -23,6 +23,9 @@ export default function Pedidos() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
 
+  // NOVO ESTADO: Setor do Pedido
+  const [setorAtivo, setSetorAtivo] = useState('TODOS')
+
   const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
 
@@ -185,6 +188,13 @@ export default function Pedidos() {
       
       const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
 
+      let gruposFormatados = '-';
+      if (p.itens && p.itens.length > 0) {
+          const listaDeGrupos = p.itens.map(item => item.itemCotacao?.grupo).filter(Boolean); 
+          const gruposUnicos = [...new Set(listaDeGrupos)]; 
+          if (gruposUnicos.length > 0) gruposFormatados = gruposUnicos.join(', ');
+      }
+
       const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || 
                          p.id.toString().includes(textoBusca) || 
                          idCotacaoStr.includes(textoBusca) || 
@@ -192,7 +202,7 @@ export default function Pedidos() {
                          nfStr.includes(textoBusca) ||
                          matchProduto;
 
-      const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus
+      const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus;
 
       let matchData = true;
       if (dataInicio || dataFim) {
@@ -209,7 +219,20 @@ export default function Pedidos() {
         }
       }
 
-      return matchTexto && matchStatus && matchData;
+      let matchSetor = true;
+      if (setorAtivo !== 'TODOS') {
+          const setorFornecedor = (p.fornecedor?.setorCompra || '').toUpperCase();
+          const grupos = gruposFormatados.toUpperCase();
+          
+          if (setorAtivo === 'MEDICAMENTOS') {
+              matchSetor = setorFornecedor.includes('MEDICAMENTOS') || setorFornecedor.includes('AMBOS') || grupos.includes('MEDICAMENTO');
+          }
+          if (setorAtivo === 'PERFUMARIA') {
+              matchSetor = setorFornecedor.includes('PERFUMARIA') || setorFornecedor.includes('AMBOS') || grupos.includes('PERFUMARIA');
+          }
+      }
+
+      return matchTexto && matchStatus && matchData && matchSetor;
     })
     .sort((a, b) => {
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
@@ -312,20 +335,43 @@ export default function Pedidos() {
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '10px', marginBottom: '20px' }}>
-          <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
-            <button 
-              onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-              style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-            >
-              Pedidos em Andamento
-            </button>
-            <button 
-              onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-              style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-            >
-              Histórico (Concluídos)
-            </button>
+        <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
+          <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+            <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+              <button 
+                onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Pedidos em Andamento
+              </button>
+              <button 
+                onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Histórico (Concluídos)
+              </button>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid #cbd5e1' }}>
+              <button 
+                onClick={() => setSetorAtivo('TODOS')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'white' : 'transparent', color: setorAtivo === 'TODOS' ? '#1e293b' : '#64748b', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Todas Origens
+              </button>
+              <button 
+                onClick={() => setSetorAtivo('MEDICAMENTOS')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'white' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? '#2563eb' : '#64748b', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Medicamentos
+              </button>
+              <button 
+                onClick={() => setSetorAtivo('PERFUMARIA')}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'white' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? '#9333ea' : '#64748b', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Perfumaria
+              </button>
+            </div>
           </div>
 
           <button 
@@ -388,9 +434,9 @@ export default function Pedidos() {
             </select>
           </div>
 
-          {(busca || filtroStatus !== 'TODOS' || dataInicio || dataFim || ordenacao !== 'RECENTES') && (
+          {(busca || filtroStatus !== 'TODOS' || dataInicio || dataFim || ordenacao !== 'RECENTES' || setorAtivo !== 'TODOS') && (
             <button 
-              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setDataInicio(''); setDataFim(''); setOrdenacao('RECENTES'); }}
+              onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setDataInicio(''); setDataFim(''); setOrdenacao('RECENTES'); setSetorAtivo('TODOS'); }}
               style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Limpar Filtros
@@ -459,7 +505,7 @@ export default function Pedidos() {
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
                   <td colSpan="11" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
-                    Nenhum pedido encontrado nesta aba.
+                    Nenhum pedido encontrado nesta aba ou setor.
                   </td>
                 </tr>
               ) : (
@@ -526,7 +572,6 @@ export default function Pedidos() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                           <span style={statusInfo.style}>{statusInfo.texto}</span>
                           
-                          {/* TASK 2: Alerta visual caso exista sugestão pendente do fornecedor */}
                           {p.sugestoes?.length > 0 && p.status !== 'CANCELADO' && (
                               <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }} title="Há sugestões extras do fornecedor pendentes de análise">
                                   <Tag size={10} /> Sugestão Pendente
@@ -593,7 +638,6 @@ export default function Pedidos() {
             />
         )}
 
-        {/* MODAL DE FALHA NA ENTREGA */}
         {modalFalhaAberto && pedidoFalha && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                 <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
