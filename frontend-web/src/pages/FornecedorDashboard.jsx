@@ -9,7 +9,6 @@ export default function FornecedorDashboard() {
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('cotacoes') 
   
-  // NOVO ESTADO: Controla a sub-aba de pedidos
   const [subAbaPedidos, setSubAbaPedidos] = useState('ANDAMENTO')
   
   const [showPrimeiroAcesso, setShowPrimeiroAcesso] = useState(localStorage.getItem('primeiroAcesso') === 'true')
@@ -204,7 +203,7 @@ export default function FornecedorDashboard() {
 
   const styles = {
     tabButton: (isActive) => ({ padding: '12px 24px', fontSize: '15px', fontWeight: '600', border: 'none', borderBottom: isActive ? '3px solid #2563eb' : '3px solid transparent', backgroundColor: 'transparent', color: isActive ? '#2563eb' : '#64748b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }),
-    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
+    modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
     modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
   }
 
@@ -271,6 +270,40 @@ export default function FornecedorDashboard() {
         }
       `}</style>
 
+      {showPrimeiroAcesso && (
+        <div style={styles.modalOverlay}>
+            <div style={{ backgroundColor: 'white', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px', textAlign: 'center', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '16px' }}>
+                    <div style={{ backgroundColor: '#eff6ff', padding: '12px', borderRadius: '50%' }}>
+                        <Edit2 size={32} color="#3b82f6" />
+                    </div>
+                </div>
+                <h3 style={{ margin: '0 0 10px 0', color: '#1e293b', fontSize: '20px' }}>Bem-vindo(a)! 🎉</h3>
+                <p style={{ fontSize: '14px', color: '#475569', marginBottom: '24px', lineHeight: '1.5' }}>
+                    Como este é o seu primeiro acesso (ou sua senha foi redefinida), por favor, crie uma nova senha (PIN) para continuar.
+                </p>
+                <div style={{ textAlign: 'left', marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Nova Senha / PIN *</label>
+                    <input 
+                        type="password" 
+                        value={novaSenha}
+                        onChange={e => setNovaSenha(e.target.value)}
+                        placeholder="Mínimo de 4 dígitos"
+                        style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '15px', boxSizing: 'border-box', textAlign: 'center', letterSpacing: '4px' }}
+                        maxLength={20}
+                    />
+                </div>
+                <button 
+                    onClick={salvarNovaSenha}
+                    disabled={salvandoSenha}
+                    style={{ width: '100%', padding: '14px', background: '#3b82f6', border: 'none', borderRadius: '8px', fontWeight: 'bold', color: 'white', cursor: 'pointer', fontSize: '15px', boxShadow: '0 4px 6px -1px rgba(59, 130, 246, 0.3)' }}
+                >
+                    {salvandoSenha ? 'Salvando...' : 'Salvar Nova Senha'}
+                </button>
+            </div>
+        </div>
+      )}
+
       <header className="dash-header" style={{ backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', padding: '16px 32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxSizing: 'border-box', flexWrap: 'wrap', gap: '15px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <img src="/assets/logo-torres.png" alt="Drogaria Torres Farma" style={{ height: '32px' }} />
@@ -296,7 +329,6 @@ export default function FornecedorDashboard() {
           </h2>
         </div>
 
-        {/* SUB-ABAS DE PEDIDOS */}
         {activeTab === 'pedidos' && !loading && (
             <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' }}>
               <button 
@@ -385,7 +417,6 @@ export default function FornecedorDashboard() {
                   return (
                     <div key={pedido.id} style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflow: 'hidden', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
                       
-                      {/* HEADER - SEMPRE VISÍVEL E CLICÁVEL PARA EXPANDIR/RECOLHER */}
                       <div 
                         onClick={() => togglePedidoExpandido(pedido.id)}
                         style={{ backgroundColor: isExpanded ? '#f8fafc' : 'white', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', cursor: 'pointer', transition: 'background-color 0.2s' }}
@@ -411,11 +442,9 @@ export default function FornecedorDashboard() {
                         </div>
                       </div>
                       
-                      {/* CORPO DO PEDIDO - SÓ APARECE SE EXPANDIDO */}
                       {isExpanded && (
                         <div style={{ borderTop: '1px solid #e2e8f0' }}>
                           
-                          {/* BARRA DE AÇÕES */}
                           <div className="action-buttons-container" style={{ padding: '12px 20px', backgroundColor: 'white', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid #e2e8f0' }}>
                             {idCotacaoOrigem && (
                                <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'white', color: '#4338ca', padding: '8px 16px', borderRadius: '6px', border: '1px solid #c7d2fe', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
@@ -439,7 +468,6 @@ export default function FornecedorDashboard() {
                             )}
                           </div>
 
-                          {/* ACOMPANHAMENTO DO MÍNIMO */}
                           <div style={{ backgroundColor: '#fff7ed', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
                             <div style={{ flex: 1, minWidth: '100%' }}>
                               <h4 style={{ margin: '0 0 10px 0', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px' }}><TrendingUp size={16}/> Acompanhamento do Mínimo</h4>
@@ -484,7 +512,6 @@ export default function FornecedorDashboard() {
                             )}
                           </div>
 
-                          {/* TABELA DE ITENS */}
                           <div className="mobile-table-wrapper" style={{ padding: '0', borderTop: '1px solid #e2e8f0' }}>
                             <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                               <thead>
@@ -545,7 +572,6 @@ export default function FornecedorDashboard() {
         )}
       </main>
 
-      {/* MODAL DE ADICIONAR SUGESTÃO */}
       {isSugestaoModalOpen && (
         <div style={styles.modalOverlay}>
           <div style={{...styles.modalContent, maxWidth: '400px'}}>
@@ -596,7 +622,6 @@ export default function FornecedorDashboard() {
         </div>
       )}
 
-      {/* MODAL DE CONFIRMAÇÃO DE SEPARAÇÃO / ESTOQUE ATUALIZADO */}
       {pedidoConfirmacao && (
         <div style={styles.modalOverlay}>
           <div style={{...styles.modalContent, maxWidth: '700px', padding: '0'}}>
@@ -680,4 +705,10 @@ export default function FornecedorDashboard() {
       )}
     </div>
   )
+}
+
+const styles = {
+  tabButton: (isActive) => ({ padding: '12px 24px', fontSize: '15px', fontWeight: '600', border: 'none', borderBottom: isActive ? '3px solid #2563eb' : '3px solid transparent', backgroundColor: 'transparent', color: isActive ? '#2563eb' : '#64748b', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', alignItems: 'center', gap: '8px' }),
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 },
+  modalContent: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '650px', maxHeight: '85vh', overflowY: 'auto', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }
 }
