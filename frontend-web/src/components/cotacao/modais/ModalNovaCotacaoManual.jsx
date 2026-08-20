@@ -7,6 +7,8 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
   const navigate = useNavigate();
   const [nomeCotacao, setNomeCotacao] = useState(`Cotação Manual - ${new Date().toLocaleDateString('pt-BR')}`);
   
+  const [setor, setSetor] = useState('AMBOS'); // NOVO: Controle de setor
+  
   const [listaItens, setListaItens] = useState([]);
   const [codigoDna, setCodigoDna] = useState('');
   const [itemAtual, setItemAtual] = useState({ nomeProduto: '', quantidade: 1, codBarras: '' });
@@ -70,6 +72,7 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
               descricao: nomeCotacao,
               origem: nomeCotacao,
               nomeUsuario: nomeUsuarioLogado,
+              setor: setor, // NOVO: Enviando o setor
               itens: listaItens.map(i => ({
                   nomeProduto: i.nomeProduto,
                   quantidade: Number(i.quantidade),
@@ -109,9 +112,19 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
         </div>
 
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div>
-                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Título / Identificação da Cotação *</label>
-                <input type="text" value={nomeCotacao} onChange={e => setNomeCotacao(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+            <div style={{ display: 'flex', gap: '15px' }}>
+                <div style={{ flex: 2 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Título / Identificação da Cotação *</label>
+                    <input type="text" value={nomeCotacao} onChange={e => setNomeCotacao(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                </div>
+                <div style={{ flex: 1 }}>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Setor da Cotação *</label>
+                    <select value={setor} onChange={e => setSetor(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }}>
+                        <option value="AMBOS">Medicamentos e Perfumaria</option>
+                        <option value="MEDICAMENTOS">Medicamentos</option>
+                        <option value="PERFUMARIA">Perfumaria</option>
+                    </select>
+                </div>
             </div>
 
             <div style={{ padding: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>

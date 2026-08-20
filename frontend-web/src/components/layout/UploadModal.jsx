@@ -13,6 +13,7 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
   const [dataInicial, setDataInicial] = useState('');
   const [dataFinal, setDataFinal] = useState('');
   const [diasSuprir, setDiasSuprir] = useState(1);
+  const [setor, setSetor] = useState('AMBOS'); // NOVO: Controle de setor
 
   const toggleGrupo = (grupo) => {
     setGruposSelecionados(prev => 
@@ -49,7 +50,8 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
         dataInicial: incluirSugestao ? dataInicial : null,
         dataFinal: incluirSugestao ? dataFinal : null,
         diasSuprir: incluirSugestao ? Number(diasSuprir) : null,
-        nomeUsuario: localStorage.getItem('nomeUsuario') || 'Sistema'
+        nomeUsuario: localStorage.getItem('nomeUsuario') || 'Sistema',
+        setor: setor // NOVO: Enviando o setor
       };
 
       if (cotacaoId) {
@@ -81,6 +83,17 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
         </div>
 
         <div className="modal-body">
+          {!cotacaoId && (
+              <div style={{ marginBottom: '20px' }}>
+                  <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Setor da Cotação *</label>
+                  <select value={setor} onChange={e => setSetor(e.target.value)} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }}>
+                      <option value="AMBOS">Medicamentos e Perfumaria (Ambos)</option>
+                      <option value="MEDICAMENTOS">Apenas Medicamentos</option>
+                      <option value="PERFUMARIA">Apenas Perfumaria</option>
+                  </select>
+              </div>
+          )}
+
           <p style={{ fontWeight: '500', color: '#374151', marginBottom: '10px' }}>1. Selecione os grupos:</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '25px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
             {GRUPOS_DISPONIVEIS.map(grupo => (

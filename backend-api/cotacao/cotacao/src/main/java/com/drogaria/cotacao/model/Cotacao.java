@@ -22,6 +22,9 @@ public class Cotacao {
     @Column(name = "nome_usuario")
     private String nomeUsuario;
 
+    @Column(name = "setor")
+    private String setor;
+
     @JsonIgnore 
     @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemCotacao> itens;
@@ -53,6 +56,9 @@ public class Cotacao {
 
     public String getNomeUsuario() { return nomeUsuario; }
     public void setNomeUsuario(String nomeUsuario) { this.nomeUsuario = nomeUsuario; }
+
+    public String getSetor() { return setor; }
+    public void setSetor(String setor) { this.setor = setor; }
 
     public List<ItemCotacao> getItens() { return itens; }
     public void setItens(List<ItemCotacao> itens) { this.itens = itens; }

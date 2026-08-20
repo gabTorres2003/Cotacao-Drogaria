@@ -4,7 +4,7 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import ModalNovaCotacaoManual from '../components/cotacao/modais/ModalNovaCotacaoManual';
-import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus } from 'lucide-react';
+import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus, Tag } from 'lucide-react';
 
 export default function Cotacoes() {
   const navigate = useNavigate()
@@ -17,7 +17,6 @@ export default function Cotacoes() {
   const [ordenacao, setOrdenacao] = useState('RECENTES')
   const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
   
-  // NOVO ESTADO: Setor da Cotação
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
 
   const [resumo, setResumo] = useState({ total: 0, emAberto: 0, aguardando: 0, finalizadas: 0 })
@@ -85,7 +84,6 @@ export default function Cotacoes() {
       
       const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
 
-      // FILTRO POR SETOR
       let matchSetor = true;
       if (setorAtivo !== 'TODOS') {
           const setorCotacao = (c.setor || c.setorCompra || c.descricao || '').toUpperCase();
@@ -253,6 +251,7 @@ export default function Cotacoes() {
               <tr>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Setor</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Usuário</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
@@ -262,7 +261,7 @@ export default function Cotacoes() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando cotações...</span>
@@ -271,7 +270,7 @@ export default function Cotacoes() {
                 </tr>
               ) : cotacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="6" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhuma cotação encontrada nesta aba ou setor.
                   </td>
                 </tr>
@@ -282,6 +281,20 @@ export default function Cotacoes() {
                     <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>
                       {cotacao.descricao || cotacao.origem || 'Cotação Manual'}
                     </td>
+                    
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      {(() => {
+                        const setor = cotacao.setor || 'AMBOS';
+                        const setorColor = setor === 'MEDICAMENTOS' ? '#2563eb' : setor === 'PERFUMARIA' ? '#9333ea' : '#475569';
+                        const setorBg = setor === 'MEDICAMENTOS' ? '#dbeafe' : setor === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9';
+                        return (
+                          <div style={{ fontSize: '11px', fontWeight: 'bold', color: setorColor, backgroundColor: setorBg, padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                            <Tag size={12} /> {setor === 'AMBOS' ? 'Med / Perf' : setor}
+                          </div>
+                        );
+                      })()}
+                    </td>
+
                     <td style={{ padding: '16px', color: '#4b5563', fontSize: '14px' }}>
                       <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
                         {cotacao.nomeUsuario || cotacao.usuario || 'Sistema'}

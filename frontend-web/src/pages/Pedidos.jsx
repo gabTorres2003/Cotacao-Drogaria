@@ -23,7 +23,6 @@ export default function Pedidos() {
   const [dataInicio, setDataInicio] = useState('')
   const [dataFim, setDataFim] = useState('')
 
-  // NOVO ESTADO: Setor do Pedido
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
 
   const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
@@ -223,12 +222,13 @@ export default function Pedidos() {
       if (setorAtivo !== 'TODOS') {
           const setorFornecedor = (p.fornecedor?.setorCompra || '').toUpperCase();
           const grupos = gruposFormatados.toUpperCase();
+          const setorCot = (p.cotacao?.setor || '').toUpperCase();
           
           if (setorAtivo === 'MEDICAMENTOS') {
-              matchSetor = setorFornecedor.includes('MEDICAMENTOS') || setorFornecedor.includes('AMBOS') || grupos.includes('MEDICAMENTO');
+              matchSetor = setorFornecedor.includes('MEDICAMENTOS') || setorFornecedor.includes('AMBOS') || grupos.includes('MEDICAMENTO') || setorCot.includes('MEDICAMENTO');
           }
           if (setorAtivo === 'PERFUMARIA') {
-              matchSetor = setorFornecedor.includes('PERFUMARIA') || setorFornecedor.includes('AMBOS') || grupos.includes('PERFUMARIA');
+              matchSetor = setorFornecedor.includes('PERFUMARIA') || setorFornecedor.includes('AMBOS') || grupos.includes('PERFUMARIA') || setorCot.includes('PERFUMARIA');
           }
       }
 
@@ -483,6 +483,7 @@ export default function Pedidos() {
                 <th style={{ width: '80px' }}>ID</th>
                 <th style={{ width: '120px' }}>Cotação</th>
                 <th>Empresa (Vendedor)</th>
+                <th style={{ textAlign: 'center' }}>Setor</th>
                 <th style={{ width: '100px' }}>NF</th>
                 <th>Entregue Por</th>
                 <th>Grupos</th>
@@ -495,7 +496,7 @@ export default function Pedidos() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando pedidos...</span>
@@ -504,7 +505,7 @@ export default function Pedidos() {
                 </tr>
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
-                  <td colSpan="11" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhum pedido encontrado nesta aba ou setor.
                   </td>
                 </tr>
@@ -562,6 +563,20 @@ export default function Pedidos() {
                       </td>
 
                       <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
+                      
+                      <td style={{ textAlign: 'center' }}>
+                        {(() => {
+                          const setor = p.cotacao?.setor || p.fornecedor?.setorCompra || 'AMBOS';
+                          const setorColor = setor === 'MEDICAMENTOS' ? '#2563eb' : setor === 'PERFUMARIA' ? '#9333ea' : '#475569';
+                          const setorBg = setor === 'MEDICAMENTOS' ? '#dbeafe' : setor === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9';
+                          return (
+                            <div style={{ fontSize: '11px', fontWeight: 'bold', color: setorColor, backgroundColor: setorBg, padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <Tag size={12} /> {setor === 'AMBOS' ? 'Med / Perf' : setor}
+                            </div>
+                          );
+                        })()}
+                      </td>
+
                       <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '600', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{p.numeroNota || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.fornecedor?.entreguePor || '-'}</span></td>
                       <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
@@ -638,6 +653,7 @@ export default function Pedidos() {
             />
         )}
 
+        {/* MODAL DE FALHA NA ENTREGA */}
         {modalFalhaAberto && pedidoFalha && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                 <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>

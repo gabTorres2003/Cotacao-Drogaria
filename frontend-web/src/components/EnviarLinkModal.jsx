@@ -1,10 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { X, Send, Users, CheckCircle, Clock, AlertTriangle, User } from 'lucide-react';
+import { X, Send, Users, CheckCircle, Clock, AlertTriangle, User, Filter } from 'lucide-react';
 import api from '../services/api';
 
 export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) {
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [setorCotacao, setSetorCotacao] = useState('AMBOS'); 
 
   const nomeUsuario = localStorage.getItem('nomeUsuario') || 'nossa equipe';
 
@@ -19,13 +20,24 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
   const carregarDados = async () => {
     try {
-      const [resForn, resVinculos] = await Promise.all([
+      const [resForn, resVinculos, resCotacao] = await Promise.all([
         api.get('/api/fornecedor'),
-        api.get(`/api/cotacao-fornecedor/cotacao/${idCotacao}`)
+        api.get(`/api/cotacao-fornecedor/cotacao/${idCotacao}`),
+        api.get(`/api/cotacao/${idCotacao}`) 
       ]);
 
-      const fornecedoresData = resForn.data;
-      setFornecedores(fornecedoresData);
+      const setorAtual = (resCotacao.data.setor || resCotacao.data.setorCompra || 'AMBOS').toUpperCase();
+      setSetorCotacao(setorAtual);
+
+      // FILTRO INTELIGENTE: Cruza o setor da cotação com o setor do fornecedor
+      const fornecedoresValidos = resForn.data.filter(f => {
+          const setorForn = (f.setorCompra || 'AMBOS').toUpperCase();
+          if (setorAtual === 'AMBOS') return true; // Cotação mista aceita todos
+          if (setorForn === 'AMBOS') return true;  // Fornecedor misto atende todas as cotações
+          return setorForn === setorAtual;         // Medicamentos == Medicamentos, etc.
+      });
+
+      setFornecedores(fornecedoresValidos);
 
       const listaVinculos = resVinculos.data || [];
 
@@ -38,7 +50,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
       setRespondidos(idsRespondidos);
 
       // Marca todos os pendentes por padrão
-      const idsPendentes = fornecedoresData.filter(f => !idsRespondidos.includes(f.id)).map(f => f.id);
+      const idsPendentes = fornecedoresValidos.filter(f => !idsRespondidos.includes(f.id)).map(f => f.id);
       setSelectedIds(idsPendentes);
 
     } catch (error) {
@@ -161,6 +173,17 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
           </button>
         </div>
 
+        {/* ALERTA VISUAL DO FILTRO DE SETOR */}
+        {!loading && (
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
+            <Filter size={18} color="#3b82f6" />
+            <span style={{ fontSize: '13px', color: '#475569', lineHeight: '1.4' }}>
+              Cotação de <strong>{setorCotacao === 'AMBOS' ? 'Medicamentos e Perfumaria' : setorCotacao}</strong>.<br/> 
+              Exibindo apenas fornecedores compatíveis com este setor.
+            </span>
+          </div>
+        )}
+
         {confirmModal ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
                 <AlertTriangle size={48} color="#f59e0b" style={{ margin: '0 auto 15px auto' }} />
@@ -204,7 +227,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                 {loading ? (
                     <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Carregando dados dos fornecedores...</p>
                 ) : fornecedores.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#6b7280' }}>Nenhum fornecedor cadastrado.</p>
+                    <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Nenhum fornecedor compatível com o setor desta cotação.</p>
                 ) : (
                     fornecedores.map((fornecedor) => {
                     
