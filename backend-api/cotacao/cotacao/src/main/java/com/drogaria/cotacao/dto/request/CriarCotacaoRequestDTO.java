@@ -5,6 +5,7 @@ import java.util.List;
 public class CriarCotacaoRequestDTO {
     private String descricao;
     private String origem;
+    private String setor; // NOVO CAMPO
     private List<ItemCriarCotacaoDTO> itens;
 
     public String getDescricao() { return descricao; }
@@ -12,6 +13,9 @@ public class CriarCotacaoRequestDTO {
 
     public String getOrigem() { return origem; }
     public void setOrigem(String origem) { this.origem = origem; }
+
+    public String getSetor() { return setor; }
+    public void setSetor(String setor) { this.setor = setor; }
 
     public List<ItemCriarCotacaoDTO> getItens() { return itens; }
     public void setItens(List<ItemCriarCotacaoDTO> itens) { this.itens = itens; }

@@ -125,6 +125,9 @@ public class CotacaoService {
         novaCotacao.setDataCriacao(LocalDateTime.now());
         novaCotacao.setNomeUsuario(request.getNomeUsuario());
         
+        // CORREÇÃO: Lendo o setor do DTO e salvando no banco
+        novaCotacao.setSetor(request.getSetor() != null ? request.getSetor() : "AMBOS");
+        
         itensFinais.forEach(item -> {
             item.setCotacao(novaCotacao);
             item.setNomeOriginal(item.getNomeProduto());
@@ -155,10 +158,8 @@ public class CotacaoService {
             if (itensExistentes.containsKey(chave)) {
                 ItemCotacao existente = itensExistentes.get(chave);
                 
-                // Se o usuário excluiu manualmente, ignora a importação
                 if (Boolean.TRUE.equals(existente.getExcluido())) continue;
                 
-                // Se o usuário editou nome/quantidade, não sobrescreve os dados
                 if (Boolean.TRUE.equals(existente.getEditadoManual())) continue;
 
                 if (itemDna.getQuantidade() > existente.getQuantidade()) {

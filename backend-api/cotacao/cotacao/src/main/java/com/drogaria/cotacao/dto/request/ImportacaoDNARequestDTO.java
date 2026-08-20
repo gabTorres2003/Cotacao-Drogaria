@@ -12,4 +12,5 @@ public class ImportacaoDNARequestDTO {
     private LocalDate dataFinal;
     private Integer diasSuprir;
     private String nomeUsuario;
+    private String setor;
 }

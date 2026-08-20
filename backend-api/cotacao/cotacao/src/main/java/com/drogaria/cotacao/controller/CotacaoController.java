@@ -63,6 +63,7 @@ public class CotacaoController {
             novaCotacao.setDescricao(request.getDescricao() != null ? request.getDescricao() : "Cotação Manual");
             novaCotacao.setStatus("ABERTA");
             novaCotacao.setDataCriacao(LocalDateTime.now());
+            novaCotacao.setSetor(request.getSetor() != null ? request.getSetor() : "AMBOS");
             
             List<ItemCotacao> itens = new ArrayList<>();
             if (request.getItens() != null) {
