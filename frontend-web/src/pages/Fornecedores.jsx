@@ -244,7 +244,8 @@ export default function Fornecedores() {
               <tr>
                 <th style={{ width: '60px' }}>ID</th>
                 <th>Nome / Login</th>
-                <th>Empresa / Setor</th>
+                <th>Empresa</th>
+                <th style={{ width: '150px', textAlign: 'center' }}>Setor</th>
                 <th>Entregue por</th>
                 <th>Telefone (WhatsApp)</th>
                 <th style={{ width: '120px' }}>Ações</th>
@@ -254,7 +255,7 @@ export default function Fornecedores() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="6"
+                    colSpan="7"
                     style={{
                       textAlign: 'center',
                       padding: '20px',
@@ -297,22 +298,22 @@ export default function Fornecedores() {
                       </div>
                     </td>
                     <td>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'flex-start' }}>
-                        <div
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                            color: '#4b5563',
-                            fontWeight: '500',
-                          }}
-                        >
-                          <Building2 size={16} color="#9ca3af" />
-                          {f.empresa || f.nomeEmpresa || '-'}
-                        </div>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? '#2563eb' : f.setorCompra === 'PERFUMARIA' ? '#9333ea' : '#475569', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? '#dbeafe' : f.setorCompra === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                          <Tags size={10} /> {f.setorCompra || 'AMBOS'}
-                        </div>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          color: '#4b5563',
+                          fontWeight: '500',
+                        }}
+                      >
+                        <Building2 size={16} color="#9ca3af" />
+                        {f.empresa || f.nomeEmpresa || '-'}
+                      </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? '#2563eb' : f.setorCompra === 'PERFUMARIA' ? '#9333ea' : '#475569', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? '#dbeafe' : f.setorCompra === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <Tags size={12} /> {f.setorCompra === 'AMBOS' ? 'Med / Perf' : (f.setorCompra || 'Ambos')}
                       </div>
                     </td>
                     <td>
