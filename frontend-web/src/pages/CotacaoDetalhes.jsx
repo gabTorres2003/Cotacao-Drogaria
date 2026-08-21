@@ -90,15 +90,14 @@ export default function CotacaoDetalhes() {
 
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
+  // Busca GLOBAL de pedidos em aberto
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
          const res = await api.get('/api/pedidos');
-         const abertosCotacaoAtual = Array.isArray(res.data) ? res.data.filter(p => 
-             p.status === 'PENDENTE_ENTREGA' && 
-             (String(p.cotacao?.id) === String(id) || String(p.cotacaoId) === String(id))
-         ) : [];
-         setPedidosAbertosList(abertosCotacaoAtual);
+         // NOVA REGRA: Busca todos os pedidos do sistema que estejam aguardando
+         const abertosSistema = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+         setPedidosAbertosList(abertosSistema);
        } catch(e) {}
      };
      fetchAbertos();
@@ -435,6 +434,7 @@ export default function CotacaoDetalhes() {
         alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
 
+      // Vínculo inteligente com qualquer pedido em aberto do mesmo fornecedor
       pedidosArray.forEach(ped => {
          const fNameMatch = normalizeStr(ped.fornecedorNome);
          const pedAberto = pedidosAbertosList.find(p => {
@@ -648,15 +648,14 @@ export default function CotacaoDetalhes() {
 
     try {
       const res = await api.get('/api/pedidos');
-      const abertosDaCotacao = Array.isArray(res.data) ? res.data.filter(p => 
-          p.status === 'PENDENTE_ENTREGA' && 
-          (String(p.cotacao?.id) === String(id) || String(p.cotacaoId) === String(id))
-      ) : [];
-      
+      // NOVA REGRA: Busca todos os pedidos do sistema que estejam aguardando
+      const todosAbertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
+      setPedidosAbertosList(todosAbertos);
+
       let defaultPedidoId = '';
       if (fornecedorTarget) {
         const fTargetNorm = normalizeStr(fornecedorTarget);
-        const doForn = abertosDaCotacao.filter(p => {
+        const doForn = todosAbertos.filter(p => {
           const emp = normalizeStr(p.fornecedor?.empresa);
           const nom = normalizeStr(p.fornecedor?.nome);
           const fNomeApi = normalizeStr(p.fornecedorNome);
@@ -672,7 +671,6 @@ export default function CotacaoDetalhes() {
       }
 
       setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
-      setPedidosAbertosList(abertosDaCotacao);
     } catch (e) {}
   };
 
@@ -915,7 +913,6 @@ export default function CotacaoDetalhes() {
           relatorioOrdenado={relatorioOrdenado} 
       />
       
-      {/* MODAL "+ PEDIDO" INTELIGENTE ATUALIZADO COM LOOP DE CONDIÇÕES */}
       {modalAddPedidoAberto && itemAddPedido && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
@@ -926,18 +923,38 @@ export default function CotacaoDetalhes() {
 
              <div style={{ marginBottom: '20px' }}>
                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
-               <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
-                 <option value="">{pedidosAbertosList.length === 0 ? 'Nenhum pedido em aberto nesta cotação' : '-- Selecione --'}</option>
-                 {pedidosAbertosList.map(p => {
-                    const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
-                    const vend = p.fornecedor?.nome || p.fornecedorNome || '';
-                    let exibicao = emp;
-                    if (emp && vend && emp !== vend) exibicao += ` (${vend})`;
-                    else if (!emp && vend) exibicao = vend;
-                    else if (!emp && !vend) exibicao = 'Fornecedor Desconhecido';
-                    return <option key={p.id} value={p.id}>Pedido #{p.id} - {exibicao}</option>;
-                 })}
-               </select>
+               
+               {(() => {
+                    const pedidosDropdown = fornecedorTargetToModal ? pedidosAbertosList.filter(p => {
+                        const fTargetNorm = normalizeStr(fornecedorTargetToModal);
+                        const emp = normalizeStr(p.fornecedor?.empresa);
+                        const nom = normalizeStr(p.fornecedor?.nome);
+                        const fNomeApi = normalizeStr(p.fornecedorNome);
+                        return (emp && fTargetNorm.includes(emp)) ||
+                               (nom && fTargetNorm.includes(nom)) ||
+                               (fNomeApi && fTargetNorm.includes(fNomeApi));
+                    }) : pedidosAbertosList;
+
+                    return (
+                         <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
+                           <option value="">{pedidosDropdown.length === 0 ? 'Nenhum pedido aberto deste fornecedor no sistema' : '-- Selecione --'}</option>
+                           {pedidosDropdown.map(p => {
+                              const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
+                              const vend = p.fornecedor?.nome || p.fornecedorNome || '';
+                              let exibicao = emp;
+                              if (emp && vend && emp !== vend) exibicao += ` (${vend})`;
+                              else if (!emp && vend) exibicao = vend;
+                              else if (!emp && !vend) exibicao = 'Fornecedor Desconhecido';
+                              
+                              const baseCotacao = p.cotacao?.id || p.cotacaoId;
+                              const labelCotacao = baseCotacao ? `Cot. #${baseCotacao}` : 'Avulso';
+
+                              return <option key={p.id} value={p.id}>Pedido #{p.id} ({labelCotacao}) - {exibicao}</option>;
+                           })}
+                         </select>
+                    );
+                })()}
+
              </div>
 
              {fornecedorTargetToModal ? (
