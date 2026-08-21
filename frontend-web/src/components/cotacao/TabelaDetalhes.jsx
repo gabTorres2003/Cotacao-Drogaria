@@ -85,11 +85,9 @@ export default function TabelaDetalhes({
       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
   });
 
-  // SEPARA ITENS FIXADOS DOS DEMAIS
   const pinnedItems = relatorioExibicao.filter(i => pinnedRows.includes(i.idItem));
   const unpinnedItems = relatorioExibicao.filter(i => !pinnedRows.includes(i.idItem));
 
-  // RENDERIZAÇÃO COMPARTILHADA DA LINHA
   const renderItemRow = (item, isPinnedRow) => {
       const isBloqueado = !!itensJaComprados[item.idItem];
       const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
@@ -398,12 +396,7 @@ export default function TabelaDetalhes({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {isComparativo && (
-          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
-                  <input type="checkbox" checked={isHeaderPinned} onChange={(e) => setIsHeaderPinned(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                  <Pin size={14} color={isHeaderPinned ? '#2563eb' : '#9ca3af'} />
-                  Fixar Cabeçalho no Topo
-              </label>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
                   <input type="checkbox" checked={mostrarAlertasPreco} onChange={(e) => setMostrarAlertasPreco(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                   <AlertTriangle size={14} color={mostrarAlertasPreco ? '#d97706' : '#9ca3af'} />
@@ -417,7 +410,17 @@ export default function TabelaDetalhes({
           
           <thead style={{ position: shouldStickHead ? 'sticky' : 'static', top: 0, zIndex: 50, backgroundColor: '#ffffff', boxShadow: shouldStickHead ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>
             <tr>
-              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
+              {/* O BOTÃO 📌 AGORA FICA DIRETAMENTE NA COLUNA DE PRODUTO */}
+              <th style={{ ...thStyle, userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)', backgroundColor: isHeaderPinned ? '#f0fdf4' : '#ffffff' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }} onClick={() => requestSort('nomeProduto')}>
+                          Produto <SortIcon sortKey="nomeProduto" />
+                      </div>
+                      <button title={isHeaderPinned ? "Descongelar Cabeçalho da Tabela" : "Congelar Cabeçalho no Topo"} onClick={(e) => { e.stopPropagation(); setIsHeaderPinned(!isHeaderPinned); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: '4px', backgroundColor: isHeaderPinned ? '#bbf7d0' : '#e2e8f0', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                          <Pin size={14} color={isHeaderPinned ? '#166534' : '#64748b'} />
+                      </button>
+                  </div>
+              </th>
               
               {colunasVisiveis.quantidade && (() => {
                   const isPinned = pinnedStats.includes('quantidade');

@@ -53,7 +53,11 @@ export default function TabelaRegistroManual({
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <select value={chk.fornecedor || ''} onChange={(e) => setChecklist({ ...checklist, [item.idItem]: { ...chk, fornecedor: e.target.value } })} disabled={!chk.comprado || chk.bloqueado || isEncerrada} style={{ ...inputEdicao, width: '100%', fontSize: '12px', padding: '6px' }}>
                       <option value="">-- Selecionar --</option>
-                      {fornecedoresLista.map(f => <option key={f.id} value={f.nome}>{f.nome}</option>)}
+                      {/* O VALUE CONTINUA SENDO O NOME (PARA O BACKEND), MAS A VISIBILIDADE AGORA É DA EMPRESA */}
+                      {fornecedoresLista.map(f => {
+                         const exibicao = f.empresa ? `${f.empresa} (${f.nome})` : f.nome;
+                         return <option key={f.id} value={f.nome}>{exibicao}</option>;
+                      })}
                     </select>
                     <button type="button" onClick={() => copiarFornecedorParaBaixo(chk.fornecedor, index)} disabled={!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada} style={{ background: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#f3f4f6' : '#e0e7ff', color: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#9ca3af' : '#4f46e5', border: '1px solid', borderColor: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? '#d1d5db' : '#c7d2fe', borderRadius: '4px', padding: '4px', cursor: (!chk.fornecedor || !chk.comprado || chk.bloqueado || isEncerrada) ? 'not-allowed' : 'pointer' }}>
                       <ArrowDown size={14} />

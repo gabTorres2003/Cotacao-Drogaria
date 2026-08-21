@@ -63,6 +63,7 @@ public class CotacaoController {
             novaCotacao.setDescricao(request.getDescricao() != null ? request.getDescricao() : "Cotação Manual");
             novaCotacao.setStatus("ABERTA");
             novaCotacao.setDataCriacao(LocalDateTime.now());
+            
             novaCotacao.setSetor(request.getSetor() != null ? request.getSetor() : "AMBOS");
             
             List<ItemCotacao> itens = new ArrayList<>();
@@ -172,6 +173,18 @@ public class CotacaoController {
                     cotacao.setStatus(novoStatus);
                     cotacaoRepository.save(cotacao);
                     return ResponseEntity.ok("Status atualizado para " + novoStatus);
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
+    // NOVA ROTA PARA EDIÇÃO DE SETOR
+    @PutMapping("/{id}/setor")
+    public ResponseEntity<String> atualizarSetor(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+        String novoSetor = payload.get("setor");
+        return cotacaoRepository.findById(id)
+                .map(cotacao -> {
+                    cotacao.setSetor(novoSetor);
+                    cotacaoRepository.save(cotacao);
+                    return ResponseEntity.ok("Setor atualizado para " + novoSetor);
                 }).orElse(ResponseEntity.notFound().build());
     }
 
