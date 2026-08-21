@@ -12,16 +12,14 @@ export default function TabelaDetalhes({
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
-  const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false); // NOVO ESTADO: Inteligência de Estoque
+  const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
 
-  // CONTROLES DE ARRASTE, COLUNAS E VALORES IRREAIS
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
   const [draggedSupplier, setDraggedSupplier] = useState(null);
   const [pinnedStats, setPinnedStats] = useState([]);
   const [valoresIrreais, setValoresIrreais] = useState({});
 
-  // ESTADO: LINHAS FIXADAS (PIN)
   const [pinnedRows, setPinnedRows] = useState([]);
 
   useEffect(() => {
@@ -102,12 +100,23 @@ export default function TabelaDetalhes({
       const isEstoqueSeguro = estoque >= vendidoNoMes && estoque > 0;
       const isCompraEncalhada = ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0;
       const isGiroZero = vendidoNoMes === 0 && estoque > 0;
+      
+      let isCompraAntiga = false;
+      if (item.ultCompraData) {
+          const dataCompra = new Date(item.ultCompraData);
+          const dataLimite = new Date();
+          dataLimite.setMonth(dataLimite.getMonth() - 6);
+          if (dataCompra < dataLimite) {
+              isCompraAntiga = true;
+          }
+      }
 
-      const temRiscoExcesso = isEstoqueSeguro || isCompraEncalhada || isGiroZero;
+      const temRiscoExcesso = isEstoqueSeguro || isCompraEncalhada || isGiroZero || isCompraAntiga;
       const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso;
 
       let motivoExcesso = '';
-      if (isCompraEncalhada) motivoExcesso = 'Compra recente sem saída (encalhado)';
+      if (isCompraAntiga) motivoExcesso = 'Última compra ocorreu há mais de 6 meses';
+      else if (isCompraEncalhada) motivoExcesso = 'Compra recente sem saída (encalhado)';
       else if (isGiroZero) motivoExcesso = 'Sem vendas no mês e com estoque';
       else if (isEstoqueSeguro) motivoExcesso = 'Estoque atual já cobre as vendas';
 
@@ -425,6 +434,7 @@ export default function TabelaDetalhes({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       
+      {/* BARRA SUPERIOR DE FERRAMENTAS E FILTROS VISUAIS */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
           
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
