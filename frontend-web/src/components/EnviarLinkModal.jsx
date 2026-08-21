@@ -106,7 +106,8 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
     }
 
     const link = `${window.location.origin}/responder-cotacao/${idCotacao}`;
-    const mensagem = `Olá, ${fornecedor.nome}! \n\nJá liberamos a nossa nova cotação e aguardo a sua proposta. Por favor, acesse o link abaixo para preencher os valores:\n\n🔗 ${link}\n\n🔒 *Acesso rápido: utilize seu login e senha.*`;
+    const nomeExibicaoFornecedor = fornecedor.empresa ? `${fornecedor.empresa} (${fornecedor.nome})` : fornecedor.nome;
+    const mensagem = `Olá, *${nomeExibicaoFornecedor}*! \n\nJá liberamos a nossa nova cotação e aguardo a sua proposta. Por favor, acesse o link abaixo para preencher os valores:\n\n🔗 ${link}\n\n🔒 *Acesso rápido: utilize seu login e senha.*`;
 
     let telefoneLimpo = fornecedor.telefone ? fornecedor.telefone.replace(/\D/g, '') : '';
     if (telefoneLimpo.length === 10 || telefoneLimpo.length === 11) {
@@ -173,7 +174,6 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
           </button>
         </div>
 
-        {/* ALERTA VISUAL DO FILTRO DE SETOR */}
         {!loading && (
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
             <Filter size={18} color="#3b82f6" />
@@ -191,7 +191,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                 <p style={{ color: '#4b5563', marginBottom: '25px', lineHeight: '1.5' }}>
                     {confirmModal.type === 'LOTE'
                         ? `Você está prestes a gerar o link de transmissão e registrar no sistema o envio para ${selectedIds.length} fornecedor(es). Confirma esta ação?`
-                        : `Você está prestes a registrar o envio individual para ${confirmModal.fornecedor.nome}. Confirma esta ação?`}
+                        : `Você está prestes a registrar o envio individual para ${confirmModal.fornecedor.empresa ? confirmModal.fornecedor.empresa : confirmModal.fornecedor.nome}. Confirma esta ação?`}
                 </p>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
                     <button onClick={() => setConfirmModal(null)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer' }}>
@@ -234,6 +234,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                     const isEnviado = vinculados.includes(fornecedor.id);
                     const isRespondido = respondidos.includes(fornecedor.id);
                     const isPendente = isEnviado && !isRespondido;
+                    const nomeExibicao = fornecedor.empresa ? `${fornecedor.empresa} (${fornecedor.nome})` : fornecedor.nome;
 
                     let bgColor, borderColor, iconBg, iconColor, statusBadge, btnText, btnColor, btnBorder;
 
@@ -268,7 +269,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                             
                             <div>
                             <h4 style={{ fontWeight: '600', color: '#374151', margin: '0 0 4px 0', fontSize: '14px' }}>
-                                {fornecedor.nome}
+                                {nomeExibicao}
                             </h4>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                                 {statusBadge}
