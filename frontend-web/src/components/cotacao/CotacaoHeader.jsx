@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, RefreshCcw, Users, MessageCircle, ShoppingCart, FileText, Check, Loader2, Tags, Edit2, X, Save } from 'lucide-react';
-import api from '../services/api';
+import api from '../../services/api';
 
 export default function CotacaoHeader({
   id, isEncerrada, setIsAddItemModalOpen, setIsUploadModalOpen, 
