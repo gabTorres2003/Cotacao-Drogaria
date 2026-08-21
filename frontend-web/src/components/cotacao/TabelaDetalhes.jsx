@@ -1,6 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
+
+// Função para garantir que a data do banco seja lida corretamente (Evitando confusão DD/MM vs MM/DD)
+const parseDateSafe = (dStr) => {
+    if (!dStr) return null;
+    if (dStr.includes('T')) return new Date(dStr);
+    if (dStr.includes('/')) {
+        const parts = dStr.split('/');
+        return new Date(parts[2], parts[1] - 1, parts[0]);
+    }
+    if (dStr.includes('-')) {
+        const parts = dStr.split('-');
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return new Date(dStr);
+};
 
 export default function TabelaDetalhes({
   relatorioExibicao, colunasVisiveis, fornecedoresVisiveis, fornecedores, requestSort, sortConfig,
@@ -21,6 +36,9 @@ export default function TabelaDetalhes({
   const [valoresIrreais, setValoresIrreais] = useState({});
 
   const [pinnedRows, setPinnedRows] = useState([]);
+  
+  // NOVO: Estado para abrir o modal com os motivos do alerta
+  const [alertaProduto, setAlertaProduto] = useState(null);
 
   useEffect(() => {
       setSupplierOrder(prev => {
@@ -92,33 +110,69 @@ export default function TabelaDetalhes({
       const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
       const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
 
+      // VARIÁVEIS DA LÓGICA DE INTELIGÊNCIA
       const estoque = Number(item.estoque) || 0;
       const vendidoNoMes = Number(item.vendidoNoMes) || 0;
       const ultCompraQtde = Number(item.ultCompraQtde) || 0;
       const vendidoAposUltCompra = Number(item.vendidoAposUltCompra) || 0;
+      const qtdPedida = Number(item.quantidade) || 0;
 
-      const isEstoqueSeguro = estoque >= vendidoNoMes && estoque > 0;
-      const isCompraEncalhada = ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0;
-      const isGiroZero = vendidoNoMes === 0 && estoque > 0;
-      
-      let isCompraAntiga = false;
-      if (item.ultCompraData) {
-          const dataCompra = new Date(item.ultCompraData);
-          const dataLimite = new Date();
-          dataLimite.setMonth(dataLimite.getMonth() - 6);
-          if (dataCompra < dataLimite) {
-              isCompraAntiga = true;
+      let motivosExcesso = [];
+
+      // 1. Estoque Seguro 
+      if (estoque > 0 && estoque >= vendidoNoMes) {
+          motivosExcesso.push(`O estoque atual (${estoque} un) já cobre as vendas do último mês (${vendidoNoMes} un).`);
+      }
+
+      // 2. Giro Zero no Mês
+      if (estoque > 0 && vendidoNoMes === 0) {
+          motivosExcesso.push(`Produto não teve vendas nos últimos 30 dias e ainda há estoque (${estoque} un).`);
+      }
+
+      const dataCompra = parseDateSafe(item.ultCompraData);
+      const dataAtual = new Date();
+
+      if (dataCompra) {
+          const diasDesdeCompra = Math.max(1, Math.floor((dataAtual - dataCompra) / (1000 * 60 * 60 * 24)));
+
+          // 3. Compra Antiga (> 6 meses / ~180 dias)
+          if (diasDesdeCompra > 180) {
+              motivosExcesso.push(`A última compra foi realizada há mais de 6 meses (${fData(item.ultCompraData)}).`);
+          }
+
+          // 4. Compra Encalhada
+          if (ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0 && diasDesdeCompra > 15) {
+              motivosExcesso.push(`Compra recente encalhada: você comprou ${ultCompraQtde} un há ${diasDesdeCompra} dias e não vendeu nenhuma unidade desde então.`);
+          }
+
+          // 5. Ritmo de Giro Pós-Compra
+          if (vendidoAposUltCompra > 0 && diasDesdeCompra > 0 && qtdPedida > 0) {
+              const diasPorUnidade = diasDesdeCompra / vendidoAposUltCompra;
+              const tempoEstimadoParaVender = Math.round(qtdPedida * diasPorUnidade);
+
+              if (tempoEstimadoParaVender > 60) {
+                  motivosExcesso.push(`Giro Lento (Pós-Compra): Levou ${diasDesdeCompra} dias para vender ${vendidoAposUltCompra} un da última compra. Neste ritmo, a quantidade que você está pedindo agora (${qtdPedida} un) demorará aprox. ${tempoEstimadoParaVender} dias para sair.`);
+              }
           }
       }
 
-      const temRiscoExcesso = isEstoqueSeguro || isCompraEncalhada || isGiroZero || isCompraAntiga;
-      const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso;
+      // 6. Superestocagem Absoluta
+      const vendaDiaria = vendidoNoMes / 30;
+      if (vendaDiaria > 0 && qtdPedida > 0) {
+          const diasCobertura = Math.round((estoque + qtdPedida) / vendaDiaria);
+          if (diasCobertura > 60) {
+              const msgSuper = `Superestocagem: O estoque atual somado ao pedido (${estoque + qtdPedida} un) vai gerar uma prateleira para aprox. ${diasCobertura} dias (Sua média é de ${vendaDiaria.toFixed(2)} vendas/dia).`;
+              // Evita poluir a tela com duas mensagens parecidas (Regra 5 e Regra 6)
+              if (!motivosExcesso.some(m => m.includes('Giro Lento (Pós-Compra)'))) {
+                  motivosExcesso.push(msgSuper);
+              }
+          }
+      } else if (vendaDiaria === 0 && qtdPedida > 0 && estoque === 0) {
+          motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto sem nenhuma venda nos últimos 30 dias.`);
+      }
 
-      let motivoExcesso = '';
-      if (isCompraAntiga) motivoExcesso = 'Última compra ocorreu há mais de 6 meses';
-      else if (isCompraEncalhada) motivoExcesso = 'Compra recente sem saída (encalhado)';
-      else if (isGiroZero) motivoExcesso = 'Sem vendas no mês e com estoque';
-      else if (isEstoqueSeguro) motivoExcesso = 'Estoque atual já cobre as vendas';
+      const temRiscoExcesso = motivosExcesso.length > 0;
+      const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso;
 
       let rowBgColor = '#ffffff';
       if (isPinnedRow) rowBgColor = '#f0f9ff';
@@ -177,9 +231,16 @@ export default function TabelaDetalhes({
                   </strong>
                   
                   {isBaixoGiro && !item.excluido && (
-                    <span title={`Motivo: ${motivoExcesso}`} style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' }}>
-                      <AlertTriangle size={10} /> Risco de Excesso
-                    </span>
+                    <button
+                        type="button"
+                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAlertaProduto({ nome: getNomeExibicao(item.nomeProduto), motivos: motivosExcesso }); }}
+                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                        title="Ver os motivos do alerta de estoque"
+                    >
+                        <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                        <AlertTriangle size={10} /> Risco de Excesso
+                        </span>
+                    </button>
                   )}
 
                   {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
@@ -573,6 +634,36 @@ export default function TabelaDetalhes({
 
         </table>
       </div>
+
+      {/* MODAL COM OS MOTIVOS DO EXCESSO DE ESTOQUE */}
+      {alertaProduto && (
+          <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <AlertTriangle size={20} /> Alertas de Compra
+                      </h3>
+                      <button onClick={() => setAlertaProduto(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                  </div>
+                  
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0' }}>
+                      {alertaProduto.nome}
+                  </p>
+                  
+                  <ul style={{ paddingLeft: '20px', margin: 0, color: '#4b5563', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {alertaProduto.motivos.map((m, idx) => (
+                          <li key={idx} style={{ lineHeight: '1.4' }}>{m}</li>
+                      ))}
+                  </ul>
+                  
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
+                      <button onClick={() => setAlertaProduto(null)} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 'bold', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+                          Fechar
+                      </button>
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 }

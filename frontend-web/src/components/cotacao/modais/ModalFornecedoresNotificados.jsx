@@ -25,7 +25,17 @@ export default function ModalFornecedoresNotificados({ isOpen, onClose, vinculos
             {vinculos.map(v => (
               <li key={v.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderBottom: '1px solid #e5e7eb' }}>
                 <div>
-                  <strong style={{ display: 'block', fontSize: '14px', color: '#374151' }}>{v.fornecedor?.nome}</strong>
+                  <strong style={{ display: 'block', fontSize: '14px', color: '#374151' }}>
+                    {v.fornecedor?.nome}
+                    
+                    {/* Exibição do nome da empresa ao lado */}
+                    {v.fornecedor?.empresa?.nome && (
+                      <span style={{ color: '#6b7280', fontWeight: 'normal', marginLeft: '6px' }}>
+                        - {v.fornecedor.empresa.nome}
+                      </span>
+                    )}
+                  </strong>
+                  
                   <span style={{ fontSize: '12px', color: v.status === 'RESPONDIDA' ? '#16a34a' : '#b45309', fontWeight: 'bold' }}>
                     {v.status === 'RESPONDIDA' ? 'Já Respondeu' : 'Aguardando Resposta'}
                   </span>

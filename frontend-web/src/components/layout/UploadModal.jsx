@@ -13,7 +13,7 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
   const [dataInicial, setDataInicial] = useState('');
   const [dataFinal, setDataFinal] = useState('');
   const [diasSuprir, setDiasSuprir] = useState(1);
-  const [setor, setSetor] = useState('AMBOS'); // NOVO: Controle de setor
+  const [setor, setSetor] = useState('AMBOS');
 
   const toggleGrupo = (grupo) => {
     setGruposSelecionados(prev => 
@@ -51,7 +51,7 @@ export default function UploadModal({ cotacaoId, onClose, onSuccess }) {
         dataFinal: incluirSugestao ? dataFinal : null,
         diasSuprir: incluirSugestao ? Number(diasSuprir) : null,
         nomeUsuario: localStorage.getItem('nomeUsuario') || 'Sistema',
-        setor: setor // NOVO: Enviando o setor
+        setor: setor
       };
 
       if (cotacaoId) {
