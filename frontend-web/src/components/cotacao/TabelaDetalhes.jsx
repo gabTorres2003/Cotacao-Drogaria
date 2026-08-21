@@ -12,6 +12,7 @@ export default function TabelaDetalhes({
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
+  const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false); // NOVO ESTADO: Inteligência de Estoque
 
   // CONTROLES DE ARRASTE, COLUNAS E VALORES IRREAIS
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
@@ -20,7 +21,7 @@ export default function TabelaDetalhes({
   const [pinnedStats, setPinnedStats] = useState([]);
   const [valoresIrreais, setValoresIrreais] = useState({});
 
-  // NOVO ESTADO: LINHAS FIXADAS (PIN)
+  // ESTADO: LINHAS FIXADAS (PIN)
   const [pinnedRows, setPinnedRows] = useState([]);
 
   useEffect(() => {
@@ -77,11 +78,11 @@ export default function TabelaDetalhes({
       };
   };
 
-  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151', isPinnedRow = false) => ({
+  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151', isPinnedRow = false, isBaixoGiro = false) => ({
       ...tdStyle, textAlign: isRight ? 'right' : 'center', fontWeight: isBold ? '500' : 'normal', color: color,
       position: isPinnedCol ? 'sticky' : 'relative', left: isPinnedCol ? `${leftPos}px` : 'auto',
       zIndex: isPinnedCol ? 15 : 1,
-      backgroundColor: isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? '#f8fafc' : 'inherit'),
+      backgroundColor: isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : 'inherit'),
       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
   });
 
@@ -92,6 +93,27 @@ export default function TabelaDetalhes({
       const isBloqueado = !!itensJaComprados[item.idItem];
       const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
       const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
+
+      const estoque = Number(item.estoque) || 0;
+      const vendidoNoMes = Number(item.vendidoNoMes) || 0;
+      const ultCompraQtde = Number(item.ultCompraQtde) || 0;
+      const vendidoAposUltCompra = Number(item.vendidoAposUltCompra) || 0;
+
+      const isEstoqueSeguro = estoque >= vendidoNoMes && estoque > 0;
+      const isCompraEncalhada = ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0;
+      const isGiroZero = vendidoNoMes === 0 && estoque > 0;
+
+      const temRiscoExcesso = isEstoqueSeguro || isCompraEncalhada || isGiroZero;
+      const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso;
+
+      let motivoExcesso = '';
+      if (isCompraEncalhada) motivoExcesso = 'Compra recente sem saída (encalhado)';
+      else if (isGiroZero) motivoExcesso = 'Sem vendas no mês e com estoque';
+      else if (isEstoqueSeguro) motivoExcesso = 'Estoque atual já cobre as vendas';
+
+      let rowBgColor = '#ffffff';
+      if (isPinnedRow) rowBgColor = '#f0f9ff';
+      else if (isBaixoGiro) rowBgColor = '#fef2f2';
 
       const ofertasValidas = supplierOrder.map(forn => {
           let pO = item.precosPorFornecedor?.[forn] || 0;
@@ -129,8 +151,8 @@ export default function TabelaDetalhes({
       const displayWinner = isCurrentWinnerDisqualified ? bestValidForn : currentWinner;
 
       return (
-        <tr key={item.idItem} style={{ backgroundColor: isPinnedRow ? '#f0f9ff' : '#ffffff', opacity: item.excluido ? 0.5 : 1 }}>
-          <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#e0f2fe' : '#ffffff', boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+        <tr key={item.idItem} style={{ backgroundColor: rowBgColor, opacity: item.excluido ? 0.5 : 1 }}>
+          <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#e0f2fe' : (isBaixoGiro ? '#fee2e2' : '#ffffff'), boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
             {editandoItem === `${item.idItem}-nome` ? (
               <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
             ) : (
@@ -144,6 +166,13 @@ export default function TabelaDetalhes({
                   <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
                     {getNomeExibicao(item.nomeProduto)}
                   </strong>
+                  
+                  {isBaixoGiro && !item.excluido && (
+                    <span title={`Motivo: ${motivoExcesso}`} style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'help' }}>
+                      <AlertTriangle size={10} /> Risco de Excesso
+                    </span>
+                  )}
+
                   {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
                   {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
                   {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
@@ -167,7 +196,7 @@ export default function TabelaDetalhes({
           {colunasVisiveis.quantidade && (() => {
               const isPinned = pinnedStats.includes('quantidade');
               return (
-                <td style={getCellColStyle(isPinned, getLeftOffset('quantidade', 'stat'), false, false, textStyle.color, isPinnedRow)}>
+                <td style={getCellColStyle(isPinned, getLeftOffset('quantidade', 'stat'), false, false, textStyle.color, isPinnedRow, isBaixoGiro)}>
                   {editandoItem === `${item.idItem}-qtd` ? (
                     <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
                   ) : (
@@ -179,22 +208,22 @@ export default function TabelaDetalhes({
           
           {colunasVisiveis.estoque && (() => {
               const isPinned = pinnedStats.includes('estoque');
-              return <td style={getCellColStyle(isPinned, getLeftOffset('estoque', 'stat'), false, false, textStyle.color, isPinnedRow)}><span style={textStyle}>{item.estoque ?? '-'}</span></td>;
+              return <td style={getCellColStyle(isPinned, getLeftOffset('estoque', 'stat'), false, false, textStyle.color, isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.estoque ?? '-'}</span></td>;
           })()}
 
           {isItens && (
             <>
-              {colunasVisiveis.vendidoNoMes && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
-              {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
-              {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
-              {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
-              {colunasVisiveis.ultVendaData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : 'inherit'}}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
+              {colunasVisiveis.vendidoNoMes && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
+              {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
+              {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
+              {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
+              {colunasVisiveis.ultVendaData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
             </>
           )}
 
           {colunasVisiveis.ultimoPreco && (() => {
               const isPinned = pinnedStats.includes('ultimoPreco');
-              return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
+              return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
           })()}
 
           {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
@@ -241,7 +270,7 @@ export default function TabelaDetalhes({
               <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && handleSetWinner(item.idItem, f)} 
                   style={{ 
                       ...tdStyle, 
-                      backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? '#f8fafc' : 'inherit')), 
+                      backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : (isBaixoGiro ? '#fef2f2' : 'inherit'))), 
                       textAlign: 'center', 
                       borderLeft: '1px solid #f3f4f6', 
                       border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
@@ -375,7 +404,7 @@ export default function TabelaDetalhes({
           })}
 
           {isItens && (
-            <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#f0f9ff' : '#ffffff', boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+            <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fee2e2' : '#ffffff'), boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
               {subAbaItens === 'comprados' ? (
                 <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
               ) : (
@@ -396,8 +425,14 @@ export default function TabelaDetalhes({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       
-      {/* BARRA SUPERIOR GLOBAL PARA FIXAR CABEÇALHO */}
       <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
+          
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+              <input type="checkbox" checked={destacarBaixoGiro} onChange={(e) => setDestacarBaixoGiro(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+              <AlertTriangle size={14} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />
+              Destacar Risco de Excesso
+          </label>
+          
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
               <input type="checkbox" checked={isHeaderPinned} onChange={(e) => setIsHeaderPinned(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
               <Pin size={14} color={isHeaderPinned ? '#2563eb' : '#9ca3af'} />
