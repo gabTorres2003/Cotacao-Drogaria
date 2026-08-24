@@ -10,4 +10,5 @@ public class ItemRecebidoDTO {
     private Double valorUnitarioReal;
     private StatusItemRecebimento statusRecebimento;
     private String observacaoDevolucao;
+    private Integer quantidadeRecebidaAgora;
 }

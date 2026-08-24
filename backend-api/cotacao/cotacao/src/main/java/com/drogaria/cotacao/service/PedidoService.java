@@ -73,46 +73,73 @@ public class PedidoService {
     @Transactional
     public Pedido processarRecebimento(Long pedidoId, ReceberPedidoRequestDTO dto) {
         Pedido pedido = buscarPorId(pedidoId);
-        pedido.setNumeroNota(dto.getNumeroNota());
-        
+
+        if (dto.getNumeroNota() == null || dto.getNumeroNota().trim().isEmpty()) {
+            throw new RuntimeException("O número da NF é obrigatório para registrar o recebimento.");
+        }
+
+        String novaNota = dto.getNumeroNota().trim();
+        if (pedido.getNumeroNota() == null || pedido.getNumeroNota().trim().isEmpty()) {
+            pedido.setNumeroNota(novaNota);
+        } else if (!pedido.getNumeroNota().contains(novaNota)) {
+            pedido.setNumeroNota(pedido.getNumeroNota() + " / " + novaNota);
+        }
+
         boolean temDivergenciaQuantidade = false;
         boolean temIncompatibilidadeValor = false;
         boolean temDevolucao = false;
+        boolean temItemPendente = false;
         double valorTotalReal = 0.0;
 
         for (ItemRecebidoDTO itemConferido : dto.getItens()) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
                     .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
-            
-            itemBanco.setQuantidadeReal(itemConferido.getQuantidadeReal());
+
+            Integer jaRecebido = itemBanco.getQuantidadeReal() != null ? itemBanco.getQuantidadeReal() : 0;
+            Integer incremento = itemConferido.getQuantidadeRecebidaAgora() != null
+                    ? itemConferido.getQuantidadeRecebidaAgora()
+                    : itemConferido.getQuantidadeReal();
+            if (incremento == null) incremento = 0;
+
+            int novaQuantidadeReal = jaRecebido + incremento;
+            itemBanco.setQuantidadeReal(novaQuantidadeReal);
             itemBanco.setValorUnitarioReal(itemConferido.getValorUnitarioReal());
-            
+
             StatusItemRecebimento statusItem = itemConferido.getStatusRecebimento();
 
-            if (!itemBanco.getQuantidadeReal().equals(itemBanco.getQuantidadePedida())) {
+            if (itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida()) {
                 temDivergenciaQuantidade = true;
-                statusItem = StatusItemRecebimento.INCORRETO; 
+                temItemPendente = true;
+                if (statusItem == null || statusItem == StatusItemRecebimento.OK) {
+                    statusItem = StatusItemRecebimento.FALTANTE;
+                }
             }
-            
-            if (!itemBanco.getValorUnitarioReal().equals(itemBanco.getValorUnitarioPedido())) {
+
+            if (itemBanco.getValorUnitarioReal() != null
+                    && itemBanco.getValorUnitarioPedido() != null
+                    && !itemBanco.getValorUnitarioReal().equals(itemBanco.getValorUnitarioPedido())) {
                 temIncompatibilidadeValor = true;
             }
 
-            itemBanco.setStatusRecebimento(statusItem); 
+            itemBanco.setStatusRecebimento(statusItem);
             itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
 
-            if (statusItem == StatusItemRecebimento.AVARIADO || 
+            if (statusItem == StatusItemRecebimento.AVARIADO ||
                 statusItem == StatusItemRecebimento.INCORRETO) {
                 temDevolucao = true;
             }
 
-            valorTotalReal += (itemBanco.getQuantidadeReal() * itemBanco.getValorUnitarioReal());
+            if (itemBanco.getQuantidadeReal() != null && itemBanco.getValorUnitarioReal() != null) {
+                valorTotalReal += (itemBanco.getQuantidadeReal() * itemBanco.getValorUnitarioReal());
+            }
         }
 
         pedido.setValorTotalReal(valorTotalReal);
 
-        if (temDevolucao || temDivergenciaQuantidade) {
+        if (temDevolucao) {
             pedido.setStatus(StatusPedido.DIVERGENCIA);
+        } else if (temItemPendente) {
+            pedido.setStatus(StatusPedido.ENTREGA_PARCIAL);
         } else if (temIncompatibilidadeValor) {
             pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
         } else {
@@ -125,7 +152,7 @@ public class PedidoService {
     @Transactional
     public Pedido refazerConferencia(Long pedidoId) {
         Pedido pedido = buscarPorId(pedidoId);
-        
+
         if (pedido.getStatus() == StatusPedido.PENDENTE_ENTREGA || pedido.getStatus() == StatusPedido.CONFIRMADO_FORNECEDOR) {
             throw new RuntimeException("Este pedido ainda não foi conferido.");
         }
@@ -141,6 +168,22 @@ public class PedidoService {
             item.setObservacaoDevolucao(null);
         }
 
+        return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido reabrirConferencia(Long pedidoId) {
+        Pedido pedido = buscarPorId(pedidoId);
+
+        if (pedido.getStatus() == StatusPedido.PENDENTE_ENTREGA
+                || pedido.getStatus() == StatusPedido.CONFIRMADO_FORNECEDOR) {
+            throw new RuntimeException("A conferência deste pedido ainda não foi iniciada.");
+        }
+        if (pedido.getStatus() == StatusPedido.CANCELADO) {
+            throw new RuntimeException("Não é possível reabrir a conferência de um pedido cancelado.");
+        }
+
+        pedido.setStatus(StatusPedido.CONFIRMADO_FORNECEDOR);
         return pedidoRepository.save(pedido);
     }
     

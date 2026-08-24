@@ -127,6 +127,17 @@ export default function PedidoDetalhes() {
         }
     };
 
+    const handleContinuarConferencia = async () => {
+        if (window.confirm('Deseja reabrir a conferência deste pedido para continuar lançando o próximo volume?')) {
+            try {
+                await api.patch(`/api/pedidos/${id}/reabrir-conferencia`);
+                navigate(`/pedidos/${id}/conferir`);
+            } catch (error) {
+                alert('Erro ao reabrir a conferência: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
     const handleRemoverItemDoPedido = async (idItem) => {
         if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
             try {
@@ -357,14 +368,19 @@ export default function PedidoDetalhes() {
     const getStatusExibicao = (pedidoObj) => {
         if (!pedidoObj) return '';
         const status = pedidoObj.status;
-        
+
         if (status === 'PENDENTE_ENTREGA') {
-            const prazoFinal = new Date(pedidoObj.dataCriacao).getTime() + (24 * 60 * 60 * 1000); 
+            const prazoFinal = new Date(pedidoObj.dataCriacao).getTime() + (24 * 60 * 60 * 1000);
             if (prazoFinal - agora <= 0) return 'PRAZO ESTOURADO (> 24H)';
             return 'AGUARDANDO FORNECEDOR';
         }
         if (status === 'CANCELADO') return 'CANCELADO / FALHA NA ENTREGA';
         if (status === 'CONFIRMADO_FORNECEDOR') return 'CONFIRMADO NA FÁBRICA (AGUARDANDO ENTREGA)';
+        if (status === 'ENTREGA_PARCIAL') {
+            const totalItens = pedidoObj.itens?.length || 0;
+            const recebidos = pedidoObj.itens?.filter(i => i.quantidadeReal !== null && i.quantidadeReal >= i.quantidadePedida).length || 0;
+            return `ENTREGA PARCIAL (${recebidos}/${totalItens} itens concluídos)`;
+        }
 
         if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status)) {
             let faltas = 0, avarias = 0, incorretos = 0;
@@ -392,9 +408,10 @@ export default function PedidoDetalhes() {
 
     const empresa = pedido.fornecedor?.empresa || pedido.fornecedor?.nomeEmpresa || 'Empresa não informada';
     const vendedor = pedido.fornecedor?.nome || pedido.fornecedor?.vendedor || pedido.fornecedorNome || 'Vendedor não informado';
-    
-    const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR';
-    const mostrarReais = !podeConferir && pedido.status !== 'CANCELADO'; 
+
+    const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR' || pedido.status === 'ENTREGA_PARCIAL';
+    const mostrarReais = !podeConferir && pedido.status !== 'CANCELADO';
+    const isEntregaParcial = pedido.status === 'ENTREGA_PARCIAL';
     
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
@@ -474,6 +491,18 @@ export default function PedidoDetalhes() {
                     <div style={{ backgroundColor: '#fefce8', border: '1px solid #fef08a', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#b45309', fontWeight: 'bold' }}><Tag size={20} /><span>O fornecedor enviou {pedido.sugestoes.length} sugestão(ões) extras!</span></div>
                         <button onClick={() => setIsModalSugestoesAberto(true)} style={{ backgroundColor: '#eab308', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}><Eye size={16} /> Visualizar Sugestões</button>
+                    </div>
+                )}
+
+                {isEntregaParcial && (
+                    <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#9a3412', fontWeight: 'bold' }}>
+                            <Truck size={20} />
+                            <span>Entrega Parcial — aguardando próximo volume do fornecedor{pedido.numeroNota ? ` (NF(ns): ${pedido.numeroNota})` : ''}.</span>
+                        </div>
+                        <button onClick={handleContinuarConferencia} style={{ backgroundColor: '#f97316', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <CheckCircle size={16} /> Continuar Conferência
+                        </button>
                     </div>
                 )}
 
@@ -668,8 +697,8 @@ export default function PedidoDetalhes() {
                                             <td style={{ ...styles.td, textAlign: 'center' }}>
                                                 <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
                                                     {pedido.status === 'CANCELADO' ? 'CANCELADO' : (
-                                                    mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK' 
-                                                        ? 'FALTA PARCIAL' : (item.statusRecebimento || 'AGUARDANDO')
+                                                    mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK'
+                                                        ? 'FALTA PARCIAL' : (item.statusRecebimento || (mostrarReais ? 'PENDENTE' : 'AGUARDANDO'))
                                                     )}
                                                 </span>
                                             </td>
@@ -949,7 +978,7 @@ const styles = {
     btnDevolucao: { padding: '10px 20px', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
     btnAddItem: { padding: '8px 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', fontSize: '13px' },
     inputModal: { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' },
-    statusBadge: (status, label) => ({ fontWeight: '700', color: status === 'CANCELADO' ? '#991b1b' : ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) || label.includes('ESTOURADO') ? '#dc2626' : '#2563eb' }),
+    statusBadge: (status, label) => ({ fontWeight: '700', color: status === 'CANCELADO' ? '#991b1b' : status === 'ENTREGA_PARCIAL' ? '#c2410c' : ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) || label.includes('ESTOURADO') ? '#dc2626' : '#2563eb' }),
     itemStatus: (status, qtdReal, qtdPedida, pedidoStatus) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
         const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta || pedidoStatus === 'CANCELADO';

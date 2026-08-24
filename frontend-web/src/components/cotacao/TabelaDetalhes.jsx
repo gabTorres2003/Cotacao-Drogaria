@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
-// Função para garantir que a data do banco seja lida corretamente (Evitando confusão DD/MM vs MM/DD)
 const parseDateSafe = (dStr) => {
     if (!dStr) return null;
     if (dStr.includes('T')) return new Date(dStr);
@@ -37,7 +36,6 @@ export default function TabelaDetalhes({
 
   const [pinnedRows, setPinnedRows] = useState([]);
   
-  // NOVO: Estado para abrir o modal com os motivos do alerta
   const [alertaProduto, setAlertaProduto] = useState(null);
 
   useEffect(() => {

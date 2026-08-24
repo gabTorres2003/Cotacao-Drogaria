@@ -132,15 +132,25 @@ public class PedidoController {
 
     @PutMapping("/{id}/receber")
     public ResponseEntity<Pedido> processarRecebimento(
-            @PathVariable Long id, 
-            @RequestBody ReceberPedidoRequestDTO requestDTO) { 
+            @PathVariable Long id,
+            @RequestBody ReceberPedidoRequestDTO requestDTO) {
         Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
-        
+
         logAuditoriaService.registrarLog(
-            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
             "Realizou a conferência física e recebimento do pedido."
         );
 
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PatchMapping("/{id}/reabrir-conferencia")
+    public ResponseEntity<Pedido> reabrirConferencia(@PathVariable Long id) {
+        Pedido pedidoAtualizado = pedidoService.reabrirConferencia(id);
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.STATUS_PEDIDO, "Pedido", id,
+            "Reabriu a conferência do pedido para continuar lançando volumes parciais."
+        );
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
