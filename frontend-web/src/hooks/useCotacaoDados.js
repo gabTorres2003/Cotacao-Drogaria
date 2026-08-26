@@ -113,9 +113,13 @@ export function useCotacaoDados(id) {
   const carregarRelatorio = async () => {
     setLoading(true);
     try {
-      const response = await api.get(`/api/comparativo/relatorio/${id}`);
+      const [response, resPromos] = await Promise.all([
+        api.get(`/api/comparativo/relatorio/${id}`),
+        api.get(`/api/cotacao/sugestoes/${id}`).catch(() => ({ data: [] }))
+      ]);
       const data = Array.isArray(response.data) ? response.data.filter(i => !i.excluido) : [];
       setRelatorio(data);
+      setPromocoes(Array.isArray(resPromos.data) ? resPromos.data : []);
 
       const nomes = new Set();
       const decisaoInicial = {};
@@ -131,13 +135,6 @@ export function useCotacaoDados(id) {
 
       setFornecedores(Array.from(nomes));
       setDecisaoCompra(decisaoInicial);
-
-      try {
-        const resPromos = await api.get(`/api/cotacao/sugestoes/${id}`);
-        setPromocoes(Array.isArray(resPromos.data) ? resPromos.data : []);
-      } catch (err) {
-        console.warn('Sem promoções extras.');
-      }
     } catch (error) {
       console.error("Erro ao carregar detalhes", error);
     } finally {

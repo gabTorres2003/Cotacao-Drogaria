@@ -57,7 +57,7 @@ export default function CotacaoDetalhes() {
   const [editandoItem, setEditandoItem] = useState(null);
   const [formEdicao, setFormEdicao] = useState({ nome: '', qtd: 1 });
   const [editandoResposta, setEditandoResposta] = useState(null);
-  const [formEdicaoResposta, setFormEdicaoResposta] = useState({ precoOfertado: '', produtoSubstituto: '', precoSubstituto: '' });
+  const [formEdicaoResposta, setFormEdicaoResposta] = useState({ precoOfertado: '' });
   const [itensExcluidosLocal, setItensExcluidosLocal] = useState([]);
   const [checklist, setChecklist] = useState({});
   const [copiadoId, setCopiadoId] = useState(null);
@@ -321,42 +321,26 @@ export default function CotacaoDetalhes() {
     const idPreco = item.idsPrecoPorFornecedor?.[fornecedor];
     if (!idPreco) return;
     const precoAtual = item.precosPorFornecedor?.[fornecedor] || 0;
-    const substAtual = item.substitutosPorFornecedor?.[fornecedor] || '';
-    const precoSubstAtual = item.precosSubstitutosPorFornecedor?.[fornecedor] || 0;
     setEditandoResposta({ itemId: item.idItem, fornecedor, idPreco });
-    setFormEdicaoResposta({ precoOfertado: precoAtual > 0 ? precoAtual : '', produtoSubstituto: substAtual, precoSubstituto: precoSubstAtual > 0 ? precoSubstAtual : '' });
+    setFormEdicaoResposta({ precoOfertado: precoAtual > 0 ? precoAtual : '' });
   };
 
   const cancelarEdicaoResposta = () => {
     setEditandoResposta(null);
-    setFormEdicaoResposta({ precoOfertado: '', produtoSubstituto: '', precoSubstituto: '' });
+    setFormEdicaoResposta({ precoOfertado: '' });
   };
 
   const salvarEdicaoResposta = async () => {
     if (!editandoResposta) return;
     const { idPreco, itemId, fornecedor } = editandoResposta;
-    const payload = {};
     const precoVal = formEdicaoResposta.precoOfertado !== '' ? Number(formEdicaoResposta.precoOfertado) : null;
-    const substNome = formEdicaoResposta.produtoSubstituto.trim();
-    const substPreco = formEdicaoResposta.precoSubstituto !== '' ? Number(formEdicaoResposta.precoSubstituto) : null;
-    payload.precoOfertado = precoVal;
-    payload.produtoSubstituto = substNome || null;
-    payload.precoSubstituto = substNome ? substPreco : null;
+    const payload = { precoOfertado: precoVal };
     try {
       await api.put(`/api/cotacao/preco/${idPreco}`, payload);
       setRelatorio(prev => prev.map(item => {
         if (item.idItem !== itemId) return item;
         const novosPrecos = { ...item.precosPorFornecedor, [fornecedor]: precoVal };
-        const novosSubst = { ...item.substitutosPorFornecedor };
-        const novosPrecosSubst = { ...item.precosSubstitutosPorFornecedor };
-        if (substNome) {
-          novosSubst[fornecedor] = substNome;
-          novosPrecosSubst[fornecedor] = substPreco;
-        } else {
-          delete novosSubst[fornecedor];
-          delete novosPrecosSubst[fornecedor];
-        }
-        return { ...item, precosPorFornecedor: novosPrecos, substitutosPorFornecedor: novosSubst, precosSubstitutosPorFornecedor: novosPrecosSubst, editadoManual: true };
+        return { ...item, precosPorFornecedor: novosPrecos, editadoManual: true };
       }));
       cancelarEdicaoResposta();
     } catch (error) { alert('Erro ao atualizar resposta do fornecedor.'); }

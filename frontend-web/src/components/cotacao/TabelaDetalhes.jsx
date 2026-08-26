@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
@@ -31,7 +31,7 @@ export default function TabelaDetalhes({
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
   const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
-  const [fracao, setFracao] = useState(1);
+  const [fracoesPorProduto, setFracoesPorProduto] = useState({});
 
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
@@ -45,6 +45,8 @@ export default function TabelaDetalhes({
   
   const [alertaProduto, setAlertaProduto] = useState(null);
   const [itensRiscoDesconsiderado, setItensRiscoDesconsiderado] = useState({});
+  const scrollContainerRef = useRef(null);
+  const [balloonPositions, setBalloonPositions] = useState([]);
 
   useEffect(() => {
       setSupplierOrder(prev => {
@@ -63,6 +65,42 @@ export default function TabelaDetalhes({
           return () => document.removeEventListener('click', closeMenu);
       }
   }, [contextMenu]);
+
+  const updateBalloonPositions = useCallback(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const containerRect = container.getBoundingClientRect();
+      const scrollLeft = container.scrollLeft;
+      const scrollTop = container.scrollTop;
+      const cells = container.querySelectorAll('td[data-balloon]');
+      const positions = [];
+      cells.forEach(cell => {
+          const rect = cell.getBoundingClientRect();
+          const x = rect.left - containerRect.left + scrollLeft + rect.width / 2;
+          const y = rect.top - containerRect.top + scrollTop - 10;
+          const label = cell.getAttribute('data-balloon-label');
+          const color = cell.getAttribute('data-balloon-color');
+          const border = cell.getAttribute('data-balloon-border');
+          const textColor = cell.getAttribute('data-balloon-textcolor');
+          const fontSize = cell.getAttribute('data-balloon-fontsize');
+          const padding = cell.getAttribute('data-balloon-padding');
+          const shadow = cell.getAttribute('data-balloon-shadow') === 'true';
+          if (label) {
+              positions.push({ x, y, label, color, border, textColor, fontSize, padding, shadow });
+          }
+      });
+      setBalloonPositions(positions);
+  }, []);
+
+  useEffect(() => {
+      const container = scrollContainerRef.current;
+      if (!container) return;
+      const handler = () => updateBalloonPositions();
+      container.addEventListener('scroll', handler);
+      window.addEventListener('resize', handler);
+      updateBalloonPositions();
+      return () => { container.removeEventListener('scroll', handler); window.removeEventListener('resize', handler); };
+  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -118,6 +156,34 @@ export default function TabelaDetalhes({
 
   const pinnedItems = relatorioExibicao.filter(i => pinnedRows.includes(i.idItem));
   const unpinnedItems = relatorioExibicao.filter(i => !pinnedRows.includes(i.idItem));
+
+  const fornecedoresCompetitivos = (() => {
+      if (filtroTopN === 'TODOS') return null;
+      const topN = filtroTopN === 'TOP_2' ? 2 : 3;
+      const competitive = new Set();
+      relatorioExibicao.forEach(item => {
+          const ofertas = supplierOrder
+              .map(forn => {
+                  const pOraw = item.precosPorFornecedor?.[forn] || 0;
+                  const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+                  const isIrrealItem = valoresIrreais[`${item.idItem}-${forn}`];
+                  const isRecusadoItem = valoresRecusados[`${item.idItem}-${forn}`];
+                  const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
+                  let pO = pctForn > 0 && pOraw > 0 ? pOraw * (1 + pctForn / 100) : pOraw;
+                  let pS = pctForn > 0 && pSraw > 0 ? pSraw * (1 + pctForn / 100) : pSraw;
+                  let val = Infinity;
+                  if (pO > 0) val = pO;
+                  if (pS > 0 && pS < val) val = pS;
+                  if (pO <= 0 && pS > 0) val = pS;
+                  if (isIrrealItem || isRecusadoItem) val = Infinity;
+                  return { forn, val };
+              })
+              .filter(x => x.val !== Infinity)
+              .sort((a, b) => a.val - b.val);
+          ofertas.slice(0, topN).forEach(o => competitive.add(o.forn));
+      });
+      return competitive;
+  })();
 
   const renderItemRow = (item, isPinnedRow) => {
       const isBloqueado = !!itensJaComprados[item.idItem];
@@ -272,6 +338,23 @@ export default function TabelaDetalhes({
                   {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
                   {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
                   {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
+                  {isComparativo && !item.excluido && (
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '6px' }}>
+                      <span style={{ fontSize: '9px', color: '#6b7280' }}>/</span>
+                      <input
+                        type="number"
+                        min="1"
+                        max="9"
+                        value={fracoesPorProduto[item.idItem] || ''}
+                        onChange={(e) => {
+                          const val = e.target.value === '' ? 1 : Math.max(1, Math.min(9, Number(e.target.value)));
+                          setFracoesPorProduto(prev => ({ ...prev, [item.idItem]: val }));
+                        }}
+                        style={{ width: '28px', padding: '1px 2px', fontSize: '9px', textAlign: 'center', border: '1px solid #d1d5db', borderRadius: '3px', backgroundColor: (fracoesPorProduto[item.idItem] || 1) > 1 ? '#ede9fe' : 'white' }}
+                        title="Fração para comparação (ex: 2 = preço ÷ 2)"
+                      />
+                    </span>
+                  )}
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
                 </div>
                 
@@ -321,7 +404,7 @@ export default function TabelaDetalhes({
               return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
           })()}
 
-          {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+          {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || fornecedoresCompetitivos.has(f))).map((f) => {
             
             const rank = rankMap[f];
             const isWinner = displayWinner === f;
@@ -339,7 +422,11 @@ export default function TabelaDetalhes({
             const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
             const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
             const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
-            const aplicarFracao = (p) => fracao > 1 && p > 0 ? p / fracao : p;
+            const aplicarFracao = (p) => {
+              const f = fracoesPorProduto[item.idItem] || 1;
+              return f > 1 && p > 0 ? p / f : p;
+            };
+            const fracaoAtual = fracoesPorProduto[item.idItem] || 1;
             
             const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
             const isRecusado = valoresRecusados[`${item.idItem}-${f}`];
@@ -376,6 +463,14 @@ export default function TabelaDetalhes({
                       setContextMenu({ x: e.clientX, y: e.clientY, itemId: item.idItem, fornecedor: f, preco: precoOriginal });
                     }
                   }}
+                  data-balloon={(isWinner && !isIrreal) ? 'true' : (rank > 0 && !isWinner && !isIrreal ? 'true' : undefined)}
+                  data-balloon-label={(isWinner && !isIrreal) ? 'VENCEDOR' : (rank > 0 && !isWinner && !isIrreal ? `${rank}º LUGAR` : undefined)}
+                  data-balloon-color={(isWinner && !isIrreal) ? '#10b981' : (rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')))}
+                  data-balloon-textcolor={(isWinner && !isIrreal) ? 'white' : (rank <= 3 ? 'white' : '#713f12')}
+                  data-balloon-border={(isWinner && !isIrreal) ? '#059669' : (rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15')))}
+                  data-balloon-fontsize={(rank <= 3 || isWinner) ? '11px' : '10px'}
+                  data-balloon-padding={(rank <= 3 || isWinner) ? '3px 10px' : '2px 8px'}
+                  data-balloon-shadow={(rank <= 3 || isWinner) ? 'true' : 'false'}
                   style={{ 
                       ...tdStyle, 
                       backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : (isBaixoGiro ? '#fef2f2' : 'inherit'))), 
@@ -391,27 +486,11 @@ export default function TabelaDetalhes({
                       opacity: isBloqueado ? 0.6 : (isIrreal || isRecusado ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
                   }}>
                 
-                {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '11px', padding: '3px 10px', borderRadius: '10px', fontWeight: 'bold', zIndex: 60, boxShadow: '0 2px 4px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>VENCEDOR</div>}
-                
-                {rank > 0 && !isWinner && !isIrreal && (
-                  <div style={{
-                    position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
-                    backgroundColor: rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')),
-                    color: rank <= 3 ? 'white' : '#713f12',
-                    fontSize: rank <= 3 ? '11px' : '10px',
-                    padding: rank <= 3 ? '3px 10px' : '2px 8px',
-                    borderRadius: '10px', fontWeight: 'bold', zIndex: 60,
-                    border: `1px solid ${rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15'))}`,
-                    boxShadow: rank <= 3 ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
-                    whiteSpace: 'nowrap'
-                  }}>{rank}º LUGAR</div>
-                )}
-
                 <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
                     {isEmFaltaOriginal ? 'Em falta' : (
                         <>
                             <span title={pctImpostoForn > 0 ? `Informado: ${fMoney(precoOriginal)} + ${pctImpostoForn}% de imposto` : undefined}>{fMoney(aplicarFracao(precoOriginalAjustado))}</span>
-                            {fracao > 1 && <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>/ {fracao}</span>}
+                            {fracaoAtual > 1 && <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>/ {fracaoAtual}</span>}
                             {pctImpostoForn > 0 && (
                                 <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>+{pctImpostoForn}%</span>
                             )}
@@ -425,13 +504,6 @@ export default function TabelaDetalhes({
                       <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '32px' }}>R$</span>
                       <input type="number" step="0.01" value={formEdicaoResposta.precoOfertado} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoOfertado: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #93c5fd', borderRadius: '3px' }} placeholder="Preço" autoFocus />
                     </div>
-                    <input type="text" value={formEdicaoResposta.produtoSubstituto} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, produtoSubstituto: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #d1d5db', borderRadius: '3px' }} placeholder="Produto substituto (opc.)" />
-                    {formEdicaoResposta.produtoSubstituto && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '32px' }}>R$</span>
-                        <input type="number" step="0.01" value={formEdicaoResposta.precoSubstituto} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoSubstituto: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #d1d5db', borderRadius: '3px' }} placeholder="Preço substituto" />
-                      </div>
-                    )}
                     <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
                       <button onClick={(e) => { e.stopPropagation(); salvarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Salvar</button>
                       <button onClick={(e) => { e.stopPropagation(); cancelarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '3px', cursor: 'pointer' }}>Cancelar</button>
@@ -506,7 +578,7 @@ export default function TabelaDetalhes({
                       <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
                       <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
                         <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(aplicarFracao(precoSubstitutoAjustado))}</span>{fracao > 1 && <span style={{ fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>/ {fracao}</span>}{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
+                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(aplicarFracao(precoSubstitutoAjustado))}</span>{fracaoAtual > 1 && <span style={{ fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>/ {fracaoAtual}</span>}{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
                         
                         {condsArrSubst.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
@@ -620,31 +692,9 @@ export default function TabelaDetalhes({
                   Destacar Preços Discrepantes (+100% ou -50%)
               </label>
           )}
-
-          {isComparativo && (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
-                  <span>Fração:</span>
-                  {[1, 2, 3].map(f => (
-                      <button
-                          key={f}
-                          type="button"
-                          onClick={() => setFracao(f)}
-                          style={{
-                              padding: '3px 10px', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', border: '1px solid',
-                              borderColor: fracao === f ? '#2563eb' : '#d1d5db',
-                              backgroundColor: fracao === f ? '#dbeafe' : 'white',
-                              color: fracao === f ? '#1d4ed8' : '#6b7280',
-                              cursor: 'pointer'
-                          }}
-                      >
-                          {f === 1 ? '1 (Original)' : `1/${f}`}
-                      </button>
-                  ))}
-              </div>
-          )}
       </div>
 
-      <div style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
+      <div ref={scrollContainerRef} style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', position: 'relative' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
           
           <thead style={{ position: shouldStickHead ? 'sticky' : 'static', top: 0, zIndex: 50, backgroundColor: '#ffffff', boxShadow: shouldStickHead ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>
@@ -697,7 +747,7 @@ export default function TabelaDetalhes({
                   );
               })()}
               
-              {isComparativo && supplierOrder.filter(f => fornecedoresVisiveis[f] ?? true).map((f) => {
+              {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || fornecedoresCompetitivos.has(f))).map((f) => {
                   const isPinned = pinnedSuppliers.includes(f);
                   const leftPos = getLeftOffset(f, 'supplier');
 
@@ -811,6 +861,16 @@ export default function TabelaDetalhes({
               </div>
           </div>
       )}
+
+      {balloonPositions.map((bp, idx) => (
+        <div key={idx} style={{
+          position: 'absolute', left: bp.x, top: bp.y, transform: 'translateX(-50%)',
+          backgroundColor: bp.color, color: bp.textColor, fontSize: bp.fontSize,
+          padding: bp.padding, borderRadius: '10px', fontWeight: 'bold', zIndex: 100,
+          border: `1px solid ${bp.border}`, boxShadow: bp.shadow ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
+          whiteSpace: 'nowrap', pointerEvents: 'none'
+        }}>{bp.label}</div>
+      ))}
 
       {contextMenu && (
         <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '4px', minWidth: '160px' }}>

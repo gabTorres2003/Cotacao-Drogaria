@@ -11,6 +11,8 @@ export default function Cotacoes() {
   const [cotacoes, setCotacoes] = useState([])
   const [loading, setLoading] = useState(true)
   const [deletandoId, setDeletandoId] = useState(null)
+  const [selecionadas, setSelecionadas] = useState({})
+  const [excluindoEmMassa, setExcluindoEmMassa] = useState(false)
 
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
@@ -61,6 +63,44 @@ export default function Cotacoes() {
       }
     }
   }
+
+  const toggleSelecao = (id) => {
+    setSelecionadas(prev => {
+      const next = { ...prev };
+      if (next[id]) delete next[id];
+      else next[id] = true;
+      return next;
+    });
+  };
+
+  const todasSelecionadas = cotacoesFiltradas.length > 0 && cotacoesFiltradas.every(c => selecionadas[c.id]);
+  const toggleTodas = () => {
+    if (todasSelecionadas) {
+      setSelecionadas({});
+    } else {
+      const map = {};
+      cotacoesFiltradas.forEach(c => { map[c.id] = true; });
+      setSelecionadas(map);
+    }
+  };
+
+  const qtdSelecionadas = Object.keys(selecionadas).length;
+
+  const excluirSelecionadas = async () => {
+    const ids = Object.keys(selecionadas);
+    if (ids.length === 0) return;
+    if (!window.confirm(`Tem certeza que deseja excluir ${ids.length} cotação(ões) permanentemente?`)) return;
+    setExcluindoEmMassa(true);
+    try {
+      await Promise.all(ids.map(id => api.delete(`/api/cotacao/${id}`)));
+      setSelecionadas({});
+      carregarCotacoes();
+    } catch (error) {
+      alert(error.response?.data || 'Erro ao excluir cotações.');
+    } finally {
+      setExcluindoEmMassa(false);
+    }
+  };
 
   const formatarData = (dataStr) => {
     if (!dataStr) return '--/--/--'
@@ -243,12 +283,26 @@ export default function Cotacoes() {
               Limpar Filtros
             </button>
           )}
+
+          {qtdSelecionadas > 0 && (
+            <button 
+              onClick={excluirSelecionadas}
+              disabled={excluindoEmMassa}
+              style={{ padding: '8px 16px', fontSize: '12px', color: 'white', backgroundColor: '#ef4444', border: 'none', borderRadius: '6px', cursor: excluindoEmMassa ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', opacity: excluindoEmMassa ? 0.6 : 1 }}
+            >
+              {excluindoEmMassa ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+              Excluir {qtdSelecionadas} selecionada{qtdSelecionadas > 1 ? 's' : ''}
+            </button>
+          )}
         </div>
 
         <div className="table-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
             <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
               <tr>
+                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '40px' }}>
+                  <input type="checkbox" checked={todasSelecionadas} onChange={toggleTodas} style={{ cursor: 'pointer' }} />
+                </th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
                 <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Setor</th>
@@ -261,7 +315,7 @@ export default function Cotacoes() {
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
                       <Loader2 size={32} className="animate-spin" color="#3b82f6" />
                       <span style={{ fontWeight: '500' }}>Carregando cotações...</span>
@@ -270,13 +324,16 @@ export default function Cotacoes() {
                 </tr>
               ) : cotacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="7" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
                     Nenhuma cotação encontrada nesta aba ou setor.
                   </td>
                 </tr>
               ) : (
                 cotacoesFiltradas.map((cotacao) => (
                   <tr key={cotacao.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <td style={{ padding: '16px', textAlign: 'center' }}>
+                      <input type="checkbox" checked={!!selecionadas[cotacao.id]} onChange={() => toggleSelecao(cotacao.id)} style={{ cursor: 'pointer' }} />
+                    </td>
                     <td style={{ padding: '16px', fontWeight: 'bold', color: '#374151' }}>#{cotacao.id}</td>
                     <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>
                       {cotacao.descricao || cotacao.origem || 'Cotação Manual'}

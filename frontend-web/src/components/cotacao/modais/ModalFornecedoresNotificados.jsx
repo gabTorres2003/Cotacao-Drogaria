@@ -28,10 +28,9 @@ export default function ModalFornecedoresNotificados({ isOpen, onClose, vinculos
                   <strong style={{ display: 'block', fontSize: '14px', color: '#374151' }}>
                     {v.fornecedor?.nome}
                     
-                    {/* Exibição do nome da empresa ao lado */}
-                    {v.fornecedor?.empresa?.nome && (
+                    {v.fornecedor?.empresa && (
                       <span style={{ color: '#6b7280', fontWeight: 'normal', marginLeft: '6px' }}>
-                        - {v.fornecedor.empresa.nome}
+                        - {v.fornecedor.empresa}
                       </span>
                     )}
                   </strong>

@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { X, Search, CheckCircle, Save, Loader2, ListPlus, Trash2 } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { X, Search, CheckCircle, Save, Loader2, ListPlus, Trash2, FileDown } from 'lucide-react';
 import api from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
 
@@ -16,6 +16,104 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
   const [isBuscando, setIsBuscando] = useState(false);
   const [isSalvando, setIsSalvando] = useState(false);
   const [abaDna, setAbaDna] = useState(true);
+
+  const [cotacoesAnteriores, setCotacoesAnteriores] = useState([]);
+  const [cotacaoSelecionada, setCotacaoSelecionada] = useState('');
+  const [itensCotacaoAnterior, setItensCotacaoAnterior] = useState([]);
+  const [carregandoItens, setCarregandoItens] = useState(false);
+  const [itensSelecionados, setItensSelecionados] = useState({});
+
+  useEffect(() => {
+      if (isOpen) {
+          carregarCotacoesAnteriores();
+      }
+  }, [isOpen]);
+
+  const carregarCotacoesAnteriores = async () => {
+      try {
+          const res = await api.get('/api/cotacao');
+          setCotacoesAnteriores(res.data || []);
+      } catch (error) {
+          console.error("Erro ao carregar cotações anteriores", error);
+      }
+  };
+
+  const carregarItensCotacao = async (idCotacao) => {
+      if (!idCotacao) { setItensCotacaoAnterior([]); return; }
+      setCarregandoItens(true);
+      try {
+          const res = await api.get(`/api/cotacao/${idCotacao}`);
+          const cotacao = res.data;
+          const itens = cotacao.itens || [];
+          const pedidosRes = await api.get(`/api/pedidos/cotacao/${idCotacao}`);
+          const pedidos = Array.isArray(pedidosRes.data) ? pedidosRes.data : [];
+          const idsComprados = new Set();
+          pedidos.forEach(p => {
+              if (p.status === 'CANCELADO') return;
+              (p.itens || []).forEach(item => {
+                  const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
+                  if (idItemCotacao) idsComprados.add(idItemCotacao);
+              });
+          });
+          const itensNaoComprados = itens.filter(i => !idsComprados.has(i.id) && !i.excluido);
+          setItensCotacaoAnterior(itensNaoComprados.map(i => ({
+              ...i,
+              idTemp: Date.now() + Math.random(),
+              codigo: i.nomeOriginal || i.nomeProduto
+          })));
+          const mapTodos = {};
+          itensNaoComprados.forEach(i => { mapTodos[i.id] = true; });
+          setItensSelecionados(mapTodos);
+      } catch (error) {
+          console.error("Erro ao carregar itens da cotação", error);
+          setItensCotacaoAnterior([]);
+      } finally {
+          setCarregandoItens(false);
+      }
+  };
+
+  const toggleItemSelecionado = (id) => {
+      setItensSelecionados(prev => {
+          const next = { ...prev };
+          if (next[id]) delete next[id];
+          else next[id] = true;
+          return next;
+      });
+  };
+
+  const toggleTodosItens = () => {
+      const todosMarcados = itensCotacaoAnterior.every(i => itensSelecionados[i.id]);
+      if (todosMarcados) {
+          setItensSelecionados({});
+      } else {
+          const map = {};
+          itensCotacaoAnterior.forEach(i => { map[i.id] = true; });
+          setItensSelecionados(map);
+      }
+  };
+
+  const importarItensSelecionados = () => {
+      const itensParaImportar = itensCotacaoAnterior.filter(i => itensSelecionados[i.id]);
+      if (itensParaImportar.length === 0) return alert("Selecione pelo menos um item para importar.");
+      const novosItens = itensParaImportar.map(i => ({
+          nomeProduto: i.nomeProduto,
+          quantidade: i.quantidade || 1,
+          origemItem: 'Importado de Cotação #' + cotacaoSelecionada,
+          estoque: i.estoque,
+          ultimoPreco: i.ultimoPreco,
+          vendidoNoMes: i.vendidoNoMes,
+          ultCompraData: i.ultCompraData,
+          ultCompraQtde: i.ultCompraQtde,
+          ultVendaData: i.ultVendaData,
+          vendidoAposUltCompra: i.vendidoAposUltCompra,
+          codigo: i.codigo,
+          idTemp: i.idTemp
+      }));
+      setListaItens(prev => [...novosItens, ...prev]);
+      setItensCotacaoAnterior([]);
+      setCotacaoSelecionada('');
+      setItensSelecionados({});
+  };
 
   if (!isOpen) return null;
 
@@ -129,53 +227,95 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
 
             <div style={{ padding: '16px', backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
                 <div style={{ display: 'flex', gap: '10px', marginBottom: '15px' }}>
-                    <button onClick={() => {setAbaDna(true); setItemAtual({...itemAtual, nomeProduto: ''});}} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna ? 'white' : 'transparent', color: abaDna ? '#2563eb' : '#64748b', boxShadow: abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Inserir por Código DNA</button>
-                    <button onClick={() => {setAbaDna(false); setItemAtual({...itemAtual, nomeProduto: ''});}} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: !abaDna ? 'white' : 'transparent', color: !abaDna ? '#2563eb' : '#64748b', boxShadow: !abaDna ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Digitar Manualmente</button>
+                    <button onClick={() => {setAbaDna(true); setItemAtual({...itemAtual, nomeProduto: ''}); setItensCotacaoAnterior([]);}} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna === true ? 'white' : 'transparent', color: abaDna === true ? '#2563eb' : '#64748b', boxShadow: abaDna === true ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Inserir por Código DNA</button>
+                    <button onClick={() => {setAbaDna(false); setItemAtual({...itemAtual, nomeProduto: ''}); setItensCotacaoAnterior([]);}} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna === false ? 'white' : 'transparent', color: abaDna === false ? '#2563eb' : '#64748b', boxShadow: abaDna === false ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Digitar Manualmente</button>
+                    <button onClick={() => {setAbaDna('IMPORTAR'); setItensCotacaoAnterior([]);}} style={{ flex: 1, padding: '8px', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaDna === 'IMPORTAR' ? 'white' : 'transparent', color: abaDna === 'IMPORTAR' ? '#2563eb' : '#64748b', boxShadow: abaDna === 'IMPORTAR' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}><FileDown size={16}/> Importar de Cotação Anterior</button>
                 </div>
 
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    {abaDna ? (
-                        <div style={{ position: 'relative' }}>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Digite o Código DNA (ou Código de Barras)</label>
-                            <div style={{ display: 'flex', gap: '10px' }}>
-                                <div style={{ position: 'relative', flex: 1 }}>
-                                    <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
-                                    <input 
-                                        type="text" 
-                                        value={codigoDna} 
-                                        onChange={e => setCodigoDna(e.target.value)} 
-                                        onKeyDown={e => e.key === 'Enter' && handleBuscarProdutoDna()}
-                                        placeholder="Ex: 24582" 
-                                        style={{ width: '100%', padding: '10px 10px 10px 32px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
-                                    />
-                                </div>
-                                <button onClick={handleBuscarProdutoDna} disabled={isBuscando || !codigoDna} style={{ padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
-                                    {isBuscando ? <Loader2 size={18} className="animate-spin" /> : 'Buscar'}
-                                </button>
-                            </div>
-
-                            {itemAtual.nomeProduto && (
-                                <div style={{ marginTop: '8px', fontSize: '13px', color: '#166534', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f0fdf4', padding: '8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
-                                    <CheckCircle size={16} /> Encontrado: {itemAtual.nomeProduto}
-                                </div>
-                            )}
-                        </div>
-                    ) : (
+                {abaDna === 'IMPORTAR' ? (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                         <div>
-                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Nome Completo do Produto</label>
-                            <input type="text" value={itemAtual.nomeProduto} onChange={e => setItemAtual({...itemAtual, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Selecione uma Cotação Anterior</label>
+                            <div style={{ display: 'flex', gap: '10px' }}>
+                                <select value={cotacaoSelecionada} onChange={e => { setCotacaoSelecionada(e.target.value); carregarItensCotacao(e.target.value); }} style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box', backgroundColor: 'white' }}>
+                                    <option value="">-- Selecione --</option>
+                                    {cotacoesAnteriores.map(c => (
+                                        <option key={c.id} value={c.id}>#{c.id} - {c.descricao || c.origem || 'Sem descrição'} ({c.itens?.length || 0} itens)</option>
+                                    ))}
+                                </select>
+                            </div>
                         </div>
-                    )}
-
-                    <div>
-                        <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Qtd. Solicitada</label>
-                        <input type="number" min="1" value={itemAtual.quantidade} onChange={e => setItemAtual({...itemAtual, quantidade: e.target.value})} style={{ width: '120px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                        {carregandoItens && (
+                            <div style={{ textAlign: 'center', padding: '20px', color: '#6b7280' }}><Loader2 size={24} className="animate-spin" style={{ margin: '0 auto 8px' }} /><br/>Carregando itens não comprados...</div>
+                        )}
+                        {itensCotacaoAnterior.length > 0 && !carregandoItens && (
+                            <>
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#475569' }}>
+                                        <input type="checkbox" checked={itensCotacaoAnterior.every(i => itensSelecionados[i.id])} onChange={toggleTodosItens} style={{ marginRight: '6px' }} />
+                                        Selecionar Todos ({itensCotacaoAnterior.length} itens não comprados)
+                                    </label>
+                                    <button onClick={importarItensSelecionados} style={{ padding: '6px 12px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '12px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                        <FileDown size={14} /> Importar Selecionados
+                                    </button>
+                                </div>
+                                <div style={{ maxHeight: '200px', overflowY: 'auto', border: '1px solid #e2e8f0', borderRadius: '6px' }}>
+                                    {itensCotacaoAnterior.map(item => (
+                                        <label key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 12px', borderBottom: '1px solid #f1f5f9', cursor: 'pointer', backgroundColor: itensSelecionados[item.id] ? '#f0fdf4' : 'white' }}>
+                                            <input type="checkbox" checked={!!itensSelecionados[item.id]} onChange={() => toggleItemSelecionado(item.id)} />
+                                            <span style={{ fontSize: '13px', fontWeight: '500', color: '#1e293b' }}>{item.nomeProduto}</span>
+                                            <span style={{ fontSize: '11px', color: '#6b7280', marginLeft: 'auto' }}>Qtd: {item.quantidade}</span>
+                                        </label>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
-                    
-                    <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
-                        Inserir na Lista
-                    </button>
-                </div>
+                ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                        {abaDna ? (
+                            <div style={{ position: 'relative' }}>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Digite o Código DNA (ou Código de Barras)</label>
+                                <div style={{ display: 'flex', gap: '10px' }}>
+                                    <div style={{ position: 'relative', flex: 1 }}>
+                                        <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)' }} />
+                                        <input 
+                                            type="text" 
+                                            value={codigoDna} 
+                                            onChange={e => setCodigoDna(e.target.value)} 
+                                            onKeyDown={e => e.key === 'Enter' && handleBuscarProdutoDna()}
+                                            placeholder="Ex: 24582" 
+                                            style={{ width: '100%', padding: '10px 10px 10px 32px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} 
+                                        />
+                                    </div>
+                                    <button onClick={handleBuscarProdutoDna} disabled={isBuscando || !codigoDna} style={{ padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}>
+                                        {isBuscando ? <Loader2 size={18} className="animate-spin" /> : 'Buscar'}
+                                    </button>
+                                </div>
+
+                                {itemAtual.nomeProduto && (
+                                    <div style={{ marginTop: '8px', fontSize: '13px', color: '#166534', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', backgroundColor: '#f0fdf4', padding: '8px', borderRadius: '6px', border: '1px solid #bbf7d0' }}>
+                                        <CheckCircle size={16} /> Encontrado: {itemAtual.nomeProduto}
+                                    </div>
+                                )}
+                            </div>
+                        ) : (
+                            <div>
+                                <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Nome Completo do Produto</label>
+                                <input type="text" value={itemAtual.nomeProduto} onChange={e => setItemAtual({...itemAtual, nomeProduto: e.target.value})} placeholder="Ex: Neosaldina C/ 30" style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                            </div>
+                        )}
+
+                        <div>
+                            <label style={{ display: 'block', fontSize: '12px', fontWeight: 'bold', color: '#475569', marginBottom: '4px' }}>Qtd. Solicitada</label>
+                            <input type="number" min="1" value={itemAtual.quantidade} onChange={e => setItemAtual({...itemAtual, quantidade: e.target.value})} style={{ width: '120px', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', boxSizing: 'border-box' }} />
+                        </div>
+                        
+                        <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
+                            Inserir na Lista
+                        </button>
+                    </div>
+                )}
             </div>
 
             {listaItens.length > 0 && (
