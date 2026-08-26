@@ -30,7 +30,7 @@ export default function CotacaoDetalhes() {
   const navigate = useNavigate();
 
   const {
-    statusCotacao, setStatusCotacao, relatorio, setRelatorio, fornecedores, promocoes, loading, 
+    statusCotacao, setStatusCotacao, setorCotacao, relatorio, setRelatorio, fornecedores, promocoes, loading, 
     decisaoCompra, setDecisaoCompra, dicionarioDiversos, fornecedoresLista, itensJaComprados, 
     setItensJaComprados, vinculos, carregarRelatorio, carregarCotacao, carregarVinculos, 
     carregarPedidosDaCotacao, removerVinculo
@@ -80,6 +80,7 @@ export default function CotacaoDetalhes() {
 
   const [filtroVencedor, setFiltroVencedor] = useState('TODOS');
   const [filtroTopN, setFiltroTopN] = useState('TODOS'); 
+  const [mostrarComImposto, setMostrarComImposto] = useState(false);
 
   const isEncerrada = statusCotacao === 'FINALIZADA';
   const isComparativo = modoVisualizacao === 'comparativo';
@@ -89,6 +90,50 @@ export default function CotacaoDetalhes() {
   const fData = (data) => data ? data : '-';
 
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
+
+  const resolverFornecedorId = (nome) => {
+    const norm = normalizeStr(nome);
+    if (!norm) return null;
+    for (const item of relatorio) {
+      const mapa = item.fornecedoresIdPorNome;
+      if (!mapa) continue;
+      for (const [n, idForn] of Object.entries(mapa)) {
+        if (normalizeStr(n) === norm && idForn != null) return idForn;
+      }
+    }
+    const cadastro = fornecedoresLista.find(f => normalizeStr(f.nome) === norm);
+    return cadastro ? cadastro.id : null;
+  };
+
+  const setorCompativel = (setorPedido, setorItem) => {
+    if (!setorPedido || !setorItem) return true;
+    const sp = String(setorPedido).trim().toUpperCase();
+    const si = String(setorItem).trim().toUpperCase();
+    if (sp === 'AMBOS') return true;
+    return sp === si;
+  };
+
+  const pedidosCompativeisFornecedor = (nomeFornecedor) => {
+    const idForn = resolverFornecedorId(nomeFornecedor);
+    if (!idForn) return [];
+    return pedidosAbertosList
+      .filter(p => p.fornecedor?.id === idForn && setorCompativel(p.cotacao?.setor, setorCotacao))
+      .sort((a, b) => b.id - a.id);
+  };
+
+  const calcularImpostoPctPorNome = () => {
+    const mapa = {};
+    relatorio.forEach(item => {
+      const idsPorNome = item.fornecedoresIdPorNome || {};
+      Object.entries(idsPorNome).forEach(([nome, idForn]) => {
+        if (mapa[nome] !== undefined) return;
+        const f = fornecedoresLista.find(x => x.id === idForn);
+        const pct = f && f.percentualImposto != null ? Number(f.percentualImposto) : 0;
+        mapa[nome] = pct > 0 ? pct : 0;
+      });
+    });
+    return mapa;
+  };
 
   // Busca GLOBAL de pedidos em aberto
   useEffect(() => {
@@ -434,15 +479,9 @@ export default function CotacaoDetalhes() {
         alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
 
-      // Vínculo inteligente com qualquer pedido em aberto do mesmo fornecedor
+      // Vínculo por identificador único do fornecedor + categoria compatível
       pedidosArray.forEach(ped => {
-         const fNameMatch = normalizeStr(ped.fornecedorNome);
-         const pedAberto = pedidosAbertosList.find(p => {
-           const emp = normalizeStr(p.fornecedor?.empresa);
-           const nom = normalizeStr(p.fornecedor?.nome);
-           const fNomeApi = normalizeStr(p.fornecedorNome);
-           return (emp && fNameMatch.includes(emp)) || (nom && fNameMatch.includes(nom)) || (fNomeApi && fNameMatch.includes(fNomeApi));
-         });
+         const pedAberto = pedidosCompativeisFornecedor(ped.fornecedorNome)[0] || null;
          ped.acaoFornecedor = pedAberto ? String(pedAberto.id) : 'NOVO';
       });
 
@@ -527,7 +566,21 @@ export default function CotacaoDetalhes() {
           if (!pedidosAgrupados[item.fornecedorNome]) pedidosAgrupados[item.fornecedorNome] = [];
           pedidosAgrupados[item.fornecedorNome].push(item);
       });
-      const payload = Object.keys(pedidosAgrupados).map(forn => ({ cotacaoId: Number(id), fornecedorNome: forn, itens: pedidosAgrupados[forn] }));
+
+      const payload = [];
+      const fornecedoresSemId = [];
+      Object.keys(pedidosAgrupados).forEach(forn => {
+          const fornecedorId = resolverFornecedorId(forn);
+          if (!fornecedorId) {
+              fornecedoresSemId.push(forn);
+              return;
+          }
+          payload.push({ cotacaoId: Number(id), fornecedorId, fornecedorNome: forn, itens: pedidosAgrupados[forn] });
+      });
+      if (fornecedoresSemId.length > 0) {
+          setIsProcessandoPedidos(false);
+          return alert(`Não foi possível identificar o ID do(s) fornecedor(es): ${fornecedoresSemId.join(', ')}. Confira o nome exato no cadastro de fornecedores antes de gerar o registro.`);
+      }
       const mapaDuplicatas = await mapearDuplicatas();
       const itensDuplicados = itensComprados.filter(i => mapaDuplicatas[getNomeRealSempre(i.nomeProduto).toUpperCase().trim()]);
 
@@ -584,8 +637,14 @@ export default function CotacaoDetalhes() {
         if (itensSelecionados.length === 0) continue; 
 
         if (pedido.acaoFornecedor === 'NOVO') {
+            const fornecedorId = resolverFornecedorId(pedido.fornecedorNome);
+            if (!fornecedorId) {
+                alert(`Não foi possível identificar o ID do fornecedor "${pedido.fornecedorNome}". Verifique o cadastro. Nenhum pedido foi gerado.`);
+                throw new Error('Identificador do fornecedor ausente.');
+            }
             await api.post('/api/pedidos/gerar', {
                 cotacaoId: Number(id),
+                fornecedorId,
                 fornecedorNome: pedido.fornecedorNome,
                 itens: itensSelecionados.map(item => ({
                     itemCotacaoId: item.idItem || null,
@@ -615,7 +674,7 @@ export default function CotacaoDetalhes() {
       alert('Pedidos processados e gerados/atualizados com sucesso!');
       setShowModal(false); navigate('/pedidos');
     } catch (error) { 
-      alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || 'Erro de conexão com servidor'}`); 
+      alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || error.message || 'Erro de conexão com servidor'}`); 
     } finally { 
       setSalvandoPedidos(false); 
     }
@@ -654,17 +713,7 @@ export default function CotacaoDetalhes() {
 
       let defaultPedidoId = '';
       if (fornecedorTarget) {
-        const fTargetNorm = normalizeStr(fornecedorTarget);
-        const doForn = todosAbertos.filter(p => {
-          const emp = normalizeStr(p.fornecedor?.empresa);
-          const nom = normalizeStr(p.fornecedor?.nome);
-          const fNomeApi = normalizeStr(p.fornecedorNome);
-
-          return (emp && fTargetNorm.includes(emp)) || 
-                 (nom && fTargetNorm.includes(nom)) || 
-                 (fNomeApi && fTargetNorm.includes(fNomeApi));
-        }).sort((a,b) => b.id - a.id); 
-
+        const doForn = pedidosCompativeisFornecedor(fornecedorTarget);
         if (doForn.length > 0) {
           defaultPedidoId = String(doForn[0].id);
         }
@@ -787,6 +836,7 @@ export default function CotacaoDetalhes() {
       <CotacaoHeader 
         id={id} isEncerrada={isEncerrada} setIsAddItemModalOpen={setIsAddItemModalOpen} setIsUploadModalOpen={setIsUploadModalOpen}
         mostrarNomeReal={mostrarNomeReal} setMostrarNomeReal={setMostrarNomeReal} setShowVinculosModal={setShowVinculosModal}
+        mostrarComImposto={mostrarComImposto} setMostrarComImposto={setMostrarComImposto}
         setIsEnviarModalOpen={setIsEnviarModalOpen} decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos}
         isProcessandoPedidos={isProcessandoPedidos} modoVisualizacao={modoVisualizacao} baixarRelatorioGeral={handleBaixarPDF}
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
@@ -866,6 +916,7 @@ export default function CotacaoDetalhes() {
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
+            mostrarComImposto={mostrarComImposto} impostoPctPorNome={calcularImpostoPctPorNome()}
           />
           
           {isComparativo && (
@@ -907,6 +958,7 @@ export default function CotacaoDetalhes() {
           setAcaoPosPedido={setAcaoPosPedido} 
           salvarPedidosNoBanco={salvarPedidosNoBanco} 
           salvandoPedidos={salvandoPedidos} 
+          setorCotacao={setorCotacao}
           getNomeRealSempre={getNomeRealSempre} 
           fMoney={fMoney} 
           pedidosAbertosList={pedidosAbertosList} 
@@ -925,15 +977,7 @@ export default function CotacaoDetalhes() {
                <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
                
                {(() => {
-                    const pedidosDropdown = fornecedorTargetToModal ? pedidosAbertosList.filter(p => {
-                        const fTargetNorm = normalizeStr(fornecedorTargetToModal);
-                        const emp = normalizeStr(p.fornecedor?.empresa);
-                        const nom = normalizeStr(p.fornecedor?.nome);
-                        const fNomeApi = normalizeStr(p.fornecedorNome);
-                        return (emp && fTargetNorm.includes(emp)) ||
-                               (nom && fTargetNorm.includes(nom)) ||
-                               (fNomeApi && fTargetNorm.includes(fNomeApi));
-                    }) : pedidosAbertosList;
+                    const pedidosDropdown = fornecedorTargetToModal ? pedidosCompativeisFornecedor(fornecedorTargetToModal) : pedidosAbertosList;
 
                     return (
                          <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>

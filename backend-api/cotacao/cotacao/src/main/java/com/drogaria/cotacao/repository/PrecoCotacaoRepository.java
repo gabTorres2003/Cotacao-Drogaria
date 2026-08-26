@@ -36,6 +36,10 @@ public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long
 
     List<PrecoCotacao> findByItem_Cotacao_IdAndFornecedorId(Long cotacaoId, Long fornecedorId);
 
+    @Query("SELECT COUNT(p) > 0 FROM PrecoCotacao p " +
+           "WHERE p.fornecedor.id = :fornecedorId AND p.item.id = :itemId")
+    boolean existsByFornecedorIdAndItemId(@Param("fornecedorId") Long fornecedorId, @Param("itemId") Long itemId);
+
     @Modifying
     @Transactional
     @Query("DELETE FROM PrecoCotacao p WHERE p.item.cotacao.id = :cotacaoId")

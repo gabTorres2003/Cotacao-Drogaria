@@ -5,6 +5,7 @@ import api from '../../services/api';
 export default function CotacaoHeader({
   id, isEncerrada, setIsAddItemModalOpen, setIsUploadModalOpen, 
   mostrarNomeReal, setMostrarNomeReal, setShowVinculosModal, setIsEnviarModalOpen, 
+  mostrarComImposto, setMostrarComImposto,
   decisaoCompra, handleGerarPedidos, isProcessandoPedidos, modoVisualizacao, 
   baixarRelatorioGeral, alterarStatusCotacao, navigate
 }) {
@@ -70,6 +71,13 @@ export default function CotacaoHeader({
             </button>
           </>
         )}
+
+        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '8px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: '10px' }}>
+          <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
+          <span style={{ fontSize: '13px', color: mostrarComImposto ? '#854d0e' : '#374151', fontWeight: '600' }}>
+            {mostrarComImposto ? 'Valores com imposto' : 'Valores informados'}
+          </span>
+        </label>
 
         <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', backgroundColor: 'white', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: '10px' }}>
           <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />

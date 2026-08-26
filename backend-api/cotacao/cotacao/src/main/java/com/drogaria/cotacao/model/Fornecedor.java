@@ -29,6 +29,9 @@ public class Fornecedor {
     @Column(name = "setor_compra")
     private String setorCompra;
 
+    @Column(name = "percentual_imposto")
+    private Double percentualImposto;
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -59,4 +62,7 @@ public class Fornecedor {
 
     public String getSetorCompra() { return setorCompra; }
     public void setSetorCompra(String setorCompra) { this.setorCompra = setorCompra; }
+
+    public Double getPercentualImposto() { return percentualImposto; }
+    public void setPercentualImposto(Double percentualImposto) { this.percentualImposto = percentualImposto; }
 }

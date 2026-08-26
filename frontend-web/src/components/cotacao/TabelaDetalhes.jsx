@@ -22,7 +22,8 @@ export default function TabelaDetalhes({
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
-  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN
+  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN,
+  mostrarComImposto, impostoPctPorNome
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
@@ -177,21 +178,26 @@ export default function TabelaDetalhes({
       else if (isBaixoGiro) rowBgColor = '#fef2f2';
 
       const ofertasValidas = supplierOrder.map(forn => {
-          let pO = item.precosPorFornecedor?.[forn] || 0;
-          let pS = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+          const pOraw = item.precosPorFornecedor?.[forn] || 0;
+          const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+
+          const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+          let isDiscrepante = false;
+
+          if (precoBaseAlerta > 0 && pOraw > 0) {
+              if (pOraw > precoBaseAlerta * 2.0 || pOraw < precoBaseAlerta * 0.5) {
+                  isDiscrepante = true;
+              }
+          }
+
+          const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
+          let pO = pctForn > 0 && pOraw > 0 ? pOraw * (1 + pctForn / 100) : pOraw;
+          let pS = pctForn > 0 && pSraw > 0 ? pSraw * (1 + pctForn / 100) : pSraw;
+
           let val = Infinity;
           if (pO > 0) val = pO;
           if (pS > 0 && pS < val) val = pS; 
           if (pO <= 0 && pS > 0) val = pS;
-          
-          const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
-          let isDiscrepante = false;
-
-          if (precoBaseAlerta > 0 && pO > 0) {
-              if (pO > precoBaseAlerta * 2.0 || pO < precoBaseAlerta * 0.5) {
-                  isDiscrepante = true;
-              }
-          }
           
           if (val !== Infinity) {
               if (isIrreal) {
@@ -307,6 +313,11 @@ export default function TabelaDetalhes({
             const isTrocaAceita = aceitesTroca[item.idItem];
             const isEmFaltaOriginal = precoOriginal <= 0; 
             const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
+
+            const pctImpostoForn = mostrarComImposto ? (impostoPctPorNome?.[f] || 0) : 0;
+            const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
+            const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
+            const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
             
             const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
@@ -356,7 +367,14 @@ export default function TabelaDetalhes({
                 {rank > 0 && !isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: rank === 1 ? '#4ade80' : '#fde047', color: rank === 1 ? '#064e3b' : '#713f12', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5, border: `1px solid ${rank === 1 ? '#22c55e' : '#facc15'}` }}>{rank}º LUGAR</div>}
 
                 <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
-                    {isEmFaltaOriginal ? 'Em falta' : fMoney(precoOriginal)}
+                    {isEmFaltaOriginal ? 'Em falta' : (
+                        <>
+                            <span title={pctImpostoForn > 0 ? `Informado: ${fMoney(precoOriginal)} + ${pctImpostoForn}% de imposto` : undefined}>{fMoney(precoOriginalAjustado)}</span>
+                            {pctImpostoForn > 0 && (
+                                <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>+{pctImpostoForn}%</span>
+                            )}
+                        </>
+                    )}
                 </div>
                 
                 {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
@@ -389,7 +407,7 @@ export default function TabelaDetalhes({
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
                         {condsArr.map((cond, idx) => (
                             <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
-                                <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                                <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(ajustarPrecoExibicao(cond.preco))}
                             </div>
                         ))}
                     </div>
@@ -401,13 +419,13 @@ export default function TabelaDetalhes({
                       <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
                       <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
                         <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstituto)}</span> (Qtd: {qtdSubstituto})
+                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstitutoAjustado)}</span>{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
                         
                         {condsArrSubst.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                               {condsArrSubst.map((cond, idx) => (
                                   <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                      <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(cond.preco)}
+                                      <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(ajustarPrecoExibicao(cond.preco))}
                                   </div>
                               ))}
                           </div>

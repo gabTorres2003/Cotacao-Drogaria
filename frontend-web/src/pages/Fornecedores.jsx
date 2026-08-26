@@ -26,7 +26,8 @@ export default function Fornecedores() {
     login: '',
     email: '',
     senha: '0000',
-    setorCompra: 'AMBOS'
+    setorCompra: 'AMBOS',
+    percentualImposto: ''
   })
 
   const [busca, setBusca] = useState('')
@@ -54,7 +55,8 @@ export default function Fornecedores() {
       login: '',
       email: '',
       senha: '0000',
-      setorCompra: 'AMBOS'
+      setorCompra: 'AMBOS',
+      percentualImposto: ''
     })
     setModalAberto(true)
   }
@@ -69,7 +71,8 @@ export default function Fornecedores() {
       login: fornecedor.login || '',
       email: fornecedor.email || '',
       senha: '',
-      setorCompra: fornecedor.setorCompra || 'AMBOS'
+      setorCompra: fornecedor.setorCompra || 'AMBOS',
+      percentualImposto: fornecedor.percentualImposto != null ? String(fornecedor.percentualImposto) : ''
     })
     setModalAberto(true)
   }
@@ -170,7 +173,8 @@ export default function Fornecedores() {
         login: form.login,
         email: form.email,
         senha: form.senha,
-        setorCompra: form.setorCompra
+        setorCompra: form.setorCompra,
+        percentualImposto: form.percentualImposto === '' ? null : Number(form.percentualImposto)
       }
 
       if (form.id) {
@@ -438,6 +442,20 @@ export default function Fornecedores() {
                   <option value="MEDICAMENTOS">Apenas Medicamentos</option>
                   <option value="PERFUMARIA">Apenas Perfumaria</option>
                 </select>
+              </div>
+
+              <div>
+                <label style={styles.label}>Imposto médio (%)</label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  max="100"
+                  style={styles.input}
+                  value={form.percentualImposto}
+                  onChange={(e) => setForm({ ...form, percentualImposto: e.target.value })}
+                  placeholder="Ex: 18 (vazio = sem imposto)"
+                />
               </div>
 
               <div>

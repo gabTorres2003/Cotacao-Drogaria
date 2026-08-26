@@ -6,9 +6,33 @@ export default function ModalResumoPedidos({
   removerItemDoPedido, moverItemParaFornecedor,
   irParaProximoMenorPreco, acaoPosPedido, setAcaoPosPedido,
   salvarPedidosNoBanco, salvandoPedidos, fornecedores, fMoney, pedidosAbertosList,
-  relatorioOrdenado, getNomeRealSempre 
+  relatorioOrdenado, getNomeRealSempre, setorCotacao 
 }) {
   if (!isOpen) return null;
+
+  const normalizeStrId = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
+
+  const resolverFornecedorId = (nome) => {
+    const norm = normalizeStrId(nome);
+    if (!norm) return null;
+    for (const item of (relatorioOrdenado || [])) {
+      const mapa = item.fornecedoresIdPorNome;
+      if (!mapa) continue;
+      for (const [n, idForn] of Object.entries(mapa)) {
+        if (normalizeStrId(n) === norm && idForn != null) return idForn;
+      }
+    }
+    const cadastro = (fornecedores || []).find(f => normalizeStrId(f.nome) === norm);
+    return cadastro ? cadastro.id : null;
+  };
+
+  const setorCompativelModal = (setorPedido) => {
+    if (!setorPedido || !setorCotacao) return true;
+    const sp = String(setorPedido).trim().toUpperCase();
+    const si = String(setorCotacao).trim().toUpperCase();
+    if (sp === 'AMBOS') return true;
+    return sp === si;
+  };
 
   const handleToggleFornecedor = (fIndex, checked) => {
      setPedidosGerados(prev => {
@@ -122,13 +146,12 @@ export default function ModalResumoPedidos({
             const someSelected = pedido.itens.some(i => i.selected);
             const totalForn = pedido.itens.filter(i => i.selected).reduce((sum, i) => sum + i.subtotal, 0);
 
-            const fNameMatch = normalizeStr(pedido.fornecedorNome);
-            const ordersForn = (pedidosAbertosList || []).filter(p => {
-                const emp = normalizeStr(p.fornecedor?.empresa);
-                const nom = normalizeStr(p.fornecedor?.nome);
-                const fNomeApi = normalizeStr(p.fornecedorNome);
-                return (emp && fNameMatch.includes(emp)) || (nom && fNameMatch.includes(nom)) || (fNomeApi && fNameMatch.includes(fNomeApi)) || (emp && nom && fNameMatch === `${emp} (${nom})`) || (emp === fNameMatch) || (nom === fNameMatch);
-            }).sort((a, b) => b.id - a.id);
+            const idFornResolvido = resolverFornecedorId(pedido.fornecedorNome);
+            const ordersForn = idFornResolvido
+              ? (pedidosAbertosList || [])
+                  .filter(p => p.fornecedor?.id === idFornResolvido && setorCompativelModal(p.cotacao?.setor))
+                  .sort((a, b) => b.id - a.id)
+              : [];
 
             return (
               <div key={pedido.fornecedorNome} style={{ ...styles.card, opacity: someSelected ? 1 : 0.6 }}>

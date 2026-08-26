@@ -70,8 +70,15 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
 
       setIsSalvando(true);
       try {
+          const fornecedorObj = fornecedores.find(f => f.nome === fornecedorSelecionado);
+          if (!fornecedorObj || !fornecedorObj.id) {
+              alert('Não foi possível identificar o ID do fornecedor selecionado. Verifique o cadastro de fornecedores.');
+              setIsSalvando(false);
+              return;
+          }
           const payload = {
               cotacaoId: null,
+              fornecedorId: fornecedorObj.id,
               fornecedorNome: fornecedorSelecionado,
               itens: listaItens.map(i => ({
                   nomeProduto: i.nomeProduto,

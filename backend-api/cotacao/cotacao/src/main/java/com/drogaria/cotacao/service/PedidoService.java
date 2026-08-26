@@ -13,12 +13,14 @@ import com.drogaria.cotacao.model.PrecoCotacao;
 import com.drogaria.cotacao.model.SugestaoPedido;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
+import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
 import com.drogaria.cotacao.repository.EncomendaRepository;
+import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -40,7 +42,9 @@ public class PedidoService {
     private final CotacaoRepository cotacaoRepository;
     private final FornecedorRepository fornecedorRepository;
     private final ItemCotacaoRepository itemCotacaoRepository;
-    private final EncomendaRepository encomendaRepository; 
+    private final EncomendaRepository encomendaRepository;
+    private final CotacaoFornecedorRepository cotacaoFornecedorRepository;
+    private final PrecoCotacaoRepository precoRepository;
 
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
@@ -221,8 +225,14 @@ public class PedidoService {
                     .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
         }
 
-        Fornecedor fornecedor = fornecedorRepository.findByNome(dto.getFornecedorNome())
-                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: " + dto.getFornecedorNome()));
+        Fornecedor fornecedor;
+        if (dto.getFornecedorId() != null) {
+            final Long idForn = dto.getFornecedorId();
+            fornecedor = fornecedorRepository.findById(idForn)
+                    .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: ID " + idForn));
+        } else {
+            throw new RuntimeException("O identificador do fornecedor (fornecedorId) é obrigatório para gerar o pedido. Não é possível identificar o fornecedor apenas pelo nome.");
+        }
 
         Pedido pedido = new Pedido();
         pedido.setCotacao(cotacao);
@@ -353,6 +363,25 @@ public class PedidoService {
             ItemCotacao ic = itemCotacaoRepository.findById(novoItem.getItemCotacao().getId())
                     .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
             novoItem.setItemCotacao(ic);
+
+            Cotacao cotacaoDoItem = ic.getCotacao();
+            Long idFornecedorPedido = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
+
+            if (cotacaoDoItem != null && idFornecedorPedido != null) {
+                boolean temResposta = precoRepository.existsByFornecedorIdAndItemId(idFornecedorPedido, ic.getId());
+                boolean temVinculo = !cotacaoFornecedorRepository
+                        .findByCotacaoIdAndFornecedorId(cotacaoDoItem.getId(), idFornecedorPedido).isEmpty();
+
+                if (!temResposta && !temVinculo) {
+                    throw new RuntimeException("Vínculo inválido: o fornecedor deste pedido não respondeu nem foi notificado nesta cotação. Não é possível associar o produto apenas pelo nome do fornecedor.");
+                }
+
+                String setorPedido = pedido.getCotacao() != null ? pedido.getCotacao().getSetor() : null;
+                String setorItem = cotacaoDoItem.getSetor();
+                if (!setoresCompativeis(setorPedido, setorItem)) {
+                    throw new RuntimeException("Categoria incompatível: este produto (cotação " + setorItem + ") não pode ser incluído em um pedido da categoria " + setorPedido + ".");
+                }
+            }
         }
 
         novoItem.setPedido(pedido);
@@ -367,6 +396,13 @@ public class PedidoService {
                 
         pedido.setValorTotalPedido(total);
         return pedidoRepository.save(pedido);
+    }
+
+    private boolean setoresCompativeis(String setorPedido, String setorItem) {
+        if (setorPedido == null || setorPedido.isBlank()) return true;
+        if (setorItem == null || setorItem.isBlank()) return true;
+        if ("AMBOS".equalsIgnoreCase(setorPedido.trim())) return true;
+        return setorPedido.trim().equalsIgnoreCase(setorItem.trim());
     }
 
     @Transactional

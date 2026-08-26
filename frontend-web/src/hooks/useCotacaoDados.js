@@ -3,6 +3,7 @@ import api from '../services/api';
 
 export function useCotacaoDados(id) {
   const [statusCotacao, setStatusCotacao] = useState('ABERTA');
+  const [setorCotacao, setSetorCotacao] = useState('AMBOS');
   const [relatorio, setRelatorio] = useState([]);
   const [fornecedores, setFornecedores] = useState([]);
   const [promocoes, setPromocoes] = useState([]);
@@ -26,7 +27,10 @@ export function useCotacaoDados(id) {
   const carregarCotacao = async () => {
     try {
       const res = await api.get(`/api/cotacao/${id}`);
-      if (res.data) setStatusCotacao(res.data.status || 'ABERTA');
+      if (res.data) {
+        setStatusCotacao(res.data.status || 'ABERTA');
+        setSetorCotacao(res.data.setor || 'AMBOS');
+      }
     } catch (error) {
       console.error("Erro ao carregar status da cotação", error);
     }
@@ -143,6 +147,7 @@ export function useCotacaoDados(id) {
 
   return {
     statusCotacao, setStatusCotacao,
+    setorCotacao,
     relatorio, setRelatorio,
     fornecedores, setFornecedores,
     promocoes,
