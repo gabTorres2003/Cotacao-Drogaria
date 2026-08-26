@@ -298,9 +298,18 @@ public class ComparativoService {
         boolean possuiSugestoes = request.getSugestoes() != null && !request.getSugestoes().isEmpty();
 
         if (possuiItens) {
+            List<Long> idsItensRequest = request.getItens().stream()
+                    .map(SalvarPrecoDTO::getIdItem)
+                    .distinct()
+                    .collect(Collectors.toList());
+            Map<Long, ItemCotacao> itensPorId = itemRepository.findAllById(idsItensRequest).stream()
+                    .collect(Collectors.toMap(ItemCotacao::getId, i -> i));
+
             for (SalvarPrecoDTO dto : request.getItens()) {
-                ItemCotacao item = itemRepository.findById(dto.getIdItem())
-                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + dto.getIdItem()));
+                ItemCotacao item = itensPorId.get(dto.getIdItem());
+                if (item == null) {
+                    throw new RuntimeException("Item da cotação não encontrado: " + dto.getIdItem());
+                }
 
                 PrecoCotacao preco = new PrecoCotacao();
                 preco.setItem(item);
