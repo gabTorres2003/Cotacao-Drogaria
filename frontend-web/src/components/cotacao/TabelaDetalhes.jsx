@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 const parseDateSafe = (dStr) => {
@@ -22,22 +22,29 @@ export default function TabelaDetalhes({
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
-  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN,
-  mostrarComImposto, impostoPctPorNome
+  onAbrirAddPedidoModal,   filtroVencedor, setFiltroVencedor, filtroTopN,
+  mostrarComImposto, impostoPctPorNome,
+  editandoResposta, formEdicaoResposta, setFormEdicaoResposta,
+  iniciarEdicaoResposta, cancelarEdicaoResposta, salvarEdicaoResposta,
+  itensExcluidosLocal, retornarItem
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
   const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
+  const [fracao, setFracao] = useState(1);
 
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
   const [draggedSupplier, setDraggedSupplier] = useState(null);
   const [pinnedStats, setPinnedStats] = useState([]);
   const [valoresIrreais, setValoresIrreais] = useState({});
+  const [valoresRecusados, setValoresRecusados] = useState({});
+  const [contextMenu, setContextMenu] = useState(null);
 
   const [pinnedRows, setPinnedRows] = useState([]);
   
   const [alertaProduto, setAlertaProduto] = useState(null);
+  const [itensRiscoDesconsiderado, setItensRiscoDesconsiderado] = useState({});
 
   useEffect(() => {
       setSupplierOrder(prev => {
@@ -48,6 +55,14 @@ export default function TabelaDetalhes({
           return newOrder.filter(f => fornecedores.includes(f));
       });
   }, [fornecedores]);
+
+  useEffect(() => {
+      const closeMenu = () => setContextMenu(null);
+      if (contextMenu) {
+          document.addEventListener('click', closeMenu);
+          return () => document.removeEventListener('click', closeMenu);
+      }
+  }, [contextMenu]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -118,12 +133,7 @@ export default function TabelaDetalhes({
 
       let motivosExcesso = [];
 
-      // 1. Estoque Seguro 
-      if (estoque > 0 && estoque >= vendidoNoMes) {
-          motivosExcesso.push(`O estoque atual (${estoque} un) já cobre as vendas do último mês (${vendidoNoMes} un).`);
-      }
-
-      // 2. Giro Zero no Mês
+      // 1. Giro Zero no Mês (Estoque parado sem venda)
       if (estoque > 0 && vendidoNoMes === 0) {
           motivosExcesso.push(`Produto não teve vendas nos últimos 30 dias e ainda há estoque (${estoque} un).`);
       }
@@ -134,44 +144,44 @@ export default function TabelaDetalhes({
       if (dataCompra) {
           const diasDesdeCompra = Math.max(1, Math.floor((dataAtual - dataCompra) / (1000 * 60 * 60 * 24)));
 
-          // 3. Compra Antiga (> 6 meses / ~180 dias)
-          if (diasDesdeCompra > 180) {
-              motivosExcesso.push(`A última compra foi realizada há mais de 6 meses (${fData(item.ultCompraData)}).`);
+          // 2. Compra Antiga sem giro (> 6 meses sem VENDA, não apenas sem compra)
+          if (diasDesdeCompra > 180 && vendidoNoMes === 0 && estoque > 0) {
+              motivosExcesso.push(`A última compra foi realizada há mais de 6 meses (${fData(item.ultCompraData)}) e o produto não teve vendas recentes.`);
           }
 
-          // 4. Compra Encalhada
-          if (ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0 && diasDesdeCompra > 15) {
-              motivosExcesso.push(`Compra recente encalhada: você comprou ${ultCompraQtde} un há ${diasDesdeCompra} dias e não vendeu nenhuma unidade desde então.`);
+          // 3. Compra Encalhada
+          if (ultCompraQtde > 0 && vendidoAposUltCompra === 0 && estoque > 0 && diasDesdeCompra > 30) {
+              motivosExcesso.push(`Compra encalhada: você comprou ${ultCompraQtde} un há ${diasDesdeCompra} dias e não vendeu nenhuma unidade desde então.`);
           }
 
-          // 5. Ritmo de Giro Pós-Compra
+          // 4. Ritmo de Giro Pós-Compra
           if (vendidoAposUltCompra > 0 && diasDesdeCompra > 0 && qtdPedida > 0) {
               const diasPorUnidade = diasDesdeCompra / vendidoAposUltCompra;
               const tempoEstimadoParaVender = Math.round(qtdPedida * diasPorUnidade);
 
-              if (tempoEstimadoParaVender > 60) {
+              if (tempoEstimadoParaVender > 90) {
                   motivosExcesso.push(`Giro Lento (Pós-Compra): Levou ${diasDesdeCompra} dias para vender ${vendidoAposUltCompra} un da última compra. Neste ritmo, a quantidade que você está pedindo agora (${qtdPedida} un) demorará aprox. ${tempoEstimadoParaVender} dias para sair.`);
               }
           }
       }
 
-      // 6. Superestocagem Absoluta
+      // 5. Superestocagem Absoluta
       const vendaDiaria = vendidoNoMes / 30;
-      if (vendaDiaria > 0 && qtdPedida > 0) {
+      if (vendaDiaria > 0.01 && qtdPedida > 0) {
           const diasCobertura = Math.round((estoque + qtdPedida) / vendaDiaria);
-          if (diasCobertura > 60) {
+          if (diasCobertura > 90) {
               const msgSuper = `Superestocagem: O estoque atual somado ao pedido (${estoque + qtdPedida} un) vai gerar uma prateleira para aprox. ${diasCobertura} dias (Sua média é de ${vendaDiaria.toFixed(2)} vendas/dia).`;
-              // Evita poluir a tela com duas mensagens parecidas (Regra 5 e Regra 6)
               if (!motivosExcesso.some(m => m.includes('Giro Lento (Pós-Compra)'))) {
                   motivosExcesso.push(msgSuper);
               }
           }
-      } else if (vendaDiaria === 0 && qtdPedida > 0 && estoque === 0) {
-          motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto sem nenhuma venda nos últimos 30 dias.`);
+      } else if (vendaDiaria <= 0.01 && qtdPedida > 0 && estoque === 0) {
+          motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto com vendas muito baixas ou sem venda nos últimos 30 dias.`);
       }
 
       const temRiscoExcesso = motivosExcesso.length > 0;
-      const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso;
+      const riscoDesconsiderado = !!itensRiscoDesconsiderado[item.idItem];
+      const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso && !riscoDesconsiderado;
 
       let rowBgColor = '#ffffff';
       if (isPinnedRow) rowBgColor = '#f0f9ff';
@@ -182,6 +192,7 @@ export default function TabelaDetalhes({
           const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
 
           const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+          const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
           let isDiscrepante = false;
 
           if (precoBaseAlerta > 0 && pOraw > 0) {
@@ -200,7 +211,7 @@ export default function TabelaDetalhes({
           if (pO <= 0 && pS > 0) val = pS;
           
           if (val !== Infinity) {
-              if (isIrreal) {
+              if (isIrreal || isRecusado) {
                   val = Infinity; 
               } else if (mostrarAlertasPreco && isDiscrepante) {
                   val = Infinity; 
@@ -235,16 +246,26 @@ export default function TabelaDetalhes({
                   </strong>
                   
                   {isBaixoGiro && !item.excluido && (
-                    <button
-                        type="button"
-                        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAlertaProduto({ nome: getNomeExibicao(item.nomeProduto), motivos: motivosExcesso }); }}
-                        style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
-                        title="Ver os motivos do alerta de estoque"
-                    >
-                        <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
-                        <AlertTriangle size={10} /> Risco de Excesso
-                        </span>
-                    </button>
+                    <div style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setAlertaProduto({ nome: getNomeExibicao(item.nomeProduto), motivos: motivosExcesso }); }}
+                          style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
+                          title="Ver os motivos do alerta de estoque"
+                      >
+                          <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <AlertTriangle size={10} /> Risco de Excesso
+                          </span>
+                      </button>
+                      <button
+                          type="button"
+                          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItensRiscoDesconsiderado(prev => ({ ...prev, [item.idItem]: true })); }}
+                          style={{ fontSize: '9px', backgroundColor: '#f3f4f6', color: '#6b7280', padding: '2px 5px', borderRadius: '3px', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 'bold' }}
+                          title="Desconsiderar este alerta para este produto"
+                      >
+                          Dispensar
+                      </button>
+                    </div>
                   )}
 
                   {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
@@ -318,6 +339,7 @@ export default function TabelaDetalhes({
             const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
             const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
             const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
+            const aplicarFracao = (p) => fracao > 1 && p > 0 ? p / fracao : p;
             
             const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
@@ -346,7 +368,13 @@ export default function TabelaDetalhes({
             const leftPos = getLeftOffset(f, 'supplier');
 
             return (
-              <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && handleSetWinner(item.idItem, f)} 
+              <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && !isRecusado && handleSetWinner(item.idItem, f)} 
+                  onContextMenu={(e) => {
+                    e.preventDefault();
+                    if (!isBloqueado && !item.excluido && !isEncerrada && precoOriginal > 0) {
+                      setContextMenu({ x: e.clientX, y: e.clientY, itemId: item.idItem, fornecedor: f, preco: precoOriginal });
+                    }
+                  }}
                   style={{ 
                       ...tdStyle, 
                       backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : (isBaixoGiro ? '#fef2f2' : 'inherit'))), 
@@ -359,23 +387,69 @@ export default function TabelaDetalhes({
                       left: isPinnedCol ? `${leftPos}px` : 'auto',
                       zIndex: isPinnedCol ? 15 : 1,
                       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
-                      opacity: isBloqueado ? 0.6 : (isIrreal ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
+                      opacity: isBloqueado ? 0.6 : (isIrreal || isRecusado ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
                   }}>
                 
-                {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5 }}>VENCEDOR</div>}
+                {isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: '#10b981', color: 'white', fontSize: '11px', padding: '3px 10px', borderRadius: '10px', fontWeight: 'bold', zIndex: 60, boxShadow: '0 2px 4px rgba(0,0,0,0.2)', whiteSpace: 'nowrap' }}>VENCEDOR</div>}
                 
-                {rank > 0 && !isWinner && !isIrreal && <div style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', backgroundColor: rank === 1 ? '#4ade80' : '#fde047', color: rank === 1 ? '#064e3b' : '#713f12', fontSize: '10px', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', zIndex: 5, border: `1px solid ${rank === 1 ? '#22c55e' : '#facc15'}` }}>{rank}º LUGAR</div>}
+                {rank > 0 && !isWinner && !isIrreal && (
+                  <div style={{
+                    position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)',
+                    backgroundColor: rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')),
+                    color: rank <= 3 ? 'white' : '#713f12',
+                    fontSize: rank <= 3 ? '11px' : '10px',
+                    padding: rank <= 3 ? '3px 10px' : '2px 8px',
+                    borderRadius: '10px', fontWeight: 'bold', zIndex: 60,
+                    border: `1px solid ${rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15'))}`,
+                    boxShadow: rank <= 3 ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
+                    whiteSpace: 'nowrap'
+                  }}>{rank}º LUGAR</div>
+                )}
 
                 <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
                     {isEmFaltaOriginal ? 'Em falta' : (
                         <>
-                            <span title={pctImpostoForn > 0 ? `Informado: ${fMoney(precoOriginal)} + ${pctImpostoForn}% de imposto` : undefined}>{fMoney(precoOriginalAjustado)}</span>
+                            <span title={pctImpostoForn > 0 ? `Informado: ${fMoney(precoOriginal)} + ${pctImpostoForn}% de imposto` : undefined}>{fMoney(aplicarFracao(precoOriginalAjustado))}</span>
+                            {fracao > 1 && <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>/ {fracao}</span>}
                             {pctImpostoForn > 0 && (
                                 <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>+{pctImpostoForn}%</span>
                             )}
                         </>
                     )}
                 </div>
+
+                {editandoResposta?.itemId === item.idItem && editandoResposta?.fornecedor === f ? (
+                  <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '32px' }}>R$</span>
+                      <input type="number" step="0.01" value={formEdicaoResposta.precoOfertado} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoOfertado: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #93c5fd', borderRadius: '3px' }} placeholder="Preço" autoFocus />
+                    </div>
+                    <input type="text" value={formEdicaoResposta.produtoSubstituto} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, produtoSubstituto: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #d1d5db', borderRadius: '3px' }} placeholder="Produto substituto (opc.)" />
+                    {formEdicaoResposta.produtoSubstituto && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '32px' }}>R$</span>
+                        <input type="number" step="0.01" value={formEdicaoResposta.precoSubstituto} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoSubstituto: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #d1d5db', borderRadius: '3px' }} placeholder="Preço substituto" />
+                      </div>
+                    )}
+                    <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
+                      <button onClick={(e) => { e.stopPropagation(); salvarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Salvar</button>
+                      <button onClick={(e) => { e.stopPropagation(); cancelarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '3px', cursor: 'pointer' }}>Cancelar</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {!isEmFaltaOriginal && !isBloqueado && !isEncerrada && !item.excluido && !isIrreal && item.idsPrecoPorFornecedor?.[f] && (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); iniciarEdicaoResposta(item, f); }}
+                        style={{ marginTop: '4px', background: 'none', border: '1px solid #d1d5db', borderRadius: '3px', padding: '2px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#6b7280' }}
+                        title="Editar resposta deste fornecedor"
+                      >
+                        <Pencil size={10} /> Editar
+                      </button>
+                    )}
+                  </>
+                )}
                 
                 {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
                    <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid #fca5a5' }} title="Preço muito divergente do padrão.">
@@ -402,12 +476,24 @@ export default function TabelaDetalhes({
                       </button>
                    </div>
                 )}
+
+                {isRecusado && !isIrreal && (
+                   <div style={{ fontSize: '11px', color: '#92400e', backgroundColor: '#fef3c7', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }}>
+                      🚫 Valor Recusado
+                      <button 
+                        onClick={(e) => { e.stopPropagation(); setValoresRecusados(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
+                        style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                      >
+                        Desfazer
+                      </button>
+                   </div>
+                )}
                 
                 {!isEmFaltaOriginal && condsArr.length > 0 && !isIrreal && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
                         {condsArr.map((cond, idx) => (
                             <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
-                                <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(ajustarPrecoExibicao(cond.preco))}
+                                <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(aplicarFracao(ajustarPrecoExibicao(cond.preco)))}
                             </div>
                         ))}
                     </div>
@@ -419,13 +505,13 @@ export default function TabelaDetalhes({
                       <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
                       <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
                         <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(precoSubstitutoAjustado)}</span>{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
+                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(aplicarFracao(precoSubstitutoAjustado))}</span>{fracao > 1 && <span style={{ fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>/ {fracao}</span>}{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
                         
                         {condsArrSubst.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                               {condsArrSubst.map((cond, idx) => (
                                   <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
-                                      <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(ajustarPrecoExibicao(cond.preco))}
+                                      <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(aplicarFracao(ajustarPrecoExibicao(cond.preco)))}
                                   </div>
                               ))}
                           </div>
@@ -532,6 +618,28 @@ export default function TabelaDetalhes({
                   <AlertTriangle size={14} color={mostrarAlertasPreco ? '#d97706' : '#9ca3af'} />
                   Destacar Preços Discrepantes (+100% ou -50%)
               </label>
+          )}
+
+          {isComparativo && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                  <span>Fração:</span>
+                  {[1, 2, 3].map(f => (
+                      <button
+                          key={f}
+                          type="button"
+                          onClick={() => setFracao(f)}
+                          style={{
+                              padding: '3px 10px', fontSize: '12px', fontWeight: 'bold', borderRadius: '4px', border: '1px solid',
+                              borderColor: fracao === f ? '#2563eb' : '#d1d5db',
+                              backgroundColor: fracao === f ? '#dbeafe' : 'white',
+                              color: fracao === f ? '#1d4ed8' : '#6b7280',
+                              cursor: 'pointer'
+                          }}
+                      >
+                          {f === 1 ? '1 (Original)' : `1/${f}`}
+                      </button>
+                  ))}
+              </div>
           )}
       </div>
 
@@ -651,6 +759,28 @@ export default function TabelaDetalhes({
         </table>
       </div>
 
+      {isItens && itensExcluidosLocal && itensExcluidosLocal.length > 0 && (
+        <div style={{ borderTop: '2px solid #e5e7eb', padding: '12px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b7280', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            🗑️ Itens Excluídos ({itensExcluidosLocal.length})
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {itensExcluidosLocal.map(item => (
+              <div key={item.idItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f3f4f6', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
+                <span style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'line-through' }}>{getNomeExibicao(item.nomeProduto)}</span>
+                <button
+                  type="button"
+                  onClick={() => retornarItem(item.idItem)}
+                  style={{ fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                >
+                  <RefreshCcw size={12} /> Retornar
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* MODAL COM OS MOTIVOS DO EXCESSO DE ESTOQUE */}
       {alertaProduto && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
@@ -679,6 +809,37 @@ export default function TabelaDetalhes({
                   </div>
               </div>
           </div>
+      )}
+
+      {contextMenu && (
+        <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '4px', minWidth: '160px' }}>
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setValoresRecusados(prev => ({ ...prev, [`${contextMenu.itemId}-${contextMenu.fornecedor}`]: { preco: contextMenu.preco, data: new Date().toISOString() } }));
+              setContextMenu(null);
+            }}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = '#fef3c7'}
+            onMouseLeave={(e) => e.target.style.backgroundColor = 'none'}
+          >
+            🚫 Recusar Valor
+          </button>
+          {valoresRecusados[`${contextMenu.itemId}-${contextMenu.fornecedor}`] && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setValoresRecusados(prev => { const n = {...prev}; delete n[`${contextMenu.itemId}-${contextMenu.fornecedor}`]; return n; });
+                setContextMenu(null);
+              }}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: '#374151', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              onMouseLeave={(e) => e.target.style.backgroundColor = 'none'}
+            >
+              ✓ Desfazer Recusa
+            </button>
+          )}
+        </div>
       )}
     </div>
   );

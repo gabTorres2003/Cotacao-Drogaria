@@ -112,6 +112,7 @@ public class ComparativoService {
                     String nomeForn = oferta.getFornecedor().getNome();
 
                     linha.getFornecedoresIdPorNome().put(nomeForn, oferta.getFornecedor().getId());
+                    linha.getIdsPrecoPorFornecedor().put(nomeForn, oferta.getId());
 
                     if (oferta.getDataResposta() != null) {
                         linha.getUltimaRespostaPorFornecedor().put(nomeForn, oferta.getDataResposta());

@@ -56,6 +56,9 @@ export default function CotacaoDetalhes() {
   const [payloadManualData, setPayloadManualData] = useState(null);
   const [editandoItem, setEditandoItem] = useState(null);
   const [formEdicao, setFormEdicao] = useState({ nome: '', qtd: 1 });
+  const [editandoResposta, setEditandoResposta] = useState(null);
+  const [formEdicaoResposta, setFormEdicaoResposta] = useState({ precoOfertado: '', produtoSubstituto: '', precoSubstituto: '' });
+  const [itensExcluidosLocal, setItensExcluidosLocal] = useState([]);
   const [checklist, setChecklist] = useState({});
   const [copiadoId, setCopiadoId] = useState(null);
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({});
@@ -293,9 +296,70 @@ export default function CotacaoDetalhes() {
     if (window.confirm('Tem certeza que deseja remover este produto da cotação?')) {
       try {
         await api.delete(`/api/cotacao/item/${idItem}`);
-        setRelatorio(prev => prev.filter(item => item.idItem !== idItem));
+        setRelatorio(prev => {
+          const itemRemovido = prev.find(i => i.idItem === idItem);
+          if (itemRemovido) setItensExcluidosLocal(prevExcl => [...prevExcl, { ...itemRemovido, excluido: true }]);
+          return prev.filter(item => item.idItem !== idItem);
+        });
       } catch (error) { alert('Erro ao remover produto.'); }
     }
+  };
+
+  const retornarItem = async (idItem) => {
+    try {
+      await api.put(`/api/cotacao/item/${idItem}`, { excluido: false });
+      setItensExcluidosLocal(prev => prev.filter(i => i.idItem !== idItem));
+      const itemRetornado = itensExcluidosLocal.find(i => i.idItem === idItem);
+      if (itemRetornado) {
+        setRelatorio(prev => [...prev, { ...itemRetornado, excluido: false, motivoRetorno: 'Retornado manualmente' }]);
+      }
+    } catch (error) { alert('Erro ao retornar produto.'); }
+  };
+
+  const iniciarEdicaoResposta = (item, fornecedor) => {
+    if (isEncerrada) return;
+    const idPreco = item.idsPrecoPorFornecedor?.[fornecedor];
+    if (!idPreco) return;
+    const precoAtual = item.precosPorFornecedor?.[fornecedor] || 0;
+    const substAtual = item.substitutosPorFornecedor?.[fornecedor] || '';
+    const precoSubstAtual = item.precosSubstitutosPorFornecedor?.[fornecedor] || 0;
+    setEditandoResposta({ itemId: item.idItem, fornecedor, idPreco });
+    setFormEdicaoResposta({ precoOfertado: precoAtual > 0 ? precoAtual : '', produtoSubstituto: substAtual, precoSubstituto: precoSubstAtual > 0 ? precoSubstAtual : '' });
+  };
+
+  const cancelarEdicaoResposta = () => {
+    setEditandoResposta(null);
+    setFormEdicaoResposta({ precoOfertado: '', produtoSubstituto: '', precoSubstituto: '' });
+  };
+
+  const salvarEdicaoResposta = async () => {
+    if (!editandoResposta) return;
+    const { idPreco, itemId, fornecedor } = editandoResposta;
+    const payload = {};
+    const precoVal = formEdicaoResposta.precoOfertado !== '' ? Number(formEdicaoResposta.precoOfertado) : null;
+    const substNome = formEdicaoResposta.produtoSubstituto.trim();
+    const substPreco = formEdicaoResposta.precoSubstituto !== '' ? Number(formEdicaoResposta.precoSubstituto) : null;
+    payload.precoOfertado = precoVal;
+    payload.produtoSubstituto = substNome || null;
+    payload.precoSubstituto = substNome ? substPreco : null;
+    try {
+      await api.put(`/api/cotacao/preco/${idPreco}`, payload);
+      setRelatorio(prev => prev.map(item => {
+        if (item.idItem !== itemId) return item;
+        const novosPrecos = { ...item.precosPorFornecedor, [fornecedor]: precoVal };
+        const novosSubst = { ...item.substitutosPorFornecedor };
+        const novosPrecosSubst = { ...item.precosSubstitutosPorFornecedor };
+        if (substNome) {
+          novosSubst[fornecedor] = substNome;
+          novosPrecosSubst[fornecedor] = substPreco;
+        } else {
+          delete novosSubst[fornecedor];
+          delete novosPrecosSubst[fornecedor];
+        }
+        return { ...item, precosPorFornecedor: novosPrecos, substitutosPorFornecedor: novosSubst, precosSubstitutosPorFornecedor: novosPrecosSubst, editadoManual: true };
+      }));
+      cancelarEdicaoResposta();
+    } catch (error) { alert('Erro ao atualizar resposta do fornecedor.'); }
   };
 
   const reatribuirItem = (idItem) => {
@@ -917,6 +981,9 @@ export default function CotacaoDetalhes() {
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
             mostrarComImposto={mostrarComImposto} impostoPctPorNome={calcularImpostoPctPorNome()}
+            editandoResposta={editandoResposta} formEdicaoResposta={formEdicaoResposta} setFormEdicaoResposta={setFormEdicaoResposta}
+            iniciarEdicaoResposta={iniciarEdicaoResposta} cancelarEdicaoResposta={cancelarEdicaoResposta} salvarEdicaoResposta={salvarEdicaoResposta}
+            itensExcluidosLocal={itensExcluidosLocal} retornarItem={retornarItem}
           />
           
           {isComparativo && (

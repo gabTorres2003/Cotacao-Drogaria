@@ -7,6 +7,7 @@ import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
+import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
 import com.drogaria.cotacao.service.ComparativoService;
 import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
@@ -34,6 +35,9 @@ public class CotacaoController {
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
+
+    @Autowired
+    private PrecoCotacaoRepository precoCotacaoRepository;
 
     @Autowired
     private CotacaoService cotacaoService;
@@ -189,12 +193,41 @@ public class CotacaoController {
     }
 
     @PutMapping("/item/{idItem}")
-    public ResponseEntity<ItemCotacao> atualizarItem(@PathVariable Long idItem, @RequestBody ItemCotacao dados) {
+    public ResponseEntity<?> atualizarItem(@PathVariable Long idItem, @RequestBody Map<String, Object> dados) {
         try {
-            ItemCotacao atualizado = cotacaoService.atualizarItemManual(idItem, dados.getNomeProduto(), dados.getQuantidade());
+            if (dados.containsKey("excluido")) {
+                Boolean excluido = (Boolean) dados.get("excluido");
+                cotacaoService.restaurarItem(idItem, excluido);
+                return ResponseEntity.ok("Item atualizado");
+            }
+            String nome = (String) dados.get("nomeProduto");
+            Integer qtd = dados.get("quantidade") != null ? ((Number) dados.get("quantidade")).intValue() : null;
+            ItemCotacao atualizado = cotacaoService.atualizarItemManual(idItem, nome, qtd);
             return ResponseEntity.ok(atualizado);
         } catch (Exception e) {
             return ResponseEntity.notFound().build();
+        }
+    }
+
+    @PutMapping("/preco/{idPreco}")
+    public ResponseEntity<?> atualizarRespostaFornecedor(@PathVariable Long idPreco, @RequestBody Map<String, Object> dados) {
+        try {
+            var precoOpt = precoCotacaoRepository.findById(idPreco);
+            if (precoOpt.isEmpty()) return ResponseEntity.notFound().build();
+            var preco = precoOpt.get();
+            if (dados.containsKey("precoOfertado")) {
+                preco.setPrecoOfertado(dados.get("precoOfertado") != null ? Double.valueOf(dados.get("precoOfertado").toString()) : null);
+            }
+            if (dados.containsKey("produtoSubstituto")) {
+                preco.setProdutoSubstituto((String) dados.get("produtoSubstituto"));
+            }
+            if (dados.containsKey("precoSubstituto")) {
+                preco.setPrecoSubstituto(dados.get("precoSubstituto") != null ? Double.valueOf(dados.get("precoSubstituto").toString()) : null);
+            }
+            precoCotacaoRepository.save(preco);
+            return ResponseEntity.ok("Resposta atualizada com sucesso");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erro ao atualizar resposta: " + e.getMessage());
         }
     }
 

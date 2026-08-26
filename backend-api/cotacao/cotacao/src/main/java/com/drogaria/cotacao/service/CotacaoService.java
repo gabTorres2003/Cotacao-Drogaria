@@ -224,6 +224,14 @@ public class CotacaoService {
     }
 
     @Transactional
+    public void restaurarItem(Long idItem, Boolean excluido) {
+        ItemCotacao item = itemCotacaoRepository.findById(idItem)
+            .orElseThrow(() -> new RuntimeException("Item não encontrado"));
+        item.setExcluido(excluido);
+        itemCotacaoRepository.save(item);
+    }
+
+    @Transactional
     public void deletarCotacao(Long id) {
         if (!cotacaoRepository.existsById(id)) {
             throw new RuntimeException("Cotação não encontrada!");

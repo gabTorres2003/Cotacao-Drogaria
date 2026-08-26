@@ -51,6 +51,7 @@ public class ItemComparativoDTO {
     private Map<String, LocalDateTime> ultimaRespostaPorFornecedor = new HashMap<>();
 
     private Map<String, Long> fornecedoresIdPorNome = new HashMap<>();
+    private Map<String, Long> idsPrecoPorFornecedor = new HashMap<>();
 
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -156,4 +157,7 @@ public class ItemComparativoDTO {
 
     public Map<String, Long> getFornecedoresIdPorNome() { return fornecedoresIdPorNome; }
     public void setFornecedoresIdPorNome(Map<String, Long> fornecedoresIdPorNome) { this.fornecedoresIdPorNome = fornecedoresIdPorNome; }
+
+    public Map<String, Long> getIdsPrecoPorFornecedor() { return idsPrecoPorFornecedor; }
+    public void setIdsPrecoPorFornecedor(Map<String, Long> idsPrecoPorFornecedor) { this.idsPrecoPorFornecedor = idsPrecoPorFornecedor; }
 }
