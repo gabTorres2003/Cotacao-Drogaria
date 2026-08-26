@@ -16,7 +16,7 @@ export default function Pedidos() {
   
   const [pedidosSelecionados, setPedidosSelecionados] = useState([])
   
-  const [abaAtiva, setAbaAtiva] = useState('ANDAMENTO')
+  const [abaAtiva, setAbaAtiva] = useState('TRATAMENTO')
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [ordenacao, setOrdenacao] = useState('RECENTES')
@@ -25,7 +25,7 @@ export default function Pedidos() {
 
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
 
-  const [resumo, setResumo] = useState({ total: 0, pendentes: 0, entregues: 0, devolucoes: 0 })
+  const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
 
   const [isModalManualOpen, setIsModalManualOpen] = useState(false)
@@ -58,7 +58,9 @@ export default function Pedidos() {
         setPedidos(data)
         setResumo({
           total: data.length,
-          pendentes: data.filter((p) => p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR').length,
+          emTratamento: data.filter((p) => ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'].includes(p.status)).length,
+          aguardandoEntrega: data.filter((p) => p.status === 'CONFIRMADO_FORNECEDOR').length,
+          aguardandoConfirmacao: data.filter((p) => p.status === 'PENDENTE_ENTREGA').length,
           entregues: data.filter((p) => p.status === 'ENTREGUE_SUCESSO' || p.status === 'ENTREGUE_COM_FALTA').length,
           devolucoes: data.filter((p) => p.status === 'PENDENTE_DEVOLUCAO').length,
         })
@@ -175,9 +177,15 @@ export default function Pedidos() {
 
   const pedidosProcessados = pedidos
     .filter((p) => {
-      const isConcluido = p.status === 'ENTREGUE_SUCESSO' || p.status === 'ENTREGUE_COM_FALTA' || p.status === 'CANCELADO';
-      if (abaAtiva === 'ANDAMENTO' && isConcluido) return false;
-      if (abaAtiva === 'HISTORICO' && !isConcluido) return false;
+      const statusTratamento = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'];
+      const statusAguardandoEntrega = ['CONFIRMADO_FORNECEDOR'];
+      const statusAguardandoConfirmacao = ['PENDENTE_ENTREGA'];
+      const statusHistorico = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
+
+      if (abaAtiva === 'TRATAMENTO' && !statusTratamento.includes(p.status)) return false;
+      if (abaAtiva === 'AGUARDANDO_ENTREGA' && !statusAguardandoEntrega.includes(p.status)) return false;
+      if (abaAtiva === 'AGUARDANDO_CONFIRMACAO' && !statusAguardandoConfirmacao.includes(p.status)) return false;
+      if (abaAtiva === 'HISTORICO' && !statusHistorico.includes(p.status)) return false;
       
       const textoBusca = busca.toLowerCase()
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
@@ -299,6 +307,7 @@ export default function Pedidos() {
       case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência: Valor', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
       case 'DIVERGENCIA': return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
       case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: '#f3e8ff', color: '#7e22ce' } };
+      case 'ENTREGA_PARCIAL': return { texto: 'Entrega Parcial', style: { ...baseStyle, backgroundColor: '#fff7ed', color: '#c2410c' } };
       case 'CANCELADO': return { texto: 'Cancelado / Falha na Entrega', style: { ...baseStyle, backgroundColor: '#f1f5f9', color: '#475569', textDecoration: 'line-through' } };
       default: return { texto: status, style: { ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' } };
     }
@@ -322,16 +331,20 @@ export default function Pedidos() {
             <div className="stat-label">Total de Pedidos</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.pendentes}</div>
+            <div className="stat-value" style={{ color: '#ef4444' }}>{resumo.emTratamento}</div>
+            <div className="stat-label">Em Tratamento</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.aguardandoEntrega}</div>
             <div className="stat-label">Aguardando Entrega</div>
+          </div>
+          <div className="stat-card">
+            <div className="stat-value" style={{ color: '#eab308' }}>{resumo.aguardandoConfirmacao}</div>
+            <div className="stat-label">Aguardando Confirmação</div>
           </div>
           <div className="stat-card">
             <div className="stat-value" style={{ color: '#16a34a' }}>{resumo.entregues}</div>
             <div className="stat-label">Entregues</div>
-          </div>
-          <div className="stat-card">
-            <div className="stat-value" style={{ color: '#ef4444' }}>{resumo.devolucoes}</div>
-            <div className="stat-label">Pendentes de Devolução</div>
           </div>
         </div>
 
@@ -339,16 +352,28 @@ export default function Pedidos() {
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
               <button 
-                onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                onClick={() => { setAbaAtiva('TRATAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'TRATAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'TRATAMENTO' ? '#dc2626' : '#6b7280', boxShadow: abaAtiva === 'TRATAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
-                Pedidos em Andamento
+                Em Tratamento
+              </button>
+              <button 
+                onClick={() => { setAbaAtiva('AGUARDANDO_ENTREGA'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'AGUARDANDO_ENTREGA' ? 'white' : 'transparent', color: abaAtiva === 'AGUARDANDO_ENTREGA' ? '#ea580c' : '#6b7280', boxShadow: abaAtiva === 'AGUARDANDO_ENTREGA' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Aguardando Entrega
+              </button>
+              <button 
+                onClick={() => { setAbaAtiva('AGUARDANDO_CONFIRMACAO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? 'white' : 'transparent', color: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? '#ca8a04' : '#6b7280', boxShadow: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+              >
+                Aguardando Confirmação
               </button>
               <button 
                 onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
                 style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
-                Histórico (Concluídos)
+                Histórico
               </button>
             </div>
 
@@ -406,15 +431,21 @@ export default function Pedidos() {
             <Filter size={16} color="#6b7280" />
             <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="TODOS">Todos os Status</option>
-              {abaAtiva === 'ANDAMENTO' ? (
+              {abaAtiva === 'TRATAMENTO' && (
                 <>
-                  <option value="PENDENTE_ENTREGA">Aguardando Fornecedor</option>
-                  <option value="CONFIRMADO_FORNECEDOR">Confirmado na Fábrica</option>
-                  <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
                   <option value="DIVERGENCIA">Divergência de Quantidade</option>
-                  <option value="PENDENTE_DEVOLUCAO">Pendente de Devolução</option>
+                  <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
+                  <option value="PENDENTE_DEVOLUCAO">Devolução Pendente</option>
+                  <option value="ENTREGA_PARCIAL">Entrega Parcial</option>
                 </>
-              ) : (
+              )}
+              {abaAtiva === 'AGUARDANDO_ENTREGA' && (
+                <option value="CONFIRMADO_FORNECEDOR">Confirmado na Fábrica</option>
+              )}
+              {abaAtiva === 'AGUARDANDO_CONFIRMACAO' && (
+                <option value="PENDENTE_ENTREGA">Aguardando Fornecedor</option>
+              )}
+              {abaAtiva === 'HISTORICO' && (
                 <>
                   <option value="ENTREGUE_SUCESSO">Entregue com Sucesso</option>
                   <option value="ENTREGUE_COM_FALTA">Entregue com Falta</option>

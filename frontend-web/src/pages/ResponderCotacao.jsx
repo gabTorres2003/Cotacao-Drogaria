@@ -372,7 +372,7 @@ export default function ResponderCotacao() {
 
   const isItemNovo = (item) => {
     const ultimaResposta = item.ultimaRespostaPorFornecedor?.[nomeUsuario]
-    if (!ultimaResposta) return true
+    if (!ultimaResposta) return false
     return new Date(item.dataCriacao) > new Date(ultimaResposta)
   }
 
