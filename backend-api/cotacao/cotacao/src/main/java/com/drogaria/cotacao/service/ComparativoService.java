@@ -29,6 +29,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -205,15 +206,32 @@ public class ComparativoService {
         if (cotacao == null) {
             return new ArrayList<>();
         }
-        
-        return cotacao.getItens().stream().map(item -> {
+
+        List<ItemCotacao> itensCotacao = cotacao.getItens();
+
+        Map<String, LocalDateTime> ultimaRespostaGlobal = new HashMap<>();
+        if (!itensCotacao.isEmpty()) {
+            List<PrecoCotacao> todasOfertas = precoRepository.findByItemIn(itensCotacao);
+            for (PrecoCotacao preco : todasOfertas) {
+                if (preco.getDataResposta() != null && preco.getFornecedor() != null) {
+                    String fornecedorNome = preco.getFornecedor().getNome();
+                    ultimaRespostaGlobal.merge(fornecedorNome, preco.getDataResposta(),
+                            (existing, nova) -> nova.isAfter(existing) ? nova : existing);
+                }
+            }
+        }
+
+        final Map<String, LocalDateTime> ultimaRespostaFinal = ultimaRespostaGlobal;
+
+        return itensCotacao.stream().map(item -> {
             ItemComparativoDTO dto = new ItemComparativoDTO();
-            dto.setIdItem(item.getId()); 
+            dto.setIdItem(item.getId());
             dto.setNomeProduto(item.getNomeProduto());
             dto.setQuantidade(item.getQuantidade());
             dto.setEditadoManual(item.getEditadoManual());
             dto.setExcluido(item.getExcluido());
             dto.setDataCriacao(item.getDataCriacao());
+            dto.setUltimaRespostaPorFornecedor(ultimaRespostaFinal);
             return dto;
         }).collect(Collectors.toList());
     }

@@ -44,6 +44,7 @@ export default function ResponderCotacao() {
 
   const [busca, setBusca] = useState('')
   const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
+  const [filtroNovos, setFiltroNovos] = useState(false)
 
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
@@ -369,9 +370,16 @@ export default function ResponderCotacao() {
     return nomeProduto;
   };
 
+  const isItemNovo = (item) => {
+    const ultimaResposta = item.ultimaRespostaPorFornecedor?.[nomeUsuario]
+    if (!ultimaResposta) return true
+    return new Date(item.dataCriacao) > new Date(ultimaResposta)
+  }
+
   const itensProcessados = itens
     .filter(item => {
-      if (item.excluido) return false; 
+      if (item.excluido) return false;
+      if (filtroNovos && !isItemNovo(item)) return false;
       if (!busca) return true;
       return getNomeReal(item.nomeProduto).toLowerCase().includes(busca.toLowerCase());
     })
@@ -450,6 +458,21 @@ export default function ResponderCotacao() {
           >
             <SortAsc size={16} /> {ordemAlfabetica ? 'A-Z' : 'Ordem alfabética'}
           </button>
+          <button
+            onClick={() => setFiltroNovos(!filtroNovos)}
+            title={filtroNovos ? 'Mostrando novos. Toque para mostrar todos.' : 'Toque para filtrar itens adicionados após sua última resposta.'}
+            aria-pressed={filtroNovos}
+            style={{
+              ...mobileStyles.btnVoltar,
+              backgroundColor: filtroNovos ? '#fef3c7' : 'white',
+              color: filtroNovos ? '#92400e' : '#4b5563',
+              border: filtroNovos ? '1px solid #f59e0b' : '1px solid #cbd5e1',
+              fontWeight: filtroNovos ? 600 : 500,
+              whiteSpace: 'nowrap',
+            }}
+          >
+            <Tags size={16} /> {filtroNovos ? 'Novos' : 'Novos'}
+          </button>
         </div>
       </div>
 
@@ -469,7 +492,12 @@ export default function ResponderCotacao() {
 
               return (
                 <div key={item.idItem} style={mobileStyles.card}>
-                  <div style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>{getNomeReal(item.nomeProduto)}</div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>{getNomeReal(item.nomeProduto)}</span>
+                    {isItemNovo(item) && (
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#92400e', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' }}>NOVO</span>
+                    )}
+                  </div>
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginTop: '8px' }}>
