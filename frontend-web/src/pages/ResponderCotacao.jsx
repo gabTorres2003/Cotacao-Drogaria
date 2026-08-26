@@ -288,7 +288,7 @@ export default function ResponderCotacao() {
         const isFalta = !!emFalta[item.idItem]
         let precoFinal = isFalta ? -1 : parseFloat(String(precos[item.idItem] || '0').replace(',', '.')) || 0
         let qtdFinal = isFalta ? 0 : quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
-        const temTroca = !!exibirTroca[item.idItem] && produtoSubstituto[item.idItem]?.trim() !== ''
+        const temTroca = !!exibirTroca[item.idItem] && (produtoSubstituto[item.idItem] || '').trim() !== ''
 
         // FILTRA CONDIÇÕES VÁLIDAS (Que possuem QTD e PREÇO)
         const condsValidas = (condicoesNormal[item.idItem] || []).filter(c => c.qtd && c.preco);
@@ -422,8 +422,19 @@ export default function ResponderCotacao() {
             <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input type="text" placeholder="Pesquisar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...mobileStyles.inputFieldItem, paddingLeft: '36px' }} />
           </div>
-          <button onClick={() => setOrdemAlfabetica(!ordemAlfabetica)} style={{ ...mobileStyles.btnVoltar, backgroundColor: ordemAlfabetica ? '#dbeafe' : 'white', color: ordemAlfabetica ? '#1e40af' : '#4b5563', border: '1px solid #cbd5e1' }}>
-            <SortAsc size={16} /> {ordemAlfabetica ? 'A-Z' : 'Padrão'}
+          <button
+            onClick={() => setOrdemAlfabetica(!ordemAlfabetica)}
+            title={ordemAlfabetica ? 'Ordenando de A a Z. Toque para voltar à ordem original.' : 'Ordem original. Toque para ordenar de A a Z.'}
+            aria-pressed={ordemAlfabetica}
+            style={{
+              ...mobileStyles.btnVoltar,
+              backgroundColor: ordemAlfabetica ? '#dbeafe' : 'white',
+              color: ordemAlfabetica ? '#1e40af' : '#4b5563',
+              border: ordemAlfabetica ? '1px solid #2563eb' : '1px solid #cbd5e1',
+              fontWeight: ordemAlfabetica ? 600 : 500,
+            }}
+          >
+            <SortAsc size={16} /> {ordemAlfabetica ? 'A-Z' : 'Ordem alfabética'}
           </button>
         </div>
       </div>

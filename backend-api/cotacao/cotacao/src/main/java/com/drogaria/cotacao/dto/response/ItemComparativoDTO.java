@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.dto.response;
 
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -24,6 +25,8 @@ public class ItemComparativoDTO {
     private Boolean devolvidoPorAlteracaoPreco;
     private Long pedidoOrigemId;
 
+    private LocalDateTime dataCriacao;
+
     private Double menorPrecoEncontrado;
     private String fornecedorVencedor;
     private Double ultimoPrecoComprado;
@@ -43,6 +46,9 @@ public class ItemComparativoDTO {
 
     private Map<String, String> condicoesEscalonamentoPorFornecedor = new HashMap<>();
     private Map<String, String> condicoesEscalonamentoSubstPorFornecedor = new HashMap<>();
+
+    private LocalDateTime ultimaRespostaFornecedorData;
+    private Map<String, LocalDateTime> ultimaRespostaPorFornecedor = new HashMap<>();
 
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -92,6 +98,9 @@ public class ItemComparativoDTO {
     public Long getPedidoOrigemId() { return pedidoOrigemId; }
     public void setPedidoOrigemId(Long pedidoOrigemId) { this.pedidoOrigemId = pedidoOrigemId; }
 
+    public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+
     public Double getMenorPrecoEncontrado() { return menorPrecoEncontrado; }
     public void setMenorPrecoEncontrado(Double menorPrecoEncontrado) { this.menorPrecoEncontrado = menorPrecoEncontrado; }
 
@@ -136,4 +145,10 @@ public class ItemComparativoDTO {
 
     public Map<String, String> getCondicoesEscalonamentoSubstPorFornecedor() { return condicoesEscalonamentoSubstPorFornecedor; }
     public void setCondicoesEscalonamentoSubstPorFornecedor(Map<String, String> condicoesEscalonamentoSubstPorFornecedor) { this.condicoesEscalonamentoSubstPorFornecedor = condicoesEscalonamentoSubstPorFornecedor; }
+
+    public LocalDateTime getUltimaRespostaFornecedorData() { return ultimaRespostaFornecedorData; }
+    public void setUltimaRespostaFornecedorData(LocalDateTime ultimaRespostaFornecedorData) { this.ultimaRespostaFornecedorData = ultimaRespostaFornecedorData; }
+
+    public Map<String, LocalDateTime> getUltimaRespostaPorFornecedor() { return ultimaRespostaPorFornecedor; }
+    public void setUltimaRespostaPorFornecedor(Map<String, LocalDateTime> ultimaRespostaPorFornecedor) { this.ultimaRespostaPorFornecedor = ultimaRespostaPorFornecedor; }
 }

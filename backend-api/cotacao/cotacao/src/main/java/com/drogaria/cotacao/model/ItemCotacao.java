@@ -3,12 +3,16 @@ package com.drogaria.cotacao.model;
 import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 
 @Entity
 @Table(name = "tb_itens_cotacao")
 public class ItemCotacao {
+
+    @Column(name = "data_criacao")
+    private LocalDateTime dataCriacao;
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -120,4 +124,14 @@ public class ItemCotacao {
 
     public String getMotivoRetorno() { return motivoRetorno; }
     public void setMotivoRetorno(String motivoRetorno) { this.motivoRetorno = motivoRetorno; }
+
+    public LocalDateTime getDataCriacao() { return dataCriacao; }
+    public void setDataCriacao(LocalDateTime dataCriacao) { this.dataCriacao = dataCriacao; }
+
+    @PrePersist
+    public void prePersist() {
+        if (this.dataCriacao == null) {
+            this.dataCriacao = LocalDateTime.now();
+        }
+    }
 }

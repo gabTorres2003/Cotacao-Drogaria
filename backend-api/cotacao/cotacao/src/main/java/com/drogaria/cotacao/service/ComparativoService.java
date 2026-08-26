@@ -102,12 +102,21 @@ public class ComparativoService {
             linha.setExcluido(item.getExcluido());
             linha.setDevolvidoPorAlteracaoPreco(item.getDevolvidoPorAlteracaoPreco() != null ? item.getDevolvidoPorAlteracaoPreco() : false);
             linha.setPedidoOrigemId(item.getPedidoOrigemId());
+            linha.setDataCriacao(item.getDataCriacao());
 
             List<PrecoCotacao> ofertas = ofertasPorItem.getOrDefault(item.getId(), new ArrayList<>());
 
             for (PrecoCotacao oferta : ofertas) {
                 if (oferta.getFornecedor() != null) {
                     String nomeForn = oferta.getFornecedor().getNome();
+
+                    if (oferta.getDataResposta() != null) {
+                        linha.getUltimaRespostaPorFornecedor().put(nomeForn, oferta.getDataResposta());
+                        if (linha.getUltimaRespostaFornecedorData() == null || oferta.getDataResposta().isAfter(linha.getUltimaRespostaFornecedorData())) {
+                            linha.setUltimaRespostaFornecedorData(oferta.getDataResposta());
+                        }
+                    }
+
                     linha.getPrecosPorFornecedor().put(nomeForn, oferta.getPrecoOfertado());
 
                     if (oferta.getQuantidadeCondicao() != null && oferta.getPrecoCondicao() != null) {
@@ -202,6 +211,7 @@ public class ComparativoService {
             dto.setQuantidade(item.getQuantidade());
             dto.setEditadoManual(item.getEditadoManual());
             dto.setExcluido(item.getExcluido());
+            dto.setDataCriacao(item.getDataCriacao());
             return dto;
         }).collect(Collectors.toList());
     }

@@ -1,0 +1,239 @@
+## Table `tb_itens_cotacao`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `nome_produto` | `varchar` |  Nullable |
+| `quantidade` | `int4` |  Nullable |
+| `ultimo_preco` | `float8` |  Nullable |
+| `cotacao_id` | `int8` |  Nullable |
+| `estoque` | `float8` |  Nullable |
+| `grupo` | `varchar` |  Nullable |
+| `vendido_no_mes` | `float8` |  Nullable |
+| `ult_compra_data` | `date` |  Nullable |
+| `ult_compra_qtde` | `float8` |  Nullable |
+| `ult_venda_data` | `date` |  Nullable |
+| `vendido_apos_ult_compra` | `float8` |  Nullable |
+| `origem_item` | `varchar` |  Nullable |
+| `nome_original` | `varchar` |  Nullable |
+| `excluido` | `bool` |  Nullable |
+| `editado_manual` | `bool` |  Nullable |
+| `devolvido_por_alteracao_preco` | `bool` |  Nullable |
+| `pedido_origem_id` | `int8` |  Nullable |
+| `encomenda_id` | `uuid` |  Nullable |
+| `fornecedor_sugerido` | `varchar` |  Nullable |
+| `motivo_retorno` | `varchar` |  Nullable |
+| `data_criacao` | `timestamp` |  Nullable |
+
+## Table `tb_cotacoes`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `data_criacao` | `timestamp` |  Nullable |
+| `descricao` | `varchar` |  Nullable |
+| `status` | `varchar` |  Nullable |
+| `nome_usuario` | `varchar` |  Nullable |
+| `setor` | `varchar` |  Nullable |
+
+## Table `tb_fornecedores`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `email` | `varchar` |  Nullable |
+| `nome` | `varchar` |  Nullable |
+| `telefone` | `varchar` |  Nullable |
+| `senha` | `varchar` |  Nullable |
+| `login` | `varchar` |  Nullable |
+| `primeiro_acesso` | `bool` |  Nullable |
+| `empresa` | `varchar` |  Nullable |
+| `entregue_por` | `varchar` |  Nullable |
+| `setor_compra` | `varchar` |  Nullable |
+
+## Table `tb_precos_cotacao`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `preco_ofertado` | `float8` |  Nullable |
+| `fornecedor_id` | `int8` |  Nullable |
+| `item_id` | `int8` |  Nullable |
+| `data_resposta` | `timestamp` |  Nullable |
+| `observacao` | `varchar` |  Nullable |
+| `quantidade_disponivel` | `int4` |  Nullable |
+| `produto_substituto` | `varchar` |  Nullable |
+| `preco_substituto` | `float8` |  Nullable |
+| `quantidade_substituto` | `int4` |  Nullable |
+| `quantidade_condicao` | `int4` |  Nullable |
+| `preco_condicao` | `float8` |  Nullable |
+| `quantidade_condicao_substituto` | `int4` |  Nullable |
+| `preco_condicao_substituto` | `float8` |  Nullable |
+| `condicoes_escalonamento` | `text` |  Nullable |
+| `condicoes_escalonamento_substituto` | `text` |  Nullable |
+
+## Table `usuarios`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `ativo` | `bool` |  |
+| `nome` | `varchar` |  |
+| `pin` | `varchar` |  |
+| `username` | `varchar` |  Unique |
+| `primeiro_acesso` | `bool` |  Nullable |
+
+## Table `cotacao_fornecedor`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `status` | `varchar` |  Nullable |
+| `cotacao_id` | `int8` |  Nullable |
+| `fornecedor_id` | `int8` |  Nullable |
+
+## Table `tb_pedidos`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `cotacao_id` | `int8` |  Nullable |
+| `fornecedor_id` | `int8` |  |
+| `data_criacao` | `timestamp` |  Nullable |
+| `status` | `varchar` |  |
+| `valor_total_pedido` | `float8` |  Nullable |
+| `valor_total_real` | `float8` |  Nullable |
+| `numero_nota` | `varchar` |  Nullable |
+| `data_confirmacao` | `timestamp` |  Nullable |
+| `valor_minimo_faturamento` | `float8` |  Nullable |
+| `motivo_cancelamento` | `varchar` |  Nullable |
+
+## Table `tb_itens_pedido`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `pedido_id` | `int8` |  |
+| `item_cotacao_id` | `int8` |  Nullable |
+| `quantidade_pedida` | `int4` |  |
+| `valor_unitario_pedido` | `float8` |  |
+| `quantidade_real` | `int4` |  Nullable |
+| `valor_unitario_real` | `float8` |  Nullable |
+| `status_recebimento` | `varchar` |  Nullable |
+| `observacao_devolucao` | `varchar` |  Nullable |
+| `nome_produto` | `varchar` |  Nullable |
+| `valor_alterado_apos_pedido` | `bool` |  Nullable |
+| `condicao_aplicada` | `bool` |  Nullable |
+| `qtd_condicao` | `int4` |  Nullable |
+| `preco_condicao` | `float8` |  Nullable |
+
+## Table `tb_sugestoes_promocao`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `cotacao_id` | `int8` |  |
+| `fornecedor_id` | `int8` |  |
+| `nome_produto` | `varchar` |  |
+| `preco` | `float8` |  |
+| `qtd_minima` | `int4` |  Nullable |
+| `observacao` | `varchar` |  Nullable |
+| `quantidade_condicao` | `int4` |  Nullable |
+| `preco_condicao` | `float8` |  Nullable |
+| `condicoes_escalonamento` | `text` |  Nullable |
+
+## Table `log_auditoria`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `acao` | `varchar` |  |
+| `data_hora` | `timestamp` |  |
+| `detalhes` | `text` |  Nullable |
+| `entidade_afetada` | `varchar` |  Nullable |
+| `entidade_id` | `int8` |  Nullable |
+| `nome_usuario` | `varchar` |  |
+| `tipo_usuario` | `varchar` |  |
+
+## Table `tb_devolucoes`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `data_recolhimento` | `date` |  Nullable |
+| `data_solicitacao` | `date` |  Nullable |
+| `forma_abatimento` | `varchar` |  Nullable |
+| `nf_origem` | `varchar` |  Nullable |
+| `observacao_abatimento` | `text` |  Nullable |
+| `protocolo` | `varchar` |  Nullable |
+| `protocolo_falta` | `varchar` |  Nullable |
+| `protocolo_sobra` | `varchar` |  Nullable |
+| `status` | `varchar` |  |
+| `valor_total` | `float8` |  Nullable |
+| `fornecedor_id` | `int8` |  |
+| `pedido_id` | `int8` |  Nullable |
+
+## Table `tb_itens_devolucao`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary Identity |
+| `nome_produto` | `varchar` |  |
+| `quantidade` | `int4` |  |
+| `valor_unitario` | `float8` |  |
+| `devolucao_id` | `int8` |  |
+
+## Table `tb_sugestoes_pedido`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `id` | `int8` | Primary |
+| `pedido_id` | `int8` |  |
+| `nome_produto` | `varchar` |  |
+| `quantidade` | `int4` |  |
+| `preco_unitario` | `float8` |  |
+| `observacao` | `varchar` |  Nullable |
+| `data_sugestao` | `timestamp` |  Nullable |
+| `quantidade_condicao` | `int4` |  Nullable |
+| `preco_condicao` | `float8` |  Nullable |
+| `condicoes_escalonamento` | `text` |  Nullable |
+
+## Table `produtos`
+
+### Columns
+
+| Name | Type | Constraints |
+|------|------|-------------|
+| `codigo` | `int8` | Primary |
+| `codbarras` | `varchar` |  Nullable |
+| `descricao` | `varchar` |  Nullable |
+| `inativo` | `varchar` |  Nullable |
+| `precovenda` | `float8` |  Nullable |
+| `quantidade` | `float8` |  Nullable |
+

@@ -1,315 +1,622 @@
 # CLAUDE.md
 
-## 1. Visão geral
+## 1. Projeto
 
-Este projeto é um sistema de Gestão de Compras e Cotações para uma rede de farmácias.
+Este projeto é o **Cotacao-Drogaria**, sistema de Gestão de Compras e
+Cotações para uma rede de farmácias.
 
-O sistema conecta compradores da farmácia a fornecedores/distribuidoras externas.
+O sistema conecta compradores da farmácia a fornecedores/distribuidoras
+externas.
 
-A aplicação possui frontend em React + Vite e backend em Java + Spring Boot.
+Estrutura principal atual:
 
----
+-   `backend-api/cotacao/` --- Backend Java/Spring Boot
+-   `frontend-web/` --- Frontend React/Vite
 
-## 2. Stack tecnológica
+------------------------------------------------------------------------
+
+## 2. Stack
 
 ### Frontend
 
-* React
-* Vite
-* JavaScript/JSX
-* Axios
-* Hooks nativos do React
-* CSS
-* Componentização React
+-   React
+-   Vite
+-   JavaScript/JSX
+-   Axios
+-   Hooks nativos do React
+-   CSS
 
 ### Backend
 
-* Java 17+
-* Spring Boot
-* Spring Data JPA
-* Hibernate
-* REST API
-* Arquitetura em camadas:
+-   Java 17+
+-   Spring Boot
+-   Spring Data JPA
+-   Hibernate
+-   REST API
+-   Arquitetura em camadas:
+    -   Controller
+    -   Service
+    -   Repository
+    -   Model/Entity
+    -   DTO
 
-  * Controller
-  * Service
-  * Repository
-  * Entity/Model
-  * DTO quando aplicável
+### Banco
 
-### Banco de dados
+-   PostgreSQL
+-   SQL
+-   Supabase quando aplicável
 
-* PostgreSQL
-* SQL
-* Supabase quando aplicável
+------------------------------------------------------------------------
 
----
+# 3. REGRA PRINCIPAL: ALTERAÇÕES PONTUAIS
 
-## 3. Regra principal: alterações pontuais
+O sistema possui funcionalidades existentes e deve ser tratado como um
+sistema em produção.
 
-NÃO altere partes do sistema que não estejam relacionadas ao problema solicitado.
+**Priorize estabilidade e a menor alteração necessária.**
 
-Antes de modificar qualquer arquivo:
+Ao receber uma tarefa:
 
-1. Entenda o problema.
-2. Localize a causa.
-3. Identifique os arquivos envolvidos.
-4. Verifique as dependências entre frontend e backend.
-5. Faça a menor alteração possível.
-6. Preserve o comportamento existente.
-7. Execute testes/build quando possível.
+1.  Entenda o problema.
+2.  Localize somente a área relacionada.
+3.  Identifique a causa antes de alterar.
+4.  Faça a menor mudança possível.
+5.  Preserve comportamento existente.
+6.  Valide a alteração.
+7.  Não faça refatorações não solicitadas.
 
-Não faça refatorações gerais enquanto estiver corrigindo um problema específico.
+### Nunca faça sem autorização
 
-Não altere arquitetura sem autorização explícita.
+-   Refatoração ampla.
+-   Mudança de arquitetura.
+-   Troca de bibliotecas.
+-   Renomeação em massa.
+-   Alteração de endpoints sem necessidade.
+-   Alteração de banco estrutural.
+-   Remoção de funcionalidades existentes.
 
-Não substitua bibliotecas ou tecnologias existentes sem autorização.
+------------------------------------------------------------------------
 
----
+# 4. ECONOMIA DE CONTEXTO --- MUITO IMPORTANTE
 
-## 4. Fluxo obrigatório para correções
+O projeto é grande. **Evite consumir contexto desnecessariamente.**
 
-Quando receber uma solicitação de correção:
+## Regra de investigação
 
-### Etapa 1 — Diagnóstico
+Não leia arquivos inteiros por padrão.
 
-Primeiro investigue o código relacionado.
+Use este fluxo:
 
-Procure:
+``` text
+PROBLEMA
+   ↓
+BUSCAR símbolo/termo/endpoint
+   ↓
+IDENTIFICAR arquivos relevantes
+   ↓
+LER somente os trechos necessários
+   ↓
+ENTENDER fluxo
+   ↓
+ALTERAR
+   ↓
+VALIDAR
+```
 
-* componentes React envolvidos;
-* hooks;
-* chamadas Axios;
-* endpoints;
-* Controllers;
-* Services;
-* Repositories;
-* Entities;
-* DTOs;
-* queries;
-* validações;
-* logs e mensagens de erro.
+### Preferir
 
-### Etapa 2 — Explicação
+-   Buscar por nome de componente.
+-   Buscar por método.
+-   Buscar por classe.
+-   Buscar por endpoint.
+-   Buscar por variável.
+-   Buscar por mensagem de erro.
+-   Ler somente o contexto necessário ao redor do resultado.
 
-Antes de fazer uma alteração complexa, explique:
+### Evitar
 
-* qual é a causa;
-* quais arquivos serão alterados;
-* qual será a solução.
+-   Listar centenas de arquivos.
+-   Ler arquivos completos sem necessidade.
+-   Repetir leitura de arquivos já analisados.
+-   Reexecutar comandos cujo resultado já está disponível.
+-   Exibir logs enormes.
+-   Investigar áreas não relacionadas à tarefa.
 
-Para alterações simples e claramente localizadas, pode executar diretamente.
+### Ao usar terminal
 
-### Etapa 3 — Implementação
+Prefira saídas limitadas:
 
-Faça somente as alterações necessárias.
+``` bash
+tail -50 arquivo.log
+```
 
-Evite modificar arquivos sem relação direta com o problema.
+``` bash
+grep -i "error" arquivo.log | tail -30
+```
 
-### Etapa 4 — Validação
+Em buscas de arquivos, filtre pelo domínio da tarefa sempre que
+possível.
 
-Depois da alteração:
+------------------------------------------------------------------------
 
-* verifique erros de compilação;
-* execute testes disponíveis;
-* execute build quando apropriado;
-* verifique possíveis erros de lint;
-* confirme se frontend e backend continuam compatíveis.
+# 5. FLUXO DE TRABALHO
 
----
+Para tarefas que envolvam código:
 
-## 5. Frontend React
+## Etapa 1 --- Diagnóstico
 
-Respeite a arquitetura existente.
+Primeiro localize:
 
-Não transforme componentes em componentes complexos desnecessariamente.
+-   componente React;
+-   Hook/estado;
+-   chamada Axios;
+-   endpoint;
+-   Controller;
+-   Service;
+-   Repository;
+-   DTO;
+-   Entity/Model;
+-   query;
+-   validação.
+
+Não altere código durante o diagnóstico, salvo se o usuário pedir
+explicitamente implementação imediata.
+
+## Etapa 2 --- Plano
+
+Quando a alteração tiver impacto relevante, informe de forma objetiva:
+
+-   causa encontrada;
+-   arquivos que serão alterados;
+-   solução proposta;
+-   possíveis impactos.
+
+Aguarde autorização quando o usuário tiver solicitado planejamento antes
+da implementação.
+
+## Etapa 3 --- Implementação
+
+Faça somente a alteração necessária.
+
+Não refatore código adjacente apenas porque encontrou algo que poderia
+ser "melhorado".
+
+## Etapa 4 --- Validação
+
+Depois:
+
+-   verifique sintaxe;
+-   valide imports;
+-   verifique contratos frontend/backend;
+-   execute testes disponíveis;
+-   execute build apropriado quando viável.
+
+Se um comando de build demorar ou apresentar timeout, não repita
+indefinidamente. Informe o problema e use uma validação alternativa
+quando possível.
+
+## Etapa 5 --- Resumo
+
+Ao finalizar, responda de forma curta:
+
+1.  Causa.
+2.  Solução.
+3.  Arquivos alterados.
+4.  Validação realizada.
+5.  Pendências, se houver.
+
+------------------------------------------------------------------------
+
+# 6. FRONTEND --- REACT + VITE
+
+Respeite a estrutura existente.
 
 Preserve:
 
-* Hooks existentes;
-* gerenciamento de estado;
-* chamadas Axios;
-* nomes de endpoints;
-* contratos da API;
-* estrutura visual existente.
+-   componentes;
+-   Hooks;
+-   estado;
+-   chamadas Axios;
+-   endpoints;
+-   contratos da API;
+-   estilos;
+-   comportamento visual.
 
-Ao corrigir atualização de dados após uma operação:
+## Problemas de atualização da interface
 
-1. Verifique se a requisição foi concluída.
-2. Verifique a resposta da API.
-3. Verifique atualização do estado React.
-4. Verifique se existe necessidade de refetch.
-5. Não use reload da página como solução definitiva sem autorização.
+Quando algo "não atualiza depois de salvar", não use imediatamente:
 
-Evite `window.location.reload()` para corrigir problemas de atualização de estado.
+``` javascript
+window.location.reload()
+```
 
----
+Investigue:
 
-## 6. Backend Spring Boot
+1.  requisição;
+2.  resposta da API;
+3.  atualização do estado;
+4.  função de carregamento;
+5.  dependências dos Hooks;
+6.  dados retornados;
+7.  necessidade de refetch.
 
-Respeite a separação:
+Prefira corrigir o estado/fluxo de dados.
 
-Controller → Service → Repository → Database
+Não use reload como solução definitiva sem autorização explícita.
 
-Controllers devem cuidar principalmente da camada HTTP.
+## Alterações visuais
 
-Regras de negócio devem permanecer no Service.
+Para mudanças visuais:
 
-Acesso ao banco deve permanecer no Repository.
+-   altere somente o componente necessário;
+-   preserve responsividade;
+-   preserve identidade visual;
+-   preserve funcionalidades;
+-   evite reescrever páginas inteiras.
 
-Evite colocar regra de negócio diretamente no Controller.
+------------------------------------------------------------------------
 
-Não faça queries SQL/JPA desnecessárias.
+# 7. BACKEND --- SPRING BOOT
 
-Preserve os endpoints existentes, salvo quando a solicitação exigir alteração.
+Preserve a separação:
 
----
+``` text
+Controller
+    ↓
+Service
+    ↓
+Repository
+    ↓
+Database
+```
 
-## 7. API
+### Controller
 
-Antes de alterar um endpoint, procure todos os locais onde ele é utilizado.
+Responsável principalmente por:
+
+-   HTTP;
+-   parâmetros;
+-   autenticação/autorização quando aplicável;
+-   retorno de respostas.
+
+### Service
+
+Deve concentrar:
+
+-   regras de negócio;
+-   processamento;
+-   validações de domínio;
+-   transações quando aplicável.
+
+### Repository
+
+Responsável por:
+
+-   acesso ao banco;
+-   queries;
+-   persistência.
+
+Não mova regra de negócio para o Controller apenas para resolver
+rapidamente um problema.
+
+------------------------------------------------------------------------
+
+# 8. API
+
+Antes de alterar um endpoint, procure seus consumidores.
 
 Verifique:
 
-* frontend;
-* outros Controllers;
-* Services;
-* integrações;
-* DTOs;
-* documentação;
-* testes.
+-   frontend;
+-   outros Controllers;
+-   Services;
+-   DTOs;
+-   integrações;
+-   testes.
 
-Não altere nomes ou formatos de resposta sem necessidade.
+Preserve:
 
----
+-   método HTTP;
+-   URL;
+-   nomes;
+-   estrutura da resposta;
+-   códigos HTTP;
 
-## 8. Banco de dados
+sempre que a tarefa não exigir mudança.
+
+Se for necessário alterar o contrato, identifique claramente frontend e
+backend afetados.
+
+------------------------------------------------------------------------
+
+# 9. BANCO DE DADOS
 
 Não altere estrutura do banco automaticamente.
 
 Antes de modificar:
 
-* tabelas;
-* colunas;
-* índices;
-* constraints;
-* relacionamentos;
+-   tabelas;
+-   colunas;
+-   índices;
+-   constraints;
+-   relacionamentos;
+-   migrations;
 
 explique a necessidade e o impacto.
 
-Nunca apague dados.
+### Nunca
 
-Nunca execute comandos destrutivos sem confirmação explícita.
+-   apagar dados;
+-   executar comandos destrutivos;
+-   remover colunas;
+-   truncar tabelas;
 
----
+sem autorização explícita.
 
-## 9. Segurança
+Prefira alterações retrocompatíveis quando possível.
 
-Nunca exponha:
+------------------------------------------------------------------------
 
-* senhas;
-* tokens;
-* chaves de API;
-* credenciais do banco;
-* secrets;
-* arquivos `.env`.
+# 10. BUGS
 
-Não coloque credenciais diretamente no código.
-
-Não faça commit de secrets.
-
----
-
-## 10. Git
-
-Antes de alterações importantes, verifique:
-
-```bash
-git status
-```
-
-Não descarte alterações existentes do usuário.
-
-Não execute:
-
-```bash
-git reset --hard
-```
-
-ou comandos destrutivos semelhantes sem autorização explícita.
-
-Não faça commit automaticamente, a menos que seja solicitado.
-
----
-
-## 11. Regra para bugs
-
-Quando o usuário informar um bug, não assuma imediatamente a causa.
-
-Investigue primeiro.
+Não assuma a causa do bug.
 
 Exemplo:
 
-Usuário:
-"Depois de salvar, a tabela não atualiza."
+> "A tabela não atualiza depois de salvar."
 
-Não simplesmente adicione um reload.
+Não faça imediatamente um reload.
 
-Investigue:
+Investigue o fluxo:
 
-* resposta da API;
-* atualização do estado;
-* lista armazenada no estado;
-* função de carregamento;
-* ciclo de vida do componente;
-* dependências dos Hooks;
-* endpoint utilizado.
+``` text
+UI
+ ↓
+evento
+ ↓
+estado
+ ↓
+Axios
+ ↓
+API
+ ↓
+Service
+ ↓
+Repository
+ ↓
+Banco
+ ↓
+resposta
+ ↓
+estado React
+ ↓
+UI
+```
 
-A solução deve corrigir a causa, não apenas mascarar o problema.
+Corrija a causa, não apenas o sintoma.
 
----
+------------------------------------------------------------------------
 
-## 12. Regra para mudanças visuais
+# 11. SEGURANÇA
 
-Quando solicitado um ajuste visual:
+Nunca exponha ou copie para respostas:
 
-* altere somente o componente necessário;
-* preserve responsividade;
-* preserve identidade visual;
-* preserve funcionalidades;
-* não reescreva páginas inteiras sem necessidade.
+-   senhas;
+-   tokens;
+-   API keys;
+-   credenciais;
+-   secrets;
+-   dados sensíveis.
 
-Não substitua toda a estrutura CSS para resolver um pequeno problema visual.
+Nunca coloque credenciais diretamente no código.
 
----
+Não crie ou altere `.env` com valores secretos sem necessidade.
 
-## 13. Regra de comunicação
+Não faça commit de secrets.
 
-Se a solicitação for ambígua, investigue o código antes de pedir informações que possam ser descobertas no projeto.
+------------------------------------------------------------------------
 
-Ao finalizar uma alteração, informe:
+# 12. GIT
 
-1. O que foi alterado.
-2. Arquivos modificados.
-3. Problema encontrado.
-4. Solução aplicada.
-5. Testes/build executados.
-6. Eventuais pontos que precisam de atenção.
+Antes de alterações importantes:
 
----
+``` bash
+git status
+```
 
-## 14. Regra mais importante
+Preserve alterações existentes do usuário.
 
-PRIORIZE ESTABILIDADE.
+Antes de fazer commit, confira:
 
-O sistema já possui funcionalidades existentes.
+``` bash
+git diff
+```
 
-Uma correção não deve criar novos problemas.
+Não use comandos destrutivos como:
 
-Sempre prefira:
+``` bash
+git reset --hard
+```
 
-"menor alteração necessária para resolver o problema"
+sem autorização explícita.
 
-em vez de:
+Não faça commit automaticamente quando o usuário informou que prefere
+usar GitHub Desktop.
 
-"reescrever ou melhorar tudo relacionado ao problema".
+Se o usuário pedir commit, primeiro verifique o diff e o status.
+
+------------------------------------------------------------------------
+
+# 13. BUILD E TESTES
+
+Antes de executar um build:
+
+1.  Identifique qual parte foi alterada.
+2.  Prefira a validação mais específica possível.
+3.  Evite builds repetidos sem motivo.
+4.  Se houver timeout, não repita indefinidamente.
+
+### Frontend
+
+Quando `node_modules` estiver disponível, use os scripts definidos em
+`package.json`.
+
+### Backend
+
+Use o Maven Wrapper quando disponível:
+
+``` bash
+./mvnw
+```
+
+No Windows, quando aplicável:
+
+``` powershell
+.\mvnw
+```
+
+Não considere "build não executado" como "build aprovado".
+
+Informe claramente quando uma validação não pôde ser executada.
+
+------------------------------------------------------------------------
+
+# 14. CONFERÊNCIA DE PEDIDOS
+
+A funcionalidade de Conferência de Pedidos possui fluxo de entrega e
+conferência de itens.
+
+Existe suporte a entrega parcial, permitindo que um pedido seja
+continuado posteriormente quando volumes forem recebidos em momentos
+diferentes.
+
+Ao alterar essa área, preserve especialmente:
+
+-   quantidades já recebidas;
+-   quantidades da nova NF;
+-   status do pedido;
+-   status dos itens;
+-   continuidade da conferência;
+-   regras de finalização;
+-   compatibilidade com o fluxo existente.
+
+Não altere regras de negócio dessa funcionalidade sem verificar o fluxo
+completo frontend → backend.
+
+------------------------------------------------------------------------
+
+# 15. REGRA DE COMPATIBILIDADE
+
+Ao alterar uma funcionalidade existente:
+
+1.  Identifique como ela funciona atualmente.
+2.  Identifique consumidores.
+3.  Preserve comportamento anterior quando possível.
+4.  Evite quebrar fluxos legados.
+5.  Se uma mudança exigir comportamento incompatível, informe antes.
+
+Uma solução que funciona no novo caso, mas quebra funcionalidades
+existentes, não deve ser considerada concluída.
+
+------------------------------------------------------------------------
+
+# 16. QUANDO O USUÁRIO PEDIR PLANEJAMENTO
+
+Se o usuário disser:
+
+> "Primeiro planeje."
+
+Então:
+
+1.  Investigue.
+2.  Não altere código.
+3.  Apresente plano.
+4.  Liste decisões que precisam do usuário.
+5.  Aguarde autorização.
+
+Não implemente antecipadamente.
+
+------------------------------------------------------------------------
+
+# 17. QUANDO O USUÁRIO PEDIR IMPLEMENTAÇÃO DIRETA
+
+Se o pedido estiver suficientemente claro:
+
+1.  Localize os arquivos necessários.
+2.  Faça a menor alteração.
+3.  Valide.
+4.  Informe o resultado.
+
+Não peça confirmação desnecessária sobre informações que podem ser
+descobertas no código.
+
+------------------------------------------------------------------------
+
+# 18. COMUNICAÇÃO
+
+Seja objetivo.
+
+Evite explicar novamente informações já conhecidas na sessão.
+
+Não repita grandes blocos de código sem necessidade.
+
+Para tarefas simples, uma resposta curta é suficiente.
+
+Para alterações complexas, informe:
+
+``` text
+Causa:
+...
+
+Alteração:
+...
+
+Arquivos:
+...
+
+Validação:
+...
+
+Pendências:
+...
+```
+
+------------------------------------------------------------------------
+
+# 19. PRINCÍPIO FINAL
+
+Sempre priorize:
+
+``` text
+CORREÇÃO
+> ESTABILIDADE
+> COMPATIBILIDADE
+> MENOR ALTERAÇÃO
+> PERFORMANCE
+> REFACTOR
+```
+
+Não transforme uma correção pontual em uma refatoração geral.
+
+**O objetivo é resolver o problema solicitado com o menor impacto
+possível no restante do sistema.**
+
+### Continuidade entre modelos/sessões
+
+O projeto pode ser desenvolvido por diferentes modelos em sessões diferentes.
+
+Antes de continuar um trabalho iniciado por outro modelo:
+
+1. ler CLAUDE.md;
+2. ler README.md;
+3. executar git status;
+4. executar git diff;
+5. identificar alterações já realizadas;
+6. identificar o último item concluído;
+7. não repetir alterações;
+8. não reverter alterações existentes sem justificativa;
+9. continuar a partir do estado real do working tree.
+
+O estado do código e do git diff deve ser considerado a fonte de verdade para determinar o progresso da implementação.
+
+Quando houver dúvida sobre uma alteração parcialmente implementada, investigar antes de modificar.
