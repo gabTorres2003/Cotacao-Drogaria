@@ -380,6 +380,11 @@ export default function ResponderCotacao() {
       return 0;
     });
 
+  const itensValidos = itens.filter(item => !item.excluido)
+  const totalResponder = itensValidos.length
+  const respondidos = itensValidos.filter(item => !!emFalta[item.idItem] || (parseFloat(String(precos[item.idItem] || '0').replace(',', '.')) || 0) > 0).length
+  const percentualRespondido = totalResponder > 0 ? Math.round((respondidos * 100) / totalResponder) : 0
+
   if (isPrimeiroAcesso) {
     return (
       <div style={mobileStyles.loginBox}>
@@ -417,6 +422,15 @@ export default function ResponderCotacao() {
       </div>
 
       <div style={{ position: 'sticky', top: '56px', backgroundColor: '#f3f4f6', zIndex: 99, paddingBottom: '16px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#dbeafe', border: '1px solid #bfdbfe' }}>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>{percentualRespondido}%</span>
+          <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: '#bfdbfe', overflow: 'hidden' }}>
+            <div style={{ width: `${percentualRespondido}%`, height: '100%', backgroundColor: '#2563eb', transition: 'width 0.2s ease' }} />
+          </div>
+        </div>
+        <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af', marginBottom: '8px', textAlign: 'center' }}>
+          {percentualRespondido}% — {respondidos} de {totalResponder} respondidos — {totalResponder - respondidos} faltando
+        </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
             <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
