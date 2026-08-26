@@ -191,8 +191,8 @@ export default function TabelaDetalhes({
           const pOraw = item.precosPorFornecedor?.[forn] || 0;
           const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
 
-          const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
-          const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
+          const isIrrealLocal = valoresIrreais[`${item.idItem}-${forn}`];
+          const isRecusadoLocal = valoresRecusados[`${item.idItem}-${forn}`];
           let isDiscrepante = false;
 
           if (precoBaseAlerta > 0 && pOraw > 0) {
@@ -211,7 +211,7 @@ export default function TabelaDetalhes({
           if (pO <= 0 && pS > 0) val = pS;
           
           if (val !== Infinity) {
-              if (isIrreal || isRecusado) {
+              if (isIrrealLocal || isRecusadoLocal) {
                   val = Infinity; 
               } else if (mostrarAlertasPreco && isDiscrepante) {
                   val = Infinity; 
@@ -342,6 +342,7 @@ export default function TabelaDetalhes({
             const aplicarFracao = (p) => fracao > 1 && p > 0 ? p / fracao : p;
             
             const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
+            const isRecusado = valoresRecusados[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
 
             if (precoBaseAlerta > 0 && precoOriginal > 0) {
