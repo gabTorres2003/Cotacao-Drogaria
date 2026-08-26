@@ -652,7 +652,6 @@ export default function CotacaoDetalhes() {
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
       alert('Pedidos manuais registrados com sucesso!');
       setConfirmManualModal(false);
-      navigate('/pedidos');
     } catch (error) { alert('Erro ao registrar pedido manual: ' + (error.response?.data?.message || error.message)); } 
     finally { setSalvandoPedidos(false); }
   };
@@ -720,7 +719,7 @@ export default function CotacaoDetalhes() {
       }
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
       alert('Pedidos processados e gerados/atualizados com sucesso!');
-      setShowModal(false); navigate('/pedidos');
+      setShowModal(false);
     } catch (error) { 
       alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || error.message || 'Erro de conexão com servidor'}`); 
     } finally { 

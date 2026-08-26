@@ -90,8 +90,13 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         pedido: data 
       }));
       
-      aplicarFiltroSelecao(data, 'DIVERGENCIAS'); 
+      aplicarFiltroSelecao(data, 'DIVERGENCIAS');
 
+      const incorretos = data.itens.filter(i => i.statusRecebimento === 'INCORRETO' && i.observacaoDevolucao);
+      if (incorretos.length > 0) {
+        const obs = incorretos.map(i => i.observacaoDevolucao).join('; ');
+        setForm(prev => ({ ...prev, observacaoAbatimento: obs }));
+      }
     } catch (error) { console.error(error); }
   };
 
@@ -104,6 +109,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       const isAvariado = i.statusRecebimento === 'AVARIADO';
       const isIncorreto = i.statusRecebimento === 'INCORRETO';
       const isFaltanteMarcado = i.statusRecebimento === 'FALTANTE';
+      const isFaltanteCobrado = isFaltanteMarcado && i.observacaoDevolucao && i.observacaoDevolucao.includes('Cobrado na nota');
 
       const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteMarcado;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
@@ -112,9 +118,15 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       let qtdSugerida = i.quantidadePedida;
       let isApenasFinanceiro = false;
       let maxPermitido = i.quantidadePedida;
+      let nomeProdutoUsado = i.nomeProduto;
 
-      if (isFaltaTotal || isFaltanteMarcado) {
+      if (isFaltaTotal || (isFaltanteMarcado && !isFaltanteCobrado)) {
           motivoPadrao = 'Falta (Faturado mas não entregue)';
+          qtdSugerida = i.quantidadePedida;
+          maxPermitido = i.quantidadePedida;
+          isApenasFinanceiro = true;
+      } else if (isFaltanteCobrado) {
+          motivoPadrao = 'Falta - Cobrado na nota sem entrega';
           qtdSugerida = i.quantidadePedida;
           maxPermitido = i.quantidadePedida;
           isApenasFinanceiro = true;
@@ -126,6 +138,12 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
           motivoPadrao = 'Produto Incorreto / Invertido';
           qtdSugerida = i.quantidadeReal; 
           maxPermitido = i.quantidadeReal;
+          if (i.observacaoDevolucao) {
+            const match = i.observacaoDevolucao.match(/Produto errado:\s*(.+?)(?:\.|$)/);
+            if (match && match[1].trim() && match[1].trim() !== 'não informado') {
+              nomeProdutoUsado = match[1].trim();
+            }
+          }
       } else if (isFaltaParcial && !isAvariado && !isIncorreto) {
           motivoPadrao = 'Falta Parcial';
           qtdSugerida = i.quantidadePedida - i.quantidadeReal;
@@ -135,7 +153,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
       selecao[i.id] = {
         selected: isSelected,
-        nomeProduto: i.nomeProduto,
+        nomeProduto: nomeProdutoUsado,
         valorUnitario: i.valorUnitarioPedido || 0,
         qtdMax: maxPermitido,
         qtd: qtdSugerida > 0 ? qtdSugerida : 1,

@@ -73,6 +73,37 @@ export default function Cotacoes() {
     });
   };
 
+  const cotacoesFiltradas = cotacoes
+    .filter(c => {
+      const isEncerrada = c.status === 'FINALIZADA' || c.status === 'CANCELADA';
+      if (abaAtiva === 'ANDAMENTO' && isEncerrada) return false;
+      if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
+
+      const texto = busca.toLowerCase();
+      const descBusca = c.descricao || c.origem || '';
+      const userBusca = c.nomeUsuario || c.usuario || '';
+      
+      const matchTexto = c.id.toString().includes(texto) || 
+                         descBusca.toLowerCase().includes(texto) ||
+                         userBusca.toLowerCase().includes(texto);
+      
+      const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
+
+      let matchSetor = true;
+      if (setorAtivo !== 'TODOS') {
+          const setorCotacao = (c.setor || c.setorCompra || c.descricao || '').toUpperCase();
+          if (setorAtivo === 'MEDICAMENTOS') matchSetor = setorCotacao.includes('MEDICAMENTO');
+          if (setorAtivo === 'PERFUMARIA') matchSetor = setorCotacao.includes('PERFUMARIA');
+      }
+
+      return matchTexto && matchStatus && matchSetor;
+    })
+    .sort((a, b) => {
+      if (ordenacao === 'RECENTES') return new Date(b.dataCriacao) - new Date(a.dataCriacao);
+      if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao) - new Date(b.dataCriacao);
+      return 0;
+    });
+
   const todasSelecionadas = cotacoesFiltradas.length > 0 && cotacoesFiltradas.every(c => selecionadas[c.id]);
   const toggleTodas = () => {
     if (todasSelecionadas) {
@@ -107,37 +138,6 @@ export default function Cotacoes() {
     const d = new Date(dataStr)
     return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: '2-digit' })
   }
-
-  const cotacoesFiltradas = cotacoes
-    .filter(c => {
-      const isEncerrada = c.status === 'FINALIZADA' || c.status === 'CANCELADA';
-      if (abaAtiva === 'ANDAMENTO' && isEncerrada) return false;
-      if (abaAtiva === 'HISTORICO' && !isEncerrada) return false;
-
-      const texto = busca.toLowerCase();
-      const descBusca = c.descricao || c.origem || '';
-      const userBusca = c.nomeUsuario || c.usuario || '';
-      
-      const matchTexto = c.id.toString().includes(texto) || 
-                         descBusca.toLowerCase().includes(texto) ||
-                         userBusca.toLowerCase().includes(texto);
-      
-      const matchStatus = filtroStatus === 'TODOS' || c.status === filtroStatus;
-
-      let matchSetor = true;
-      if (setorAtivo !== 'TODOS') {
-          const setorCotacao = (c.setor || c.setorCompra || c.descricao || '').toUpperCase();
-          if (setorAtivo === 'MEDICAMENTOS') matchSetor = setorCotacao.includes('MEDICAMENTO');
-          if (setorAtivo === 'PERFUMARIA') matchSetor = setorCotacao.includes('PERFUMARIA');
-      }
-
-      return matchTexto && matchStatus && matchSetor;
-    })
-    .sort((a, b) => {
-      if (ordenacao === 'RECENTES') return new Date(b.dataCriacao) - new Date(a.dataCriacao);
-      if (ordenacao === 'ANTIGOS') return new Date(a.dataCriacao) - new Date(b.dataCriacao);
-      return 0;
-    });
 
   const getBadge = (status) => {
     switch (status) {

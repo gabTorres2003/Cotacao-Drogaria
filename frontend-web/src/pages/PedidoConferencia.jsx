@@ -2,6 +2,8 @@ import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
+import DevolucaoModal from '../components/DevolucaoModal';
+import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Send } from 'lucide-react';
 
 export default function PedidoConferencia() {
@@ -16,10 +18,26 @@ export default function PedidoConferencia() {
   const [salvarParcial, setSalvarParcial] = useState(false);
   const [itensSelecionadosEnvio, setItensSelecionadosEnvio] = useState([]);
   const [enviandoCotacao, setEnviandoCotacao] = useState(false);
+  const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
+  const [cotacoesAtivas, setCotacoesAtivas] = useState([]);
+  const [cotacaoDestinoId, setCotacaoDestinoId] = useState('');
+  const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
 
   useEffect(() => {
     carregarPedido();
   }, [id]);
+
+  useEffect(() => {
+    if (itensFaltantes.length > 0 && cotacoesAtivas.length === 0) {
+      api.get('/api/cotacao')
+        .then(res => {
+          const ativas = (Array.isArray(res.data) ? res.data : [])
+            .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
+          setCotacoesAtivas(ativas);
+        })
+        .catch(() => {});
+    }
+  }, [itensFaltantes.length]);
 
   const carregarPedido = async () => {
     try {
@@ -38,7 +56,8 @@ export default function PedidoConferencia() {
               conferido: totalmenteRecebido,
               totalmenteRecebido,
               produtoRecebido: item.produtoRecebido || '',
-              observacaoIncorreto: item.observacaoDevolucao || ''
+              observacaoIncorreto: item.observacaoDevolucao || '',
+              foiCobrado: false
             };
           })
         );
@@ -90,6 +109,27 @@ export default function PedidoConferencia() {
     }));
   };
 
+  const adicionarProdutoNaoSolicitado = (dados) => {
+    const novoItem = {
+      id: `extra_${Date.now()}`,
+      nomeProduto: dados.nomeProduto,
+      quantidadePedida: 0,
+      quantidadeJaRecebida: 0,
+      valorUnitarioReal: dados.valorUnitario,
+      valorUnitarioPedido: 0,
+      statusRecebimento: 'OK',
+      conferido: true,
+      totalmenteRecebido: false,
+      quantidadeRecebidaAgora: dados.quantidade,
+      produtoRecebido: '',
+      observacaoIncorreto: '',
+      foiCobrado: false,
+      isNaoSolicitado: true,
+      classificacaoNaoSolicitado: dados.classificacao
+    };
+    setConferencia(prev => [...prev, novoItem]);
+  };
+
   const requestSort = (key) => {
     let direction = 'asc';
     if (sortConfig.key === key && sortConfig.direction === 'asc') direction = 'desc';
@@ -121,7 +161,7 @@ export default function PedidoConferencia() {
   );
 
   const itensFaltantes = useMemo(
-    () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido),
+    () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido && !c.foiCobrado),
     [conferencia]
   );
 
@@ -137,19 +177,19 @@ export default function PedidoConferencia() {
       return;
     }
 
+    if (!cotacaoDestinoId) {
+      alert('Selecione uma cotação de destino.');
+      return;
+    }
+
     try {
       setEnviandoCotacao(true);
 
-      const resCotacoes = await api.get('/api/cotacao');
-      const cotacoesAtivas = (Array.isArray(resCotacoes.data) ? resCotacoes.data : [])
-        .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
-
-      if (cotacoesAtivas.length === 0) {
-        alert('Nenhuma cotação ativa encontrada. Crie uma cotação antes de enviar produtos.');
+      const cotacao = cotacoesAtivas.find(c => String(c.id) === String(cotacaoDestinoId));
+      if (!cotacao) {
+        alert('Cotação selecionada não encontrada.');
         return;
       }
-
-      const cotacao = cotacoesAtivas[0];
 
       const resItens = await api.get(`/api/comparativo/listar-itens/${cotacao.id}`);
       const itensExistentes = Array.isArray(resItens.data) ? resItens.data : [];
@@ -211,10 +251,11 @@ export default function PedidoConferencia() {
 
     const itensParaEnviar = parcial
       ? conferencia.filter(c =>
+          !c.isNaoSolicitado &&
           !c.totalmenteRecebido &&
           (c.conferido || (c.quantidadeRecebidaAgora !== undefined && c.quantidadeRecebidaAgora !== ''))
         )
-      : conferencia.filter(c => c.conferido);
+      : conferencia.filter(c => c.conferido && !c.isNaoSolicitado);
 
     if (parcial && itensParaEnviar.length === 0) {
       alert('Para salvar como entrega parcial, você precisa preencher e marcar pelo menos um item desta NF.');
@@ -222,7 +263,7 @@ export default function PedidoConferencia() {
     }
 
     if (!parcial) {
-      const itensPendentes = conferencia.filter(c => !c.conferido);
+      const itensPendentes = conferencia.filter(c => !c.conferido && !c.isNaoSolicitado);
       if (itensPendentes.length > 0) {
         alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
         return;
@@ -241,7 +282,10 @@ export default function PedidoConferencia() {
           ? 0
           : Number(item.quantidadeRecebidaAgora);
 
-        if (item.statusRecebimento !== 'OK') teveProblemas = true;
+        if (item.statusRecebimento === 'INCORRETO' || item.statusRecebimento === 'AVARIADO' ||
+            (item.statusRecebimento === 'FALTANTE' && item.foiCobrado)) {
+          teveProblemas = true;
+        }
 
         return {
           id: item.id,
@@ -252,7 +296,9 @@ export default function PedidoConferencia() {
           observacaoDevolucao: item.statusRecebimento !== 'OK'
             ? (item.statusRecebimento === 'INCORRETO'
                 ? `Produto errado: ${item.produtoRecebido || 'não informado'}. ${item.observacaoIncorreto || ''}`.trim()
-                : 'Divergência marcada na conferência cega')
+                : (item.statusRecebimento === 'FALTANTE' && item.foiCobrado
+                    ? 'Faturado mas não entregue - Cobrado na nota'
+                    : 'Divergência marcada na conferência cega'))
             : ''
         };
       })
@@ -269,9 +315,8 @@ export default function PedidoConferencia() {
       }
 
       if (teveProblemas) {
-          if (window.confirm('Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.\n\nDeseja registrar a devolução / abatimento agora mesmo?')) {
-              alert('Na tela do pedido, clique no botão "Gerar / Ver Devolução" para registrar os motivos!');
-              navigate(`/pedidos/${id}`);
+          if (window.confirm('Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.\n\nDeseja registrar a devolução / abatimento agora?')) {
+              setShowDevolucaoModal(true);
               return;
           }
       } else {
@@ -523,6 +568,22 @@ export default function PedidoConferencia() {
                             </td>
                           </tr>
                         )}
+                        {confState.statusRecebimento === 'FALTANTE' && !totalmenteRecebido && (
+                          <tr key={`${item.id}-faltante`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                            <td colSpan={8} style={{ padding: '8px 14px' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#9a3412', fontWeight: '500' }}>
+                                <input
+                                  type="checkbox"
+                                  checked={confState.foiCobrado || false}
+                                  disabled={totalmenteRecebido || isConferido}
+                                  onChange={(e) => handleInputChange(item.id, 'foiCobrado', e.target.checked)}
+                                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#f97316' }}
+                                />
+                                Foi cobrado na nota fiscal (sem entrega)
+                              </label>
+                            </td>
+                          </tr>
+                        )}
                         </Fragment>
                       );
                     })}
@@ -530,36 +591,82 @@ export default function PedidoConferencia() {
                 </table>
             </div>
 
+            <div style={{ marginBottom: '20px' }}>
+              <button
+                type="button"
+                onClick={() => setShowProdutoNaoSolicitadoModal(true)}
+                style={{
+                  padding: '10px 16px',
+                  backgroundColor: '#6366f1',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  fontWeight: '600',
+                  fontSize: '13px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+              >
+                <Package size={16} /> Produto Não Solicitado (veio mas não era do pedido)
+              </button>
+            </div>
+
+            <ModalProdutoNaoSolicitado
+              isOpen={showProdutoNaoSolicitadoModal}
+              onClose={() => setShowProdutoNaoSolicitadoModal(false)}
+              onConfirm={adicionarProdutoNaoSolicitado}
+            />
+
             {itensFaltantes.length > 0 && (
-              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '14px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-                <div style={{ fontSize: '13px', color: '#9a3412' }}>
-                  <strong>{itensFaltantes.length}</strong> produto(s) marcados como "Não Veio".
-                  {itensSelecionadosEnvio.length > 0 && (
-                    <span> <strong>{itensSelecionadosEnvio.length}</strong> selecionado(s) para envio à cotação.</span>
+              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '14px 20px', borderRadius: '8px', marginBottom: '20px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
+                  <div style={{ fontSize: '13px', color: '#9a3412' }}>
+                    <strong>{itensFaltantes.length}</strong> produto(s) marcados como "Não Veio" (sem cobrança).
+                    {itensSelecionadosEnvio.length > 0 && (
+                      <span> <strong>{itensSelecionadosEnvio.length}</strong> selecionado(s) para envio à cotação.</span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={enviarParaCotacao}
+                    disabled={itensSelecionadosEnvio.length === 0 || enviandoCotacao || !cotacaoDestinoId}
+                    style={{
+                      padding: '8px 16px',
+                      backgroundColor: (itensSelecionadosEnvio.length > 0 && cotacaoDestinoId) ? '#f97316' : '#d1d5db',
+                      color: 'white',
+                      border: 'none',
+                      borderRadius: '6px',
+                      fontWeight: '600',
+                      fontSize: '13px',
+                      cursor: (itensSelecionadosEnvio.length > 0 && cotacaoDestinoId) ? 'pointer' : 'not-allowed',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      opacity: enviandoCotacao ? 0.7 : 1
+                    }}
+                  >
+                    <Send size={14} />
+                    {enviandoCotacao ? 'Enviando...' : 'Enviar Selecionados para Cotação'}
+                  </button>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#9a3412' }}>Cotação de destino:</label>
+                  <select
+                    value={cotacaoDestinoId}
+                    onChange={e => setCotacaoDestinoId(e.target.value)}
+                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fed7aa', fontSize: '13px', backgroundColor: 'white', color: '#9a3412', fontWeight: '500', minWidth: '250px' }}
+                  >
+                    <option value="">Selecione uma cotação...</option>
+                    {cotacoesAtivas.map(c => (
+                      <option key={c.id} value={c.id}>#{c.id} - {c.descricao || c.origem || 'Cotação'} ({c.status})</option>
+                    ))}
+                  </select>
+                  {cotacoesAtivas.length === 0 && (
+                    <span style={{ fontSize: '12px', color: '#dc2626' }}>Nenhuma cotação ativa encontrada.</span>
                   )}
                 </div>
-                <button
-                  type="button"
-                  onClick={enviarParaCotacao}
-                  disabled={itensSelecionadosEnvio.length === 0 || enviandoCotacao}
-                  style={{
-                    padding: '8px 16px',
-                    backgroundColor: itensSelecionadosEnvio.length > 0 ? '#f97316' : '#d1d5db',
-                    color: 'white',
-                    border: 'none',
-                    borderRadius: '6px',
-                    fontWeight: '600',
-                    fontSize: '13px',
-                    cursor: itensSelecionadosEnvio.length > 0 ? 'pointer' : 'not-allowed',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                    opacity: enviandoCotacao ? 0.7 : 1
-                  }}
-                >
-                  <Send size={14} />
-                  {enviandoCotacao ? 'Enviando...' : 'Enviar Selecionados para Cotação'}
-                </button>
               </div>
             )}
 
@@ -599,6 +706,16 @@ export default function PedidoConferencia() {
           </form>
         </div>
       </main>
+      {showDevolucaoModal && (
+        <DevolucaoModal
+          pedidoId={id}
+          onClose={() => setShowDevolucaoModal(false)}
+          onSuccess={() => {
+            setShowDevolucaoModal(false);
+            carregarPedido();
+          }}
+        />
+      )}
     </div>
   );
 }
