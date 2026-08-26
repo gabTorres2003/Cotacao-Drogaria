@@ -1,8 +1,8 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, Fragment } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Send } from 'lucide-react';
 
 export default function PedidoConferencia() {
   const { id } = useParams();
@@ -14,6 +14,8 @@ export default function PedidoConferencia() {
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' });
   const [numeroNota, setNumeroNota] = useState('');
   const [salvarParcial, setSalvarParcial] = useState(false);
+  const [itensSelecionadosEnvio, setItensSelecionadosEnvio] = useState([]);
+  const [enviandoCotacao, setEnviandoCotacao] = useState(false);
 
   useEffect(() => {
     carregarPedido();
@@ -34,7 +36,9 @@ export default function PedidoConferencia() {
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
               conferido: totalmenteRecebido,
-              totalmenteRecebido
+              totalmenteRecebido,
+              produtoRecebido: item.produtoRecebido || '',
+              observacaoIncorreto: item.observacaoDevolucao || ''
             };
           })
         );
@@ -51,8 +55,15 @@ export default function PedidoConferencia() {
     setConferencia(prev => prev.map(item => {
         if (item.id === idItem) {
             let newItem = { ...item, [field]: value };
-            if (field === 'statusRecebimento' && value === 'FALTANTE') {
-                newItem.quantidadeRecebidaAgora = 0;
+            if (field === 'statusRecebimento') {
+                if (value === 'FALTANTE') {
+                    newItem.quantidadeRecebidaAgora = 0;
+                    newItem.valorUnitarioReal = '';
+                }
+                if (value !== 'INCORRETO') {
+                    newItem.produtoRecebido = '';
+                    newItem.observacaoIncorreto = '';
+                }
             }
             return newItem;
         }
@@ -64,10 +75,13 @@ export default function PedidoConferencia() {
     setConferencia(prev => prev.map(item => {
       if (item.id === idItem) {
         if (!item.conferido) {
-          const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
-          if (qtdNova <= 0 || item.valorUnitarioReal === '') {
-            alert('Preencha a quantidade e o valor unitário da nota antes de confirmar este item.');
-            return item;
+          const isFaltante = item.statusRecebimento === 'FALTANTE';
+          if (!isFaltante) {
+            const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
+            if (qtdNova <= 0 || item.valorUnitarioReal === '') {
+              alert('Preencha a quantidade e o valor unitário da nota antes de confirmar este item.');
+              return item;
+            }
           }
         }
         return { ...item, conferido: !item.conferido };
@@ -105,6 +119,89 @@ export default function PedidoConferencia() {
     () => conferencia.filter(c => !c.totalmenteRecebido),
     [conferencia]
   );
+
+  const itensFaltantes = useMemo(
+    () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido),
+    [conferencia]
+  );
+
+  const toggleSelecaoEnvio = (idItem) => {
+    setItensSelecionadosEnvio(prev =>
+      prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]
+    );
+  };
+
+  const enviarParaCotacao = async () => {
+    if (itensSelecionadosEnvio.length === 0) {
+      alert('Selecione ao menos um produto "Não Veio" para enviar à cotação.');
+      return;
+    }
+
+    try {
+      setEnviandoCotacao(true);
+
+      const resCotacoes = await api.get('/api/cotacao');
+      const cotacoesAtivas = (Array.isArray(resCotacoes.data) ? resCotacoes.data : [])
+        .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
+
+      if (cotacoesAtivas.length === 0) {
+        alert('Nenhuma cotação ativa encontrada. Crie uma cotação antes de enviar produtos.');
+        return;
+      }
+
+      const cotacao = cotacoesAtivas[0];
+
+      const resItens = await api.get(`/api/comparativo/listar-itens/${cotacao.id}`);
+      const itensExistentes = Array.isArray(resItens.data) ? resItens.data : [];
+      const nomesExistentes = new Set(itensExistentes.map(i => (i.nomeProduto || '').toUpperCase().trim()));
+
+      const itensParaEnviar = itensSelecionadosEnvio.map(idConf => {
+        const conf = conferencia.find(c => c.id === idConf);
+        const itemPedido = pedido.itens.find(i => i.id === idConf);
+        return { conf, itemPedido };
+      }).filter(e => e.itemPedido);
+
+      const duplicados = [];
+      const paraAdicionar = [];
+
+      for (const { conf, itemPedido } of itensParaEnviar) {
+        const nome = (itemPedido.nomeProduto || itemPedido.itemCotacao?.nomeProduto || '').trim();
+        if (nomesExistentes.has(nome.toUpperCase())) {
+          duplicados.push(nome);
+        } else {
+          paraAdicionar.push({ nome, quantidade: itemPedido.quantidadePedida });
+          nomesExistentes.add(nome.toUpperCase());
+        }
+      }
+
+      let adicionados = 0;
+      for (const item of paraAdicionar) {
+        try {
+          await api.post(`/api/cotacao/${cotacao.id}/item`, {
+            nomeProduto: item.nome,
+            quantidade: item.quantidade,
+            origemItem: 'Conferência - Não Veio'
+          });
+          adicionados++;
+        } catch (e) {
+          console.error(`Erro ao adicionar "${item.nome}":`, e);
+        }
+      }
+
+      let msg = '';
+      if (adicionados > 0) msg += `${adicionados} produto(s) adicionado(s) à Cotação #${cotacao.id}.\n`;
+      if (duplicados.length > 0) msg += `\nJá existentes (não duplicados): ${duplicados.join(', ')}`;
+      if (!msg) msg = 'Nenhum produto foi adicionado.';
+      alert(msg);
+
+      setItensSelecionadosEnvio([]);
+    } catch (error) {
+      console.error('Erro ao enviar para cotação:', error);
+      alert('Erro ao enviar produtos para cotação.');
+    } finally {
+      setEnviandoCotacao(false);
+    }
+  };
 
   const enviarRecebimento = async (parcial) => {
     if (!numeroNota.trim()) {
@@ -152,7 +249,11 @@ export default function PedidoConferencia() {
           quantidadeRecebidaAgora: qtdNova,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
-          observacaoDevolucao: item.statusRecebimento !== 'OK' ? 'Divergência marcada na conferência cega' : ''
+          observacaoDevolucao: item.statusRecebimento !== 'OK'
+            ? (item.statusRecebimento === 'INCORRETO'
+                ? `Produto errado: ${item.produtoRecebido || 'não informado'}. ${item.observacaoIncorreto || ''}`.trim()
+                : 'Divergência marcada na conferência cega')
+            : ''
         };
       })
     };
@@ -269,6 +370,7 @@ export default function PedidoConferencia() {
                 <table style={styles.table}>
                   <thead>
                     <tr>
+                      <th style={{ ...styles.th, width: '40px', textAlign: 'center' }}></th>
                       <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
                         Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
                       </th>
@@ -289,7 +391,18 @@ export default function PedidoConferencia() {
                       const qtdJaRecebida = confState.quantidadeJaRecebida || 0;
 
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
+                        <Fragment key={item.id}>
+                        <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
+                          <td style={{ ...styles.td, textAlign: 'center', width: '40px' }}>
+                            {confState.statusRecebimento === 'FALTANTE' && !totalmenteRecebido && (
+                              <input
+                                type="checkbox"
+                                checked={itensSelecionadosEnvio.includes(item.id)}
+                                onChange={() => toggleSelecaoEnvio(item.id)}
+                                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#f97316' }}
+                              />
+                            )}
+                          </td>
                           <td style={styles.td}>
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
                               {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
@@ -380,11 +493,75 @@ export default function PedidoConferencia() {
                             )}
                           </td>
                         </tr>
+                        {confState.statusRecebimento === 'INCORRETO' && !totalmenteRecebido && (
+                          <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
+                            <td colSpan={8} style={{ padding: '8px 14px' }}>
+                              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+                                <div style={{ flex: '1 1 200px' }}>
+                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Produto recebido no lugar:</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Ex: Outra marca / laboratório"
+                                    disabled={totalmenteRecebido || isConferido}
+                                    value={confState.produtoRecebido || ''}
+                                    onChange={(e) => handleInputChange(item.id, 'produtoRecebido', e.target.value)}
+                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
+                                  />
+                                </div>
+                                <div style={{ flex: '1 1 200px' }}>
+                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Observação:</label>
+                                  <input
+                                    type="text"
+                                    placeholder="Detalhes sobre a divergência"
+                                    disabled={totalmenteRecebido || isConferido}
+                                    value={confState.observacaoIncorreto || ''}
+                                    onChange={(e) => handleInputChange(item.id, 'observacaoIncorreto', e.target.value)}
+                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
+                                  />
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
+                        </Fragment>
                       );
                     })}
                   </tbody>
                 </table>
             </div>
+
+            {itensFaltantes.length > 0 && (
+              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '14px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+                <div style={{ fontSize: '13px', color: '#9a3412' }}>
+                  <strong>{itensFaltantes.length}</strong> produto(s) marcados como "Não Veio".
+                  {itensSelecionadosEnvio.length > 0 && (
+                    <span> <strong>{itensSelecionadosEnvio.length}</strong> selecionado(s) para envio à cotação.</span>
+                  )}
+                </div>
+                <button
+                  type="button"
+                  onClick={enviarParaCotacao}
+                  disabled={itensSelecionadosEnvio.length === 0 || enviandoCotacao}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: itensSelecionadosEnvio.length > 0 ? '#f97316' : '#d1d5db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: itensSelecionadosEnvio.length > 0 ? 'pointer' : 'not-allowed',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    opacity: enviandoCotacao ? 0.7 : 1
+                  }}
+                >
+                  <Send size={14} />
+                  {enviandoCotacao ? 'Enviando...' : 'Enviar Selecionados para Cotação'}
+                </button>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '13px', color: '#64748b' }}>
