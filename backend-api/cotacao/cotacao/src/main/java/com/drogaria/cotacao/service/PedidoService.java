@@ -54,7 +54,10 @@ public class PedidoService {
     }
 
     public List<Pedido> listarPorStatuses(List<String> statuses) {
-        return pedidoRepository.findByStatusesIn(statuses);
+        List<StatusPedido> enumStatuses = statuses.stream()
+                .map(StatusPedido::valueOf)
+                .toList();
+        return pedidoRepository.findByStatusesIn(enumStatuses);
     }
 
     public Pedido buscarPorId(Long id) {

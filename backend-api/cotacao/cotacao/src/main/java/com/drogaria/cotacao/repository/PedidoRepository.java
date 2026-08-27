@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.repository;
 
 import com.drogaria.cotacao.model.Pedido;
+import com.drogaria.cotacao.model.enums.StatusPedido;
 import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
@@ -19,5 +20,5 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens"})
     @Query("SELECT p FROM Pedido p WHERE p.status IN :statuses ORDER BY p.dataCriacao DESC")
-    List<Pedido> findByStatusesIn(@Param("statuses") List<String> statuses);
+    List<Pedido> findByStatusesIn(@Param("statuses") List<StatusPedido> statuses);
 }
