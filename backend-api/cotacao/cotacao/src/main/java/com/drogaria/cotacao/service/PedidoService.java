@@ -53,6 +53,10 @@ public class PedidoService {
         return pedidoRepository.findAll();
     }
 
+    public List<Pedido> listarPorStatuses(List<String> statuses) {
+        return pedidoRepository.findByStatusesIn(statuses);
+    }
+
     public Pedido buscarPorId(Long id) {
         return pedidoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));

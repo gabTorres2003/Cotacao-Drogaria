@@ -38,6 +38,11 @@ export default function Pedidos() {
   const [cotacaoDestinoId, setCotacaoDestinoId] = useState('')
 
   const [agora, setAgora] = useState(new Date().getTime());
+
+  const STATUS_TRATAMENTO = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'];
+  const STATUS_AGUARDANDO_ENTREGA = ['CONFIRMADO_FORNECEDOR'];
+  const STATUS_AGUARDANDO_CONFIRMACAO = ['PENDENTE_ENTREGA'];
+  const STATUS_HISTORICO = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
   
   useEffect(() => {
       const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
@@ -45,32 +50,36 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    carregarPedidos()
-  }, [])
+    carregarPedidosAba(abaAtiva, true);
+  }, [abaAtiva])
 
-  const carregarPedidos = async () => {
-    setLoading(true)
-    try {
-      const response = await api.get('/api/pedidos')
-      const data = response.data
-
-      if (Array.isArray(data)) {
-        setPedidos(data)
-        setResumo({
-          total: data.length,
-          emTratamento: data.filter((p) => ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'].includes(p.status)).length,
-          aguardandoEntrega: data.filter((p) => p.status === 'CONFIRMADO_FORNECEDOR').length,
-          aguardandoConfirmacao: data.filter((p) => p.status === 'PENDENTE_ENTREGA').length,
-          entregues: data.filter((p) => p.status === 'ENTREGUE_SUCESSO' || p.status === 'ENTREGUE_COM_FALTA').length,
-          devolucoes: data.filter((p) => p.status === 'PENDENTE_DEVOLUCAO').length,
-        })
-      }
-    } catch (error) {
-      console.error('Erro ao carregar pedidos:', error)
-    } finally {
-      setLoading(false)
+  const getStatusParaAba = (aba) => {
+    switch (aba) {
+      case 'TRATAMENTO': return STATUS_TRATAMENTO;
+      case 'AGUARDANDO_ENTREGA': return STATUS_AGUARDANDO_ENTREGA;
+      case 'AGUARDANDO_CONFIRMACAO': return STATUS_AGUARDANDO_CONFIRMACAO;
+      case 'HISTORICO': return STATUS_HISTORICO;
+      default: return [];
     }
-  }
+  };
+
+  const carregarPedidosAba = async (aba, forceReload = false) => {
+    setLoading(true);
+    try {
+      const statuses = getStatusParaAba(aba);
+      const params = statuses.join(',');
+      const response = await api.get(`/api/pedidos/filtrar`, { params: { statuses: params } });
+      const data = response.data || [];
+      setPedidos(data);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos:', error);
+      setPedidos([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const refreshAbaAtual = () => carregarPedidosAba(abaAtiva, true);
 
   const deletarPedido = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) {
@@ -80,7 +89,7 @@ export default function Pedidos() {
         setPedidos(pedidos.filter(p => p.id !== id));
         setPedidosSelecionados(prev => prev.filter(selId => selId !== id));
         alert('Pedido excluído com sucesso!');
-        carregarPedidos(); 
+        refreshAbaAtual(); 
       } catch (error) {
         alert(error.response?.data?.message || 'Erro ao excluir pedido.');
       } finally {
@@ -96,10 +105,10 @@ export default function Pedidos() {
         await Promise.all(pedidosSelecionados.map(id => api.delete(`/api/pedidos/${id}`)));
         alert('Pedidos excluídos com sucesso!');
         setPedidosSelecionados([]); 
-        carregarPedidos(); 
+        refreshAbaAtual(); 
       } catch (error) {
         alert('Alguns pedidos não puderam ser excluídos. Verifique se possuem devoluções vinculadas no histórico.');
-        carregarPedidos(); 
+        refreshAbaAtual(); 
       } finally {
         setIsDeleting(false);
       }
@@ -134,7 +143,7 @@ export default function Pedidos() {
           });
           alert('Pedido marcado como NÃO ENTREGUE. Os itens foram redirecionados com sucesso!');
           setModalFalhaAberto(false);
-          carregarPedidos();
+          refreshAbaAtual();
       } catch (e) {
           alert('Erro ao registrar falha de entrega: ' + (e.response?.data?.message || e.message));
       }
@@ -177,16 +186,6 @@ export default function Pedidos() {
 
   const pedidosProcessados = pedidos
     .filter((p) => {
-      const statusTratamento = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'];
-      const statusAguardandoEntrega = ['CONFIRMADO_FORNECEDOR'];
-      const statusAguardandoConfirmacao = ['PENDENTE_ENTREGA'];
-      const statusHistorico = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
-
-      if (abaAtiva === 'TRATAMENTO' && !statusTratamento.includes(p.status)) return false;
-      if (abaAtiva === 'AGUARDANDO_ENTREGA' && !statusAguardandoEntrega.includes(p.status)) return false;
-      if (abaAtiva === 'AGUARDANDO_CONFIRMACAO' && !statusAguardandoConfirmacao.includes(p.status)) return false;
-      if (abaAtiva === 'HISTORICO' && !statusHistorico.includes(p.status)) return false;
-      
       const textoBusca = busca.toLowerCase()
       const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
       const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
@@ -673,14 +672,14 @@ export default function Pedidos() {
           <DevolucaoModal
             pedidoId={pedidoSelecionado.id}
             onClose={() => setModalDevolucaoAberto(false)}
-            onSuccess={() => { setModalDevolucaoAberto(false); carregarPedidos(); }}
+            onSuccess={() => { setModalDevolucaoAberto(false); refreshAbaAtual(); }}
           />
         )}
         
         {isModalManualOpen && (
             <ModalPedidoManual 
                 isOpen={isModalManualOpen} 
-                onClose={() => { setIsModalManualOpen(false); carregarPedidos(); }} 
+                onClose={() => { setIsModalManualOpen(false); refreshAbaAtual(); }} 
             />
         )}
 

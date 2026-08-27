@@ -48,6 +48,11 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.listarTodos());
     }
 
+    @GetMapping("/filtrar")
+    public ResponseEntity<List<Pedido>> listarPorStatuses(@RequestParam("statuses") List<String> statuses) {
+        return ResponseEntity.ok(pedidoService.listarPorStatuses(statuses));
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Pedido> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(pedidoService.buscarPorId(id));
