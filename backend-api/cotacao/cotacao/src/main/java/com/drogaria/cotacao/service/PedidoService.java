@@ -154,7 +154,49 @@ public class PedidoService {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
 
-        return pedidoRepository.save(pedido);
+        Pedido pedidoSalvo = pedidoRepository.save(pedido);
+
+        if (pedido.getFornecedor() != null && pedido.getFornecedor().getId() != null) {
+            try {
+                atualizarPercentualImpostoFornecedor(pedido);
+            } catch (Exception e) {
+                System.err.println("Erro ao calcular média de imposto do fornecedor: " + e.getMessage());
+            }
+        }
+
+        return pedidoSalvo;
+    }
+
+    private void atualizarPercentualImpostoFornecedor(Pedido pedido) {
+        if (pedido.getItens() == null || pedido.getItens().isEmpty()) return;
+
+        Fornecedor fornecedor = fornecedorRepository.findById(pedido.getFornecedor().getId()).orElse(null);
+        if (fornecedor == null) return;
+
+        List<Double> percentuais = new ArrayList<>();
+        for (ItemPedido item : pedido.getItens()) {
+            if (item.getQuantidadeReal() == null || item.getQuantidadeReal() <= 0) continue;
+            if (item.getValorUnitarioPedido() == null || item.getValorUnitarioPedido() <= 0) continue;
+            if (item.getValorUnitarioReal() == null || item.getValorUnitarioReal() <= 0) continue;
+
+            double valorPedido = item.getValorUnitarioPedido();
+            double valorReal = item.getValorUnitarioReal();
+
+            double percentual = ((valorReal / valorPedido) - 1.0) * 100.0;
+
+            if (percentual >= -50 && percentual <= 100) {
+                percentuais.add(percentual);
+            }
+        }
+
+        if (percentuais.isEmpty()) return;
+
+        double soma = percentuais.stream().mapToDouble(Double::doubleValue).sum();
+        double media = soma / percentuais.size();
+        double mediaArredondada = Math.round(media * 100.0) / 100.0;
+
+        fornecedor.setPercentualImposto(mediaArredondada);
+        fornecedorRepository.save(fornecedor);
     }
 
     @Transactional

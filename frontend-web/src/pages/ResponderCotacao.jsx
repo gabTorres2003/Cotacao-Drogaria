@@ -45,6 +45,7 @@ export default function ResponderCotacao() {
   const [busca, setBusca] = useState('')
   const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
   const [filtroNovos, setFiltroNovos] = useState(false)
+  const [mostrarAlertaNovos, setMostrarAlertaNovos] = useState(false)
 
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
@@ -56,6 +57,15 @@ export default function ResponderCotacao() {
       carregarItens()
     }
   }, [isPrimeiroAcesso])
+
+  useEffect(() => {
+    if (isInitialLoadDone && itens.length > 0 && !isPrimeiroAcesso) {
+      const qtdNovos = itens.filter(item => !item.excluido && isItemNovo(item)).length
+      if (qtdNovos > 0) {
+        setMostrarAlertaNovos(true)
+      }
+    }
+  }, [isInitialLoadDone])
 
   useEffect(() => {
     if (isInitialLoadDone) {
@@ -430,6 +440,26 @@ export default function ResponderCotacao() {
       </div>
 
       <div style={{ position: 'sticky', top: '56px', backgroundColor: '#f3f4f6', zIndex: 99, paddingBottom: '16px' }}>
+        {mostrarAlertaNovos && (
+          <div style={{ marginBottom: '10px', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#92400e' }}>
+              <AlertTriangle size={18} color="#f59e0b" />
+              <span>Existem novos produtos adicionados após sua última resposta!</span>
+            </div>
+            <button
+              onClick={() => { setFiltroNovos(true); setMostrarAlertaNovos(false); }}
+              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '700', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+            >
+              Ver novos
+            </button>
+            <button
+              onClick={() => setMostrarAlertaNovos(false)}
+              style={{ padding: '2px 6px', fontSize: '14px', fontWeight: 'bold', backgroundColor: 'transparent', color: '#92400e', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+            >
+              ×
+            </button>
+          </div>
+        )}
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#dbeafe', border: '1px solid #bfdbfe' }}>
           <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>{percentualRespondido}%</span>
           <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: '#bfdbfe', overflow: 'hidden' }}>
