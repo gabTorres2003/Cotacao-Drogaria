@@ -31,7 +31,15 @@ export default function TabelaDetalhes({
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
   const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
-  const [fracoesPorProduto, setFracoesPorProduto] = useState({});
+  const [fracoesPorProduto, setFracoesPorProduto] = useState(() => {
+      try { return JSON.parse(localStorage.getItem('fracoesPorProduto') || '{}'); } catch { return {}; }
+  });
+  const [impostoDesconsiderado, setImpostoDesconsiderado] = useState(() => {
+      try { return JSON.parse(localStorage.getItem('impostoDesconsiderado') || '{}'); } catch { return {}; }
+  });
+
+  useEffect(() => { localStorage.setItem('fracoesPorProduto', JSON.stringify(fracoesPorProduto)); }, [fracoesPorProduto]);
+  useEffect(() => { localStorage.setItem('impostoDesconsiderado', JSON.stringify(impostoDesconsiderado)); }, [impostoDesconsiderado]);
 
   const [pinnedSuppliers, setPinnedSuppliers] = useState([]);
   const [supplierOrder, setSupplierOrder] = useState([]);
@@ -99,7 +107,7 @@ export default function TabelaDetalhes({
       window.addEventListener('resize', handler);
       updateBalloonPositions();
       return () => { window.removeEventListener('resize', handler); };
-  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN]);
+  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, impostoDesconsiderado, mostrarComImposto]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -170,7 +178,8 @@ export default function TabelaDetalhes({
                   const fracaoItem = fracoesPorProduto[item.idItem] || 1;
                   const pOeff = fracaoItem > 1 && pOraw > 0 ? pOraw / fracaoItem : pOraw;
                   const pSeff = fracaoItem > 1 && pSraw > 0 ? pSraw / fracaoItem : pSraw;
-                  const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
+                  const isImpostoDescItem = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
+                  const pctForn = (mostrarComImposto && !isImpostoDescItem) ? (impostoPctPorNome?.[forn] || 0) : 0;
                   let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
                   let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
                   let val = Infinity;
@@ -273,7 +282,8 @@ export default function TabelaDetalhes({
               }
           }
 
-          const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
+          const isImpostoDesconsiderado = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
+          const pctForn = (mostrarComImposto && !isImpostoDesconsiderado) ? (impostoPctPorNome?.[forn] || 0) : 0;
           let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
           let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
 
@@ -344,22 +354,6 @@ export default function TabelaDetalhes({
                   {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
                   {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
                   {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
-                  {isComparativo && mostrarComImposto && !item.excluido && (
-                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '6px' }}>
-                      <span style={{ fontSize: '9px', color: '#6b7280' }}>/</span>
-                      <input
-                        type="number"
-                        min="1"
-                        value={fracoesPorProduto[item.idItem] || ''}
-                        onChange={(e) => {
-                          const val = e.target.value === '' ? 1 : Math.max(1, Number(e.target.value));
-                          setFracoesPorProduto(prev => ({ ...prev, [item.idItem]: val }));
-                        }}
-                        style={{ width: '28px', padding: '1px 2px', fontSize: '9px', textAlign: 'center', border: '1px solid #d1d5db', borderRadius: '3px', backgroundColor: (fracoesPorProduto[item.idItem] || 1) > 1 ? '#ede9fe' : 'white' }}
-                        title="Fração para comparação (ex: 2 = preço ÷ 2)"
-                      />
-                    </span>
-                  )}
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
                 </div>
                 
@@ -423,7 +417,8 @@ export default function TabelaDetalhes({
             const isEmFaltaOriginal = precoOriginal <= 0; 
             const temOfertaValida = !isEmFaltaOriginal || (substituto && precoSubstituto > 0);
 
-            const pctImpostoForn = mostrarComImposto ? (impostoPctPorNome?.[f] || 0) : 0;
+            const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${f}`];
+            const pctImpostoForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[f] || 0) : 0;
             const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
             const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
             const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
@@ -503,6 +498,50 @@ export default function TabelaDetalhes({
                         </>
                     )}
                 </div>
+
+                {mostrarComImposto && !isEmFaltaOriginal && !isIrreal && !isRecusado && impostoPctPorNome?.[f] > 0 && (
+                  <div style={{ marginTop: '4px' }}>
+                    {isImpostoDesc ? (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setImpostoDesconsiderado(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }); }}
+                        style={{ fontSize: '9px', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        title="Reconsiderar imposto para este fornecedor"
+                      >
+                        Reconsiderar imposto
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={(e) => { e.stopPropagation(); setImpostoDesconsiderado(prev => ({ ...prev, [`${item.idItem}-${f}`]: true })); }}
+                        style={{ fontSize: '9px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde047', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        title="Desconsiderar imposto deste fornecedor para este produto"
+                      >
+                        Desconsiderar imposto
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {isComparativo && !item.excluido && !isEmFaltaOriginal && !isIrreal && (
+                  <div style={{ marginTop: '4px', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>/</span>
+                    <input
+                      type="number"
+                      min="1"
+                      className="fracao-input"
+                      value={fracoesPorProduto[item.idItem] || ''}
+                      onChange={(e) => {
+                        e.stopPropagation();
+                        const val = e.target.value === '' ? 1 : Math.max(1, Number(e.target.value));
+                        setFracoesPorProduto(prev => ({ ...prev, [item.idItem]: val }));
+                      }}
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ width: '40px', padding: '2px 4px', fontSize: '11px', textAlign: 'center', border: '1px solid #d1d5db', borderRadius: '3px', backgroundColor: fracaoAtual > 1 ? '#ede9fe' : 'white' }}
+                      title="Fração para comparação (ex: 7 = preço ÷ 7)"
+                    />
+                  </div>
+                )}
 
                 {editandoResposta?.itemId === item.idItem && editandoResposta?.fornecedor === f ? (
                   <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }} onClick={(e) => e.stopPropagation()}>

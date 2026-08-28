@@ -311,3 +311,12 @@ td { padding: 15px 10px; border-bottom: 1px solid #eee; }
   color: #666;
   line-height: 1.5;
 }
+
+input.fracao-input::-webkit-outer-spin-button,
+input.fracao-input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input.fracao-input[type=number] {
+  -moz-appearance: textfield;
+}
