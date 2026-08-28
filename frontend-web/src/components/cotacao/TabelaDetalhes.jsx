@@ -121,32 +121,56 @@ export default function TabelaDetalhes({
       return () => { window.removeEventListener('resize', handler); };
   }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
 
+  const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
+    return supplierOrder.map(forn => {
+      const pOraw = item.precosPorFornecedor?.[forn] || 0;
+      const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+      const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+      const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
+      const fracao = fracoesPorProduto[item.idItem] || 1;
+      const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
+      const pOeff = (fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw;
+      const pSeff = (fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw;
+      const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
+      const pctForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
+      const pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
+      const pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
+      const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
+      const isDiscrepante = precoBaseAlerta > 0 && pOeff > 0
+        && (pOeff > precoBaseAlerta * 2.0 || pOeff < precoBaseAlerta * 0.5);
+      let val = Infinity;
+      if (pO > 0) val = pO;
+      if (pS > 0 && pS < val) val = pS;
+      if (pO <= 0 && pS > 0) val = pS;
+
+      if (val !== Infinity && (isIrreal || isRecusado || (mostrarAlertasPreco && isDiscrepante))) val = Infinity;
+      return { forn, val };
+    }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
+  };
+
+  const alterarFracaoDesconsiderada = (itemId, fornecedor, desconsiderar) => {
+    const novaFracaoDesconsiderada = { ...fracaoDesconsiderada };
+    const chave = `${itemId}-${fornecedor}`;
+    if (desconsiderar) novaFracaoDesconsiderada[chave] = true;
+    else delete novaFracaoDesconsiderada[chave];
+
+    setFracaoDesconsiderada(novaFracaoDesconsiderada);
+
+    const item = relatorioExibicao.find(relatorioItem => relatorioItem.idItem === itemId);
+    if (!item || !setDecisaoCompra) return;
+    const ofertasValidas = calcularOfertasValidas(item, novaFracaoDesconsiderada);
+    const melhorFornecedor = ofertasValidas[0]?.forn;
+    if (melhorFornecedor) {
+      setDecisaoCompra(prev => ({ ...prev, [itemId]: melhorFornecedor }));
+    }
+  };
+
   useEffect(() => {
     if (!setDecisaoCompra || !isComparativo) return;
     const updates = {};
     relatorioExibicao.forEach(item => {
       if (item.excluido) return;
-      const ofertasValidas = supplierOrder.map(forn => {
-        const pOraw = item.precosPorFornecedor?.[forn] || 0;
-        const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
-        const isIrrealLocal = valoresIrreais[`${item.idItem}-${forn}`];
-        const isRecusadoLocal = valoresRecusados[`${item.idItem}-${forn}`];
-        if (isIrrealLocal || isRecusadoLocal) return null;
-        const fracaoAtualItem = fracoesPorProduto[item.idItem] || 1;
-        const isFracaoDesc = fracaoAtualItem > 1 && !!fracaoDesconsiderada[`${item.idItem}-${forn}`];
-        const pOeff = (fracaoAtualItem > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracaoAtualItem : pOraw;
-        const pSeff = (fracaoAtualItem > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracaoAtualItem : pSraw;
-        const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
-        const pctForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
-        let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
-        let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
-        let val = Infinity;
-        if (pO > 0) val = pO;
-        if (pS > 0 && pS < val) val = pS;
-        if (pO <= 0 && pS > 0) val = pS;
-        if (val === Infinity) return null;
-        return { forn, val };
-      }).filter(Boolean).sort((a, b) => a.val - b.val);
+      const ofertasValidas = calcularOfertasValidas(item);
       if (ofertasValidas.length === 0) return;
       const bestForn = ofertasValidas[0].forn;
       const currentWinner = decisaoCompraRef.current[item.idItem];
@@ -159,7 +183,7 @@ export default function TabelaDetalhes({
     if (Object.keys(updates).length > 0) {
       setDecisaoCompra(prev => ({ ...prev, ...updates }));
     }
-  }, [fracoesPorProduto, fracaoDesconsiderada, mostrarComImposto, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
+  }, [fracoesPorProduto, fracaoDesconsiderada, mostrarComImposto, mostrarAlertasPreco, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -221,29 +245,7 @@ export default function TabelaDetalhes({
       const topN = filtroTopN === 'TOP_1' ? 1 : filtroTopN === 'TOP_2' ? 2 : filtroTopN === 'TOP_4' ? 4 : 3;
       const competitiveByItem = new Map();
       relatorioExibicao.forEach(item => {
-          const ofertas = supplierOrder
-              .map(forn => {
-                  const pOraw = item.precosPorFornecedor?.[forn] || 0;
-                  const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
-                  const isIrrealItem = valoresIrreais[`${item.idItem}-${forn}`];
-                  const isRecusadoItem = valoresRecusados[`${item.idItem}-${forn}`];
-                  const fracaoItem = fracoesPorProduto[item.idItem] || 1;
-                  const isFracaoDescItem = fracaoItem > 1 && !!fracaoDesconsiderada[`${item.idItem}-${forn}`];
-                  const pOeff = (fracaoItem > 1 && !isFracaoDescItem && pOraw > 0) ? pOraw / fracaoItem : pOraw;
-                  const pSeff = (fracaoItem > 1 && !isFracaoDescItem && pSraw > 0) ? pSraw / fracaoItem : pSraw;
-                  const isImpostoDescItem = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
-                  const pctForn = (mostrarComImposto && !isImpostoDescItem) ? (impostoPctPorNome?.[forn] || 0) : 0;
-                  let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
-                  let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
-                  let val = Infinity;
-                  if (pO > 0) val = pO;
-                  if (pS > 0 && pS < val) val = pS;
-                  if (pO <= 0 && pS > 0) val = pS;
-                  if (isIrrealItem || isRecusadoItem) val = Infinity;
-                  return { forn, val };
-              })
-              .filter(x => x.val !== Infinity)
-              .sort((a, b) => a.val - b.val);
+          const ofertas = calcularOfertasValidas(item);
           const itemSet = new Set();
           ofertas.slice(0, topN).forEach(o => itemSet.add(o.forn));
           competitiveByItem.set(item.idItem, itemSet);
@@ -319,44 +321,7 @@ export default function TabelaDetalhes({
       if (isPinnedRow) rowBgColor = '#f0f9ff';
       else if (isBaixoGiro) rowBgColor = '#fef2f2';
 
-      const ofertasValidas = supplierOrder.map(forn => {
-          const pOraw = item.precosPorFornecedor?.[forn] || 0;
-          const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
-
-          const isIrrealLocal = valoresIrreais[`${item.idItem}-${forn}`];
-          const isRecusadoLocal = valoresRecusados[`${item.idItem}-${forn}`];
-          let isDiscrepante = false;
-
-          const fracaoAtualItem = fracoesPorProduto[item.idItem] || 1;
-          const isFracaoDesc = fracaoAtualItem > 1 && !!fracaoDesconsiderada[`${item.idItem}-${forn}`];
-          const pOeff = (fracaoAtualItem > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracaoAtualItem : pOraw;
-          const pSeff = (fracaoAtualItem > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracaoAtualItem : pSraw;
-
-          if (precoBaseAlerta > 0 && pOeff > 0) {
-              if (pOeff > precoBaseAlerta * 2.0 || pOeff < precoBaseAlerta * 0.5) {
-                  isDiscrepante = true;
-              }
-          }
-
-          const isImpostoDesconsiderado = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
-          const pctForn = (mostrarComImposto && !isImpostoDesconsiderado) ? (impostoPctPorNome?.[forn] || 0) : 0;
-          let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
-          let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
-
-          let val = Infinity;
-          if (pO > 0) val = pO;
-          if (pS > 0 && pS < val) val = pS; 
-          if (pO <= 0 && pS > 0) val = pS;
-          
-          if (val !== Infinity) {
-              if (isIrrealLocal || isRecusadoLocal) {
-                  val = Infinity; 
-              } else if (mostrarAlertasPreco && isDiscrepante) {
-                  val = Infinity; 
-              }
-          }
-          return { forn, val };
-      }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
+      const ofertasValidas = calcularOfertasValidas(item);
 
       const rankMap = {};
       ofertasValidas.forEach((vo, index) => { rankMap[vo.forn] = index + 1; });
@@ -608,7 +573,7 @@ export default function TabelaDetalhes({
                     {fracaoDesconsiderada[`${item.idItem}-${f}`] ? (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); setFracaoDesconsiderada(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }); }}
+                        onClick={(e) => { e.stopPropagation(); alterarFracaoDesconsiderada(item.idItem, f, false); }}
                         style={{ fontSize: '9px', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Reconsiderar fração para este fornecedor"
                       >
@@ -617,7 +582,7 @@ export default function TabelaDetalhes({
                     ) : (
                       <button
                         type="button"
-                        onClick={(e) => { e.stopPropagation(); setFracaoDesconsiderada(prev => ({ ...prev, [`${item.idItem}-${f}`]: true })); }}
+                        onClick={(e) => { e.stopPropagation(); alterarFracaoDesconsiderada(item.idItem, f, true); }}
                         style={{ fontSize: '9px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde047', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Desconsiderar fração deste fornecedor para este produto"
                       >
