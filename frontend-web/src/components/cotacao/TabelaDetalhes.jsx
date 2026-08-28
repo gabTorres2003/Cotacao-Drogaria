@@ -160,9 +160,12 @@ export default function TabelaDetalhes({
     if (!item || !setDecisaoCompra) return;
     const ofertasValidas = calcularOfertasValidas(item, novaFracaoDesconsiderada);
     const melhorFornecedor = ofertasValidas[0]?.forn;
-    if (melhorFornecedor) {
-      setDecisaoCompra(prev => ({ ...prev, [itemId]: melhorFornecedor }));
-    }
+    setDecisaoCompra(prev => {
+      const proximaDecisao = { ...prev };
+      if (melhorFornecedor) proximaDecisao[itemId] = melhorFornecedor;
+      else delete proximaDecisao[itemId];
+      return proximaDecisao;
+    });
   };
 
   useEffect(() => {
@@ -447,10 +450,11 @@ export default function TabelaDetalhes({
               return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
           })()}
 
-          {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || (fornecedoresCompetitivos.get(item.idItem)?.has(f) ?? true))).map((f) => {
+          {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true)).map((f) => {
             
             const rank = rankMap[f];
             const isWinner = displayWinner === f;
+            const isOfertaVisivel = !fornecedoresCompetitivos || (fornecedoresCompetitivos.get(item.idItem)?.has(f) ?? false);
 
             const precoOriginal = item.precosPorFornecedor?.[f] || 0;
             const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
@@ -502,15 +506,15 @@ export default function TabelaDetalhes({
             const leftPos = getLeftOffset(f, 'supplier');
 
             return (
-              <td key={f} onClick={() => !isBloqueado && !item.excluido && !isIrreal && !isRecusado && handleSetWinner(item.idItem, f)} 
+              <td key={f} onClick={() => isOfertaVisivel && !isBloqueado && !item.excluido && !isIrreal && !isRecusado && handleSetWinner(item.idItem, f)}
                   onContextMenu={(e) => {
                     e.preventDefault();
                     if (!isBloqueado && !item.excluido && !isEncerrada && precoOriginal > 0) {
                       setContextMenu({ x: e.clientX, y: e.clientY, itemId: item.idItem, fornecedor: f, preco: precoOriginal });
                     }
                   }}
-                  data-balloon={(isWinner && !isIrreal) ? 'true' : (rank > 0 && !isWinner && !isIrreal ? 'true' : undefined)}
-                  data-balloon-label={(isWinner && !isIrreal) ? 'VENCEDOR' : (rank > 0 && !isWinner && !isIrreal ? `${rank}º LUGAR` : undefined)}
+                  data-balloon={isOfertaVisivel && ((isWinner && !isIrreal) ? 'true' : (rank > 0 && !isWinner && !isIrreal ? 'true' : undefined))}
+                  data-balloon-label={isOfertaVisivel && ((isWinner && !isIrreal) ? 'VENCEDOR' : (rank > 0 && !isWinner && !isIrreal ? `${rank}º LUGAR` : undefined))}
                   data-balloon-color={(isWinner && !isIrreal) ? '#10b981' : (rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')))}
                   data-balloon-textcolor={(isWinner && !isIrreal) ? 'white' : (rank <= 3 ? 'white' : '#713f12')}
                   data-balloon-border={(isWinner && !isIrreal) ? '#059669' : (rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15')))}
@@ -529,7 +533,8 @@ export default function TabelaDetalhes({
                       left: isPinnedCol ? `${leftPos}px` : 'auto',
                       zIndex: isPinnedCol ? 15 : 1,
                       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none',
-                      opacity: isBloqueado ? 0.6 : (isIrreal || isRecusado ? 0.5 : (draggedSupplier === f ? 0.5 : 1))
+                      opacity: !isOfertaVisivel ? 0 : (isBloqueado ? 0.6 : (isIrreal || isRecusado ? 0.5 : (draggedSupplier === f ? 0.5 : 1))),
+                      pointerEvents: !isOfertaVisivel ? 'none' : 'auto'
                   }}>
                 
                 <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
@@ -849,7 +854,7 @@ export default function TabelaDetalhes({
                   );
               })()}
               
-              {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || [...fornecedoresCompetitivos.values()].some(s => s.has(f)))).map((f) => {
+              {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true)).map((f) => {
                   const isPinned = pinnedSuppliers.includes(f);
                   const leftPos = getLeftOffset(f, 'supplier');
 
