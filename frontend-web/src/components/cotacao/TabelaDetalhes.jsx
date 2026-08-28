@@ -20,7 +20,7 @@ export default function TabelaDetalhes({
   relatorioExibicao, colunasVisiveis, fornecedoresVisiveis, fornecedores, requestSort, sortConfig,
   editandoItem, formEdicao, setFormEdicao, salvarEdicao, isEncerrada, iniciarEdicao, 
   getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
-  itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, aceitesTroca, 
+  itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, setDecisaoCompra, aceitesTroca, 
   handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
   onAbrirAddPedidoModal,   filtroVencedor, setFiltroVencedor, filtroTopN,
   mostrarComImposto, impostoPctPorNome,
@@ -64,6 +64,8 @@ export default function TabelaDetalhes({
   const [alertaProduto, setAlertaProduto] = useState(null);
   const [itensRiscoDesconsiderado, setItensRiscoDesconsiderado] = useState({});
   const scrollContainerRef = useRef(null);
+  const decisaoCompraRef = useRef(decisaoCompra);
+  decisaoCompraRef.current = decisaoCompra;
   const [balloonPositions, setBalloonPositions] = useState([]);
 
   useEffect(() => {
@@ -118,6 +120,44 @@ export default function TabelaDetalhes({
       updateBalloonPositions();
       return () => { window.removeEventListener('resize', handler); };
   }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
+
+  useEffect(() => {
+    if (!setDecisaoCompra || !isComparativo) return;
+    const updates = {};
+    relatorioExibicao.forEach(item => {
+      if (item.excluido) return;
+      const currentWinner = decisaoCompraRef.current[item.idItem];
+      if (!currentWinner) return;
+      const ofertasValidas = supplierOrder.map(forn => {
+        const pOraw = item.precosPorFornecedor?.[forn] || 0;
+        const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
+        const isIrrealLocal = valoresIrreais[`${item.idItem}-${forn}`];
+        const isRecusadoLocal = valoresRecusados[`${item.idItem}-${forn}`];
+        if (isIrrealLocal || isRecusadoLocal) return null;
+        const fracaoAtualItem = fracoesPorProduto[item.idItem] || 1;
+        const isFracaoDesc = fracaoAtualItem > 1 && !!fracaoDesconsiderada[`${item.idItem}-${forn}`];
+        const pOeff = (fracaoAtualItem > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracaoAtualItem : pOraw;
+        const pSeff = (fracaoAtualItem > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracaoAtualItem : pSraw;
+        const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
+        const pctForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
+        let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
+        let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
+        let val = Infinity;
+        if (pO > 0) val = pO;
+        if (pS > 0 && pS < val) val = pS;
+        if (pO <= 0 && pS > 0) val = pS;
+        if (val === Infinity) return null;
+        return { forn, val };
+      }).filter(Boolean).sort((a, b) => a.val - b.val);
+      const isWinnerValid = ofertasValidas.some(o => o.forn === currentWinner);
+      if (!isWinnerValid && ofertasValidas.length > 0) {
+        updates[item.idItem] = ofertasValidas[0].forn;
+      }
+    });
+    if (Object.keys(updates).length > 0) {
+      setDecisaoCompra(prev => ({ ...prev, ...updates }));
+    }
+  }, [fracoesPorProduto, fracaoDesconsiderada, mostrarComImposto, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -176,7 +216,7 @@ export default function TabelaDetalhes({
 
   const fornecedoresCompetitivos = (() => {
       if (filtroTopN === 'TODOS') return null;
-      const topN = filtroTopN === 'TOP_2' ? 2 : 3;
+      const topN = filtroTopN === 'TOP_1' ? 1 : filtroTopN === 'TOP_2' ? 2 : filtroTopN === 'TOP_4' ? 4 : 3;
       const competitive = new Set();
       relatorioExibicao.forEach(item => {
           const ofertas = supplierOrder
@@ -412,7 +452,7 @@ export default function TabelaDetalhes({
                   {editandoItem === `${item.idItem}-qtd` ? (
                     <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
                   ) : (
-                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
+                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade}{(fracoesPorProduto[item.idItem] || 1) > 1 && isComparativo && mostrarFracao ? <> × {fracoesPorProduto[item.idItem]} = {item.quantidade * fracoesPorProduto[item.idItem]}</> : ''} un</span>
                   )}
                 </td>
               );
@@ -688,7 +728,9 @@ export default function TabelaDetalhes({
                         e.stopPropagation();
                         const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
                         const nomeFinal = isTroca ? substituto : item.nomeProduto;
-                        const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
+                        const fracaoProduto = isComparativo && mostrarFracao ? (fracoesPorProduto[item.idItem] || 1) : 1;
+                        const qtdBase = isTroca ? qtdSubstituto : item.quantidade;
+                        const qtdFinal = fracaoProduto > 1 ? qtdBase * fracaoProduto : qtdBase;
                         const condicoesPassadas = isTroca ? condsArrSubst : condsArr;
                         let precoBase = isTroca ? precoSubstituto : precoOriginal;
                         

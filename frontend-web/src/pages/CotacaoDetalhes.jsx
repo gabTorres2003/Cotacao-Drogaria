@@ -919,8 +919,10 @@ export default function CotacaoDetalhes() {
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginRight: '8px' }}>Filtro de Competitividade:</span>
           <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Sem Filtro Top (Ver Todos)</button>
+          <button onClick={() => setFiltroTopN('TOP_1')} style={styles.topNBtn(filtroTopN === 'TOP_1')}>Top 1 (Apenas Ganhador)</button>
           <button onClick={() => setFiltroTopN('TOP_2')} style={styles.topNBtn(filtroTopN === 'TOP_2')}>Top 2 (Ganhador vs 2º Colocado)</button>
           <button onClick={() => setFiltroTopN('TOP_3')} style={styles.topNBtn(filtroTopN === 'TOP_3')}>Top 3 Melhores Preços</button>
+          <button onClick={() => setFiltroTopN('TOP_4')} style={styles.topNBtn(filtroTopN === 'TOP_4')}>Top 4 Melhores Preços</button>
         </div>
       )}
 
@@ -958,7 +960,7 @@ export default function CotacaoDetalhes() {
             formEdicao={formEdicao} setFormEdicao={setFormEdicao} salvarEdicao={salvarEdicao} isEncerrada={isEncerrada}
             iniciarEdicao={iniciarEdicao} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} itensJaComprados={itensJaComprados}
-            reatribuirItem={reatribuirItem} fData={fData} fMoney={fMoney} decisaoCompra={decisaoCompra} aceitesTroca={aceitesTroca}
+            reatribuirItem={reatribuirItem} fData={fData} fMoney={fMoney} decisaoCompra={decisaoCompra} setDecisaoCompra={setDecisaoCompra} aceitesTroca={aceitesTroca}
             handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} navigate={navigate}
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
