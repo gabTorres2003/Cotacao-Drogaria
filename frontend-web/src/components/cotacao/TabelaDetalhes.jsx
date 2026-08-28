@@ -96,10 +96,9 @@ export default function TabelaDetalhes({
       const container = scrollContainerRef.current;
       if (!container) return;
       const handler = () => updateBalloonPositions();
-      container.addEventListener('scroll', handler);
       window.addEventListener('resize', handler);
       updateBalloonPositions();
-      return () => { container.removeEventListener('scroll', handler); window.removeEventListener('resize', handler); };
+      return () => { window.removeEventListener('resize', handler); };
   }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
@@ -808,6 +807,16 @@ export default function TabelaDetalhes({
           </tbody>
 
         </table>
+
+        {balloonPositions.map((bp, idx) => (
+          <div key={idx} style={{
+            position: 'absolute', left: bp.x, top: bp.y, transform: 'translateX(-50%)',
+            backgroundColor: bp.color, color: bp.textColor, fontSize: bp.fontSize,
+            padding: bp.padding, borderRadius: '10px', fontWeight: 'bold', zIndex: 100,
+            border: `1px solid ${bp.border}`, boxShadow: bp.shadow ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
+            whiteSpace: 'nowrap', pointerEvents: 'none'
+          }}>{bp.label}</div>
+        ))}
       </div>
 
       {isItens && itensExcluidosLocal && itensExcluidosLocal.length > 0 && (
@@ -861,16 +870,6 @@ export default function TabelaDetalhes({
               </div>
           </div>
       )}
-
-      {balloonPositions.map((bp, idx) => (
-        <div key={idx} style={{
-          position: 'absolute', left: bp.x, top: bp.y, transform: 'translateX(-50%)',
-          backgroundColor: bp.color, color: bp.textColor, fontSize: bp.fontSize,
-          padding: bp.padding, borderRadius: '10px', fontWeight: 'bold', zIndex: 100,
-          border: `1px solid ${bp.border}`, boxShadow: bp.shadow ? '0 2px 4px rgba(0,0,0,0.2)' : 'none',
-          whiteSpace: 'nowrap', pointerEvents: 'none'
-        }}>{bp.label}</div>
-      ))}
 
       {contextMenu && (
         <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '4px', minWidth: '160px' }}>
