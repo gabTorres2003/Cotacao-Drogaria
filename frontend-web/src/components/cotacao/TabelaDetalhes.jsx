@@ -167,9 +167,12 @@ export default function TabelaDetalhes({
                   const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
                   const isIrrealItem = valoresIrreais[`${item.idItem}-${forn}`];
                   const isRecusadoItem = valoresRecusados[`${item.idItem}-${forn}`];
+                  const fracaoItem = fracoesPorProduto[item.idItem] || 1;
+                  const pOeff = fracaoItem > 1 && pOraw > 0 ? pOraw / fracaoItem : pOraw;
+                  const pSeff = fracaoItem > 1 && pSraw > 0 ? pSraw / fracaoItem : pSraw;
                   const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
-                  let pO = pctForn > 0 && pOraw > 0 ? pOraw * (1 + pctForn / 100) : pOraw;
-                  let pS = pctForn > 0 && pSraw > 0 ? pSraw * (1 + pctForn / 100) : pSraw;
+                  let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
+                  let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
                   let val = Infinity;
                   if (pO > 0) val = pO;
                   if (pS > 0 && pS < val) val = pS;
@@ -260,15 +263,19 @@ export default function TabelaDetalhes({
           const isRecusadoLocal = valoresRecusados[`${item.idItem}-${forn}`];
           let isDiscrepante = false;
 
-          if (precoBaseAlerta > 0 && pOraw > 0) {
-              if (pOraw > precoBaseAlerta * 2.0 || pOraw < precoBaseAlerta * 0.5) {
+          const fracaoAtualItem = fracoesPorProduto[item.idItem] || 1;
+          const pOeff = fracaoAtualItem > 1 && pOraw > 0 ? pOraw / fracaoAtualItem : pOraw;
+          const pSeff = fracaoAtualItem > 1 && pSraw > 0 ? pSraw / fracaoAtualItem : pSraw;
+
+          if (precoBaseAlerta > 0 && pOeff > 0) {
+              if (pOeff > precoBaseAlerta * 2.0 || pOeff < precoBaseAlerta * 0.5) {
                   isDiscrepante = true;
               }
           }
 
           const pctForn = mostrarComImposto ? (impostoPctPorNome?.[forn] || 0) : 0;
-          let pO = pctForn > 0 && pOraw > 0 ? pOraw * (1 + pctForn / 100) : pOraw;
-          let pS = pctForn > 0 && pSraw > 0 ? pSraw * (1 + pctForn / 100) : pSraw;
+          let pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
+          let pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
 
           let val = Infinity;
           if (pO > 0) val = pO;
@@ -337,16 +344,15 @@ export default function TabelaDetalhes({
                   {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
                   {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
                   {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
-                  {isComparativo && !item.excluido && (
+                  {isComparativo && mostrarComImposto && !item.excluido && (
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', marginLeft: '6px' }}>
                       <span style={{ fontSize: '9px', color: '#6b7280' }}>/</span>
                       <input
                         type="number"
                         min="1"
-                        max="9"
                         value={fracoesPorProduto[item.idItem] || ''}
                         onChange={(e) => {
-                          const val = e.target.value === '' ? 1 : Math.max(1, Math.min(9, Number(e.target.value)));
+                          const val = e.target.value === '' ? 1 : Math.max(1, Number(e.target.value));
                           setFracoesPorProduto(prev => ({ ...prev, [item.idItem]: val }));
                         }}
                         style={{ width: '28px', padding: '1px 2px', fontSize: '9px', textAlign: 'center', border: '1px solid #d1d5db', borderRadius: '3px', backgroundColor: (fracoesPorProduto[item.idItem] || 1) > 1 ? '#ede9fe' : 'white' }}
@@ -432,7 +438,8 @@ export default function TabelaDetalhes({
             let isPrecoDiscrepante = false;
 
             if (precoBaseAlerta > 0 && precoOriginal > 0) {
-                if (precoOriginal > precoBaseAlerta * 2.0 || precoOriginal < precoBaseAlerta * 0.5) {
+                const precoEfetivoDiscrepancia = fracaoAtual > 1 ? precoOriginal / fracaoAtual : precoOriginal;
+                if (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5) {
                     isPrecoDiscrepante = true;
                 }
             }
