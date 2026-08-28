@@ -126,8 +126,6 @@ export default function TabelaDetalhes({
     const updates = {};
     relatorioExibicao.forEach(item => {
       if (item.excluido) return;
-      const currentWinner = decisaoCompraRef.current[item.idItem];
-      if (!currentWinner) return;
       const ofertasValidas = supplierOrder.map(forn => {
         const pOraw = item.precosPorFornecedor?.[forn] || 0;
         const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
@@ -149,9 +147,13 @@ export default function TabelaDetalhes({
         if (val === Infinity) return null;
         return { forn, val };
       }).filter(Boolean).sort((a, b) => a.val - b.val);
-      const isWinnerValid = ofertasValidas.some(o => o.forn === currentWinner);
-      if (!isWinnerValid && ofertasValidas.length > 0) {
-        updates[item.idItem] = ofertasValidas[0].forn;
+      if (ofertasValidas.length === 0) return;
+      const bestForn = ofertasValidas[0].forn;
+      const currentWinner = decisaoCompraRef.current[item.idItem];
+      if (!currentWinner) {
+        updates[item.idItem] = bestForn;
+      } else if (!ofertasValidas.some(o => o.forn === currentWinner)) {
+        updates[item.idItem] = bestForn;
       }
     });
     if (Object.keys(updates).length > 0) {
@@ -217,7 +219,7 @@ export default function TabelaDetalhes({
   const fornecedoresCompetitivos = (() => {
       if (filtroTopN === 'TODOS') return null;
       const topN = filtroTopN === 'TOP_1' ? 1 : filtroTopN === 'TOP_2' ? 2 : filtroTopN === 'TOP_4' ? 4 : 3;
-      const competitive = new Set();
+      const competitiveByItem = new Map();
       relatorioExibicao.forEach(item => {
           const ofertas = supplierOrder
               .map(forn => {
@@ -242,9 +244,11 @@ export default function TabelaDetalhes({
               })
               .filter(x => x.val !== Infinity)
               .sort((a, b) => a.val - b.val);
-          ofertas.slice(0, topN).forEach(o => competitive.add(o.forn));
+          const itemSet = new Set();
+          ofertas.slice(0, topN).forEach(o => itemSet.add(o.forn));
+          competitiveByItem.set(item.idItem, itemSet);
       });
-      return competitive;
+      return competitiveByItem;
   })();
 
   const renderItemRow = (item, isPinnedRow) => {
@@ -452,7 +456,7 @@ export default function TabelaDetalhes({
                   {editandoItem === `${item.idItem}-qtd` ? (
                     <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
                   ) : (
-                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade}{(fracoesPorProduto[item.idItem] || 1) > 1 && isComparativo && mostrarFracao ? <> × {fracoesPorProduto[item.idItem]} = {item.quantidade * fracoesPorProduto[item.idItem]}</> : ''} un</span>
+                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
                   )}
                 </td>
               );
@@ -478,7 +482,7 @@ export default function TabelaDetalhes({
               return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
           })()}
 
-          {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || fornecedoresCompetitivos.has(f))).map((f) => {
+          {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || (fornecedoresCompetitivos.get(item.idItem)?.has(f) ?? true))).map((f) => {
             
             const rank = rankMap[f];
             const isWinner = displayWinner === f;
@@ -728,9 +732,7 @@ export default function TabelaDetalhes({
                         e.stopPropagation();
                         const isTroca = substituto && (isTrocaAceita || isEmFaltaOriginal);
                         const nomeFinal = isTroca ? substituto : item.nomeProduto;
-                        const fracaoProduto = isComparativo && mostrarFracao ? (fracoesPorProduto[item.idItem] || 1) : 1;
-                        const qtdBase = isTroca ? qtdSubstituto : item.quantidade;
-                        const qtdFinal = fracaoProduto > 1 ? qtdBase * fracaoProduto : qtdBase;
+                        const qtdFinal = isTroca ? qtdSubstituto : item.quantidade;
                         const condicoesPassadas = isTroca ? condsArrSubst : condsArr;
                         let precoBase = isTroca ? precoSubstituto : precoOriginal;
                         
@@ -882,7 +884,7 @@ export default function TabelaDetalhes({
                   );
               })()}
               
-              {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || fornecedoresCompetitivos.has(f))).map((f) => {
+              {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true) && (!fornecedoresCompetitivos || [...fornecedoresCompetitivos.values()].some(s => s.has(f)))).map((f) => {
                   const isPinned = pinnedSuppliers.includes(f);
                   const leftPos = getLeftOffset(f, 'supplier');
 
