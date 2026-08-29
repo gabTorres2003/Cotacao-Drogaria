@@ -153,19 +153,7 @@ export default function TabelaDetalhes({
     const chave = `${itemId}-${fornecedor}`;
     if (desconsiderar) novaFracaoDesconsiderada[chave] = true;
     else delete novaFracaoDesconsiderada[chave];
-
     setFracaoDesconsiderada(novaFracaoDesconsiderada);
-
-    const item = relatorioExibicao.find(relatorioItem => relatorioItem.idItem === itemId);
-    if (!item || !setDecisaoCompra) return;
-    const ofertasValidas = calcularOfertasValidas(item, novaFracaoDesconsiderada);
-    const melhorFornecedor = ofertasValidas[0]?.forn;
-    setDecisaoCompra(prev => {
-      const proximaDecisao = { ...prev };
-      if (melhorFornecedor) proximaDecisao[itemId] = melhorFornecedor;
-      else delete proximaDecisao[itemId];
-      return proximaDecisao;
-    });
   };
 
   useEffect(() => {
