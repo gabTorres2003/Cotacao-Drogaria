@@ -110,6 +110,23 @@ export function useCotacaoDados(id) {
     }
   };
 
+  const calcularMelhorFornecedor = (item) => {
+    if (!item || !item.precosPorFornecedor) return null;
+
+    let melhorPreco = Number.POSITIVE_INFINITY;
+    let melhorFornecedor = null;
+
+    Object.entries(item.precosPorFornecedor).forEach(([nomeFornecedor, preco]) => {
+      const valor = Number(preco);
+      if (valor > 0 && valor < melhorPreco) {
+        melhorPreco = valor;
+        melhorFornecedor = nomeFornecedor;
+      }
+    });
+
+    return melhorFornecedor;
+  };
+
   const carregarRelatorio = async () => {
     setLoading(true);
     try {
@@ -128,8 +145,10 @@ export function useCotacaoDados(id) {
         if (item.precosPorFornecedor) {
           Object.keys(item.precosPorFornecedor).forEach((n) => nomes.add(n));
         }
-        if (item.fornecedorVencedor && item.fornecedorVencedor !== 'Sem ofertas') {
-          decisaoInicial[item.idItem] = item.fornecedorVencedor;
+
+        const melhorFornecedor = calcularMelhorFornecedor(item);
+        if (melhorFornecedor) {
+          decisaoInicial[item.idItem] = melhorFornecedor;
         }
       });
 
