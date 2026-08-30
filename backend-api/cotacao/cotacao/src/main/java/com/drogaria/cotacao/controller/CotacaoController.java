@@ -231,6 +231,27 @@ public class CotacaoController {
         }
     }
 
+    @PutMapping("/fracoes/confirmar")
+    public ResponseEntity<?> confirmarFracoes(@RequestBody com.drogaria.cotacao.dto.request.ConfirmarFracaoDTO dto) {
+        try {
+            int alterados = 0;
+            for (com.drogaria.cotacao.dto.request.ConfirmarFracaoDTO.ItemFracaoDTO item : dto.getItens()) {
+                var precoOpt = precoCotacaoRepository.findById(item.getIdPreco());
+                if (precoOpt.isEmpty()) continue;
+                var preco = precoOpt.get();
+                if (preco.getPrecoOriginal() == null) {
+                    preco.setPrecoOriginal(preco.getPrecoOfertado());
+                }
+                preco.setPrecoOfertado(item.getNovoPreco());
+                precoCotacaoRepository.save(preco);
+                alterados++;
+            }
+            return ResponseEntity.ok(Map.of("alterados", alterados));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erro ao confirmar frações: " + e.getMessage());
+        }
+    }
+
     @DeleteMapping("/item/{idItem}")
     public ResponseEntity<Void> removerItem(@PathVariable Long idItem) {
         try {

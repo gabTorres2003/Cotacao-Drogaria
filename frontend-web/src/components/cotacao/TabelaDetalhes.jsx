@@ -26,7 +26,7 @@ export default function TabelaDetalhes({
   mostrarComImposto, impostoPctPorNome,
   editandoResposta, formEdicaoResposta, setFormEdicaoResposta,
   iniciarEdicaoResposta, cancelarEdicaoResposta, salvarEdicaoResposta,
-  itensExcluidosLocal, retornarItem
+  itensExcluidosLocal, retornarItem, onConfirmarFracoes
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
@@ -127,7 +127,7 @@ export default function TabelaDetalhes({
 
   const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
     return supplierOrder.map(forn => {
-      const pOraw = item.precosPorFornecedor?.[forn] || 0;
+      const pOraw = item.precoOriginalPorFornecedor?.[forn] || item.precosPorFornecedor?.[forn] || 0;
       const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
       const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
       const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
@@ -160,8 +160,15 @@ export default function TabelaDetalhes({
     setFracaoDesconsiderada(novaFracaoDesconsiderada);
   };
 
-  const confirmarFracao = () => {
-    setFracoesConfirmadas({ ...fracoesPorProduto });
+  const confirmarFracao = async () => {
+    if (onConfirmarFracoes) {
+      const sucesso = await onConfirmarFracoes(fracoesPorProduto, fracaoDesconsiderada);
+      if (sucesso) {
+        setFracoesConfirmadas({ ...fracoesPorProduto });
+      }
+    } else {
+      setFracoesConfirmadas({ ...fracoesPorProduto });
+    }
   };
 
   useEffect(() => {
@@ -452,8 +459,10 @@ export default function TabelaDetalhes({
             const isWinner = displayWinner === f;
             const isOfertaVisivel = !fornecedoresCompetitivos || (fornecedoresCompetitivos.get(item.idItem)?.has(f) ?? false);
 
-            const precoOriginal = item.precosPorFornecedor?.[f] || 0;
-            const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginal;
+            const precoOriginalRaw = item.precosPorFornecedor?.[f] || 0;
+            const precoOriginalBanco = item.precoOriginalPorFornecedor?.[f] || precoOriginalRaw;
+            const precoOriginal = precoOriginalRaw;
+            const precoSubstituto = item.precosSubstitutosPorFornecedor?.[f] || precoOriginalRaw;
             const qtdSubstituto = item.qtdsSubstitutosPorFornecedor?.[f] || item.quantidade;
             const obs = item.observacoesPorFornecedor?.[f];
             const substituto = item.substitutosPorFornecedor?.[f];
@@ -470,15 +479,16 @@ export default function TabelaDetalhes({
             const isFracaoDesc = fracaoAtual > 1 && !!fracaoDesconsiderada[`${item.idItem}-${f}`];
             const aplicarFracao = (p) => {
               const f = fracoesConfirmadas[item.idItem] || 1;
-              return (f > 1 && !isFracaoDesc && p > 0) ? p / f : p;
+              const base = precoOriginalBanco > 0 ? precoOriginalBanco : p;
+              return (f > 1 && !isFracaoDesc && base > 0) ? base / f : p;
             };
             
             const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
             const isRecusado = valoresRecusados[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
 
-            if (precoBaseAlerta > 0 && precoOriginal > 0) {
-                const precoEfetivoDiscrepancia = (fracaoAtual > 1 && !isFracaoDesc) ? precoOriginal / fracaoAtual : precoOriginal;
+            if (precoBaseAlerta > 0 && precoOriginalBanco > 0) {
+                const precoEfetivoDiscrepancia = (fracaoAtual > 1 && !isFracaoDesc) ? precoOriginalBanco / fracaoAtual : precoOriginalBanco;
                 if (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5) {
                     isPrecoDiscrepante = true;
                 }

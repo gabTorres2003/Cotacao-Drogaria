@@ -123,6 +123,10 @@ public class ComparativoService {
 
                     linha.getPrecosPorFornecedor().put(nomeForn, oferta.getPrecoOfertado());
 
+                    if (oferta.getPrecoOriginal() != null) {
+                        linha.getPrecoOriginalPorFornecedor().put(nomeForn, oferta.getPrecoOriginal());
+                    }
+
                     if (oferta.getQuantidadeCondicao() != null && oferta.getPrecoCondicao() != null) {
                         linha.getQtdCondicaoPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicao());
                         linha.getPrecoCondicaoPorFornecedor().put(nomeForn, oferta.getPrecoCondicao());

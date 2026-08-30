@@ -20,6 +20,10 @@ public class PrecoCotacao {
     private Fornecedor fornecedor;
 
     private Double precoOfertado;
+
+    @Column(name = "preco_original")
+    private Double precoOriginal;
+
     private LocalDateTime dataResposta;
     private Integer quantidadeDisponivel;
 
@@ -64,6 +68,9 @@ public class PrecoCotacao {
 
     public Double getPrecoOfertado() { return precoOfertado; }
     public void setPrecoOfertado(Double precoOfertado) { this.precoOfertado = precoOfertado; }
+
+    public Double getPrecoOriginal() { return precoOriginal; }
+    public void setPrecoOriginal(Double precoOriginal) { this.precoOriginal = precoOriginal; }
 
     public LocalDateTime getDataResposta() { return dataResposta; }
     public void setDataResposta(LocalDateTime dataResposta) { this.dataResposta = dataResposta; }
