@@ -123,7 +123,7 @@ export default function TabelaDetalhes({
       window.addEventListener('resize', handler);
       updateBalloonPositions();
       return () => { window.removeEventListener('resize', handler); };
-  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
+  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
 
   const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
     return supplierOrder.map(forn => {
@@ -131,7 +131,7 @@ export default function TabelaDetalhes({
       const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
       const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
       const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
-      const fracao = fracoesConfirmadas[item.idItem] || 1;
+      const fracao = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
       const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
       const pOeff = (fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw;
       const pSeff = (fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw;
@@ -189,7 +189,7 @@ export default function TabelaDetalhes({
     if (Object.keys(updates).length > 0) {
       setDecisaoCompra(prev => ({ ...prev, ...updates }));
     }
-  }, [fracoesConfirmadas, fracaoDesconsiderada, mostrarComImposto, mostrarAlertasPreco, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
+  }, [fracoesPorProduto, fracoesConfirmadas, fracaoDesconsiderada, mostrarComImposto, mostrarAlertasPreco, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -475,10 +475,10 @@ export default function TabelaDetalhes({
             const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
             const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
             const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
-            const fracaoAtual = fracoesConfirmadas[item.idItem] || 1;
+            const fracaoAtual = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
             const isFracaoDesc = fracaoAtual > 1 && !!fracaoDesconsiderada[`${item.idItem}-${f}`];
             const aplicarFracao = (p) => {
-              const f = fracoesConfirmadas[item.idItem] || 1;
+              const f = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
               const base = precoOriginalBanco > 0 ? precoOriginalBanco : p;
               return (f > 1 && !isFracaoDesc && base > 0) ? base / f : p;
             };
