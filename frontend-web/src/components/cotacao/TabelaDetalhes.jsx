@@ -34,11 +34,15 @@ export default function TabelaDetalhes({
   const [fracoesPorProduto, setFracoesPorProduto] = useState(() => {
       try { return JSON.parse(localStorage.getItem('fracoesPorProduto') || '{}'); } catch { return {}; }
   });
+  const [fracoesConfirmadas, setFracoesConfirmadas] = useState(() => {
+      try { return JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}'); } catch { return {}; }
+  });
   const [impostoDesconsiderado, setImpostoDesconsiderado] = useState(() => {
       try { return JSON.parse(localStorage.getItem('impostoDesconsiderado') || '{}'); } catch { return {}; }
   });
 
   useEffect(() => { localStorage.setItem('fracoesPorProduto', JSON.stringify(fracoesPorProduto)); }, [fracoesPorProduto]);
+  useEffect(() => { localStorage.setItem('fracoesConfirmadas', JSON.stringify(fracoesConfirmadas)); }, [fracoesConfirmadas]);
   useEffect(() => { localStorage.setItem('impostoDesconsiderado', JSON.stringify(impostoDesconsiderado)); }, [impostoDesconsiderado]);
 
   const [mostrarFracao, setMostrarFracao] = useState(() => {
@@ -119,7 +123,7 @@ export default function TabelaDetalhes({
       window.addEventListener('resize', handler);
       updateBalloonPositions();
       return () => { window.removeEventListener('resize', handler); };
-  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
+  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
 
   const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
     return supplierOrder.map(forn => {
@@ -127,7 +131,7 @@ export default function TabelaDetalhes({
       const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
       const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
       const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
-      const fracao = fracoesPorProduto[item.idItem] || 1;
+      const fracao = fracoesConfirmadas[item.idItem] || 1;
       const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
       const pOeff = (fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw;
       const pSeff = (fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw;
@@ -156,6 +160,10 @@ export default function TabelaDetalhes({
     setFracaoDesconsiderada(novaFracaoDesconsiderada);
   };
 
+  const confirmarFracao = () => {
+    setFracoesConfirmadas({ ...fracoesPorProduto });
+  };
+
   useEffect(() => {
     if (!setDecisaoCompra || !isComparativo) return;
     const updates = {};
@@ -174,7 +182,7 @@ export default function TabelaDetalhes({
     if (Object.keys(updates).length > 0) {
       setDecisaoCompra(prev => ({ ...prev, ...updates }));
     }
-  }, [fracoesPorProduto, fracaoDesconsiderada, mostrarComImposto, mostrarAlertasPreco, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
+  }, [fracoesConfirmadas, fracaoDesconsiderada, mostrarComImposto, mostrarAlertasPreco, impostoDesconsiderado, impostoPctPorNome, relatorioExibicao, isComparativo, supplierOrder, valoresIrreais, valoresRecusados, setDecisaoCompra]);
 
   const toggleRowPin = (idItem) => setPinnedRows(prev => prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]);
   const togglePin = (f) => setPinnedSuppliers(prev => prev.includes(f) ? prev.filter(s => s !== f) : [...prev, f]);
@@ -458,10 +466,10 @@ export default function TabelaDetalhes({
             const ajustarPrecoExibicao = (p) => (pctImpostoForn > 0 && p > 0 ? p * (1 + pctImpostoForn / 100) : p);
             const precoOriginalAjustado = ajustarPrecoExibicao(precoOriginal);
             const precoSubstitutoAjustado = ajustarPrecoExibicao(precoSubstituto);
-            const fracaoAtual = fracoesPorProduto[item.idItem] || 1;
+            const fracaoAtual = fracoesConfirmadas[item.idItem] || 1;
             const isFracaoDesc = fracaoAtual > 1 && !!fracaoDesconsiderada[`${item.idItem}-${f}`];
             const aplicarFracao = (p) => {
-              const f = fracoesPorProduto[item.idItem] || 1;
+              const f = fracoesConfirmadas[item.idItem] || 1;
               return (f > 1 && !isFracaoDesc && p > 0) ? p / f : p;
             };
             
@@ -787,6 +795,22 @@ export default function TabelaDetalhes({
                   Adicionar Fração
               </label>
           )}
+
+          {isComparativo && mostrarFracao && (() => {
+              const temAlteracaoPendente = JSON.stringify(fracoesPorProduto) !== JSON.stringify(fracoesConfirmadas);
+              return (
+                  <button
+                      type="button"
+                      onClick={confirmarFracao}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: temAlteracaoPendente ? '#ffffff' : '#475569', fontWeight: 'bold', backgroundColor: temAlteracaoPendente ? '#7c3aed' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: temAlteracaoPendente ? '1px solid #6d28d9' : '1px solid #e2e8f0', userSelect: 'none' }}
+                      title={temAlteracaoPendente ? "Existem frações não confirmadas. Clique para confirmar e aplicar ao ranking e pedidos." : "Frações confirmadas. Alterações pendentes serão aplicadas ao clicar novamente."}
+                  >
+                      <Check size={14} color={temAlteracaoPendente ? '#ffffff' : '#9ca3af'} />
+                      Confirmar Frações
+                      {temAlteracaoPendente && <span style={{ fontSize: '10px', backgroundColor: '#ffffff', color: '#7c3aed', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>!</span>}
+                  </button>
+              );
+          })()}
       </div>
 
       <div ref={scrollContainerRef} style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', position: 'relative' }}>

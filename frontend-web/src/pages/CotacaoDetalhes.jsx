@@ -234,10 +234,15 @@ export default function CotacaoDetalhes() {
       if (prev[idItem] === fornecedorNome) {
         const itemRelatorio = relatorio.find(r => r.idItem === idItem);
         if (itemRelatorio) {
+          const fracoesSalvas = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+          const fracaoDesconsideradaSalva = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
           let menorPreco = Infinity;
           let melhorFornecedor = 'Sem ofertas';
           Object.entries(itemRelatorio.precosPorFornecedor || {}).forEach(([fNome, p]) => {
-            if (p > 0 && p < menorPreco) { menorPreco = p; melhorFornecedor = fNome; }
+            const fracao = fracoesSalvas[idItem] || 1;
+            const isFracaoDesc = fracao > 1 && fracaoDesconsideradaSalva[`${idItem}-${fNome}`];
+            const precoEfetivo = (fracao > 1 && !isFracaoDesc && p > 0) ? p / fracao : p;
+            if (precoEfetivo > 0 && precoEfetivo < menorPreco) { menorPreco = precoEfetivo; melhorFornecedor = fNome; }
           });
           if (fornecedorNome !== melhorFornecedor && melhorFornecedor !== 'Sem ofertas') {
             return { ...prev, [idItem]: melhorFornecedor };
@@ -263,10 +268,15 @@ export default function CotacaoDetalhes() {
       if (itemRelatorio) {
         const precoOriginal = itemRelatorio.precosPorFornecedor?.[fornecedorNome] || 0;
         if (!precoOriginal || precoOriginal <= 0) {
+          const fracoesTroca = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+          const fracaoDescTroca = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
           let menorPreco = Infinity;
           let vencedorOriginal = 'Sem ofertas';
           Object.entries(itemRelatorio.precosPorFornecedor || {}).forEach(([forn, p]) => {
-            if (p > 0 && p < menorPreco) { menorPreco = p; vencedorOriginal = forn; }
+            const fracaoT = fracoesTroca[idItem] || 1;
+            const isFracaoDescT = fracaoT > 1 && fracaoDescTroca[`${idItem}-${forn}`];
+            const precoEfT = (fracaoT > 1 && !isFracaoDescT && p > 0) ? p / fracaoT : p;
+            if (precoEfT > 0 && precoEfT < menorPreco) { menorPreco = precoEfT; vencedorOriginal = forn; }
           });
           setDecisaoCompra(prev => ({ ...prev, [idItem]: vencedorOriginal }));
         }
@@ -384,6 +394,15 @@ export default function CotacaoDetalhes() {
         }
       };
 
+      const fracoesSalvas = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+      const fracaoDesconsideradaSalva = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
+
+      const aplicarFracaoPreco = (precoOriginal, idItem, fornecedor) => {
+        const fracao = fracoesSalvas[idItem] || 1;
+        const isFracaoDesc = fracao > 1 && fracaoDesconsideradaSalva[`${idItem}-${fornecedor}`];
+        return (fracao > 1 && !isFracaoDesc && precoOriginal > 0) ? precoOriginal / fracao : precoOriginal;
+      };
+
       relatorioOrdenado.forEach(itemRelatorio => {
         const idItem = itemRelatorio.idItem;
         if (itensJaComprados[idItem]) return; 
@@ -437,11 +456,15 @@ export default function CotacaoDetalhes() {
               }
           }
 
+          const precoOriginalRef = preco;
+          preco = aplicarFracaoPreco(preco, idItem, vencedor);
+          precoFinal = aplicarFracaoPreco(precoFinal, idItem, vencedor);
+
           if (preco > 0) {
             initForn(vencedor);
             pedidosPorFornecedor[vencedor].itens.push({
               idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[vencedor],
-              quantidadePedida: qtd, valorUnitarioPedido: precoFinal, precoBase: preco, subtotal: qtd * precoFinal, isExtra: false, todosDadosItem: itemRelatorio,
+              quantidadePedida: qtd, valorUnitarioPedido: precoFinal, precoBase: precoOriginalRef, subtotal: qtd * precoFinal, isExtra: false, todosDadosItem: itemRelatorio,
               selected: true, condicoes: condsArr, qtdCondicao: qCAplicada, precoCondicao: pCAplicada, condicaoAplicada: condAplicada
             });
             pedidosPorFornecedor[vencedor].total += (qtd * precoFinal);
@@ -481,12 +504,16 @@ export default function CotacaoDetalhes() {
                   }
               }
 
+              const precoSubstOriginalRef = precoSubst;
+              precoSubst = aplicarFracaoPreco(precoSubst, idItem, forn);
+              precoFinalSubst = aplicarFracaoPreco(precoFinalSubst, idItem, forn);
+
               if (precoSubst > 0) {
                  initForn(forn);
                  pedidosPorFornecedor[forn].itens.push({
                    idItem, nomeProduto: getNomeRealSempre(nomeSubstForn), nomeOriginal: getNomeRealSempre(itemRelatorio.nomeProduto),
                    observacao: itemRelatorio.observacoesPorFornecedor?.[forn],
-                   quantidadePedida: qtdSubst, valorUnitarioPedido: precoFinalSubst, precoBase: precoSubst, subtotal: qtdSubst * precoFinalSubst,
+                   quantidadePedida: qtdSubst, valorUnitarioPedido: precoFinalSubst, precoBase: precoSubstOriginalRef, subtotal: qtdSubst * precoFinalSubst,
                    isExtra: true, isSugestaoTroca: true, todosDadosItem: itemRelatorio, selected: false,
                    condicoes: condsArrSubst, qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst
                  });
@@ -554,7 +581,13 @@ export default function CotacaoDetalhes() {
         pedDestino = { fornecedorNome: fornecedorDestino, itens: [], total: 0, acaoFornecedor: 'NOVO' };
         newState.push(pedDestino);
       }
-      let novoPreco = itemToMove.todosDadosItem?.precosPorFornecedor?.[fornecedorDestino] || 0;
+      const fracoesMover = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+      const fracaoDescMover = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
+      let novoPrecoRaw = itemToMove.todosDadosItem?.precosPorFornecedor?.[fornecedorDestino] || 0;
+      const idItemMover = itemToMove.idItem;
+      const fracaoM = fracoesMover[idItemMover] || 1;
+      const isFracaoDescM = fracaoM > 1 && fracaoDescMover[`${idItemMover}-${fornecedorDestino}`];
+      let novoPreco = (fracaoM > 1 && !isFracaoDescM && novoPrecoRaw > 0) ? novoPrecoRaw / fracaoM : novoPrecoRaw;
       if (novoPreco > 0) {
           itemToMove.valorUnitarioPedido = novoPreco; itemToMove.subtotal = itemToMove.quantidadePedida * novoPreco;
           itemToMove.condicaoAplicada = false;
@@ -571,9 +604,15 @@ export default function CotacaoDetalhes() {
   const irParaProximoMenorPreco = (fornecedorOrigem, indexItem) => {
     const pedOrigem = pedidosGerados.find(p => p.fornecedorNome === fornecedorOrigem);
     const precos = pedOrigem.itens[indexItem].todosDadosItem?.precosPorFornecedor || {};
+    const fracoesIr = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+    const fracaoDescIr = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
+    const idItemIr = pedOrigem.itens[indexItem].idItem;
     let menorPreco = Infinity, fornecedorVencedor = null;
     Object.entries(precos).forEach(([fNome, p]) => {
-      if (p > 0 && p < menorPreco && fNome !== fornecedorOrigem) { menorPreco = p; fornecedorVencedor = fNome; }
+      const fracaoIr = fracoesIr[idItemIr] || 1;
+      const isFracaoDescIr = fracaoIr > 1 && fracaoDescIr[`${idItemIr}-${fNome}`];
+      const precoEfIr = (fracaoIr > 1 && !isFracaoDescIr && p > 0) ? p / fracaoIr : p;
+      if (precoEfIr > 0 && precoEfIr < menorPreco && fNome !== fornecedorOrigem) { menorPreco = precoEfIr; fornecedorVencedor = fNome; }
     });
     if (fornecedorVencedor) moverItemParaFornecedor(fornecedorOrigem, indexItem, fornecedorVencedor);
     else alert('Não há outro fornecedor com preço cadastrado e disponível para este produto.');
@@ -778,6 +817,14 @@ export default function CotacaoDetalhes() {
       const pedObj = pedidosAbertosList.find(p => String(p.id) === String(addPedidoForm.pedidoId));
       const fornecedor = pedObj.fornecedor?.nome || pedObj.fornecedorNome || pedObj.fornecedor?.empresa;
 
+      const fracoesSalvasAdd = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+      const fracaoDesconsideradaSalvaAdd = JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
+      const aplicarFracaoPrecoAdd = (precoOriginal, idItem, forn) => {
+        const fracao = fracoesSalvasAdd[idItem] || 1;
+        const isFracaoDesc = fracao > 1 && fracaoDesconsideradaSalvaAdd[`${idItem}-${forn}`];
+        return (fracao > 1 && !isFracaoDesc && precoOriginal > 0) ? precoOriginal / fracao : precoOriginal;
+      };
+
       if (addPedidoModo === 'UNICO') {
           if (!addPedidoForm.qtd || !addPedidoForm.valor) return alert("Preencha quantidade e valor.");
           await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
@@ -841,6 +888,9 @@ export default function CotacaoDetalhes() {
                      }
                  }
              }
+
+             preco = aplicarFracaoPrecoAdd(preco, i.idItem, fornecedorTargetToModal);
+             precoFinal = aplicarFracaoPrecoAdd(precoFinal, i.idItem, fornecedorTargetToModal);
 
              if (preco > 0) {
                 await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
