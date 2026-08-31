@@ -19,6 +19,5 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findAll();
 
     @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens", "itens.itemCotacao", "sugestoes"})
-    @Query("SELECT p FROM Pedido p WHERE p.status IN :statuses ORDER BY p.dataCriacao DESC")
-    List<Pedido> findByStatusesIn(@Param("statuses") List<StatusPedido> statuses);
+    List<Pedido> findByStatusInOrderByDataCriacaoDesc(@Param("status") List<StatusPedido> status);
 }

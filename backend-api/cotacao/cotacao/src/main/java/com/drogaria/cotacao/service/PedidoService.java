@@ -57,7 +57,7 @@ public class PedidoService {
         List<StatusPedido> enumStatuses = statuses.stream()
                 .map(StatusPedido::valueOf)
                 .toList();
-        return pedidoRepository.findByStatusesIn(enumStatuses);
+        return pedidoRepository.findByStatusInOrderByDataCriacaoDesc(enumStatuses);
     }
 
     public Pedido buscarPorId(Long id) {
