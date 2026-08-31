@@ -8,6 +8,7 @@ import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDo
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
+  const [pedidosCache, setPedidosCache] = useState({})
   const [loading, setLoading] = useState(true)
   
   const [modalDevolucaoAberto, setModalDevolucaoAberto] = useState(false)
@@ -50,7 +51,7 @@ export default function Pedidos() {
   }, []);
 
   useEffect(() => {
-    carregarPedidosAba(abaAtiva, true);
+    carregarPedidosAba(abaAtiva);
   }, [abaAtiva])
 
   const getStatusParaAba = (aba) => {
@@ -64,6 +65,11 @@ export default function Pedidos() {
   };
 
   const carregarPedidosAba = async (aba, forceReload = false) => {
+    if (!forceReload && pedidosCache[aba]) {
+      setPedidos(pedidosCache[aba]);
+      setLoading(false);
+      return;
+    }
     setLoading(true);
     try {
       const statuses = getStatusParaAba(aba);
@@ -71,6 +77,7 @@ export default function Pedidos() {
       const response = await api.get(`/api/pedidos/filtrar`, { params: { statuses: params } });
       const data = response.data || [];
       setPedidos(data);
+      setPedidosCache(prev => ({ ...prev, [aba]: data }));
     } catch (error) {
       console.error('Erro ao carregar pedidos:', error);
       setPedidos([]);
