@@ -526,8 +526,8 @@ export default function TabelaDetalhes({
                       setContextMenu({ x: e.clientX, y: e.clientY, itemId: item.idItem, fornecedor: f, preco: precoOriginal });
                     }
                   }}
-                  data-balloon={isOfertaVisivel && ((isWinner && !isIrreal) ? 'true' : (rank > 0 && !isWinner && !isIrreal ? 'true' : undefined))}
-                  data-balloon-label={isOfertaVisivel && ((isWinner && !isIrreal) ? 'VENCEDOR' : (rank > 0 && !isWinner && !isIrreal ? `${rank}º LUGAR` : undefined))}
+                  data-balloon={isOfertaVisivel && !isIrreal && (isWinner || rank > 0) ? 'true' : undefined}
+                  data-balloon-label={isOfertaVisivel && !isIrreal ? (isWinner ? 'VENCEDOR' : (rank > 0 ? `${rank}º LUGAR` : undefined)) : undefined}
                   data-balloon-color={(isWinner && !isIrreal) ? '#10b981' : (rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')))}
                   data-balloon-textcolor={(isWinner && !isIrreal) ? 'white' : (rank <= 3 ? 'white' : '#713f12')}
                   data-balloon-border={(isWinner && !isIrreal) ? '#059669' : (rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15')))}

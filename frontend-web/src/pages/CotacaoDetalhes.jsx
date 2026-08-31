@@ -988,7 +988,15 @@ export default function CotacaoDetalhes() {
     topNBtn: (ativo) => ({ padding: '6px 12px', borderRadius: '6px', border: ativo ? 'none' : '1px solid #cbd5e1', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#475569', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', boxShadow: ativo ? '0 2px 4px rgba(37,99,235,0.2)' : 'none' })
   };
 
-  if (loading) return <div style={styles.container}><p>Carregando dados...</p></div>;
+  if (loading) return (
+    <div style={styles.container}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px' }}>
+        <Loader2 size={40} color="#4f46e5" className="animate-spin" />
+        <div style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>Carregando cotação...</div>
+        <div style={{ fontSize: '13px', color: '#6b7280' }}>Aguarde enquanto os dados são preparados</div>
+      </div>
+    </div>
+  );
 
   return (
     <div style={styles.container}>
