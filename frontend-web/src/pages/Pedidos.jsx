@@ -73,8 +73,8 @@ export default function Pedidos() {
     setLoading(true);
     try {
       const statuses = getStatusParaAba(aba);
-      const params = statuses.join(',');
-      const response = await api.get(`/api/pedidos/filtrar`, { params: { statuses: params } });
+      const queryString = statuses.map(s => `statuses=${encodeURIComponent(s)}`).join('&');
+      const response = await api.get(`/api/pedidos/filtrar?${queryString}`);
       const data = response.data || [];
       setPedidos(data);
       setPedidosCache(prev => ({ ...prev, [aba]: data }));
