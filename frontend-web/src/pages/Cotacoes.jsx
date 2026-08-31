@@ -118,12 +118,12 @@ export default function Cotacoes() {
   const qtdSelecionadas = Object.keys(selecionadas).length;
 
   const excluirSelecionadas = async () => {
-    const ids = Object.keys(selecionadas);
+    const ids = Object.keys(selecionadas).map(Number);
     if (ids.length === 0) return;
     if (!window.confirm(`Tem certeza que deseja excluir ${ids.length} cotação(ões) permanentemente?`)) return;
     setExcluindoEmMassa(true);
     try {
-      await Promise.all(ids.map(id => api.delete(`/api/cotacao/${id}`)));
+      await api.delete('/api/cotacao/lote', { data: { ids } });
       setSelecionadas({});
       carregarCotacoes();
     } catch (error) {

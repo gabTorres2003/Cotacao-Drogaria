@@ -276,6 +276,24 @@ public class CotacaoController {
         }
     }
 
+    @DeleteMapping("/lote")
+    public ResponseEntity<?> deletarCotacoesEmMassa(@RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.get("ids");
+        if (ids == null || ids.isEmpty()) {
+            return ResponseEntity.badRequest().body("Nenhum ID informado.");
+        }
+        try {
+            int excluidas = cotacaoService.deletarCotacoesEmMassa(ids);
+            return ResponseEntity.ok(Map.of("excluidas", excluidas));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Algumas cotações possuem pedidos vinculados e não puderam ser excluídas.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Erro interno ao excluir cotações em lote.");
+        }
+    }
+
     @GetMapping("/sugestoes/{idCotacao}")
     public ResponseEntity<List<SugestaoPromocaoResponseDTO>> listarSugestoes(@PathVariable Long idCotacao) {
         return ResponseEntity.ok(comparativoService.listarSugestoesDaCotacao(idCotacao));

@@ -251,4 +251,30 @@ public class CotacaoService {
 
         cotacaoRepository.deleteById(id);
     }
+
+    @Transactional
+    public int deletarCotacoesEmMassa(List<Long> ids) {
+        int excluidas = 0;
+        for (Long id : ids) {
+            if (!cotacaoRepository.existsById(id)) {
+                continue;
+            }
+
+            entityManager.createNativeQuery("UPDATE tb_pedidos SET cotacao_id = NULL WHERE cotacao_id = :id")
+                         .setParameter("id", id)
+                         .executeUpdate();
+
+            entityManager.createNativeQuery("UPDATE tb_itens_pedido SET item_cotacao_id = NULL WHERE item_cotacao_id IN (SELECT id FROM tb_itens_cotacao WHERE cotacao_id = :id)")
+                         .setParameter("id", id)
+                         .executeUpdate();
+
+            entityManager.createNativeQuery("DELETE FROM tb_sugestoes_promocao WHERE cotacao_id = :id")
+                         .setParameter("id", id)
+                         .executeUpdate();
+
+            cotacaoRepository.deleteById(id);
+            excluidas++;
+        }
+        return excluidas;
+    }
 }
