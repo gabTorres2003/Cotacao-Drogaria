@@ -27,18 +27,6 @@ export default function PedidoConferencia() {
     carregarPedido();
   }, [id]);
 
-  useEffect(() => {
-    if (itensFaltantes.length > 0 && cotacoesAtivas.length === 0) {
-      api.get('/api/cotacao')
-        .then(res => {
-          const ativas = (Array.isArray(res.data) ? res.data : [])
-            .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
-          setCotacoesAtivas(ativas);
-        })
-        .catch(() => {});
-    }
-  }, [itensFaltantes.length]);
-
   const carregarPedido = async () => {
     try {
       const response = await api.get(`/api/pedidos/${id}`);
@@ -164,6 +152,18 @@ export default function PedidoConferencia() {
     () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido && !c.foiCobrado),
     [conferencia]
   );
+
+  useEffect(() => {
+    if (itensFaltantes.length > 0 && cotacoesAtivas.length === 0) {
+      api.get('/api/cotacao')
+        .then(res => {
+          const ativas = (Array.isArray(res.data) ? res.data : [])
+            .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
+          setCotacoesAtivas(ativas);
+        })
+        .catch(() => {});
+    }
+  }, [itensFaltantes.length]);
 
   const toggleSelecaoEnvio = (idItem) => {
     setItensSelecionadosEnvio(prev =>
