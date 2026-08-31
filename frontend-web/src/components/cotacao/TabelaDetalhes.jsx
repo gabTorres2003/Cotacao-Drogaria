@@ -127,12 +127,14 @@ export default function TabelaDetalhes({
 
   const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
     return supplierOrder.map(forn => {
-      const pOraw = item.precoOriginalPorFornecedor?.[forn] || item.precosPorFornecedor?.[forn] || 0;
+      const fracao = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
+      const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
+      const precoOriginalBanco = item.precoOriginalPorFornecedor?.[forn];
+      const precoEfetivoBanco = item.precosPorFornecedor?.[forn] || 0;
+      const pOraw = (fracao > 1 && precoOriginalBanco > 0) ? precoOriginalBanco : precoEfetivoBanco;
       const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
       const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
       const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
-      const fracao = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
-      const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
       const pOeff = (fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw;
       const pSeff = (fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw;
       const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
@@ -487,9 +489,14 @@ export default function TabelaDetalhes({
             const isRecusado = valoresRecusados[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
 
-            if (precoBaseAlerta > 0 && precoOriginalBanco > 0) {
-                const precoEfetivoDiscrepancia = (fracaoAtual > 1 && !isFracaoDesc) ? precoOriginalBanco / fracaoAtual : precoOriginalBanco;
-                if (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5) {
+            if (precoBaseAlerta > 0) {
+                let precoEfetivoDiscrepancia;
+                if (fracaoAtual > 1 && !isFracaoDesc && precoOriginalBanco > 0) {
+                    precoEfetivoDiscrepancia = precoOriginalBanco / fracaoAtual;
+                } else {
+                    precoEfetivoDiscrepancia = precoOriginalRaw;
+                }
+                if (precoEfetivoDiscrepancia > 0 && (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5)) {
                     isPrecoDiscrepante = true;
                 }
             }

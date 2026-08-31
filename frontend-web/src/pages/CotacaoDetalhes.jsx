@@ -254,7 +254,6 @@ export default function CotacaoDetalhes() {
 
     const itens = Object.values(fracoesParaConfirmar);
     if (itens.length === 0) {
-      setFracoesConfirmadas({ ...fracoes });
       return true;
     }
 
@@ -268,7 +267,6 @@ export default function CotacaoDetalhes() {
 
     try {
       await api.put('/api/cotacao/fracoes/confirmar', { itens: itens.map(i => ({ idPreco: i.idPreco, novoPreco: i.novoPreco })) });
-      setFracoesConfirmadas({ ...fracoes });
       await carregarRelatorio();
       return true;
     } catch (error) {
