@@ -299,19 +299,31 @@ export default function TabelaDetalhes({
 
       let motivosExcesso = [];
 
-      // 1. Giro Zero no Mês (Estoque parado sem venda)
-      if (estoque > 0 && vendidoNoMes === 0) {
-          motivosExcesso.push(`Produto não teve vendas nos últimos 30 dias e ainda há estoque (${estoque} un).`);
+      const dataCompra = parseDateSafe(item.ultCompraData);
+      const dataVenda = parseDateSafe(item.ultVendaData);
+      const dataAtual = new Date();
+
+      // Calcular dias desde a última venda (mais preciso que apenas vendidoNoMes)
+      let diasDesdeUltimaVenda = null;
+      if (dataVenda) {
+          diasDesdeUltimaVenda = Math.max(0, Math.floor((dataAtual - dataVenda) / (1000 * 60 * 60 * 24)));
       }
 
-      const dataCompra = parseDateSafe(item.ultCompraData);
-      const dataAtual = new Date();
+      // 1. Giro Zero - Estoque parado sem venda
+      // Usar ultVendaData quando disponível para maior precisão (resolve problema no início do mês)
+      const produtoSemVenda = diasDesdeUltimaVenda !== null ? diasDesdeUltimaVenda > 30 : vendidoNoMes === 0;
+      if (estoque > 0 && produtoSemVenda) {
+          const infoDias = diasDesdeUltimaVenda !== null ? ` (última venda há ${diasDesdeUltimaVenda} dias)` : '';
+          motivosExcesso.push(`Produto sem venda recente e ainda há estoque (${estoque} un).${infoDias}`);
+      }
 
       if (dataCompra) {
           const diasDesdeCompra = Math.max(1, Math.floor((dataAtual - dataCompra) / (1000 * 60 * 60 * 24)));
 
           // 2. Compra Antiga sem giro (> 6 meses sem VENDA, não apenas sem compra)
-          if (diasDesdeCompra > 180 && vendidoNoMes === 0 && estoque > 0) {
+          // Usar ultVendaData quando disponível para maior precisão
+          const semVenda6Meses = diasDesdeUltimaVenda !== null ? diasDesdeUltimaVenda > 180 : (diasDesdeCompra > 180 && vendidoNoMes === 0);
+          if (semVenda6Meses && estoque > 0) {
               motivosExcesso.push(`A última compra foi realizada há mais de 6 meses (${fData(item.ultCompraData)}) e o produto não teve vendas recentes.`);
           }
 
@@ -332,7 +344,21 @@ export default function TabelaDetalhes({
       }
 
       // 5. Superestocagem Absoluta
-      const vendaDiaria = vendidoNoMes / 30;
+      // Usar dados mais precisos quando disponíveis (ultVendaData, vendidoAposUltCompra, diasDesdeCompra)
+      let vendaDiaria = vendidoNoMes / 30;
+      let fonteVendaDiaria = 'vendidoNoMes/30';
+      
+      // Se temos dados de compra e vendas pós-compra, usar para maior precisão
+      if (dataCompra && vendidoAposUltCompra > 0) {
+          const diasDesdeCompraCalc = Math.max(1, Math.floor((dataAtual - dataCompra) / (1000 * 60 * 60 * 24)));
+          const vendaDiariaPosCompra = vendidoAposUltCompra / diasDesdeCompraCalc;
+          // Usar a média pós-compra se for mais representativa
+          if (vendaDiariaPosCompra > 0) {
+              vendaDiaria = vendaDiariaPosCompra;
+              fonteVendaDiaria = 'vendidosAposUltCompra/diasDesdeCompra';
+          }
+      }
+      
       if (vendaDiaria > 0.01 && qtdPedida > 0) {
           const diasCobertura = Math.round((estoque + qtdPedida) / vendaDiaria);
           if (diasCobertura > 90) {
@@ -342,7 +368,9 @@ export default function TabelaDetalhes({
               }
           }
       } else if (vendaDiaria <= 0.01 && qtdPedida > 0 && estoque === 0) {
-          motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto com vendas muito baixas ou sem venda nos últimos 30 dias.`);
+          // Usar ultVendaData quando disponível para mensagem mais precisa
+          const infoVenda = diasDesdeUltimaVenda !== null ? ` (última venda há ${diasDesdeUltimaVenda} dias)` : ' nos últimos 30 dias';
+          motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto com vendas muito baixas ou sem venda${infoVenda}.`);
       }
 
       const temRiscoExcesso = motivosExcesso.length > 0;
