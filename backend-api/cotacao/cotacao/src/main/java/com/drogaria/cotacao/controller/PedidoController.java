@@ -68,9 +68,16 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.buscarPorFornecedorId(fornecedorId));
     }
 
+    @GetMapping("/pendentes/fornecedor/{fornecedorId}")
+    public ResponseEntity<List<Pedido>> buscarPendentesPorFornecedorId(@PathVariable Long fornecedorId) {
+        return ResponseEntity.ok(pedidoService.buscarPendentesPorFornecedorId(fornecedorId));
+    }
+
     @GetMapping("/cotacao/{cotacaoId}/itens-pendentes")
-    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesDaCotacao(@PathVariable Long cotacaoId) {
-        return ResponseEntity.ok(pedidoService.buscarItensPendentesPorCotacao(cotacaoId));
+    public ResponseEntity<List<Map<String, Object>>> buscarItensPendentesDaCotacao(
+            @PathVariable Long cotacaoId,
+            @RequestParam(required = false) Long fornecedorId) {
+        return ResponseEntity.ok(pedidoService.buscarItensPendentesPorCotacao(cotacaoId, fornecedorId));
     }
 
     @PostMapping("/gerar")
@@ -107,6 +114,11 @@ public class PedidoController {
         );
 
         return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PostMapping("/{id}/itens/lote")
+    public ResponseEntity<Pedido> adicionarItensEmLote(@PathVariable Long id, @RequestBody List<ItemPedido> novosItens) {
+        return ResponseEntity.ok(pedidoService.adicionarItensManuais(id, novosItens));
     }
 
     @PutMapping("/{id}/itens/{idItemAntigo}/trocar")

@@ -145,7 +145,7 @@ export default function CotacaoDetalhes() {
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
-         const res = await api.get('/api/pedidos');
+         const res = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
          // NOVA REGRA: Busca todos os pedidos do sistema que estejam aguardando
          const abertosSistema = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
          setPedidosAbertosList(abertosSistema);
@@ -421,7 +421,7 @@ export default function CotacaoDetalhes() {
 
   const mapearDuplicatas = async () => {
     try {
-      const response = await api.get('/api/pedidos');
+      const response = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
       const pendentes = (Array.isArray(response.data) ? response.data : []).filter(p => p.status === 'PENDENTE_ENTREGA' && (p.cotacao?.id !== Number(id) && p.cotacaoId !== Number(id)));
       const mapa = {};
       pendentes.forEach(p => {
@@ -439,7 +439,7 @@ export default function CotacaoDetalhes() {
 
   const handleGerarPedidos = async () => {
     setIsProcessandoPedidos(true);
-    setTimeout(async () => {
+    try {
       const pedidosPorFornecedor = {};
       
       const initForn = (fName) => {
@@ -624,7 +624,10 @@ export default function CotacaoDetalhes() {
       setPedidosGerados(pedidosArray);
       setShowModal(true);
       setIsProcessandoPedidos(false);
-    }, 100);
+    } catch (error) {
+      setIsProcessandoPedidos(false);
+      alert(`Erro ao preparar pedidos: ${error.response?.data?.message || error.message}`);
+    }
   };
 
   const moverItemParaFornecedor = (fornecedorOrigem, indexItem, fornecedorDestino) => {
@@ -809,23 +812,25 @@ export default function CotacaoDetalhes() {
                 }))
             });
         } else {
-            for (const item of itensSelecionados) {
-                await api.post(`/api/pedidos/${pedido.acaoFornecedor}/itens`, {
-                    nomeProduto: item.nomeProduto,
-                    quantidadePedida: item.quantidadePedida,
-                    valorUnitarioPedido: item.valorUnitarioPedido,
-                    itemCotacao: item.idItem ? { id: item.idItem } : null,
-                    condicaoAplicada: item.condicaoAplicada || false,
-                    qtdCondicao: item.qtdCondicao || null,
-                    precoCondicao: item.precoCondicao || null,
-                    reatribuicaoExplicita: !!item.reatribuicaoExplicita
-                });
-            }
+            await api.post(`/api/pedidos/${pedido.acaoFornecedor}/itens/lote`, itensSelecionados.map(item => ({
+                      nomeProduto: item.nomeProduto,
+                      quantidadePedida: item.quantidadePedida,
+                      valorUnitarioPedido: item.valorUnitarioPedido,
+                      itemCotacao: item.idItem ? { id: item.idItem } : null,
+                      condicaoAplicada: item.condicaoAplicada || false,
+                      qtdCondicao: item.qtdCondicao || null,
+                      precoCondicao: item.precoCondicao || null,
+                      reatribuicaoExplicita: !!item.reatribuicaoExplicita
+                  })));
         }
       }
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
       alert('Pedidos processados e gerados/atualizados com sucesso!');
       setShowModal(false);
+      await carregarRelatorio();
+      await carregarPedidosDaCotacao();
+      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+      setPedidosAbertosList(Array.isArray(pedidosAtualizados.data) ? pedidosAtualizados.data : []);
     } catch (error) { 
       alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || error.message || 'Erro de conexão com servidor'}`); 
     } finally { 
@@ -859,21 +864,30 @@ export default function CotacaoDetalhes() {
     setModalAddPedidoAberto(true);
 
     try {
-      const res = await api.get('/api/pedidos');
-      // NOVA REGRA: Busca todos os pedidos do sistema que estejam aguardando
-      const todosAbertos = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
-      setPedidosAbertosList(todosAbertos);
+      const idFornecedor = fornecedorTarget ? resolverFornecedorId(fornecedorTarget) : null;
+      const url = idFornecedor
+        ? `/api/pedidos/pendentes/fornecedor/${idFornecedor}`
+        : '/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA';
+      const res = await api.get(url);
+      const todosAbertos = Array.isArray(res.data) ? res.data : [];
+      setPedidosAbertosList(prev => {
+        if (!idFornecedor) return todosAbertos;
+        const outros = prev.filter(p => p.fornecedor?.id !== idFornecedor);
+        return [...outros, ...todosAbertos];
+      });
 
       let defaultPedidoId = '';
       if (fornecedorTarget) {
-        const doForn = pedidosCompativeisFornecedor(fornecedorTarget);
+        const doForn = todosAbertos.filter(p => setorCompativel(p.cotacao?.setor, setorCotacao));
         if (doForn.length > 0) {
           defaultPedidoId = String(doForn[0].id);
         }
       }
 
       setAddPedidoForm(prev => ({ ...prev, pedidoId: defaultPedidoId }));
-    } catch (e) {}
+    } catch (e) {
+      alert('Erro ao carregar pedidos pendentes do fornecedor.');
+    }
   };
 
   const confirmarAddPedido = async () => {
@@ -896,7 +910,7 @@ export default function CotacaoDetalhes() {
       };
 
       if (addPedidoModo === 'UNICO') {
-          if (!addPedidoForm.qtd || !addPedidoForm.valor) return alert("Preencha quantidade e valor.");
+          if (!addPedidoForm.qtd || (!addPedidoForm.valor && !itemAddPedido.idItem)) return alert("Preencha quantidade e valor.");
           await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
             nomeProduto: getNomeRealSempre(itemAddPedido.nomeProduto),
             quantidadePedida: Number(addPedidoForm.qtd),
@@ -977,7 +991,10 @@ export default function CotacaoDetalhes() {
 
       alert('Produto(s) injetado(s) no pedido com sucesso!');
       setModalAddPedidoAberto(false);
-      carregarPedido();
+      await carregarRelatorio();
+      await carregarPedidosDaCotacao();
+      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+      setPedidosAbertosList(Array.isArray(pedidosAtualizados.data) ? pedidosAtualizados.data : []);
     } catch(e) {
       alert('Erro ao adicionar produto: ' + (e.response?.data?.message || e.message));
     } finally {

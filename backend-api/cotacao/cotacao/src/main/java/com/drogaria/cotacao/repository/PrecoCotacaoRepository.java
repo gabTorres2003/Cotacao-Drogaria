@@ -37,6 +37,7 @@ public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long
     List<PrecoCotacao> findHistoricoEmLote(@Param("nomesProdutos") List<String> nomesProdutos);
 
     List<PrecoCotacao> findByItem_Cotacao_IdAndFornecedorId(Long cotacaoId, Long fornecedorId);
+    List<PrecoCotacao> findByItemIdAndFornecedorId(Long itemId, Long fornecedorId);
 
     @Query("SELECT COUNT(p) > 0 FROM PrecoCotacao p " +
            "WHERE p.fornecedor.id = :fornecedorId AND p.item.id = :itemId")

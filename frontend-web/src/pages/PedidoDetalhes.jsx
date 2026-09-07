@@ -326,7 +326,7 @@ export default function PedidoDetalhes() {
         if (pedido?.cotacao?.id) {
             setTipoAdicao('COTACAO');
             try { 
-                const res = await api.get(`/api/pedidos/cotacao/${pedido.cotacao.id}/itens-pendentes`); 
+                const res = await api.get(`/api/pedidos/cotacao/${pedido.cotacao.id}/itens-pendentes?fornecedorId=${pedido.fornecedor?.id || ''}`);
                 setItensPendentes(res.data || []); 
             } 
             catch (error) { console.error("Erro ao buscar itens pendentes:", error); }
@@ -340,7 +340,7 @@ export default function PedidoDetalhes() {
         const val = e.target.value;
         if (!val) { setNovoItem({ nomeProduto: '', quantidadePedida: 1, valorUnitarioPedido: '', itemCotacaoId: null }); return; }
         const itemSel = itensPendentes.find(i => String(i.idItem) === String(val));
-        if (itemSel) { setNovoItem({ nomeProduto: itemSel.nomeProduto, quantidadePedida: itemSel.quantidade || 1, valorUnitarioPedido: '', itemCotacaoId: itemSel.idItem }); }
+        if (itemSel) { setNovoItem({ nomeProduto: itemSel.nomeProduto, quantidadePedida: itemSel.quantidade || 1, valorUnitarioPedido: itemSel.precoFornecedor || '', itemCotacaoId: itemSel.idItem }); }
     };
 
     const handleBuscarDna = async () => {
@@ -350,7 +350,7 @@ export default function PedidoDetalhes() {
     };
 
     const handleSalvarNovoItem = async () => {
-        if (!novoItem.nomeProduto || !novoItem.quantidadePedida || !novoItem.valorUnitarioPedido) return alert('Preencha todos os campos do produto.');
+        if (!novoItem.nomeProduto || !novoItem.quantidadePedida || (!novoItem.valorUnitarioPedido && !novoItem.itemCotacaoId)) return alert('Preencha todos os campos do produto.');
         setSalvandoItem(true);
         try {
             const payload = { nomeProduto: novoItem.nomeProduto, quantidadePedida: Number(novoItem.quantidadePedida), valorUnitarioPedido: Number(novoItem.valorUnitarioPedido), itemCotacao: novoItem.itemCotacaoId ? { id: novoItem.itemCotacaoId } : null };

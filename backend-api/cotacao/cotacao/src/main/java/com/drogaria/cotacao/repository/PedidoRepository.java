@@ -15,6 +15,9 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByFornecedorId(Long fornecedorId);
     List<Pedido> findByCotacaoId(Long cotacaoId);
 
+    @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens", "itens.itemCotacao"})
+    List<Pedido> findByFornecedorIdAndStatusOrderByIdDesc(Long fornecedorId, StatusPedido status);
+
     @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens"})
     List<Pedido> findAll();
 

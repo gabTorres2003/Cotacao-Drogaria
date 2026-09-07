@@ -405,6 +405,10 @@ public class PedidoService {
         return pedidoRepository.findByFornecedorId(fornecedorId);
     }
 
+    public List<Pedido> buscarPendentesPorFornecedorId(Long fornecedorId) {
+        return pedidoRepository.findByFornecedorIdAndStatusOrderByIdDesc(fornecedorId, StatusPedido.PENDENTE_ENTREGA);
+    }
+
     @Transactional
     public Pedido adicionarItemManual(Long pedidoId, ItemPedido novoItem) {
         Pedido pedido = pedidoRepository.findById(pedidoId)
@@ -439,6 +443,8 @@ public class PedidoService {
                     throw new RuntimeException("Categoria incompatível: este produto (cotação " + setorItem + ") não pode ser incluído em um pedido da categoria " + setorPedido + ".");
                 }
             }
+
+            preencherPrecoRespondidoSeNecessario(novoItem, pedido, ic);
         }
 
         novoItem.setPedido(pedido);
@@ -453,6 +459,57 @@ public class PedidoService {
                 
         pedido.setValorTotalPedido(total);
         return pedidoRepository.save(pedido);
+    }
+
+    @Transactional
+    public Pedido adicionarItensManuais(Long pedidoId, List<ItemPedido> novosItens) {
+        Pedido pedido = pedidoRepository.findById(pedidoId)
+                .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
+
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA) {
+            throw new RuntimeException("Não é possível adicionar itens a um pedido que já foi processado pelo fornecedor ou entregue.");
+        }
+
+        for (ItemPedido novoItem : novosItens) {
+            if (novoItem.getItemCotacao() != null && novoItem.getItemCotacao().getId() != null) {
+                ItemCotacao ic = itemCotacaoRepository.findById(novoItem.getItemCotacao().getId())
+                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
+                novoItem.setItemCotacao(ic);
+                validarDuplicidadeItemCotacao(ic.getId(), novoItem.getReatribuicaoExplicita());
+
+                Long fornecedorId = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
+                if (fornecedorId != null) {
+                    boolean temResposta = precoRepository.existsByFornecedorIdAndItemId(fornecedorId, ic.getId());
+                    boolean temVinculo = !cotacaoFornecedorRepository
+                            .findByCotacaoIdAndFornecedorId(ic.getCotacao().getId(), fornecedorId).isEmpty();
+                    if (!temResposta && !temVinculo) {
+                        throw new RuntimeException("Vínculo inválido para o fornecedor deste pedido.");
+                    }
+                    preencherPrecoRespondidoSeNecessario(novoItem, pedido, ic);
+                }
+            }
+            novoItem.setPedido(pedido);
+            novoItem.setValorAlteradoAposPedido(false);
+            pedido.getItens().add(novoItem);
+        }
+
+        pedido.setValorTotalPedido(pedido.getItens().stream()
+                .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0)
+                        * (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
+                .sum());
+        return pedidoRepository.save(pedido);
+    }
+
+    private void preencherPrecoRespondidoSeNecessario(ItemPedido item, Pedido pedido, ItemCotacao cotacaoItem) {
+        if (item.getValorUnitarioPedido() != null && item.getValorUnitarioPedido() > 0
+                || pedido.getFornecedor() == null) return;
+
+        List<PrecoCotacao> precos = precoRepository.findByItemIdAndFornecedorId(
+                cotacaoItem.getId(), pedido.getFornecedor().getId());
+        precos.stream()
+                .filter(preco -> preco.getPrecoOfertado() != null && preco.getPrecoOfertado() > 0)
+                .findFirst()
+                .ifPresent(preco -> item.setValorUnitarioPedido(preco.getPrecoOfertado()));
     }
 
     private void validarDuplicidadeItemCotacao(Long itemCotacaoId, Boolean reatribuicaoExplicita) {
@@ -673,8 +730,11 @@ public class PedidoService {
     }
 
     @SuppressWarnings("unchecked")
-    public List<Map<String, Object>> buscarItensPendentesPorCotacao(Long cotacaoId) {
-        String sql = "SELECT ic.id, ic.nome_produto, c.id AS cotacao_id, ic.quantidade " +
+    public List<Map<String, Object>> buscarItensPendentesPorCotacao(Long cotacaoId, Long fornecedorId) {
+        String sql = "SELECT ic.id, ic.nome_produto, c.id AS cotacao_id, ic.quantidade, " +
+                     "(SELECT pc.preco_ofertado FROM tb_precos_cotacao pc " +
+                     " WHERE pc.item_id = ic.id AND pc.fornecedor_id = :fornecedorId " +
+                     " ORDER BY pc.id DESC LIMIT 1) AS preco_fornecedor " +
                      "FROM tb_itens_cotacao ic " +
                      "JOIN tb_cotacoes c ON ic.cotacao_id = c.id " +
                      "WHERE c.id = :cotacaoId " +
@@ -687,6 +747,7 @@ public class PedidoService {
 
         List<Object[]> results = entityManager.createNativeQuery(sql)
                 .setParameter("cotacaoId", cotacaoId)
+                .setParameter("fornecedorId", fornecedorId)
                 .getResultList();
         
         List<java.util.Map<String, Object>> lista = new java.util.ArrayList<>();
@@ -696,6 +757,7 @@ public class PedidoService {
             map.put("nomeProduto", row[1]);
             map.put("cotacaoId", row[2]);
             map.put("quantidade", row[3]);
+            map.put("precoFornecedor", row[4]);
             lista.add(map);
         }
         return lista;
