@@ -302,6 +302,8 @@ public class PedidoService {
             if (itemDto.getItemCotacaoId() != null) {
                 ItemCotacao itemCotacao = itemCotacaoRepository.findById(itemDto.getItemCotacaoId())
                         .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + itemDto.getItemCotacaoId()));
+
+                validarDuplicidadeItemCotacao(itemCotacao.getId(), itemDto.getReatribuicaoExplicita());
                 
                 itemPedido.setItemCotacao(itemCotacao);
                 itemPedido.setNomeProduto(itemDto.getNomeProduto() != null ? itemDto.getNomeProduto() : itemCotacao.getNomeProduto());
@@ -333,6 +335,7 @@ public class PedidoService {
             itemPedido.setCondicaoAplicada(itemDto.getCondicaoAplicada() != null ? itemDto.getCondicaoAplicada() : false);
             itemPedido.setQtdCondicao(itemDto.getQtdCondicao());
             itemPedido.setPrecoCondicao(itemDto.getPrecoCondicao());
+            itemPedido.setReatribuicaoExplicita(itemDto.getReatribuicaoExplicita());
 
             valorTotal += (itemDto.getQuantidadePedida() * itemDto.getValorUnitarioPedido());
             itens.add(itemPedido);
@@ -416,6 +419,8 @@ public class PedidoService {
                     .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
             novoItem.setItemCotacao(ic);
 
+            validarDuplicidadeItemCotacao(ic.getId(), novoItem.getReatribuicaoExplicita());
+
             Cotacao cotacaoDoItem = ic.getCotacao();
             Long idFornecedorPedido = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
 
@@ -448,6 +453,14 @@ public class PedidoService {
                 
         pedido.setValorTotalPedido(total);
         return pedidoRepository.save(pedido);
+    }
+
+    private void validarDuplicidadeItemCotacao(Long itemCotacaoId, Boolean reatribuicaoExplicita) {
+        if (Boolean.TRUE.equals(reatribuicaoExplicita)) return;
+
+        if (itemPedidoRepository.existsByItemCotacaoIdAndPedidoStatusNot(itemCotacaoId, StatusPedido.CANCELADO)) {
+            throw new RuntimeException("Este produto já está vinculado a um pedido ativo. Use Reatribuir para gerar uma nova compra.");
+        }
     }
 
     private boolean setoresCompativeis(String setorPedido, String setorItem) {

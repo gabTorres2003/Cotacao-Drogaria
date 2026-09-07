@@ -12,4 +12,5 @@ public class ItemGerarPedidoDTO {
     private Integer qtdCondicao;
     private Double precoCondicao;
     private String condicoesEscalonamento;
+    private Boolean reatribuicaoExplicita;
 }

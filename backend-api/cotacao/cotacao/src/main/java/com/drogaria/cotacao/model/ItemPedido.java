@@ -60,4 +60,7 @@ public class ItemPedido {
 
     @Column(name = "preco_condicao")
     private Double precoCondicao;
+
+    @Transient
+    private Boolean reatribuicaoExplicita = false;
 }

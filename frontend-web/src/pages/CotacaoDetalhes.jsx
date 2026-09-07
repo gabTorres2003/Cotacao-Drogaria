@@ -16,6 +16,7 @@ import CardsSugestoes from '../components/cotacao/CardsSugestoes';
 import UploadModal from '../components/layout/UploadModal';
 import EnviarLinkModal from '../components/EnviarLinkModal';
 import ModalImportarEncomendas from '../components/cotacao/modais/ModalImportarEncomendas';
+import ModalImportarItensCotacao from '../components/cotacao/modais/ModalImportarItensCotacao';
 
 // Modais
 import ModalFornecedoresNotificados from '../components/cotacao/modais/ModalFornecedoresNotificados';
@@ -59,6 +60,7 @@ export default function CotacaoDetalhes() {
   const [editandoResposta, setEditandoResposta] = useState(null);
   const [formEdicaoResposta, setFormEdicaoResposta] = useState({ precoOfertado: '' });
   const [itensExcluidosLocal, setItensExcluidosLocal] = useState([]);
+  const [itensReatribuidos, setItensReatribuidos] = useState({});
   const [checklist, setChecklist] = useState({});
   const [copiadoId, setCopiadoId] = useState(null);
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({});
@@ -68,6 +70,7 @@ export default function CotacaoDetalhes() {
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
   const [isEnviarModalOpen, setIsEnviarModalOpen] = useState(false);
   const [isEncomendasModalOpen, setIsEncomendasModalOpen] = useState(false);
+  const [isImportarItensModalOpen, setIsImportarItensModalOpen] = useState(false);
   const [novoItemManual, setNovoItemManual] = useState({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' });
   const [salvandoItemManual, setSalvandoItemManual] = useState(false);
   const [showVinculosModal, setShowVinculosModal] = useState(false);
@@ -410,6 +413,7 @@ export default function CotacaoDetalhes() {
   const reatribuirItem = (idItem) => {
     if (isEncerrada) return;
     if (window.confirm("Deseja reatribuir este item para comprar novamente? (O pedido existente NÃO será apagado do sistema)")) {
+      setItensReatribuidos(prev => ({ ...prev, [idItem]: true }));
       setItensJaComprados(prev => { const newMap = { ...prev }; delete newMap[idItem]; return newMap; });
       setChecklist(prev => { const newChecklist = { ...prev }; if (newChecklist[idItem]) { newChecklist[idItem].bloqueado = false; newChecklist[idItem].comprado = false; } return newChecklist; });
     }
@@ -519,7 +523,8 @@ export default function CotacaoDetalhes() {
             pedidosPorFornecedor[vencedor].itens.push({
               idItem, nomeProduto: nomeFinal, nomeOriginal, observacao: itemRelatorio.observacoesPorFornecedor?.[vencedor],
               quantidadePedida: qtd, valorUnitarioPedido: precoFinal, precoBase: precoOriginalRef, subtotal: qtd * precoFinal, isExtra: false, todosDadosItem: itemRelatorio,
-              selected: true, condicoes: condsArr, qtdCondicao: qCAplicada, precoCondicao: pCAplicada, condicaoAplicada: condAplicada
+              selected: true, condicoes: condsArr, qtdCondicao: qCAplicada, precoCondicao: pCAplicada, condicaoAplicada: condAplicada,
+              reatribuicaoExplicita: !!itensReatribuidos[idItem]
             });
             pedidosPorFornecedor[vencedor].total += (qtd * precoFinal);
           }
@@ -569,7 +574,8 @@ export default function CotacaoDetalhes() {
                    observacao: itemRelatorio.observacoesPorFornecedor?.[forn],
                    quantidadePedida: qtdSubst, valorUnitarioPedido: precoFinalSubst, precoBase: precoSubstOriginalRef, subtotal: qtdSubst * precoFinalSubst,
                    isExtra: true, isSugestaoTroca: true, todosDadosItem: itemRelatorio, selected: false,
-                   condicoes: condsArrSubst, qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst
+                   condicoes: condsArrSubst, qtdCondicao: qCSubst, precoCondicao: pCSubst, condicaoAplicada: condAplicadaSubst,
+                   reatribuicaoExplicita: !!itensReatribuidos[idItem]
                  });
               }
            }
@@ -698,7 +704,7 @@ export default function CotacaoDetalhes() {
       const chk = checklist[itemRelatorio.idItem];
       if (chk && chk.comprado && !chk.bloqueado && chk.qtd > 0) {
         if (!chk.fornecedor) erroFornecedorFaltando = true;
-        itensComprados.push({ itemCotacaoId: itemRelatorio.idItem, quantidadePedida: chk.qtd, valorUnitarioPedido: chk.preco, nomeProduto: getNomeRealSempre(itemRelatorio.nomeProduto), fornecedorNome: chk.fornecedor });
+        itensComprados.push({ itemCotacaoId: itemRelatorio.idItem, quantidadePedida: chk.qtd, valorUnitarioPedido: chk.preco, nomeProduto: getNomeRealSempre(itemRelatorio.nomeProduto), fornecedorNome: chk.fornecedor, reatribuicaoExplicita: !!itensReatribuidos[itemRelatorio.idItem] });
       }
     });
 
@@ -798,7 +804,8 @@ export default function CotacaoDetalhes() {
                     valorUnitarioPedido: item.valorUnitarioPedido,
                     condicaoAplicada: item.condicaoAplicada || false,
                     qtdCondicao: item.qtdCondicao || null,
-                    precoCondicao: item.precoCondicao || null
+                    precoCondicao: item.precoCondicao || null,
+                    reatribuicaoExplicita: !!item.reatribuicaoExplicita
                 }))
             });
         } else {
@@ -810,7 +817,8 @@ export default function CotacaoDetalhes() {
                     itemCotacao: item.idItem ? { id: item.idItem } : null,
                     condicaoAplicada: item.condicaoAplicada || false,
                     qtdCondicao: item.qtdCondicao || null,
-                    precoCondicao: item.precoCondicao || null
+                    precoCondicao: item.precoCondicao || null,
+                    reatribuicaoExplicita: !!item.reatribuicaoExplicita
                 });
             }
         }
@@ -896,7 +904,8 @@ export default function CotacaoDetalhes() {
             itemCotacao: itemAddPedido.idItem ? { id: itemAddPedido.idItem } : null,
             condicaoAplicada: itemAddPedido.condicaoAplicada || false,
             qtdCondicao: itemAddPedido.qtdCondicao || null,
-            precoCondicao: itemAddPedido.precoCondicao || null
+            precoCondicao: itemAddPedido.precoCondicao || null,
+            reatribuicaoExplicita: !!itensReatribuidos[itemAddPedido.idItem]
           });
           
           if (itemAddPedido.idItem) {
@@ -957,7 +966,8 @@ export default function CotacaoDetalhes() {
              if (preco > 0) {
                 await api.post(`/api/pedidos/${addPedidoForm.pedidoId}/itens`, {
                   nomeProduto: nomeFinal, quantidadePedida: qtd, valorUnitarioPedido: precoFinal, itemCotacao: { id: i.idItem },
-                  condicaoAplicada: condAplicada, qtdCondicao: qCAplicada, precoCondicao: pCAplicada
+                  condicaoAplicada: condAplicada, qtdCondicao: qCAplicada, precoCondicao: pCAplicada,
+                  reatribuicaoExplicita: !!itensReatribuidos[i.idItem]
                 });
                 newComprados[i.idItem] = { id: Number(addPedidoForm.pedidoId), fornecedor: fornecedor, preco: Number(precoFinal), quantidade: Number(qtd) };
              }
@@ -1010,12 +1020,18 @@ export default function CotacaoDetalhes() {
       />
 
       {!isEncerrada && (
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
           <button 
             onClick={() => setIsEncomendasModalOpen(true)}
             style={{ padding: '10px 20px', backgroundColor: '#4338ca', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
           >
             <PackageOpen size={20} /> Importar Encomendas do Balcão
+          </button>
+          <button
+            onClick={() => setIsImportarItensModalOpen(true)}
+            style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+          >
+            <PackageOpen size={20} /> Importar produtos não comprados
           </button>
         </div>
       )}
@@ -1111,6 +1127,13 @@ export default function CotacaoDetalhes() {
         onClose={() => setIsEncomendasModalOpen(false)} 
         cotacaoId={id} 
         onSuccess={carregarRelatorio} 
+      />
+      <ModalImportarItensCotacao
+        isOpen={isImportarItensModalOpen}
+        onClose={() => setIsImportarItensModalOpen(false)}
+        cotacaoId={id}
+        itensAtuais={relatorio}
+        onSuccess={carregarRelatorio}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
