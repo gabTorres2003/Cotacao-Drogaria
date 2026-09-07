@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
+import api from '../../services/api';
 
 const parseDateSafe = (dStr) => {
     if (!dStr) return null;
@@ -61,6 +62,7 @@ export default function TabelaDetalhes({
   const [pinnedStats, setPinnedStats] = useState([]);
   const [valoresIrreais, setValoresIrreais] = useState({});
   const [valoresRecusados, setValoresRecusados] = useState({});
+  const [valoresIgnorados, setValoresIgnorados] = useState({});
   const [contextMenu, setContextMenu] = useState(null);
 
   const [pinnedRows, setPinnedRows] = useState([]);
@@ -70,6 +72,21 @@ export default function TabelaDetalhes({
   const scrollContainerRef = useRef(null);
   const decisaoCompraRef = useRef(decisaoCompra);
   decisaoCompraRef.current = decisaoCompra;
+
+  const registrarDecisaoDivergencia = async (idPreco, decisao, chave) => {
+      try {
+          await api.patch(`/api/cotacao/preco/${idPreco}/divergencia`, { decisao });
+          if (decisao === 'CONFIRMAR_IRREAL') {
+              setValoresIrreais(prev => ({ ...prev, [chave]: true }));
+              setValoresRecusados(prev => { const n = { ...prev }; delete n[chave]; return n; });
+          } else {
+              setValoresIgnorados(prev => ({ ...prev, [chave]: true }));
+              setValoresIrreais(prev => { const n = { ...prev }; delete n[chave]; return n; });
+          }
+      } catch (error) {
+          alert('Não foi possível salvar a decisão sobre a divergência.');
+      }
+  };
   const [balloonPositions, setBalloonPositions] = useState([]);
 
   useEffect(() => {
@@ -131,12 +148,19 @@ export default function TabelaDetalhes({
       const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
       const precoOriginalBanco = item.precoOriginalPorFornecedor?.[forn];
       const precoEfetivoBanco = item.precosPorFornecedor?.[forn] || 0;
-      const pOraw = (fracao > 1 && precoOriginalBanco > 0) ? precoOriginalBanco : precoEfetivoBanco;
+      const pOraw = fracoesConfirmadas[item.idItem]
+          ? precoEfetivoBanco
+          : ((fracao > 1 && precoOriginalBanco > 0) ? precoOriginalBanco : precoEfetivoBanco);
       const pSraw = item.precosSubstitutosPorFornecedor?.[forn] || 0;
-      const isIrreal = valoresIrreais[`${item.idItem}-${forn}`];
+      const isIrreal = valoresIrreais[`${item.idItem}-${forn}`] || item.divergenciasConfirmadasPorFornecedor?.[forn];
       const isRecusado = valoresRecusados[`${item.idItem}-${forn}`];
-      const pOeff = (fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw;
-      const pSeff = (fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw;
+      const isDivergenciaIgnorada = item.divergenciasIgnoradasPorFornecedor?.[forn] || valoresIgnorados[`${item.idItem}-${forn}`];
+      const pOeff = fracoesConfirmadas[item.idItem]
+          ? pOraw
+          : ((fracao > 1 && !isFracaoDesc && pOraw > 0) ? pOraw / fracao : pOraw);
+      const pSeff = fracoesConfirmadas[item.idItem]
+          ? pSraw
+          : ((fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw);
       const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
       const pctForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
       const pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
@@ -149,7 +173,7 @@ export default function TabelaDetalhes({
       if (pS > 0 && pS < val) val = pS;
       if (pO <= 0 && pS > 0) val = pS;
 
-      if (val !== Infinity && (isIrreal || isRecusado || (mostrarAlertasPreco && isDiscrepante))) val = Infinity;
+      if (val !== Infinity && (isIrreal || (!isDivergenciaIgnorada && mostrarAlertasPreco && isDiscrepante))) val = Infinity;
       return { forn, val };
     }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
   };
@@ -482,21 +506,23 @@ export default function TabelaDetalhes({
             const aplicarFracao = (p) => {
               const f = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
               const base = precoOriginalBanco > 0 ? precoOriginalBanco : p;
+              if (fracoesConfirmadas[item.idItem]) return p;
               return (f > 1 && !isFracaoDesc && base > 0) ? base / f : p;
             };
             
-            const isIrreal = valoresIrreais[`${item.idItem}-${f}`];
+            const isIrreal = valoresIrreais[`${item.idItem}-${f}`] || item.divergenciasConfirmadasPorFornecedor?.[f];
             const isRecusado = valoresRecusados[`${item.idItem}-${f}`];
+            const isDivergenciaIgnorada = item.divergenciasIgnoradasPorFornecedor?.[f] || valoresIgnorados[`${item.idItem}-${f}`];
             let isPrecoDiscrepante = false;
 
             if (precoBaseAlerta > 0) {
                 let precoEfetivoDiscrepancia;
-                if (fracaoAtual > 1 && !isFracaoDesc && precoOriginalBanco > 0) {
+                if (!fracoesConfirmadas[item.idItem] && fracaoAtual > 1 && !isFracaoDesc && precoOriginalBanco > 0) {
                     precoEfetivoDiscrepancia = precoOriginalBanco / fracaoAtual;
                 } else {
                     precoEfetivoDiscrepancia = precoOriginalRaw;
                 }
-                if (precoEfetivoDiscrepancia > 0 && (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5)) {
+                if (!isDivergenciaIgnorada && precoEfetivoDiscrepancia > 0 && (precoEfetivoDiscrepancia > precoBaseAlerta * 2.0 || precoEfetivoDiscrepancia < precoBaseAlerta * 0.5)) {
                     isPrecoDiscrepante = true;
                 }
             }
@@ -642,10 +668,16 @@ export default function TabelaDetalhes({
                         <AlertTriangle size={14} /> Divergência Alta
                       </div>
                       <button 
-                        onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => ({...prev, [`${item.idItem}-${f}`]: true})); }}
+                        onClick={(e) => { e.stopPropagation(); registrarDecisaoDivergencia(item.idsPrecoPorFornecedor?.[f], 'CONFIRMAR_IRREAL', `${item.idItem}-${f}`); }}
                         style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
                       >
                         Confirmar Valor Irreal
+                      </button>
+                      <button
+                        onClick={(e) => { e.stopPropagation(); registrarDecisaoDivergencia(item.idsPrecoPorFornecedor?.[f], 'IGNORAR_DIVERGENCIA', `${item.idItem}-${f}`); }}
+                        style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', fontWeight: 'bold' }}
+                      >
+                        Ignorar Divergência
                       </button>
                    </div>
                 )}

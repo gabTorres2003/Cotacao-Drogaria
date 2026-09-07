@@ -37,8 +37,9 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
 
     setCarregando(true);
     try {
-      const [cotacaoRes, pedidosRes] = await Promise.all([
+      const [cotacaoRes, relatorioRes, pedidosRes] = await Promise.all([
         api.get(`/api/cotacao/${idOrigem}`),
+        api.get(`/api/comparativo/relatorio/${idOrigem}`),
         api.get(`/api/pedidos/cotacao/${idOrigem}`)
       ]);
       const idsComprados = new Set();
@@ -50,7 +51,15 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
         });
       });
 
-      const disponiveis = (cotacaoRes.data?.itens || [])
+      const itensOrigem = Array.isArray(relatorioRes.data) && relatorioRes.data.length > 0
+        ? relatorioRes.data.map(item => ({
+            ...item,
+            id: item.idItem,
+            nomeProduto: item.nomeProduto,
+            quantidade: item.quantidade
+          }))
+        : (cotacaoRes.data?.itens || []);
+      const disponiveis = itensOrigem
         .filter(item => !item.excluido && !idsComprados.has(String(item.id)))
         .map(item => ({ ...item, quantidadeImportar: item.quantidade || 1 }));
       const selecaoInicial = {};

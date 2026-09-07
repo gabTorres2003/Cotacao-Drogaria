@@ -126,6 +126,8 @@ public class ComparativoService {
                     if (oferta.getPrecoOriginal() != null) {
                         linha.getPrecoOriginalPorFornecedor().put(nomeForn, oferta.getPrecoOriginal());
                     }
+                    linha.getDivergenciasConfirmadasPorFornecedor().put(nomeForn, Boolean.TRUE.equals(oferta.getDivergenciaConfirmada()));
+                    linha.getDivergenciasIgnoradasPorFornecedor().put(nomeForn, Boolean.TRUE.equals(oferta.getDivergenciaIgnorada()));
 
                     if (oferta.getQuantidadeCondicao() != null && oferta.getPrecoCondicao() != null) {
                         linha.getQtdCondicaoPorFornecedor().put(nomeForn, oferta.getQuantidadeCondicao());

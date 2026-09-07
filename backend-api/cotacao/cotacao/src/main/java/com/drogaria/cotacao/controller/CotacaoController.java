@@ -242,13 +242,40 @@ public class CotacaoController {
                 if (preco.getPrecoOriginal() == null) {
                     preco.setPrecoOriginal(preco.getPrecoOfertado());
                 }
+
                 preco.setPrecoOfertado(item.getNovoPreco());
                 precoCotacaoRepository.save(preco);
                 alterados++;
             }
+
             return ResponseEntity.ok(Map.of("alterados", alterados));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Erro ao confirmar frações: " + e.getMessage());
+        }
+
+    }
+
+    @PatchMapping("/preco/{idPreco}/divergencia")
+    public ResponseEntity<?> atualizarDecisaoDivergencia(
+            @PathVariable Long idPreco,
+            @RequestBody Map<String, String> dados) {
+        try {
+            var preco = precoCotacaoRepository.findById(idPreco)
+                    .orElseThrow(() -> new RuntimeException("Resposta de fornecedor não encontrada"));
+            String decisao = dados.get("decisao");
+            if ("CONFIRMAR_IRREAL".equals(decisao)) {
+                preco.setDivergenciaConfirmada(true);
+                preco.setDivergenciaIgnorada(false);
+            } else if ("IGNORAR_DIVERGENCIA".equals(decisao)) {
+                preco.setDivergenciaConfirmada(false);
+                preco.setDivergenciaIgnorada(true);
+            } else {
+                throw new IllegalArgumentException("Decisão de divergência inválida");
+            }
+            precoCotacaoRepository.save(preco);
+            return ResponseEntity.ok().build();
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Erro ao salvar decisão de divergência: " + e.getMessage());
         }
     }
 

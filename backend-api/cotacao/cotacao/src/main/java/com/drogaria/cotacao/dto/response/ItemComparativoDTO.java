@@ -54,6 +54,8 @@ public class ItemComparativoDTO {
     private Map<String, Long> idsPrecoPorFornecedor = new HashMap<>();
 
     private Map<String, Double> precoOriginalPorFornecedor = new HashMap<>();
+    private Map<String, Boolean> divergenciasConfirmadasPorFornecedor = new HashMap<>();
+    private Map<String, Boolean> divergenciasIgnoradasPorFornecedor = new HashMap<>();
 
     public Long getIdItem() { return idItem; }
     public void setIdItem(Long idItem) { this.idItem = idItem; }
@@ -165,4 +167,10 @@ public class ItemComparativoDTO {
 
     public Map<String, Double> getPrecoOriginalPorFornecedor() { return precoOriginalPorFornecedor; }
     public void setPrecoOriginalPorFornecedor(Map<String, Double> precoOriginalPorFornecedor) { this.precoOriginalPorFornecedor = precoOriginalPorFornecedor; }
+
+    public Map<String, Boolean> getDivergenciasConfirmadasPorFornecedor() { return divergenciasConfirmadasPorFornecedor; }
+    public void setDivergenciasConfirmadasPorFornecedor(Map<String, Boolean> valores) { this.divergenciasConfirmadasPorFornecedor = valores; }
+
+    public Map<String, Boolean> getDivergenciasIgnoradasPorFornecedor() { return divergenciasIgnoradasPorFornecedor; }
+    public void setDivergenciasIgnoradasPorFornecedor(Map<String, Boolean> valores) { this.divergenciasIgnoradasPorFornecedor = valores; }
 }

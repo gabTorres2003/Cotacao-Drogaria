@@ -24,6 +24,12 @@ public class PrecoCotacao {
     @Column(name = "preco_original")
     private Double precoOriginal;
 
+    @Column(name = "divergencia_confirmada")
+    private Boolean divergenciaConfirmada = false;
+
+    @Column(name = "divergencia_ignorada")
+    private Boolean divergenciaIgnorada = false;
+
     private LocalDateTime dataResposta;
     private Integer quantidadeDisponivel;
 
@@ -71,6 +77,12 @@ public class PrecoCotacao {
 
     public Double getPrecoOriginal() { return precoOriginal; }
     public void setPrecoOriginal(Double precoOriginal) { this.precoOriginal = precoOriginal; }
+
+    public Boolean getDivergenciaConfirmada() { return divergenciaConfirmada; }
+    public void setDivergenciaConfirmada(Boolean divergenciaConfirmada) { this.divergenciaConfirmada = divergenciaConfirmada; }
+
+    public Boolean getDivergenciaIgnorada() { return divergenciaIgnorada; }
+    public void setDivergenciaIgnorada(Boolean divergenciaIgnorada) { this.divergenciaIgnorada = divergenciaIgnorada; }
 
     public LocalDateTime getDataResposta() { return dataResposta; }
     public void setDataResposta(LocalDateTime dataResposta) { this.dataResposta = dataResposta; }
