@@ -133,9 +133,7 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
           estoque: item.estoque,
           ultimoPreco: item.ultimoPreco,
           vendidoNoMes: item.vendidoNoMes,
-          ultCompraData: item.ultCompraData,
           ultCompraQtde: item.ultCompraQtde,
-          ultVendaData: item.ultVendaData,
           vendidoAposUltCompra: item.vendidoAposUltCompra
         });
       }

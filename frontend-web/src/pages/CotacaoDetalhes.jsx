@@ -462,7 +462,7 @@ export default function CotacaoDetalhes() {
         const itemRel = relatorio.find(r => String(r.idItem) === String(idItem));
         const precoOriginalBanco = itemRel?.precoOriginalPorFornecedor?.[fornecedor] || precoOriginal;
         const base = precoOriginalBanco > 0 ? precoOriginalBanco : precoOriginal;
-        if (fracoesConfirmadas[idItem]) return precoOriginal;
+        if (fracoesSalvas[idItem]) return precoOriginal;
         return (fracao > 1 && !isFracaoDesc && base > 0) ? base / fracao : precoOriginal;
       };
 
