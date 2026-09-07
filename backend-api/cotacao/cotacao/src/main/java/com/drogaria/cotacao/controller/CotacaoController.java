@@ -160,12 +160,13 @@ public class CotacaoController {
     }
 
     @PostMapping("/{id}/item")
-    public ResponseEntity<ItemCotacao> adicionarItemManual(@PathVariable Long id, @RequestBody ItemCotacao dados) {
+    public ResponseEntity<?> adicionarItemManual(@PathVariable Long id, @RequestBody ItemCotacao dados) {
         try {
             ItemCotacao novoItem = cotacaoService.adicionarItemManual(id, dados);
             return ResponseEntity.ok(novoItem);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage() != null ? e.getMessage() : "Erro desconhecido ao adicionar item"));
         }
     }
 

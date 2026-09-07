@@ -126,16 +126,17 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
     setSalvando(true);
     try {
       for (const item of selecionadosAgora) {
-        await api.post(`/api/cotacao/${cotacaoId}/item`, {
+        const payload = {
           nomeProduto: item.nomeProduto,
           quantidade: Number(quantidades[item.id]) || 1,
-          origemItem: `Importado da Cotação #${cotacaoOrigem}`,
-          estoque: item.estoque,
-          ultimoPreco: item.ultimoPreco,
-          vendidoNoMes: item.vendidoNoMes,
-          ultCompraQtde: item.ultCompraQtde,
-          vendidoAposUltCompra: item.vendidoAposUltCompra
-        });
+          origemItem: `Importado da Cotação #${cotacaoOrigem}`
+        };
+        if (item.estoque != null) payload.estoque = item.estoque;
+        if (item.ultimoPreco != null) payload.ultimoPreco = item.ultimoPreco;
+        if (item.vendidoNoMes != null) payload.vendidoNoMes = item.vendidoNoMes;
+        if (item.ultCompraQtde != null) payload.ultCompraQtde = item.ultCompraQtde;
+        if (item.vendidoAposUltCompra != null) payload.vendidoAposUltCompra = item.vendidoAposUltCompra;
+        await api.post(`/api/cotacao/${cotacaoId}/item`, payload);
       }
       alert('Produtos importados com sucesso.');
       onClose();
