@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
-import { gerarEspelhoRespostaFornecedor } from '../utils/pdfExport'
+import { gerarEspelhoRespostaFornecedor, gerarMensagemEspelhoWhatsApp } from '../utils/pdfExport'
 import {
-  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare, FileText
+  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare, FileText, MessageCircle
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -51,6 +51,7 @@ export default function ResponderCotacao() {
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
 
   const draftKey = `cotacao_draft_${idCotacao}_${usuarioId}`
+  const priceRefs = useRef({})
 
   useEffect(() => {
     if (!isPrimeiroAcesso) {
@@ -433,7 +434,6 @@ export default function ResponderCotacao() {
     <div style={mobileStyles.container}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: '#f3f4f6', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid #e5e7eb' }}>
         <button onClick={() => navigate('/portal-fornecedor')} style={mobileStyles.btnVoltar}><ArrowLeft size={18} /> Voltar</button>
-        <button onClick={() => gerarEspelhoRespostaFornecedor(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal)} style={{ ...mobileStyles.btnVoltar, backgroundColor: '#7c3aed', color: 'white' }}><FileText size={16} /> Espelho</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '24px' }} />
           <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Cotação #{idCotacao}</h1>
@@ -546,7 +546,31 @@ export default function ResponderCotacao() {
                     </div>
                     <div>
                       <label style={mobileStyles.labelMini}>Preço Unit. (R$)</label>
-                      <input type="number" step="0.01" placeholder="0,00" style={mobileStyles.inputFieldItem} value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''} onWheel={(e) => e.target.blur()} onChange={(e) => handlePrecoChange(item.idItem, e.target.value)} />
+                      <input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        style={mobileStyles.inputFieldItem}
+                        ref={(el) => { priceRefs.current[item.idItem] = el; }}
+                        value={precos[item.idItem] !== undefined ? precos[item.idItem] : ''}
+                        onWheel={(e) => e.target.blur()}
+                        onChange={(e) => handlePrecoChange(item.idItem, e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const itensFiltrados = itens.filter(item => {
+                              const nomeReal = getNomeReal(item.nomeProduto).toLowerCase();
+                              return nomeReal.includes(busca.toLowerCase());
+                            });
+                            const idx = itensFiltrados.findIndex(i => i.idItem === item.idItem);
+                            const proximo = itensFiltrados[idx + 1];
+                            if (proximo && priceRefs.current[proximo.idItem]) {
+                              priceRefs.current[proximo.idItem].focus();
+                              priceRefs.current[proximo.idItem].scrollIntoView({ behavior: 'smooth', block: 'center' });
+                            }
+                          }
+                        }}
+                      />
                     </div>
                     <button type="button" style={mobileStyles.btnFalta(isFalta)} onClick={() => toggleEmFalta(item.idItem)}>{isFalta ? 'Em falta' : 'Falta?'}</button>
                   </div>
@@ -672,6 +696,17 @@ export default function ResponderCotacao() {
             <button style={{ ...mobileStyles.submitButton, opacity: isSubmitting ? 0.7 : 1, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }} onClick={enviarResposta} disabled={isSubmitting}>
               {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Enviando Proposta...</> : 'Enviar Proposta'}
             </button>
+            <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
+              <button onClick={() => gerarEspelhoRespostaFornecedor(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal)} style={{ flex: 1, padding: '12px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '14px' }}>
+                <FileText size={18} /> Espelho PDF
+              </button>
+              <button onClick={() => {
+                const msg = gerarMensagemEspelhoWhatsApp(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal);
+                if (msg) window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`, '_blank');
+              }} style={{ flex: 1, padding: '12px', backgroundColor: '#25D366', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '14px' }}>
+                <MessageCircle size={18} /> Espelho WhatsApp
+              </button>
+            </div>
             <button onClick={limparRascunho} style={{ width: '100%', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer', textDecoration: 'underline' }}>
               Apagar rascunho e recomeçar
             </button>

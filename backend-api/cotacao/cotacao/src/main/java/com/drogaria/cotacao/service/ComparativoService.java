@@ -239,6 +239,7 @@ public class ComparativoService {
             dto.setQuantidade(item.getQuantidade());
             dto.setEditadoManual(item.getEditadoManual());
             dto.setExcluido(item.getExcluido());
+            dto.setObservacaoComprador(item.getObservacaoComprador());
             dto.setDataCriacao(item.getDataCriacao());
             dto.setUltimaRespostaPorFornecedor(ultimaRespostaFinal);
             return dto;

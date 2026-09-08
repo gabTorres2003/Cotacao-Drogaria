@@ -282,3 +282,40 @@ export const gerarEspelhoRespostaFornecedor = (idCotacao, nomeFornecedor, itens,
     alert('Erro ao gerar o espelho de resposta.');
   }
 };
+
+export const gerarMensagemEspelhoWhatsApp = (idCotacao, nomeFornecedor, itens, precos, quantidades, getNomeReal) => {
+  if (!itens || itens.length === 0) {
+    alert('Nenhum item disponível.');
+    return null;
+  }
+
+  let msg = `*Proposta — Cotação #${idCotacao}*\n`;
+  msg += `Fornecedor: *${nomeFornecedor}*\n`;
+  msg += `Data: ${new Date().toLocaleDateString('pt-BR')}\n`;
+  msg += `━━━━━━━━━━━━━━━━━━━━\n\n`;
+
+  let totalGeral = 0;
+
+  itens.forEach((item, idx) => {
+    const nome = getNomeReal(item.nomeProduto);
+    const qtd = item.quantidade || 0;
+    const preco = precos[item.idItem] || 0;
+    const qtdDisp = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : qtd;
+    const total = preco * qtdDisp;
+    totalGeral += total;
+
+    msg += `${idx + 1}. *${nome}*\n`;
+    msg += `   Qtd: ${qtd} | Disp: ${qtdDisp}\n`;
+    if (preco > 0) {
+      msg += `   Valor: ${preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })} (Total: ${total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })})\n`;
+    } else {
+      msg += `   *SEM PREÇO*\n`;
+    }
+    msg += `\n`;
+  });
+
+  msg += `━━━━━━━━━━━━━━━━━━━━\n`;
+  msg += `*TOTAL: ${totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}*\n`;
+
+  return msg;
+};
