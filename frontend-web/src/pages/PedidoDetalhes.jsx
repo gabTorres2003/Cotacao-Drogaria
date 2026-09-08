@@ -32,6 +32,7 @@ export default function PedidoDetalhes() {
 
     const [modalFalhaAberto, setModalFalhaAberto] = useState(false);
     const [motivoFalha, setMotivoFalha] = useState('');
+    const [sortConfig, setSortConfig] = useState({ key: null, direction: 'asc' });
     const [acaoDestino, setAcaoDestino] = useState('ORIGINAL');
     const [cotacoesAtivas, setCotacoesAtivas] = useState([]);
     const [cotacaoDestinoId, setCotacaoDestinoId] = useState('');
@@ -596,6 +597,23 @@ export default function PedidoDetalhes() {
                     </div>
 
                     <div style={{ overflowX: 'auto' }}>
+                        <div style={{ display: 'flex', gap: '6px', marginBottom: '10px', flexWrap: 'wrap' }}>
+                            <span style={{ fontSize: '12px', color: '#64748b', fontWeight: '600', alignSelf: 'center', marginRight: '4px' }}>Ordenar:</span>
+                            {[
+                                { key: 'nome', label: 'Produto A-Z' },
+                                { key: 'quantidade', label: 'Quantidade' },
+                                { key: 'valor', label: 'Valor Unit.' }
+                            ].map(op => (
+                                <button
+                                    key={op.key}
+                                    type="button"
+                                    onClick={() => setSortConfig(prev => ({ key: op.key, direction: prev.key === op.key && prev.direction === 'asc' ? 'desc' : 'asc' }))}
+                                    style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '600', borderRadius: '4px', border: `1px solid ${sortConfig.key === op.key ? '#3b82f6' : '#d1d5db'}`, backgroundColor: sortConfig.key === op.key ? '#eff6ff' : 'white', color: sortConfig.key === op.key ? '#2563eb' : '#6b7280', cursor: 'pointer' }}
+                                >
+                                    {op.label} {sortConfig.key === op.key ? (sortConfig.direction === 'asc' ? '↑' : '↓') : ''}
+                                </button>
+                            ))}
+                        </div>
                         <table style={styles.table}>
                             <thead>
                                 <tr>
@@ -612,7 +630,25 @@ export default function PedidoDetalhes() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {pedido.itens?.map(item => {
+                                {(sortConfig.key
+                                    ? [...(pedido.itens || [])].sort((a, b) => {
+                                        let valA, valB;
+                                        if (sortConfig.key === 'nome') {
+                                            valA = (a.nomeProduto || a.itemCotacao?.nomeProduto || '').toLowerCase();
+                                            valB = (b.nomeProduto || b.itemCotacao?.nomeProduto || '').toLowerCase();
+                                        } else if (sortConfig.key === 'quantidade') {
+                                            valA = a.quantidadePedida || 0;
+                                            valB = b.quantidadePedida || 0;
+                                        } else if (sortConfig.key === 'valor') {
+                                            valA = a.valorUnitarioPedido || 0;
+                                            valB = b.valorUnitarioPedido || 0;
+                                        }
+                                        if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
+                                        if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
+                                        return 0;
+                                    })
+                                    : pedido.itens || []
+                                ).map(item => {
                                     const qtdPedida = item.quantidadePedida || 0;
                                     const qtdReal = item.quantidadeReal;
                                     const vlrPrevisto = item.valorUnitarioPedido || 0;

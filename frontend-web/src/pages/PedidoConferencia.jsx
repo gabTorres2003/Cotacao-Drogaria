@@ -764,6 +764,7 @@ export default function PedidoConferencia() {
       {showDevolucaoModal && (
         <DevolucaoModal
           pedidoId={id}
+          itensNaoSolicitados={conferencia.filter(c => c.isNaoSolicitado)}
           onClose={() => setShowDevolucaoModal(false)}
           onSuccess={() => {
             setShowDevolucaoModal(false);

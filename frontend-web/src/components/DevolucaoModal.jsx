@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import { X, Plus, Trash2, Save, CheckSquare, ListX, AlertCircle, Edit2, Check } from 'lucide-react';
 
-export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly }) {
+export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly, itensNaoSolicitados }) {
   const navigate = useNavigate();
   const [fornecedores, setFornecedores] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -92,6 +92,25 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       
       aplicarFiltroSelecao(data, 'DIVERGENCIAS');
 
+      if (itensNaoSolicitados && itensNaoSolicitados.length > 0) {
+        setSelecaoPedido(prev => {
+          const novaSelecao = { ...prev };
+          itensNaoSolicitados.forEach(itemNs => {
+            novaSelecao[itemNs.id] = {
+              selected: true,
+              nomeProduto: itemNs.nomeProduto,
+              valorUnitario: itemNs.valorUnitarioReal || 0,
+              qtdMax: itemNs.quantidadeRecebidaAgora || 0,
+              qtd: itemNs.quantidadeRecebidaAgora || 0,
+              motivo: 'Produto Não Solicitado',
+              isApenasFinanceiro: false,
+              isNaoSolicitado: true
+            };
+          });
+          return novaSelecao;
+        });
+      }
+
       const incorretos = data.itens.filter(i => i.statusRecebimento === 'INCORRETO' && i.observacaoDevolucao);
       if (incorretos.length > 0) {
         const obs = incorretos.map(i => i.observacaoDevolucao).join('; ');
@@ -104,12 +123,12 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
     const selecao = {};
     
     dadosPedido.itens.forEach(i => {
-      const isFaltaTotal = i.quantidadeReal === 0 || i.quantidadeReal === null;
+      const isFaltanteMarcado = i.statusRecebimento === 'FALTANTE';
+      const isFaltanteCobrado = isFaltanteMarcado && i.observacaoDevolucao && i.observacaoDevolucao.includes('Cobrado na nota');
+      const isFaltaTotal = (i.quantidadeReal === 0 || i.quantidadeReal === null) && !isFaltanteMarcado;
       const isFaltaParcial = i.quantidadeReal > 0 && i.quantidadeReal < i.quantidadePedida;
       const isAvariado = i.statusRecebimento === 'AVARIADO';
       const isIncorreto = i.statusRecebimento === 'INCORRETO';
-      const isFaltanteMarcado = i.statusRecebimento === 'FALTANTE';
-      const isFaltanteCobrado = isFaltanteMarcado && i.observacaoDevolucao && i.observacaoDevolucao.includes('Cobrado na nota');
 
       const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteCobrado;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
@@ -161,7 +180,14 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         isApenasFinanceiro: isApenasFinanceiro
       };
     });
-    setSelecaoPedido(selecao);
+
+    setSelecaoPedido(prev => {
+      const nsItems = {};
+      Object.entries(prev).forEach(([id, val]) => {
+        if (val.isNaoSolicitado) nsItems[id] = val;
+      });
+      return { ...selecao, ...nsItems };
+    });
   };
 
   const updateSelecao = (itemId, field, value) => {
@@ -465,6 +491,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                                 <option value="Falta Parcial">Falta Parcial</option>
                                 <option value="Produto Avariado / Quebrado">Produto Avariado / Quebrado</option>
                                 <option value="Produto Incorreto / Invertido">Produto Incorreto / Invertido</option>
+                                <option value="Produto Não Solicitado">Produto Não Solicitado</option>
                                 <option value="Sobra (Entregue a mais)">Sobra (Entregue a mais)</option>
                                 <option value="Vencimento Próximo">Vencimento Próximo</option>
                                 <option value="Outro Motivo">Outro Motivo</option>
@@ -476,6 +503,53 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                         </tr>
                       );
                     })}
+                    {Object.entries(selecaoPedido).filter(([id, sel]) => sel.isNaoSolicitado).map(([id, sel]) => (
+                        <tr key={`ns_${id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? '#ede9fe' : 'white', opacity: sel.selected ? 1 : 0.6 }}>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={sel.selected} 
+                              onChange={(e) => updateSelecao(id, 'selected', e.target.checked)} 
+                              style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px', color: '#1e293b', fontWeight: '500', fontSize: '14px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                {sel.nomeProduto}
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: '#8b5cf6', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+                                    NÃO SOLICITADO
+                                </span>
+                            </div>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'center' }}>
+                            <input 
+                              type="number" 
+                              min="1" 
+                              max={sel.qtdMax}
+                              value={sel.qtd} 
+                              onChange={(e) => updateSelecao(id, 'qtd', Number(e.target.value))} 
+                              disabled={!sel.selected}
+                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                            />
+                          </td>
+                          <td style={{ padding: '12px' }}>
+                            <select 
+                              value={sel.motivo} 
+                              onChange={(e) => updateSelecao(id, 'motivo', e.target.value)} 
+                              disabled={!sel.selected}
+                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
+                            >
+                                <option value="Produto Não Solicitado">Produto Não Solicitado</option>
+                                <option value="Devolução Padrão">Devolução Padrão</option>
+                                <option value="Sobra (Entregue a mais)">Sobra (Entregue a mais)</option>
+                                <option value="Outro Motivo">Outro Motivo</option>
+                            </select>
+                          </td>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? '#16a34a' : '#9ca3af' }}>
+                            R$ {(sel.qtd * sel.valorUnitario).toFixed(2)}
+                          </td>
+                        </tr>
+                    ))}
                   </tbody>
                 </table>
               </div>

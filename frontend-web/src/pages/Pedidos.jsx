@@ -4,7 +4,7 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
 import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' 
-import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X, Tag } from 'lucide-react'
+import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X, Tag, ClipboardCheck } from 'lucide-react'
 
 export default function Pedidos() {
   const [pedidos, setPedidos] = useState([])
@@ -487,6 +487,25 @@ export default function Pedidos() {
               {pedidosSelecionados.length} pedido(s) selecionado(s)
             </span>
             <div style={{ display: 'flex', gap: '10px' }}>
+                <button 
+                  onClick={() => {
+                    if (pedidosSelecionados.length === 1) {
+                      navigate(`/conferencia/${pedidosSelecionados[0]}`);
+                    } else {
+                      const pendentes = pedidos.filter(p => pedidosSelecionados.includes(p.id) && ['ENVIADO', 'ENTREGA_PARCIAL', 'AGUARDANDO_CONFIRMACAO'].includes(p.status));
+                      if (pendentes.length === 0) {
+                        alert('Nenhum dos pedidos selecionados está pendente de conferência.');
+                        return;
+                      }
+                      if (window.confirm(`Abrir conferência para ${pendentes.length} pedido(s)? Será aberta uma aba para cada conferência.`)) {
+                        pendentes.forEach(p => window.open(`/conferencia/${p.id}`, '_blank'));
+                      }
+                    }
+                  }}
+                  style={{ backgroundColor: '#6366f1', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)' }}
+                >
+                  <ClipboardCheck size={18} /> Conferir Selecionados
+                </button>
                 <button 
                   onClick={handleAvisarEmMassa} 
                   style={{ backgroundColor: '#25D366', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(37, 211, 102, 0.3)' }}
