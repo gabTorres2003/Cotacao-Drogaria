@@ -5,7 +5,7 @@ import api from '../services/api';
 // Hooks e Utils
 import { useCotacaoDados } from '../hooks/useCotacaoDados';
 import { useCotacaoFiltros } from '../hooks/useCotacaoFiltros';
-import { baixarRelatorioGeral, gerarEspelhoResposta, gerarMensagemWhatsApp } from '../utils/pdfExport';
+import { baixarRelatorioGeral } from '../utils/pdfExport';
 
 // Componentes Visuais
 import CotacaoHeader from '../components/cotacao/CotacaoHeader';
@@ -206,16 +206,6 @@ export default function CotacaoDetalhes() {
   };
 
   const handleBaixarPDF = () => baixarRelatorioGeral(id, relatorioOrdenado, itensJaComprados, getNomeRealSempre);
-
-  const handleGerarEspelho = () => gerarEspelhoResposta(id, relatorioOrdenado, fornecedoresVisiveis, fornecedores, getNomeRealSempre);
-
-  const handleEnviarWhatsApp = () => {
-    const msg = gerarMensagemWhatsApp(id, relatorioOrdenado, getNomeRealSempre);
-    if (msg) {
-      const url = `https://api.whatsapp.com/send?text=${encodeURIComponent(msg)}`;
-      window.open(url, '_blank');
-    }
-  };
 
   const alterarStatusCotacao = async (novoStatus) => {
     const acao = novoStatus === 'FINALIZADA' ? 'encerrar' : 'reabrir';
@@ -1054,7 +1044,6 @@ export default function CotacaoDetalhes() {
         setIsEnviarModalOpen={setIsEnviarModalOpen} decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos}
         isProcessandoPedidos={isProcessandoPedidos} modoVisualizacao={modoVisualizacao} baixarRelatorioGeral={handleBaixarPDF}
         alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
-        gerarEspelho={handleGerarEspelho} enviarWhatsApp={handleEnviarWhatsApp}
       />
 
       {!isEncerrada && (

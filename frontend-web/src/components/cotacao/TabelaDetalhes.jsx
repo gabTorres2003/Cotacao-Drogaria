@@ -71,6 +71,8 @@ export default function TabelaDetalhes({
   const [itensRiscoDesconsiderado, setItensRiscoDesconsiderado] = useState({});
   const [obsEditando, setObsEditando] = useState(null);
   const [obsTemp, setObsTemp] = useState('');
+  const [obsPosition, setObsPosition] = useState({ top: 0, left: 0 });
+  const obsBtnRefs = useRef({});
   const scrollContainerRef = useRef(null);
   const decisaoCompraRef = useRef(decisaoCompra);
   decisaoCompraRef.current = decisaoCompra;
@@ -118,6 +120,18 @@ export default function TabelaDetalhes({
           return () => document.removeEventListener('click', closeMenu);
       }
   }, [contextMenu]);
+
+  useEffect(() => {
+      const closeObs = (e) => {
+          if (obsEditando && !e.target.closest('.obs-popup-container')) {
+              setObsEditando(null);
+          }
+      };
+      if (obsEditando) {
+          document.addEventListener('mousedown', closeObs);
+          return () => document.removeEventListener('mousedown', closeObs);
+      }
+  }, [obsEditando]);
 
   const updateBalloonPositions = useCallback(() => {
       const container = scrollContainerRef.current;
@@ -450,39 +464,27 @@ export default function TabelaDetalhes({
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
                   
                   {!isBloqueado && !isEncerrada && !item.excluido && (
-                    <div style={{ position: 'relative', display: 'inline-flex' }}>
+                    <div style={{ display: 'inline-flex' }}>
                       <button
                         type="button"
+                        ref={(el) => { obsBtnRefs.current[item.idItem] = el; }}
                         onClick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
-                          setObsEditando(obsEditando === item.idItem ? null : item.idItem);
-                          setObsTemp(item.observacaoComprador || '');
+                          if (obsEditando === item.idItem) {
+                            setObsEditando(null);
+                          } else {
+                            const rect = obsBtnRefs.current[item.idItem]?.getBoundingClientRect();
+                            if (rect) setObsPosition({ top: rect.bottom + 4, left: rect.left });
+                            setObsTemp(item.observacaoComprador || '');
+                            setObsEditando(item.idItem);
+                          }
                         }}
                         style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: item.observacaoComprador ? '#f59e0b' : '#9ca3af' }}
                         title={item.observacaoComprador ? `Obs: ${item.observacaoComprador}` : "Adicionar observação para o fornecedor"}
                       >
                         <MessageSquare size={14} fill={item.observacaoComprador ? '#f59e0b' : 'none'} />
                       </button>
-                      {obsEditando === item.idItem && (
-                        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 50, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: '220px' }} onClick={(e) => e.stopPropagation()}>
-                          <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '600' }}>Observação para o fornecedor:</div>
-                          <textarea
-                            autoFocus
-                            rows={2}
-                            value={obsTemp}
-                            onChange={(e) => setObsTemp(e.target.value)}
-                            onBlur={() => salvarObservacao(item.idItem, obsTemp)}
-                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); salvarObservacao(item.idItem, obsTemp); } if (e.key === 'Escape') setObsEditando(null); }}
-                            style={{ width: '100%', padding: '6px', fontSize: '12px', border: '1px solid #cbd5e1', borderRadius: '4px', resize: 'none', boxSizing: 'border-box' }}
-                            placeholder="Ex: Preencha o valor deste produto fracionado para 12 unidades"
-                          />
-                          <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
-                            <button type="button" onClick={() => salvarObservacao(item.idItem, obsTemp)} style={{ flex: 1, padding: '4px', fontSize: '11px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Salvar</button>
-                            <button type="button" onClick={() => setObsEditando(null)} style={{ flex: 1, padding: '4px', fontSize: '11px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
-                          </div>
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -1152,6 +1154,25 @@ export default function TabelaDetalhes({
               ✓ Desfazer Recusa
             </button>
           )}
+        </div>
+      )}
+
+      {obsEditando && (
+        <div className="obs-popup-container" style={{ position: 'fixed', top: obsPosition.top, left: obsPosition.left, zIndex: 9999, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', width: '300px' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px', fontWeight: '600' }}>Observação para o fornecedor:</div>
+          <textarea
+            autoFocus
+            rows={3}
+            value={obsTemp}
+            onChange={(e) => setObsTemp(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); salvarObservacao(obsEditando, obsTemp); } if (e.key === 'Escape') setObsEditando(null); }}
+            style={{ width: '100%', padding: '8px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box', minHeight: '60px' }}
+            placeholder="Ex: Preencha o valor deste produto fracionado para 12 unidades"
+          />
+          <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+            <button type="button" onClick={() => salvarObservacao(obsEditando, obsTemp)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Salvar</button>
+            <button type="button" onClick={() => setObsEditando(null)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+          </div>
         </div>
       )}
     </div>

@@ -217,3 +217,68 @@ export const gerarMensagemWhatsApp = (id, relatorioOrdenado, getNomeRealSempre) 
 
   return msg;
 };
+
+export const gerarEspelhoRespostaFornecedor = (idCotacao, nomeFornecedor, itens, precos, quantidades, getNomeReal) => {
+  try {
+    if (!itens || itens.length === 0) {
+      alert('Nenhum item disponível para gerar o espelho.');
+      return;
+    }
+
+    const doc = new jsPDF();
+    const pageHeight = doc.internal.pageSize.height;
+
+    doc.setFontSize(16);
+    doc.text(`Espelho da Resposta`, 14, 15);
+    doc.setFontSize(11);
+    doc.text(`Cotação #${idCotacao} — ${nomeFornecedor}`, 14, 23);
+    doc.setFontSize(9);
+    doc.setTextColor(100);
+    doc.text(`Gerado em: ${new Date().toLocaleDateString('pt-BR')} ${new Date().toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`, 14, 29);
+    doc.setTextColor(0);
+
+    const head = [['Produto', 'Qtd Solic.', 'Qtd Disp.', 'Preço Unit.', 'Total']];
+    const body = [];
+    let totalGeral = 0;
+
+    itens.forEach(item => {
+      const nome = getNomeReal(item.nomeProduto);
+      const qtdSolicitada = item.quantidade || 0;
+      const preco = precos[item.idItem] || 0;
+      const qtdDisp = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : qtdSolicitada;
+      const total = preco * qtdDisp;
+      totalGeral += total;
+
+      body.push([
+        nome,
+        `${qtdSolicitada} un`,
+        `${qtdDisp} un`,
+        preco > 0 ? preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-',
+        preco > 0 ? total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-'
+      ]);
+    });
+
+    autoTable(doc, {
+      startY: 34,
+      head,
+      body,
+      foot: [['', '', '', 'TOTAL', totalGeral.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })]],
+      theme: 'grid',
+      headStyles: { fillColor: [71, 85, 105], fontSize: 9 },
+      bodyStyles: { fontSize: 8 },
+      footStyles: { fillColor: [241, 245, 249], textColor: [15, 23, 42], fontStyle: 'bold', fontSize: 9 },
+      margin: { left: 14, right: 14 },
+      didDrawPage: (data) => {
+        if (data.pageNumber > 1) {
+          doc.setFontSize(10);
+          doc.text(`Espelho da Resposta — Cotação #${idCotacao} — ${nomeFornecedor} (página ${data.pageNumber})`, 14, 10);
+        }
+      }
+    });
+
+    doc.save(`Espelho_Resposta_Cotacao_${idCotacao}_${nomeFornecedor.replace(/\s+/g, '_')}.pdf`);
+  } catch (error) {
+    console.error('Erro ao gerar espelho do fornecedor:', error);
+    alert('Erro ao gerar o espelho de resposta.');
+  }
+};

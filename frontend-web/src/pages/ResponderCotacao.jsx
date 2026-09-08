@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
+import { gerarEspelhoRespostaFornecedor } from '../utils/pdfExport'
 import {
-  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare
+  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare, FileText
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -432,6 +433,7 @@ export default function ResponderCotacao() {
     <div style={mobileStyles.container}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: '#f3f4f6', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid #e5e7eb' }}>
         <button onClick={() => navigate('/portal-fornecedor')} style={mobileStyles.btnVoltar}><ArrowLeft size={18} /> Voltar</button>
+        <button onClick={() => gerarEspelhoRespostaFornecedor(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal)} style={{ ...mobileStyles.btnVoltar, backgroundColor: '#7c3aed', color: 'white' }}><FileText size={16} /> Espelho</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '24px' }} />
           <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Cotação #{idCotacao}</h1>
