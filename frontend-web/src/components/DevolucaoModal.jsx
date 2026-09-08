@@ -111,7 +111,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       const isFaltanteMarcado = i.statusRecebimento === 'FALTANTE';
       const isFaltanteCobrado = isFaltanteMarcado && i.observacaoDevolucao && i.observacaoDevolucao.includes('Cobrado na nota');
 
-      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteMarcado;
+      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteCobrado;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
 
       let motivoPadrao = 'Devolução Padrão';

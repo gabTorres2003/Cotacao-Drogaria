@@ -32,6 +32,8 @@ public class ProdutoDnaDTO {
     public String getDescricao() { return descricao; }
     public void setDescricao(String descricao) { this.descricao = descricao; }
 
+    public String getNome() { return descricao; }
+
     public Double getQuantidade() { return quantidade; }
     public void setQuantidade(Double quantidade) { this.quantidade = quantidade; }
 

@@ -40,7 +40,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }
 
   const handleConfirm = () => {
     const nome = resultadoBusca && !resultadoBusca.erro
-      ? resultadoBusca.nome
+      ? (resultadoBusca.nome || resultadoBusca.descricao || resultadoBusca.name || '')
       : (produtoManual ? nomeManual.trim() : busca.trim());
 
     if (!nome) {
@@ -106,7 +106,8 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }
             </div>
             {resultadoBusca && !resultadoBusca.erro && (
               <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '13px', color: '#166534' }}>
-                <strong>Encontrado:</strong> {resultadoBusca.nome}
+                <strong>Encontrado:</strong> {resultadoBusca.nome || resultadoBusca.descricao || resultadoBusca.name || 'Produto'}
+                {resultadoBusca.codbarras && <span style={{ marginLeft: '8px', color: '#6b7280' }}>(EAN: {resultadoBusca.codbarras})</span>}
               </div>
             )}
             {resultadoBusca && resultadoBusca.erro && (

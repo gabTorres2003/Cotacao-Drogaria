@@ -170,8 +170,14 @@ public class IntegracaoDNAService {
         params.addValue("codbarras", query.trim());
 
         try {
-            String sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
-                            "FROM PRODUTOS WHERE (CODIGO = :codigoNum OR CODBARRAS = :codbarras)";
+            String sqlDna;
+            if (codigoNum != null) {
+                sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                         "FROM PRODUTOS WHERE CODIGO = :codigoNum OR CODBARRAS = :codbarras";
+            } else {
+                sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                         "FROM PRODUTOS WHERE CODBARRAS = :codbarras";
+            }
             ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sqlDna, params, (rs, rowNum) -> {
                 return new ProdutoDnaDTO(
                     rs.getInt("CODIGO"),

@@ -29,6 +29,7 @@ export const baixarRelatorioGeral = (id, relatorioOrdenado, itensJaComprados, ge
         preco.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
         total.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })
       ]);
+      itensAgrupados[vencedor].itens.sort((a, b) => a[0].localeCompare(b[0]));
       itensAgrupados[vencedor].totalFornecedor += total;
       totalGeral += total;
     });

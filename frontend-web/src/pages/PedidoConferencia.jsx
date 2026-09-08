@@ -126,7 +126,18 @@ export default function PedidoConferencia() {
 
   const itensOrdenados = useMemo(() => {
     if (!pedido?.itens) return [];
-    let ordenavel = [...pedido.itens];
+    const itensNormais = [...pedido.itens];
+    const itensExtras = conferencia.filter(c => c.isNaoSolicitado).map(c => ({
+      id: c.id,
+      nomeProduto: c.nomeProduto,
+      quantidadePedida: 0,
+      quantidadeReal: 0,
+      valorUnitarioPedido: 0,
+      valorUnitarioReal: c.valorUnitarioReal,
+      statusRecebimento: c.statusRecebimento,
+      isNaoSolicitado: true
+    }));
+    let ordenavel = [...itensNormais, ...itensExtras];
     ordenavel.sort((a, b) => {
       let valA = a[sortConfig.key];
       let valB = b[sortConfig.key];
@@ -141,12 +152,42 @@ export default function PedidoConferencia() {
       return 0;
     });
     return ordenavel;
-  }, [pedido, sortConfig]);
+  }, [pedido, sortConfig, conferencia]);
 
   const itensHabilitados = useMemo(
     () => conferencia.filter(c => !c.totalmenteRecebido),
     [conferencia]
   );
+
+  const itensNaoConferidos = useMemo(
+    () => conferencia.filter(c => !c.conferido && !c.totalmenteRecebido && !c.isNaoSolicitado),
+    [conferencia]
+  );
+
+  const conferirTodos = () => {
+    let confirmados = 0;
+    let erros = 0;
+    setConferencia(prev => prev.map(item => {
+      if (item.conferido || item.totalmenteRecebido || item.isNaoSolicitado) return item;
+      if (item.statusRecebimento === 'FALTANTE') {
+        return { ...item, conferido: true };
+      }
+      const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
+      if (qtdNova > 0 && item.valorUnitarioReal !== '' && item.valorUnitarioReal !== undefined) {
+        confirmados++;
+        return { ...item, conferido: true };
+      }
+      erros++;
+      return item;
+    }));
+    if (confirmados > 0 && erros === 0) {
+      alert(`${confirmados} item(ns) conferido(s) com sucesso!`);
+    } else if (confirmados > 0) {
+      alert(`${confirmados} item(ns) conferido(s). ${erros} item(ns) sem quantidade ou preço preenchidos foram ignorados.`);
+    } else {
+      alert('Nenhum item pôde ser conferido automaticamente. Preencha a quantidade e o valor unitário de pelo menos um item.');
+    }
+  };
 
   const itensFaltantes = useMemo(
     () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido && !c.foiCobrado),
@@ -209,7 +250,7 @@ export default function PedidoConferencia() {
         if (nomesExistentes.has(nome.toUpperCase())) {
           duplicados.push(nome);
         } else {
-          paraAdicionar.push({ nome, quantidade: itemPedido.quantidadePedida });
+          paraAdicionar.push({ nome, quantidade: itemPedido.quantidadePedida - (itemPedido.quantidadeReal || 0) });
           nomesExistentes.add(nome.toUpperCase());
         }
       }
@@ -412,6 +453,20 @@ export default function PedidoConferencia() {
             </div>
 
             <div style={{ overflowX: 'auto' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
+                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
+                    {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} item(ns) pendente(s)` : 'Todos os itens conferidos'}
+                  </span>
+                  {itensNaoConferidos.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={conferirTodos}
+                      style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                    >
+                      <Check size={14} /> Conferir Todos
+                    </button>
+                  )}
+                </div>
                 <table style={styles.table}>
                   <thead>
                     <tr>
