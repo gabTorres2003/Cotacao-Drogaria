@@ -28,10 +28,11 @@ public class IntegracaoDNAService {
 
     public List<ItemCotacao> buscarFaltasDiretoDoBanco(List<String> gruposSelecionados) {
         StringBuilder sql = new StringBuilder(
-                "SELECT DESCRICAO, CODBARRAS, ESTOQUE, FALTAS, PRECOCUSTO, GRUPO, " +
-                "VENDIDO_NO_MES, ULTCOMPRA_DATA, ULTCOMPRA_QTDE, " +
-                "ULTVENDA_DATA, VENDIDO_APOS_ULTCOMPRA " +
-                "FROM A_FALTAS"
+                "SELECT f.DESCRICAO, p.CODBARRAS, f.ESTOQUE, f.FALTAS, f.PRECOCUSTO, f.GRUPO, " +
+                "f.VENDIDO_NO_MES, f.ULTCOMPRA_DATA, f.ULTCOMPRA_QTDE, " +
+                "f.ULTVENDA_DATA, f.VENDIDO_APOS_ULTCOMPRA " +
+                "FROM A_FALTAS f " +
+                "LEFT JOIN PRODUTOS p ON p.DESCRICAO = f.DESCRICAO"
         );
 
         MapSqlParameterSource parametros = new MapSqlParameterSource();
@@ -40,7 +41,7 @@ public class IntegracaoDNAService {
             List<String> gruposUpper = gruposSelecionados.stream()
                     .map(String::toUpperCase)
                     .collect(Collectors.toList());
-            sql.append(" WHERE UPPER(TRIM(GRUPO)) IN (:gruposSelecionados)");
+            sql.append(" WHERE UPPER(TRIM(f.GRUPO)) IN (:gruposSelecionados)");
             parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
