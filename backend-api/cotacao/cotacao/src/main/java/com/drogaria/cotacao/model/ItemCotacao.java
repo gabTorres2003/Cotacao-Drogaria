@@ -42,6 +42,9 @@ public class ItemCotacao {
     @Column(name = "cod_barras")
     private String codBarras;
 
+    @Column(name = "observacao_comprador")
+    private String observacaoComprador;
+
     @Column(name = "origem_item")
     private String origemItem;
 
@@ -109,6 +112,9 @@ public class ItemCotacao {
 
     public String getCodBarras() { return codBarras; }
     public void setCodBarras(String codBarras) { this.codBarras = codBarras; }
+
+    public String getObservacaoComprador() { return observacaoComprador; }
+    public void setObservacaoComprador(String observacaoComprador) { this.observacaoComprador = observacaoComprador; }
     
     public Boolean getEditadoManual() { return editadoManual; }
     public void setEditadoManual(Boolean editadoManual) { this.editadoManual = editadoManual; }

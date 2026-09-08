@@ -21,6 +21,8 @@ public class ItemComparativoDTO {
     private String codBarras;
     private String origemItem;
 
+    private String observacaoComprador;
+
     private Boolean editadoManual;
     private Boolean excluido;
     private Boolean devolvidoPorAlteracaoPreco;
@@ -96,6 +98,9 @@ public class ItemComparativoDTO {
 
     public String getOrigemItem() { return origemItem; }
     public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
+
+    public String getObservacaoComprador() { return observacaoComprador; }
+    public void setObservacaoComprador(String observacaoComprador) { this.observacaoComprador = observacaoComprador; }
 
     public Boolean getEditadoManual() { return editadoManual; }
     public void setEditadoManual(Boolean editadoManual) { this.editadoManual = editadoManual; }

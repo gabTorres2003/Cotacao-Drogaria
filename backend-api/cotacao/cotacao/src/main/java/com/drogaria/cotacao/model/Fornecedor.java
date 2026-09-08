@@ -32,6 +32,9 @@ public class Fornecedor {
     @Column(name = "percentual_imposto")
     private Double percentualImposto;
 
+    @Column(nullable = false)
+    private boolean ativo = true;
+
     // Getters e Setters
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
@@ -65,4 +68,7 @@ public class Fornecedor {
 
     public Double getPercentualImposto() { return percentualImposto; }
     public void setPercentualImposto(Double percentualImposto) { this.percentualImposto = percentualImposto; }
+
+    public boolean isAtivo() { return ativo; }
+    public void setAtivo(boolean ativo) { this.ativo = ativo; }
 }

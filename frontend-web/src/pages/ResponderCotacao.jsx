@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import {
-  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags
+  ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare
 } from 'lucide-react'
 
 export default function ResponderCotacao() {
@@ -529,6 +529,13 @@ export default function ResponderCotacao() {
                     )}
                   </div>
                   <div style={{ fontSize: '13px', color: '#6b7280' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
+                  
+                  {item.observacaoComprador && (
+                    <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <MessageSquare size={14} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color: '#92400e', fontStyle: 'italic', lineHeight: '1.4' }}>{item.observacaoComprador}</span>
+                    </div>
+                  )}
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: '8px', alignItems: 'flex-end', marginTop: '8px' }}>
                     <div>

@@ -57,6 +57,8 @@
 | `empresa` | `varchar` |  Nullable |
 | `entregue_por` | `varchar` |  Nullable |
 | `setor_compra` | `varchar` |  Nullable |
+| `percentual_imposto` | `float8` |  Nullable |
+| `ativo` | `bool` |  Nullable |
 
 ## Table `tb_precos_cotacao`
 

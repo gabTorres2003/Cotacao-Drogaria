@@ -8,6 +8,7 @@ import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.PrecoCotacaoRepository;
+import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.service.ComparativoService;
 import com.drogaria.cotacao.service.CotacaoService;
 import com.drogaria.cotacao.service.excel.ExcelReaderService;
@@ -38,6 +39,9 @@ public class CotacaoController {
 
     @Autowired
     private PrecoCotacaoRepository precoCotacaoRepository;
+
+    @Autowired
+    private ItemCotacaoRepository itemCotacaoRepository;
 
     @Autowired
     private CotacaoService cotacaoService;
@@ -218,6 +222,14 @@ public class CotacaoController {
                 Boolean excluido = (Boolean) dados.get("excluido");
                 cotacaoService.restaurarItem(idItem, excluido);
                 return ResponseEntity.ok("Item atualizado");
+            }
+            if (dados.containsKey("observacaoComprador")) {
+                String obs = (String) dados.get("observacaoComprador");
+                ItemCotacao item = itemCotacaoRepository.findById(idItem).orElse(null);
+                if (item == null) return ResponseEntity.notFound().build();
+                item.setObservacaoComprador(obs);
+                itemCotacaoRepository.save(item);
+                return ResponseEntity.ok("Observação salva");
             }
             String nome = (String) dados.get("nomeProduto");
             Integer qtd = dados.get("quantidade") != null ? ((Number) dados.get("quantidade")).intValue() : null;

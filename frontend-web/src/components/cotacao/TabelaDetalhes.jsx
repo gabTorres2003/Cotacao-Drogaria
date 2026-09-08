@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil, MessageSquare } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 import api from '../../services/api';
 
@@ -69,9 +69,21 @@ export default function TabelaDetalhes({
   
   const [alertaProduto, setAlertaProduto] = useState(null);
   const [itensRiscoDesconsiderado, setItensRiscoDesconsiderado] = useState({});
+  const [obsEditando, setObsEditando] = useState(null);
+  const [obsTemp, setObsTemp] = useState('');
   const scrollContainerRef = useRef(null);
   const decisaoCompraRef = useRef(decisaoCompra);
   decisaoCompraRef.current = decisaoCompra;
+
+  const salvarObservacao = async (idItem, observacao) => {
+    try {
+      await api.put(`/api/cotacao/item/${idItem}`, { observacaoComprador: observacao || null });
+      setObsEditando(null);
+    } catch (error) {
+      console.error('Erro ao salvar observação:', error);
+      alert('Erro ao salvar observação.');
+    }
+  };
 
   const registrarDecisaoDivergencia = async (idPreco, decisao, chave) => {
       try {
@@ -140,7 +152,7 @@ export default function TabelaDetalhes({
       window.addEventListener('resize', handler);
       updateBalloonPositions();
       return () => { window.removeEventListener('resize', handler); };
-  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada]);
+  }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada, supplierOrder]);
 
   const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
     return supplierOrder.map(forn => {
@@ -436,6 +448,43 @@ export default function TabelaDetalhes({
                   {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
                   {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
                   <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
+                  
+                  {!isBloqueado && !isEncerrada && !item.excluido && (
+                    <div style={{ position: 'relative', display: 'inline-flex' }}>
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setObsEditando(obsEditando === item.idItem ? null : item.idItem);
+                          setObsTemp(item.observacaoComprador || '');
+                        }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: item.observacaoComprador ? '#f59e0b' : '#9ca3af' }}
+                        title={item.observacaoComprador ? `Obs: ${item.observacaoComprador}` : "Adicionar observação para o fornecedor"}
+                      >
+                        <MessageSquare size={14} fill={item.observacaoComprador ? '#f59e0b' : 'none'} />
+                      </button>
+                      {obsEditando === item.idItem && (
+                        <div style={{ position: 'absolute', top: '100%', left: 0, zIndex: 50, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', minWidth: '220px' }} onClick={(e) => e.stopPropagation()}>
+                          <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '4px', fontWeight: '600' }}>Observação para o fornecedor:</div>
+                          <textarea
+                            autoFocus
+                            rows={2}
+                            value={obsTemp}
+                            onChange={(e) => setObsTemp(e.target.value)}
+                            onBlur={() => salvarObservacao(item.idItem, obsTemp)}
+                            onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); salvarObservacao(item.idItem, obsTemp); } if (e.key === 'Escape') setObsEditando(null); }}
+                            style={{ width: '100%', padding: '6px', fontSize: '12px', border: '1px solid #cbd5e1', borderRadius: '4px', resize: 'none', boxSizing: 'border-box' }}
+                            placeholder="Ex: Preencha o valor deste produto fracionado para 12 unidades"
+                          />
+                          <div style={{ display: 'flex', gap: '4px', marginTop: '4px' }}>
+                            <button type="button" onClick={() => salvarObservacao(item.idItem, obsTemp)} style={{ flex: 1, padding: '4px', fontSize: '11px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Salvar</button>
+                            <button type="button" onClick={() => setObsEditando(null)} style={{ flex: 1, padding: '4px', fontSize: '11px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
 
                 {isComparativo && mostrarFracao && !item.excluido && (

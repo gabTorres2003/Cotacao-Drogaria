@@ -7,7 +7,7 @@ export default function CotacaoHeader({
   mostrarNomeReal, setMostrarNomeReal, setShowVinculosModal, setIsEnviarModalOpen, 
   mostrarComImposto, setMostrarComImposto,
   decisaoCompra, handleGerarPedidos, isProcessandoPedidos, modoVisualizacao, 
-  baixarRelatorioGeral, alterarStatusCotacao, navigate
+  baixarRelatorioGeral, alterarStatusCotacao, navigate, gerarEspelho, enviarWhatsApp
 }) {
   const [setorAtual, setSetorAtual] = useState('AMBOS');
   const [showSetorModal, setShowSetorModal] = useState(false);
@@ -106,6 +106,14 @@ export default function CotacaoHeader({
         
         <button type="button" style={{ ...btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
           <FileText size={18} /> Baixar PDF
+        </button>
+
+        <button type="button" style={{ ...btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex', backgroundColor: '#7c3aed' }} onClick={gerarEspelho}>
+          <FileText size={18} /> Espelho PDF
+        </button>
+
+        <button type="button" style={{ ...btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex', backgroundColor: '#25D366' }} onClick={enviarWhatsApp}>
+          <MessageCircle size={18} /> WhatsApp
         </button>
 
         {isEncerrada ? (

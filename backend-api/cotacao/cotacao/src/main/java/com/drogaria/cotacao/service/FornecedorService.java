@@ -52,6 +52,13 @@ public class FornecedorService {
     public void deletarFornecedor(Long id) {
         fornecedorRepository.deleteById(id);
     }
+
+    public void alterarStatus(Long id) {
+        Fornecedor fornecedor = fornecedorRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado"));
+        fornecedor.setAtivo(!fornecedor.isAtivo());
+        fornecedorRepository.save(fornecedor);
+    }
     
     public void salvarRespostasFornecedor(List<SalvarPrecoDTO> precosRecebidos) {
         for (SalvarPrecoDTO dto : precosRecebidos) {

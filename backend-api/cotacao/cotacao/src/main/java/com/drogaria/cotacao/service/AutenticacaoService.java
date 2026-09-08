@@ -44,7 +44,8 @@ public class AutenticacaoService implements UserDetailsService {
             return User.builder()
                     .username(f.getLogin())
                     .password(senhaSegura)
-                    .authorities("ROLE_FORNECEDOR") 
+                    .authorities("ROLE_FORNECEDOR")
+                    .disabled(!f.isAtivo())
                     .build();
         }
 

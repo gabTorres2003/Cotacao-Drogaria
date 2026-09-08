@@ -102,6 +102,24 @@ public class FornecedorController {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/{id}/status")
+    public ResponseEntity<?> alterarStatus(@PathVariable Long id) {
+        try {
+            fornecedorService.alterarStatus(id);
+            Fornecedor fornecedor = fornecedorRepository.findById(id).orElse(null);
+            String status = fornecedor != null && fornecedor.isAtivo() ? "ativado" : "inativado";
+
+            logAuditoriaService.registrarLog(
+                getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Fornecedor", id,
+                "Fornecedor foi " + status + " pelo administrador."
+            );
+
+            return ResponseEntity.ok(Map.of("message", "Fornecedor " + status + " com sucesso", "ativo", fornecedor != null && fornecedor.isAtivo()));
+        } catch (Exception e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Erro ao alterar status: " + e.getMessage()));
+        }
+    }
+
     @PutMapping("/{id}/primeiro-acesso")
     public ResponseEntity<Fornecedor> concluirPrimeiroAcesso(@PathVariable Long id, @RequestBody Map<String, String> payload) {
         return fornecedorRepository.findById(id).map(f -> {

@@ -11,7 +11,9 @@ import {
   KeyRound,
   MessageCircle,
   Building2,
-  Tags
+  Tags,
+  Power,
+  PowerOff
 } from 'lucide-react'
 
 export default function Fornecedores() {
@@ -113,6 +115,18 @@ export default function Fornecedores() {
           error.response?.data ||
             'Erro ao excluir fornecedor. Ele já pode estar vinculado a respostas de cotações passadas.',
         )
+      }
+    }
+  }
+
+  const handleToggleStatus = async (id, nome, ativoAtual) => {
+    const acao = ativoAtual ? 'inativar' : 'reativar'
+    if (window.confirm(`Tem certeza que deseja ${acao} o fornecedor ${nome}?`)) {
+      try {
+        await api.put(`/api/fornecedor/${id}/status`)
+        carregarFornecedores()
+      } catch (error) {
+        alert('Erro ao alterar status do fornecedor.')
       }
     }
   }
@@ -292,8 +306,13 @@ export default function Fornecedores() {
                           <User size={16} />
                         </div>
                         <div>
-                          <div style={{ fontWeight: '600', color: '#374151' }}>
+                          <div style={{ fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {f.nome}
+                            {f.ativo === false && (
+                              <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#dc2626', backgroundColor: '#fee2e2', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                                INATIVO
+                              </span>
+                            )}
                           </div>
                           <div style={{ fontSize: '12px', color: '#6b7280' }}>
                             Login: {f.login}
@@ -356,6 +375,15 @@ export default function Fornecedores() {
                           onClick={() => handleResetSenha(f.id, f.nome)}
                         >
                           <KeyRound size={18} />
+                        </button>
+
+                        <button
+                          className="btn-icon"
+                          style={{ color: f.ativo === false ? '#16a34a' : '#ea580c', background: f.ativo === false ? '#f0fdf4' : '#fff7ed' }}
+                          title={f.ativo === false ? 'Reativar Fornecedor' : 'Inativar Fornecedor'}
+                          onClick={() => handleToggleStatus(f.id, f.nome, f.ativo !== false)}
+                        >
+                          {f.ativo === false ? <Power size={18} /> : <PowerOff size={18} />}
                         </button>
 
                         <button

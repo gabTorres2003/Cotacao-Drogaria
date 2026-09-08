@@ -55,6 +55,11 @@ public class CotacaoFornecedorService {
                 return new RuntimeException("Fornecedor não encontrado");
             });
 
+            if (!f.isAtivo()) {
+                log.warn("Fornecedor ID {} está inativo e será ignorado.", fId);
+                continue;
+            }
+
             CotacaoFornecedor cf = new CotacaoFornecedor();
             cf.setCotacao(cotacao);
             cf.setFornecedor(f);
