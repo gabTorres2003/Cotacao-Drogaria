@@ -492,9 +492,9 @@ export default function Pedidos() {
                     if (pedidosSelecionados.length === 1) {
                       navigate(`/conferencia/${pedidosSelecionados[0]}`);
                     } else {
-                      const pendentes = pedidos.filter(p => pedidosSelecionados.includes(p.id) && ['ENVIADO', 'ENTREGA_PARCIAL', 'AGUARDANDO_CONFIRMACAO'].includes(p.status));
+                      const pendentes = pedidos.filter(p => pedidosSelecionados.includes(p.id) && ['CONFIRMADO_FORNECEDOR', 'ENTREGA_PARCIAL'].includes(p.status));
                       if (pendentes.length === 0) {
-                        alert('Nenhum dos pedidos selecionados está pendente de conferência.');
+                        alert('Nenhum dos pedidos selecionados está pendente de conferência.\n\nStatus elegíveis: Confirmado no Fornecedor, Entrega Parcial.');
                         return;
                       }
                       if (window.confirm(`Abrir conferência para ${pendentes.length} pedido(s)? Será aberta uma aba para cada conferência.`)) {

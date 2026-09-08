@@ -2,6 +2,7 @@ package com.drogaria.cotacao.service;
 
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
 import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
+import com.drogaria.cotacao.dto.request.ItemNaoSolicitadoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
@@ -99,11 +100,12 @@ public class PedidoService {
             pedido.setNumeroNota(pedido.getNumeroNota() + " / " + novaNota);
         }
 
-        boolean temDivergenciaQuantidade = false;
-        boolean temIncompatibilidadeValor = false;
         boolean temDevolucao = false;
+        boolean temIncompatibilidadeValor = false;
         boolean temItemPendente = false;
         double valorTotalReal = 0.0;
+
+        List<ItemPedido> itensRemover = new ArrayList<>();
 
         for (ItemRecebidoDTO itemConferido : dto.getItens()) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
@@ -122,7 +124,6 @@ public class PedidoService {
             StatusItemRecebimento statusItem = itemConferido.getStatusRecebimento();
 
             if (itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida()) {
-                temDivergenciaQuantidade = true;
                 temItemPendente = true;
                 if (statusItem == null || statusItem == StatusItemRecebimento.OK) {
                     statusItem = StatusItemRecebimento.FALTANTE;
@@ -133,6 +134,15 @@ public class PedidoService {
                     && itemBanco.getValorUnitarioPedido() != null
                     && !itemBanco.getValorUnitarioReal().equals(itemBanco.getValorUnitarioPedido())) {
                 temIncompatibilidadeValor = true;
+            }
+
+            boolean isFaltanteSemCobranca = statusItem == StatusItemRecebimento.FALTANTE
+                    && (itemConferido.getObservacaoDevolucao() == null
+                        || !itemConferido.getObservacaoDevolucao().contains("Cobrado na nota"));
+
+            if (isFaltanteSemCobranca) {
+                itensRemover.add(itemBanco);
+                continue;
             }
 
             itemBanco.setStatusRecebimento(statusItem);
@@ -148,6 +158,11 @@ public class PedidoService {
             }
         }
 
+        for (ItemPedido itemRemover : itensRemover) {
+            pedido.getItens().remove(itemRemover);
+            itemPedidoRepository.delete(itemRemover);
+        }
+
         pedido.setValorTotalReal(valorTotalReal);
 
         if (temDevolucao) {
@@ -156,7 +171,7 @@ public class PedidoService {
             pedido.setStatus(StatusPedido.ENTREGA_PARCIAL);
         } else if (temIncompatibilidadeValor) {
             pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
-        } else {
+        } else if (pedido.getItens().isEmpty() || pedido.getItens().stream().allMatch(i -> i.getQuantidadeReal() != null && i.getQuantidadeReal() > 0)) {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
 
@@ -171,6 +186,38 @@ public class PedidoService {
         }
 
         return pedidoSalvo;
+    }
+
+    @Transactional
+    public Pedido adicionarItensNaoSolicitados(Long pedidoId, List<ItemNaoSolicitadoDTO> itens) {
+        Pedido pedido = buscarPorId(pedidoId);
+
+        for (ItemNaoSolicitadoDTO dto : itens) {
+            ItemPedido novoItem = new ItemPedido();
+            novoItem.setPedido(pedido);
+            novoItem.setNomeProduto(dto.getNomeProduto());
+            novoItem.setQuantidadePedida(0);
+            novoItem.setValorUnitarioPedido(0.0);
+            novoItem.setQuantidadeReal(dto.getQuantidade() != null ? dto.getQuantidade() : 0);
+            novoItem.setValorUnitarioReal(dto.getValorUnitarioReal() != null ? dto.getValorUnitarioReal() : 0.0);
+            novoItem.setStatusRecebimento(StatusItemRecebimento.OK);
+            novoItem.setObservacaoDevolucao(dto.getObservacaoDevolucao() != null ? dto.getObservacaoDevolucao() : "Produto Não Solicitado");
+            novoItem.setCondicaoAplicada(false);
+            novoItem.setValorAlteradoAposPedido(false);
+
+            pedido.getItens().add(novoItem);
+            itemPedidoRepository.save(novoItem);
+        }
+
+        double valorTotalReal = 0.0;
+        for (ItemPedido item : pedido.getItens()) {
+            if (item.getQuantidadeReal() != null && item.getValorUnitarioReal() != null) {
+                valorTotalReal += (item.getQuantidadeReal() * item.getValorUnitarioReal());
+            }
+        }
+        pedido.setValorTotalReal(valorTotalReal);
+
+        return pedidoRepository.save(pedido);
     }
 
     private void atualizarPercentualImpostoFornecedor(Pedido pedido) {

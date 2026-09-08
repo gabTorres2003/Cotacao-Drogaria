@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.request.GerarPedidoRequestDTO;
+import com.drogaria.cotacao.dto.request.ItemNaoSolicitadoDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
@@ -156,6 +157,20 @@ public class PedidoController {
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
             "Realizou a conferência física e recebimento do pedido."
+        );
+
+        return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PostMapping("/{id}/itens-nao-solicitados")
+    public ResponseEntity<Pedido> adicionarItensNaoSolicitados(
+            @PathVariable Long id,
+            @RequestBody List<ItemNaoSolicitadoDTO> itens) {
+        Pedido pedidoAtualizado = pedidoService.adicionarItensNaoSolicitados(id, itens);
+
+        logAuditoriaService.registrarLog(
+            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
+            "Adicionou " + itens.size() + " item(ns) não solicitado(s) na conferência."
         );
 
         return ResponseEntity.ok(pedidoAtualizado);

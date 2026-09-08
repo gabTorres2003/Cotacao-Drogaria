@@ -349,6 +349,21 @@ export default function PedidoConferencia() {
       const response = await api.put(`/api/pedidos/${id}/receber`, payload);
       const novoStatus = response.data?.status;
 
+      const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
+      if (itensNaoSolicitados.length > 0) {
+        try {
+          const payloadNS = itensNaoSolicitados.map(c => ({
+            nomeProduto: c.nomeProduto,
+            quantidade: c.quantidadeRecebidaAgora || 0,
+            valorUnitarioReal: c.valorUnitarioReal || 0,
+            observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
+          }));
+          await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, payloadNS);
+        } catch (eNS) {
+          console.error('Erro ao salvar itens não solicitados:', eNS);
+        }
+      }
+
       if (parcial) {
         alert('Entrega parcial salva com sucesso! O status do pedido foi atualizado e você poderá continuar a conferência quando chegar o próximo volume.');
         navigate(`/pedidos/${id}`);
@@ -507,6 +522,11 @@ export default function PedidoConferencia() {
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
                               {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
                             </strong>
+                            {confState.isNaoSolicitado && (
+                              <div style={{ fontSize: '10px', color: '#6b21a8', backgroundColor: '#f3e8ff', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #d8b4fe' }}>
+                                <Tag size={10} /> Não Solicitado
+                              </div>
+                            )}
                             {item.condicaoAplicada && (
                               <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                 <Tag size={10} /> Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
