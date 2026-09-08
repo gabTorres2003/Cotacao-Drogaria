@@ -76,9 +76,27 @@ public class CotacaoController {
                     ItemCotacao item = new ItemCotacao();
                     item.setNomeProduto(itemDto.getNomeProduto());
                     item.setQuantidade(itemDto.getQuantidade());
-                    item.setOrigemItem(request.getOrigem() != null ? request.getOrigem() : "Manual");
+                    item.setCodBarras(itemDto.getCodBarras());
+                    item.setOrigemItem(itemDto.getOrigemItem() != null ? itemDto.getOrigemItem() : (request.getOrigem() != null ? request.getOrigem() : "Manual"));
+                    item.setEstoque(itemDto.getEstoque());
+                    item.setUltimoPreco(itemDto.getUltimoPreco());
+                    item.setVendidoNoMes(itemDto.getVendidoNoMes());
+                    item.setUltCompraQtde(itemDto.getUltCompraQtde());
+                    item.setVendidoAposUltCompra(itemDto.getVendidoAposUltCompra());
                     item.setEditadoManual(true);
                     item.setCotacao(novaCotacao);
+
+                    if (itemDto.getUltCompraData() != null && !itemDto.getUltCompraData().isEmpty()) {
+                        try {
+                            item.setUltCompraData(java.time.LocalDate.parse(itemDto.getUltCompraData()));
+                        } catch (Exception ignored) {}
+                    }
+                    if (itemDto.getUltVendaData() != null && !itemDto.getUltVendaData().isEmpty()) {
+                        try {
+                            item.setUltVendaData(java.time.LocalDate.parse(itemDto.getUltVendaData()));
+                        } catch (Exception ignored) {}
+                    }
+
                     itens.add(item);
                 }
             }

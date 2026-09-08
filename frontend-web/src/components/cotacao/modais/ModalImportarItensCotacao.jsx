@@ -8,6 +8,18 @@ const normalizarNome = (nome) => String(nome || '')
   .replace(/[^a-zA-Z0-9]/g, '')
   .toLowerCase();
 
+const converterDataParaIso = (dataStr) => {
+  if (!dataStr || typeof dataStr !== 'string') return null;
+  if (dataStr.includes('-') && dataStr.length === 10) return dataStr;
+  if (dataStr.includes('/')) {
+    const partes = dataStr.split('/');
+    if (partes.length === 3) {
+      return `${partes[2]}-${partes[1].padStart(2, '0')}-${partes[0].padStart(2, '0')}`;
+    }
+  }
+  return null;
+};
+
 export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, itensAtuais, onSuccess }) {
   const [cotacoes, setCotacoes] = useState([]);
   const [cotacaoOrigem, setCotacaoOrigem] = useState('');
@@ -131,11 +143,16 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
           quantidade: Number(quantidades[item.id]) || 1,
           origemItem: `Importado da Cotação #${cotacaoOrigem}`
         };
+        if (item.codBarras) payload.codBarras = item.codBarras;
         if (item.estoque != null) payload.estoque = item.estoque;
         if (item.ultimoPreco != null) payload.ultimoPreco = item.ultimoPreco;
         if (item.vendidoNoMes != null) payload.vendidoNoMes = item.vendidoNoMes;
         if (item.ultCompraQtde != null) payload.ultCompraQtde = item.ultCompraQtde;
         if (item.vendidoAposUltCompra != null) payload.vendidoAposUltCompra = item.vendidoAposUltCompra;
+        const ultCompraDataIso = converterDataParaIso(item.ultCompraData);
+        if (ultCompraDataIso) payload.ultCompraData = ultCompraDataIso;
+        const ultVendaDataIso = converterDataParaIso(item.ultVendaData);
+        if (ultVendaDataIso) payload.ultVendaData = ultVendaDataIso;
         await api.post(`/api/cotacao/${cotacaoId}/item`, payload);
       }
       alert('Produtos importados com sucesso.');

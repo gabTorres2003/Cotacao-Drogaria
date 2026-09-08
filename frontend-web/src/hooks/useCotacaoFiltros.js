@@ -15,7 +15,8 @@ export function useCotacaoFiltros(relatorio, itensJaComprados, modoVisualizacao,
     ultCompraData: true,
     ultCompraQtde: true,
     ultVendaData: true,
-    ultimoPreco: true
+    ultimoPreco: true,
+    codBarras: false
   });
   
   const [fornecedoresVisiveis, setFornecedoresVisiveis] = useState({});

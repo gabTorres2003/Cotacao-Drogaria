@@ -223,8 +223,8 @@ export default function TabelaDetalhes({
 
   const getLeftOffset = (colKey, type = 'stat') => {
       let offset = 250; 
-      const statsOrder = ['quantidade', 'estoque', 'vendidoNoMes', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco'];
-      const widths = { quantidade: 130, estoque: 130, vendidoNoMes: 140, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150 };
+      const statsOrder = ['quantidade', 'estoque', 'vendidoNoMes', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco', 'codBarras'];
+      const widths = { quantidade: 130, estoque: 130, vendidoNoMes: 140, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150, codBarras: 140 };
       
       for (let stat of statsOrder) {
           if (stat === colKey && type === 'stat') break;
@@ -505,6 +505,11 @@ export default function TabelaDetalhes({
           {colunasVisiveis.ultimoPreco && (() => {
               const isPinned = pinnedStats.includes('ultimoPreco');
               return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
+          })()}
+
+          {colunasVisiveis.codBarras && (() => {
+              const isPinned = pinnedStats.includes('codBarras');
+              return <td style={getCellColStyle(isPinned, getLeftOffset('codBarras', 'stat'), false, false, textStyle.color, isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.codBarras || '-'}</span></td>;
           })()}
 
           {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true)).map((f) => {
@@ -942,6 +947,8 @@ export default function TabelaDetalhes({
                       </th>
                   );
               })()}
+
+              {colunasVisiveis.codBarras && <th style={getHeaderStyle(false, 0, '140px')}><div style={{ display: 'flex', alignItems: 'center' }}>Cód. Barras</div></th>}
               
               {isComparativo && supplierOrder.filter(f => (fornecedoresVisiveis[f] ?? true)).map((f) => {
                   const isPinned = pinnedSuppliers.includes(f);

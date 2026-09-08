@@ -28,7 +28,7 @@ public class IntegracaoDNAService {
 
     public List<ItemCotacao> buscarFaltasDiretoDoBanco(List<String> gruposSelecionados) {
         StringBuilder sql = new StringBuilder(
-                "SELECT DESCRICAO, ESTOQUE, FALTAS, PRECOCUSTO, GRUPO, " +
+                "SELECT DESCRICAO, CODBARRAS, ESTOQUE, FALTAS, PRECOCUSTO, GRUPO, " +
                 "VENDIDO_NO_MES, ULTCOMPRA_DATA, ULTCOMPRA_QTDE, " +
                 "ULTVENDA_DATA, VENDIDO_APOS_ULTCOMPRA " +
                 "FROM A_FALTAS"
@@ -48,6 +48,7 @@ public class IntegracaoDNAService {
             ItemCotacao item = new ItemCotacao();
             
             item.setNomeProduto(rs.getString("DESCRICAO"));
+            item.setCodBarras(rs.getString("CODBARRAS"));
             item.setUltimoPreco(rs.getDouble("PRECOCUSTO")); 
             item.setQuantidade((int) rs.getDouble("FALTAS")); 
             item.setEstoque(rs.getDouble("ESTOQUE"));
@@ -75,6 +76,7 @@ public class IntegracaoDNAService {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +
                 "p.CODIGO, " +
+                "p.CODBARRAS, " +
                 "p.DESCRICAO, " +
                 "MAX(p.QUANTIDADE) AS ESTOQUE, " +
                 "MAX(p.PRECOCUSTO) AS PRECOCUSTO, " +
@@ -110,7 +112,7 @@ public class IntegracaoDNAService {
             parametros.addValue("gruposSelecionados", gruposUpper);
         }
 
-        sql.append(" GROUP BY p.CODIGO, p.DESCRICAO, p.DTULTCOMPRA");
+        sql.append(" GROUP BY p.CODIGO, p.CODBARRAS, p.DESCRICAO, p.DTULTCOMPRA");
 
         long diasPeriodo = ChronoUnit.DAYS.between(dataInicial, dataFinal) + 1;
         if (diasPeriodo <= 0) diasPeriodo = 1; 
@@ -127,6 +129,7 @@ public class IntegracaoDNAService {
             if (sugestao > 0) {
                 ItemCotacao item = new ItemCotacao();
                 item.setNomeProduto(rs.getString("DESCRICAO"));
+                item.setCodBarras(rs.getString("CODBARRAS"));
                 item.setUltimoPreco(rs.getDouble("PRECOCUSTO"));
                 item.setQuantidade(sugestao);
                 item.setEstoque(estoque);

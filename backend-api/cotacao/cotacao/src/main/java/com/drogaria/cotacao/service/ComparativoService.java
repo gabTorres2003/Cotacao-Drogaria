@@ -97,6 +97,7 @@ public class ComparativoService {
             linha.setUltVendaData(item.getUltVendaData() != null ? item.getUltVendaData().format(formatter) : null);
             linha.setVendidoAposUltCompra(item.getVendidoAposUltCompra());
             linha.setUltimoPreco(item.getUltimoPreco());
+            linha.setCodBarras(item.getCodBarras());
             linha.setOrigemItem(item.getOrigemItem());
             
             linha.setEditadoManual(item.getEditadoManual());

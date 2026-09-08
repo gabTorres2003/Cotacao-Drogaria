@@ -39,6 +39,9 @@ public class ItemCotacao {
     
     private Double vendidoAposUltCompra;
     
+    @Column(name = "cod_barras")
+    private String codBarras;
+
     @Column(name = "origem_item")
     private String origemItem;
 
@@ -103,6 +106,9 @@ public class ItemCotacao {
     public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
     public String getOrigemItem() { return origemItem; }
     public void setOrigemItem(String origemItem) { this.origemItem = origemItem; }
+
+    public String getCodBarras() { return codBarras; }
+    public void setCodBarras(String codBarras) { this.codBarras = codBarras; }
     
     public Boolean getEditadoManual() { return editadoManual; }
     public void setEditadoManual(Boolean editadoManual) { this.editadoManual = editadoManual; }

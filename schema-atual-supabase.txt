@@ -25,6 +25,7 @@
 | `encomenda_id` | `uuid` |  Nullable |
 | `fornecedor_sugerido` | `varchar` |  Nullable |
 | `motivo_retorno` | `varchar` |  Nullable |
+| `cod_barras` | `varchar` |  Nullable |
 | `data_criacao` | `timestamp` |  Nullable |
 
 ## Table `tb_cotacoes`

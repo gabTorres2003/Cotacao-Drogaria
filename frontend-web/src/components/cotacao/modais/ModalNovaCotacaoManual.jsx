@@ -76,6 +76,7 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
               itens: listaItens.map(i => ({
                   nomeProduto: i.nomeProduto,
                   quantidade: Number(i.quantidade),
+                  codBarras: i.codBarras || null,
                   origemItem: abaDna ? 'Adição por Código' : 'Manual',
                   estoque: i.estoque,
                   ultimoPreco: i.ultimoPreco,

@@ -18,6 +18,7 @@ public class ItemComparativoDTO {
     private String ultVendaData;
     private Double vendidoAposUltCompra;
     private Double ultimoPreco;
+    private String codBarras;
     private String origemItem;
 
     private Boolean editadoManual;
@@ -86,6 +87,9 @@ public class ItemComparativoDTO {
 
     public Double getVendidoAposUltCompra() { return vendidoAposUltCompra; }
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
+
+    public String getCodBarras() { return codBarras; }
+    public void setCodBarras(String codBarras) { this.codBarras = codBarras; }
 
     public Double getUltimoPreco() { return ultimoPreco; }
     public void setUltimoPreco(Double ultimoPreco) { this.ultimoPreco = ultimoPreco; }
