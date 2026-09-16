@@ -812,47 +812,64 @@ export default function CotacaoDetalhes() {
 
   const salvarPedidosNoBanco = async () => {
     setSalvandoPedidos(true);
+    let sucessos = 0;
+    let erros = [];
     try {
       for (const pedido of pedidosGerados) {
         const itensSelecionados = pedido.itens.filter(i => i.selected);
         if (itensSelecionados.length === 0) continue; 
 
-        if (pedido.acaoFornecedor === 'NOVO') {
-            const fornecedorId = resolverFornecedorId(pedido.fornecedorNome);
-            if (!fornecedorId) {
-                alert(`Não foi possível identificar o ID do fornecedor "${pedido.fornecedorNome}". Verifique o cadastro. Nenhum pedido foi gerado.`);
-                throw new Error('Identificador do fornecedor ausente.');
-            }
-            await api.post('/api/pedidos/gerar', {
-                cotacaoId: Number(id),
-                fornecedorId,
-                fornecedorNome: pedido.fornecedorNome,
-                itens: itensSelecionados.map(item => ({
-                    itemCotacaoId: item.idItem || null,
-                    nomeProduto: item.nomeProduto,
-                    quantidadePedida: item.quantidadePedida,
-                    valorUnitarioPedido: item.valorUnitarioPedido,
-                    condicaoAplicada: item.condicaoAplicada || false,
-                    qtdCondicao: item.qtdCondicao || null,
-                    precoCondicao: item.precoCondicao || null,
-                    reatribuicaoExplicita: !!item.reatribuicaoExplicita
-                }))
-            });
-        } else {
-            await api.post(`/api/pedidos/${pedido.acaoFornecedor}/itens/lote`, itensSelecionados.map(item => ({
+        try {
+          if (pedido.acaoFornecedor === 'NOVO') {
+              const fornecedorId = resolverFornecedorId(pedido.fornecedorNome);
+              if (!fornecedorId) {
+                  erros.push(`"${pedido.fornecedorNome}": ID do fornecedor não encontrado`);
+                  continue;
+              }
+              await api.post('/api/pedidos/gerar', {
+                  cotacaoId: Number(id),
+                  fornecedorId,
+                  fornecedorNome: pedido.fornecedorNome,
+                  itens: itensSelecionados.map(item => ({
+                      itemCotacaoId: item.idItem || null,
                       nomeProduto: item.nomeProduto,
                       quantidadePedida: item.quantidadePedida,
                       valorUnitarioPedido: item.valorUnitarioPedido,
-                      itemCotacao: item.idItem ? { id: item.idItem } : null,
                       condicaoAplicada: item.condicaoAplicada || false,
                       qtdCondicao: item.qtdCondicao || null,
                       precoCondicao: item.precoCondicao || null,
                       reatribuicaoExplicita: !!item.reatribuicaoExplicita
-                  })));
+                  }))
+              });
+              sucessos++;
+          } else {
+              await api.post(`/api/pedidos/${pedido.acaoFornecedor}/itens/lote`, itensSelecionados.map(item => ({
+                        nomeProduto: item.nomeProduto,
+                        quantidadePedida: item.quantidadePedida,
+                        valorUnitarioPedido: item.valorUnitarioPedido,
+                        itemCotacao: item.idItem ? { id: item.idItem } : null,
+                        condicaoAplicada: item.condicaoAplicada || false,
+                        qtdCondicao: item.qtdCondicao || null,
+                        precoCondicao: item.precoCondicao || null,
+                        reatribuicaoExplicita: !!item.reatribuicaoExplicita
+                    })));
+              sucessos++;
+          }
+        } catch (errPedido) {
+          const msgErro = errPedido.response?.data?.message || errPedido.message || 'Erro desconhecido';
+          erros.push(`${pedido.fornecedorNome}: ${msgErro}`);
         }
       }
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
-      alert('Pedidos processados e gerados/atualizados com sucesso!');
+      
+      if (erros.length > 0 && sucessos > 0) {
+        alert(`${sucessos} pedido(s) gerado(s) com sucesso.\n\n${erros.length} falha(s):\n${erros.join('\n')}`);
+      } else if (erros.length > 0) {
+        alert(`Falha ao gerar pedidos:\n${erros.join('\n')}`);
+      } else {
+        alert('Pedidos processados e gerados/atualizados com sucesso!');
+      }
+
       setShowModal(false);
       await carregarRelatorio();
       await carregarPedidosDaCotacao();
@@ -861,7 +878,7 @@ export default function CotacaoDetalhes() {
     } catch (error) { 
       alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || error.message || 'Erro de conexão com servidor'}`); 
     } finally { 
-      setSalvandoPedidos(false); 
+      setSalvandoPedidos(false);
     }
   };
 

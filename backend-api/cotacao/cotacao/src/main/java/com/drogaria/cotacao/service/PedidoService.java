@@ -330,7 +330,7 @@ public class PedidoService {
             fornecedor = fornecedorRepository.findById(idForn)
                     .orElseThrow(() -> new RuntimeException("Fornecedor não encontrado: ID " + idForn));
         } else {
-            throw new RuntimeException("O identificador do fornecedor (fornecedorId) é obrigatório para gerar o pedido. Não é possível identificar o fornecedor apenas pelo nome.");
+            throw new RuntimeException("O identificador do fornecedor (fornecedorId) é obrigatório para gerar o pedido.");
         }
 
         Pedido pedido = new Pedido();
@@ -343,15 +343,18 @@ public class PedidoService {
         List<ItemPedido> itens = new ArrayList<>();
 
         for (ItemGerarPedidoDTO itemDto : dto.getItens()) {
+            if (itemDto.getItemCotacaoId() != null && isItemDuplicado(itemDto.getItemCotacaoId(), itemDto.getReatribuicaoExplicita())) {
+                continue;
+            }
+
             ItemPedido itemPedido = new ItemPedido();
             itemPedido.setPedido(pedido);
 
             if (itemDto.getItemCotacaoId() != null) {
                 ItemCotacao itemCotacao = itemCotacaoRepository.findById(itemDto.getItemCotacaoId())
-                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado: " + itemDto.getItemCotacaoId()));
+                        .orElse(null);
+                if (itemCotacao == null) continue;
 
-                validarDuplicidadeItemCotacao(itemCotacao.getId(), itemDto.getReatribuicaoExplicita());
-                
                 itemPedido.setItemCotacao(itemCotacao);
                 itemPedido.setNomeProduto(itemDto.getNomeProduto() != null ? itemDto.getNomeProduto() : itemCotacao.getNomeProduto());
 
@@ -370,7 +373,7 @@ public class PedidoService {
                 itemPedido.setNomeProduto(itemDto.getNomeProduto());
                 
                 if (itemPedido.getNomeProduto() == null || itemPedido.getNomeProduto().isEmpty()) {
-                    throw new RuntimeException("Itens extras precisam obrigatoriamente ter um nome_produto definido no DTO.");
+                    continue;
                 }
             }
 
@@ -386,6 +389,10 @@ public class PedidoService {
 
             valorTotal += (itemDto.getQuantidadePedida() * itemDto.getValorUnitarioPedido());
             itens.add(itemPedido);
+        }
+
+        if (itens.isEmpty()) {
+            throw new RuntimeException("Todos os itens já estão em pedidos ativos. Nenhum pedido foi gerado para " + fornecedor.getEmpresa());
         }
 
         pedido.setValorTotalPedido(valorTotal);
@@ -470,7 +477,9 @@ public class PedidoService {
                     .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
             novoItem.setItemCotacao(ic);
 
-            validarDuplicidadeItemCotacao(ic.getId(), novoItem.getReatribuicaoExplicita());
+            if (isItemDuplicado(ic.getId(), novoItem.getReatribuicaoExplicita())) {
+                return pedido;
+            }
 
             Cotacao cotacaoDoItem = ic.getCotacao();
             Long idFornecedorPedido = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
@@ -577,12 +586,9 @@ public class PedidoService {
                 .ifPresent(preco -> item.setValorUnitarioPedido(preco.getPrecoOfertado()));
     }
 
-    private void validarDuplicidadeItemCotacao(Long itemCotacaoId, Boolean reatribuicaoExplicita) {
-        if (Boolean.TRUE.equals(reatribuicaoExplicita)) return;
-
-        if (itemPedidoRepository.existsByItemCotacaoIdAndPedidoStatusNot(itemCotacaoId, StatusPedido.CANCELADO)) {
-            throw new RuntimeException("Este produto já está vinculado a um pedido ativo. Use Reatribuir para gerar uma nova compra.");
-        }
+    private boolean isItemDuplicado(Long itemCotacaoId, Boolean reatribuicaoExplicita) {
+        if (Boolean.TRUE.equals(reatribuicaoExplicita)) return false;
+        return itemPedidoRepository.existsByItemCotacaoIdAndPedidoStatusNot(itemCotacaoId, StatusPedido.CANCELADO);
     }
 
     private boolean setoresCompativeis(String setorPedido, String setorItem) {

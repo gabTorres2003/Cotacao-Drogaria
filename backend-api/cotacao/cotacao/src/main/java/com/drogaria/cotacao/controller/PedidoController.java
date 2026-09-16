@@ -82,15 +82,19 @@ public class PedidoController {
     }
 
     @PostMapping("/gerar")
-    public ResponseEntity<Pedido> gerarPedido(@RequestBody GerarPedidoRequestDTO requestDTO) {
-        Pedido pedidoSalvo = pedidoService.gerarPedidoEmLote(requestDTO);
-        
-        logAuditoriaService.registrarLog(
-            getUsuarioLogado(), "INTERNO", TipoAcao.GERACAO_PEDIDO, "Pedido", pedidoSalvo.getId(), 
-            "Gerou um novo pedido de compra para o fornecedor: " + requestDTO.getFornecedorNome()
-        );
+    public ResponseEntity<?> gerarPedido(@RequestBody GerarPedidoRequestDTO requestDTO) {
+        try {
+            Pedido pedidoSalvo = pedidoService.gerarPedidoEmLote(requestDTO);
+            
+            logAuditoriaService.registrarLog(
+                getUsuarioLogado(), "INTERNO", TipoAcao.GERACAO_PEDIDO, "Pedido", pedidoSalvo.getId(), 
+                "Gerou um novo pedido de compra para o fornecedor: " + requestDTO.getFornecedorNome()
+            );
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
+            return ResponseEntity.status(HttpStatus.CREATED).body(pedidoSalvo);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PostMapping("/registro-manual")
