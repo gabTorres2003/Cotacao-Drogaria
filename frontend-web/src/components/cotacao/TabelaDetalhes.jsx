@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil, MessageSquare } from 'lucide-react';
+import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil, MessageSquare, DollarSign, Tag, Search, Settings2 } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 import api from '../../services/api';
 
@@ -20,14 +20,17 @@ const parseDateSafe = (dStr) => {
 export default function TabelaDetalhes({
   relatorioExibicao, colunasVisiveis, fornecedoresVisiveis, fornecedores, requestSort, sortConfig,
   editandoItem, formEdicao, setFormEdicao, salvarEdicao, isEncerrada, iniciarEdicao, 
-  getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
+  getNomeExibicao, isDiversos, mostrarNomeReal, setMostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, setDecisaoCompra, aceitesTroca, 
-  handleSetWinner, toggleTroca, subAbaItens, navigate, deletarItem, isComparativo, isItens,
-  onAbrirAddPedidoModal,   filtroVencedor, setFiltroVencedor, filtroTopN,
-  mostrarComImposto, impostoPctPorNome,
+  handleSetWinner, toggleTroca, subAbaItens, setSubAbaItens, navigate, deletarItem, isComparativo, isItens,
+  onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN,
+  mostrarComImposto, setMostrarComImposto, impostoPctPorNome,
   editandoResposta, formEdicaoResposta, setFormEdicaoResposta,
   iniciarEdicaoResposta, cancelarEdicaoResposta, salvarEdicaoResposta,
-  itensExcluidosLocal, retornarItem, onConfirmarFracoes
+  itensExcluidosLocal, retornarItem, onConfirmarFracoes,
+  showColunasDropdown, setShowColunasDropdown, setColunasVisiveis,
+  setFornecedoresVisiveis, termoBusca, setTermoBusca,
+  filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas
 }) {
   const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
@@ -899,8 +902,102 @@ export default function TabelaDetalhes({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       
       {/* BARRA SUPERIOR DE FERRAMENTAS E FILTROS VISUAIS */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '15px', flexWrap: 'wrap', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
           
+          {isComparativo && (
+            <>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
+                <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
+                {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
+              </label>
+
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
+                Nome Real
+              </label>
+            </>
+          )}
+
+          {isComparativo && (
+            <div style={{ position: 'relative' }}>
+              <button onClick={() => setShowColunasDropdown(!showColunasDropdown)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: showColunasDropdown ? '#f1f5f9' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                <Settings2 size={14} /> Filtros e Colunas
+              </button>
+              {showColunasDropdown && (
+                <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '6px' }}>
+                    <button onClick={() => setSubAbaItens('todos')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'white' : 'transparent', color: subAbaItens === 'todos' ? '#4f46e5' : '#64748b', boxShadow: subAbaItens === 'todos' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                      Todos
+                    </button>
+                    <button onClick={() => setSubAbaItens('pendentes')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                      Pendentes
+                    </button>
+                    <button onClick={() => setSubAbaItens('comprados')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'white' : 'transparent', color: subAbaItens === 'comprados' ? '#16a34a' : '#64748b', boxShadow: subAbaItens === 'comprados' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                      Comprados
+                    </button>
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px' }}>
+                    <Search size={14} color="#6b7280" />
+                    <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
+                      onChange={e => setTermoBusca(e.target.value)}
+                      style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                    <div style={{ flex: 1, minWidth: '100px' }}>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Origem:</label>
+                      <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)}
+                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
+                        <option value="TODOS">Todas</option>
+                        <option value="Extra Manual">Extra Manual</option>
+                        <option value="Nova Importação">Atualização DNA</option>
+                        <option value="Falta Manual">Falta Manual</option>
+                        <option value="Sugestão">Sugestão</option>
+                        <option value="Falta e Sugestão">Falta e Sugestão</option>
+                        <option value="Geral">Geral</option>
+                      </select>
+                    </div>
+                    <div style={{ flex: 1, minWidth: '100px' }}>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Propostas:</label>
+                      <select value={filtroPropostas} onChange={e => setFiltroPropostas(e.target.value)}
+                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
+                        <option value="TODOS">Todas</option>
+                        <option value="COM_PROPOSTAS">Com Propostas</option>
+                        <option value="SEM_PROPOSTAS">Sem Propostas</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Colunas da Tabela</div>
+                    {Object.entries({ quantidade: 'Qtd Solicitada', estoque: 'Estoque Atual', vendidoNoMes: 'Vendido no Mês', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
+                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
+                        <input type="checkbox" checked={colunasVisiveis[key]} onChange={(e) => setColunasVisiveis(prev => ({ ...prev, [key]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
+                        {label}
+                      </label>
+                    ))}
+                    {fornecedores.length > 0 && (
+                      <>
+                        <div style={{ borderTop: '1px solid #e5e7eb', margin: '6px 0' }}></div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
+                        {fornecedores.map(f => (
+                          <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
+                            <input type="checkbox" checked={fornecedoresVisiveis[f] ?? true} onChange={(e) => setFornecedoresVisiveis(prev => ({ ...prev, [f]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
+                            {f}
+                          </label>
+                        ))}
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
+
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
               <input type="checkbox" checked={destacarBaixoGiro} onChange={(e) => setDestacarBaixoGiro(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
               <AlertTriangle size={14} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />

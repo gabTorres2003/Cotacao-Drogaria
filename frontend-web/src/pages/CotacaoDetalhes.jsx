@@ -1054,11 +1054,7 @@ export default function CotacaoDetalhes() {
 
   return (
     <div style={styles.container}>
-      <CotacaoHeader 
-        id={id} isEncerrada={isEncerrada} 
-        mostrarNomeReal={mostrarNomeReal} setMostrarNomeReal={setMostrarNomeReal}
-        mostrarComImposto={mostrarComImposto} setMostrarComImposto={setMostrarComImposto}
-      />
+      <CotacaoHeader id={id} isEncerrada={isEncerrada} navigate={navigate} />
 
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
@@ -1111,18 +1107,22 @@ export default function CotacaoDetalhes() {
             relatorioExibicao={relatorioFiltradoFinal} colunasVisiveis={colunasVisiveis} fornecedoresVisiveis={fornecedoresVisiveis}
             fornecedores={fornecedores} requestSort={requestSort} sortConfig={sortConfig} editandoItem={editandoItem}
             formEdicao={formEdicao} setFormEdicao={setFormEdicao} salvarEdicao={salvarEdicao} isEncerrada={isEncerrada}
-            iniciarEdicao={iniciarEdicao} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
+            iniciarEdicao={iniciarEdicao} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} 
+            mostrarNomeReal={mostrarNomeReal} setMostrarNomeReal={setMostrarNomeReal}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} itensJaComprados={itensJaComprados}
             reatribuirItem={reatribuirItem} fData={fData} fMoney={fMoney} decisaoCompra={decisaoCompra} setDecisaoCompra={setDecisaoCompra} aceitesTroca={aceitesTroca}
-            handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} navigate={navigate}
+            handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} setSubAbaItens={setSubAbaItens} navigate={navigate}
             deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
-            mostrarComImposto={mostrarComImposto} impostoPctPorNome={calcularImpostoPctPorNome()}
+            mostrarComImposto={mostrarComImposto} setMostrarComImposto={setMostrarComImposto} impostoPctPorNome={calcularImpostoPctPorNome()}
             editandoResposta={editandoResposta} formEdicaoResposta={formEdicaoResposta} setFormEdicaoResposta={setFormEdicaoResposta}
             iniciarEdicaoResposta={iniciarEdicaoResposta} cancelarEdicaoResposta={cancelarEdicaoResposta} salvarEdicaoResposta={salvarEdicaoResposta}
             itensExcluidosLocal={itensExcluidosLocal} retornarItem={retornarItem}
             onConfirmarFracoes={handleConfirmarFracoes}
+            showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown} setColunasVisiveis={setColunasVisiveis}
+            setFornecedoresVisiveis={setFornecedoresVisiveis} termoBusca={termoBusca} setTermoBusca={setTermoBusca}
+            filtroOrigem={filtroOrigem} setFiltroOrigem={setFiltroOrigem} filtroPropostas={filtroPropostas} setFiltroPropostas={setFiltroPropostas}
           />
           
           {isComparativo && (
@@ -1157,14 +1157,8 @@ export default function CotacaoDetalhes() {
         isEncerrada={isEncerrada} setIsAddItemModalOpen={setIsAddItemModalOpen} setIsUploadModalOpen={setIsUploadModalOpen}
         setIsEnviarModalOpen={setIsEnviarModalOpen} setShowVinculosModal={setShowVinculosModal}
         decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos} isProcessandoPedidos={isProcessandoPedidos}
-        baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
+        baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao}
         setIsEncomendasModalOpen={setIsEncomendasModalOpen} setIsImportarItensModalOpen={setIsImportarItensModalOpen}
-        termoBusca={termoBusca} setTermoBusca={setTermoBusca} filtroOrigem={filtroOrigem} setFiltroOrigem={setFiltroOrigem}
-        filtroPropostas={filtroPropostas} setFiltroPropostas={setFiltroPropostas}
-        showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown}
-        colunasVisiveis={colunasVisiveis} setColunasVisiveis={setColunasVisiveis}
-        fornecedores={fornecedores} fornecedoresVisiveis={fornecedoresVisiveis} setFornecedoresVisiveis={setFornecedoresVisiveis}
-        modoVisualizacao={modoVisualizacao} subAbaItens={subAbaItens} setSubAbaItens={setSubAbaItens}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />

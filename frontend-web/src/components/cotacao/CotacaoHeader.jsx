@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tags, Edit2, X, Save, Loader2 } from 'lucide-react';
+import { Tags, Edit2, X, Save, Loader2, ArrowLeft } from 'lucide-react';
 import api from '../../services/api';
 
-export default function CotacaoHeader({ id, isEncerrada, mostrarNomeReal, setMostrarNomeReal, mostrarComImposto, setMostrarComImposto }) {
+export default function CotacaoHeader({ id, isEncerrada, navigate }) {
   const [setorAtual, setSetorAtual] = useState('AMBOS');
   const [showSetorModal, setShowSetorModal] = useState(false);
   const [novoSetor, setNovoSetor] = useState('AMBOS');
@@ -51,19 +51,18 @@ export default function CotacaoHeader({ id, isEncerrada, mostrarNomeReal, setMos
         </h1>
       </div>
 
-      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '6px 10px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          <span style={{ fontSize: '12px', color: mostrarComImposto ? '#854d0e' : '#374151', fontWeight: '600' }}>
-            {mostrarComImposto ? 'Com imposto' : 'Informados'}
-          </span>
-        </label>
-
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
-          <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          <span style={{ fontSize: '12px', color: '#374151', fontWeight: '600' }}>Nome Real</span>
-        </label>
-      </div>
+      <button 
+        onClick={() => navigate('/cotacoes')}
+        style={{
+          display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px',
+          backgroundColor: '#1f2937', color: 'white', border: 'none', borderRadius: '8px',
+          cursor: 'pointer', fontWeight: '700', fontSize: '14px',
+          boxShadow: '0 4px 6px -1px rgba(0,0,0,0.2)',
+          transition: 'all 0.15s ease'
+        }}
+      >
+        <ArrowLeft size={18} /> Voltar ao Painel
+      </button>
 
       {showSetorModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
