@@ -441,26 +441,9 @@ export default function CotacaoDetalhes() {
     } catch (error) { return {}; }
   };
 
-  const carregarItensPedidosAtivos = async () => {
-    try {
-      const response = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&statuses=CONFIRMADO_FORNECEDOR&statuses=ENTREGA_PARCIAL');
-      const pedidos = Array.isArray(response.data) ? response.data : [];
-      const itensEmPedido = new Set();
-      pedidos.forEach(p => {
-        if (p.status === 'CANCELADO') return;
-        (p.itens || []).forEach(item => {
-          const idItemCotacao = item.itemCotacao?.id || item.itemCotacaoId;
-          if (idItemCotacao) itensEmPedido.add(idItemCotacao);
-        });
-      });
-      return itensEmPedido;
-    } catch (error) { return new Set(); }
-  };
-
   const handleGerarPedidos = async () => {
     setIsProcessandoPedidos(true);
     try {
-      const itensEmPedidoAtivo = await carregarItensPedidosAtivos();
       const pedidosPorFornecedor = {};
       
       const initForn = (fName) => {
@@ -486,7 +469,6 @@ export default function CotacaoDetalhes() {
       relatorioOrdenado.forEach(itemRelatorio => {
         const idItem = itemRelatorio.idItem;
         if (itensJaComprados[idItem]) return; 
-        if (itensEmPedidoAtivo.has(idItem)) return;
 
         const vencedor = decisaoCompra[idItem];
         const isTrocaAceitaVencedor = aceitesTroca[idItem];
