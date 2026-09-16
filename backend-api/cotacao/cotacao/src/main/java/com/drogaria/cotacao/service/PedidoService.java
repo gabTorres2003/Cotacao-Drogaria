@@ -517,20 +517,33 @@ public class PedidoService {
             throw new RuntimeException("Não é possível adicionar itens a um pedido que já foi processado pelo fornecedor ou entregue.");
         }
 
+        List<ItemPedido> itensAdicionados = new ArrayList<>();
+
         for (ItemPedido novoItem : novosItens) {
             if (novoItem.getItemCotacao() != null && novoItem.getItemCotacao().getId() != null) {
                 ItemCotacao ic = itemCotacaoRepository.findById(novoItem.getItemCotacao().getId())
-                        .orElseThrow(() -> new RuntimeException("Item da cotação não encontrado"));
+                        .orElse(null);
+                if (ic == null) {
+                    continue;
+                }
                 novoItem.setItemCotacao(ic);
-                validarDuplicidadeItemCotacao(ic.getId(), novoItem.getReatribuicaoExplicita());
+
+                boolean isReatribuicao = Boolean.TRUE.equals(novoItem.getReatribuicaoExplicita());
+                if (!isReatribuicao) {
+                    boolean duplicado = itemPedidoRepository.existsByItemCotacaoIdAndPedidoStatusNot(
+                            ic.getId(), StatusPedido.CANCELADO);
+                    if (duplicado) {
+                        continue;
+                    }
+                }
 
                 Long fornecedorId = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
-                if (fornecedorId != null) {
+                if (fornecedorId != null && ic.getCotacao() != null) {
                     boolean temResposta = precoRepository.existsByFornecedorIdAndItemId(fornecedorId, ic.getId());
                     boolean temVinculo = !cotacaoFornecedorRepository
                             .findByCotacaoIdAndFornecedorId(ic.getCotacao().getId(), fornecedorId).isEmpty();
                     if (!temResposta && !temVinculo) {
-                        throw new RuntimeException("Vínculo inválido para o fornecedor deste pedido.");
+                        continue;
                     }
                     preencherPrecoRespondidoSeNecessario(novoItem, pedido, ic);
                 }
@@ -538,6 +551,11 @@ public class PedidoService {
             novoItem.setPedido(pedido);
             novoItem.setValorAlteradoAposPedido(false);
             pedido.getItens().add(novoItem);
+            itensAdicionados.add(novoItem);
+        }
+
+        if (itensAdicionados.isEmpty()) {
+            throw new RuntimeException("Nenhum item pôde ser adicionado. Verifique se os produtos já estão em outro pedido ativo ou se a cotação/vínculo é válido.");
         }
 
         pedido.setValorTotalPedido(pedido.getItens().stream()

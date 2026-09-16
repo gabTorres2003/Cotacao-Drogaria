@@ -118,8 +118,13 @@ public class PedidoController {
     }
 
     @PostMapping("/{id}/itens/lote")
-    public ResponseEntity<Pedido> adicionarItensEmLote(@PathVariable Long id, @RequestBody List<ItemPedido> novosItens) {
-        return ResponseEntity.ok(pedidoService.adicionarItensManuais(id, novosItens));
+    public ResponseEntity<?> adicionarItensEmLote(@PathVariable Long id, @RequestBody List<ItemPedido> novosItens) {
+        try {
+            Pedido pedidoAtualizado = pedidoService.adicionarItensManuais(id, novosItens);
+            return ResponseEntity.ok(pedidoAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @PutMapping("/{id}/itens/{idItemAntigo}/trocar")
