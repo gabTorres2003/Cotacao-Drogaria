@@ -1,14 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, RefreshCcw, Users, MessageCircle, ShoppingCart, FileText, Check, Loader2, Tags, Edit2, X, Save } from 'lucide-react';
+import { Tags, Edit2, X, Save, Loader2 } from 'lucide-react';
 import api from '../../services/api';
 
-export default function CotacaoHeader({
-  id, isEncerrada, setIsAddItemModalOpen, setIsUploadModalOpen, 
-  mostrarNomeReal, setMostrarNomeReal, setShowVinculosModal, setIsEnviarModalOpen, 
-  mostrarComImposto, setMostrarComImposto,
-  decisaoCompra, handleGerarPedidos, isProcessandoPedidos, modoVisualizacao, 
-  baixarRelatorioGeral, alterarStatusCotacao, navigate
-}) {
+export default function CotacaoHeader({ id, isEncerrada, mostrarNomeReal, setMostrarNomeReal, mostrarComImposto, setMostrarComImposto }) {
   const [setorAtual, setSetorAtual] = useState('AMBOS');
   const [showSetorModal, setShowSetorModal] = useState(false);
   const [novoSetor, setNovoSetor] = useState('AMBOS');
@@ -38,87 +32,37 @@ export default function CotacaoHeader({
     }
   };
 
-  const btnVoltar = { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' };
-
   return (
-    <div style={{ marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '15px' }}>
-      
-      <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-        <h1 style={{ fontSize: '24px', fontWeight: 'bold', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
+    <div style={{ marginBottom: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+        <h1 style={{ fontSize: '22px', fontWeight: 'bold', color: '#1f2937', margin: 0, display: 'flex', alignItems: 'center', gap: '10px' }}>
           Cotação #{id}
           
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', backgroundColor: setorAtual === 'MEDICAMENTOS' ? '#dbeafe' : setorAtual === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', color: setorAtual === 'MEDICAMENTOS' ? '#2563eb' : setorAtual === 'PERFUMARIA' ? '#9333ea' : '#475569', padding: '4px 10px', borderRadius: '6px', border: '1px solid', borderColor: setorAtual === 'MEDICAMENTOS' ? '#bfdbfe' : setorAtual === 'PERFUMARIA' ? '#e9d5ff' : '#e2e8f0' }}>
-            <Tags size={14} /> {setorAtual === 'AMBOS' ? 'Med / Perf' : setorAtual}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', backgroundColor: setorAtual === 'MEDICAMENTOS' ? '#dbeafe' : setorAtual === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', color: setorAtual === 'MEDICAMENTOS' ? '#2563eb' : setorAtual === 'PERFUMARIA' ? '#9333ea' : '#475569', padding: '4px 10px', borderRadius: '6px', border: '1px solid', borderColor: setorAtual === 'MEDICAMENTOS' ? '#bfdbfe' : setorAtual === 'PERFUMARIA' ? '#e9d5ff' : '#e2e8f0' }}>
+            <Tags size={13} /> {setorAtual === 'AMBOS' ? 'Med / Perf' : setorAtual}
             {!isEncerrada && (
               <button onClick={() => setShowSetorModal(true)} title="Editar Setor" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: 'inherit', marginLeft: '4px', opacity: 0.7 }}>
-                <Edit2 size={14} />
+                <Edit2 size={13} />
               </button>
             )}
           </div>
 
-          {isEncerrada && <span style={{ marginLeft: '12px', fontSize: '14px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '4px 10px', borderRadius: '20px', verticalAlign: 'middle', fontWeight: 'bold' }}>ENCERRADA (Histórico)</span>}
+          {isEncerrada && <span style={{ marginLeft: '8px', fontSize: '12px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '3px 10px', borderRadius: '20px', verticalAlign: 'middle', fontWeight: 'bold' }}>ENCERRADA</span>}
         </h1>
       </div>
-      
-      <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-        {!isEncerrada && (
-          <>
-            <button type="button" style={{ ...btnVoltar, backgroundColor: '#8b5cf6' }} onClick={() => setIsAddItemModalOpen(true)}>
-              <Plus size={18} /> Adicionar Produto Extra
-            </button>
-            <button type="button" style={{ ...btnVoltar, backgroundColor: '#3b82f6' }} onClick={() => setIsUploadModalOpen(true)}>
-              <RefreshCcw size={18} /> Atualizar Importação DNA
-            </button>
-          </>
-        )}
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '8px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: '10px' }}>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '6px 10px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          <span style={{ fontSize: '13px', color: mostrarComImposto ? '#854d0e' : '#374151', fontWeight: '600' }}>
-            {mostrarComImposto ? 'Valores com imposto' : 'Valores informados'}
+          <span style={{ fontSize: '12px', color: mostrarComImposto ? '#854d0e' : '#374151', fontWeight: '600' }}>
+            {mostrarComImposto ? 'Com imposto' : 'Informados'}
           </span>
         </label>
 
-        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', backgroundColor: 'white', padding: '8px 12px', borderRadius: '6px', border: '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', marginRight: '10px' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', boxShadow: '0 1px 2px rgba(0,0,0,0.05)' }}>
           <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          <span style={{ fontSize: '13px', color: '#374151', fontWeight: '600' }}>Alternar Nome Diversos/Real</span>
+          <span style={{ fontSize: '12px', color: '#374151', fontWeight: '600' }}>Nome Real</span>
         </label>
-
-        {!isEncerrada && (
-          <>
-            <button type="button" style={{ ...btnVoltar, backgroundColor: '#64748b' }} onClick={() => setShowVinculosModal(true)}>
-              <Users size={18} /> Fornecedores Notificados
-            </button>
-            <button type="button" style={{ ...btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => setIsEnviarModalOpen(true)}>
-              <MessageCircle size={18} /> Enviar / Cobrar 
-            </button>
-            <button 
-              type="button" 
-              style={{ ...btnVoltar, backgroundColor: Object.keys(decisaoCompra).length > 0 ? '#16a34a' : '#9ca3af', cursor: Object.keys(decisaoCompra).length > 0 ? 'pointer' : 'not-allowed', display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} 
-              onClick={handleGerarPedidos} 
-              disabled={Object.keys(decisaoCompra).length === 0 || isProcessandoPedidos}
-            >
-              {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" /> : <ShoppingCart size={18} />} 
-              {isProcessandoPedidos ? 'Processando...' : 'Gerar Pedidos'}
-            </button>
-          </>
-        )}
-        
-        <button type="button" style={{ ...btnVoltar, display: modoVisualizacao === 'manual' ? 'none' : 'flex' }} onClick={baixarRelatorioGeral}>
-          <FileText size={18} /> Baixar PDF
-        </button>
-
-        {isEncerrada ? (
-          <button type="button" style={{ ...btnVoltar, backgroundColor: '#f59e0b' }} onClick={() => alterarStatusCotacao('ABERTA')}>
-            <RefreshCcw size={18} /> Reabrir Cotação
-          </button>
-        ) : (
-          <button type="button" style={{ ...btnVoltar, backgroundColor: '#dc2626' }} onClick={() => alterarStatusCotacao('FINALIZADA')}>
-            <Check size={18} /> Encerrar Cotação
-          </button>
-        )}
-        
-        <button type="button" style={btnVoltar} onClick={() => navigate('/cotacoes')}>Voltar ao Painel</button>
       </div>
 
       {showSetorModal && (

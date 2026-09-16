@@ -537,23 +537,8 @@ public class PedidoService {
                 }
                 novoItem.setItemCotacao(ic);
 
-                boolean isReatribuicao = Boolean.TRUE.equals(novoItem.getReatribuicaoExplicita());
-                if (!isReatribuicao) {
-                    boolean duplicado = itemPedidoRepository.existsByItemCotacaoIdAndPedidoStatusNot(
-                            ic.getId(), StatusPedido.CANCELADO);
-                    if (duplicado) {
-                        continue;
-                    }
-                }
-
                 Long fornecedorId = pedido.getFornecedor() != null ? pedido.getFornecedor().getId() : null;
                 if (fornecedorId != null && ic.getCotacao() != null) {
-                    boolean temResposta = precoRepository.existsByFornecedorIdAndItemId(fornecedorId, ic.getId());
-                    boolean temVinculo = !cotacaoFornecedorRepository
-                            .findByCotacaoIdAndFornecedorId(ic.getCotacao().getId(), fornecedorId).isEmpty();
-                    if (!temResposta && !temVinculo) {
-                        continue;
-                    }
                     preencherPrecoRespondidoSeNecessario(novoItem, pedido, ic);
                 }
             }
@@ -564,7 +549,7 @@ public class PedidoService {
         }
 
         if (itensAdicionados.isEmpty()) {
-            throw new RuntimeException("Nenhum item pôde ser adicionado. Verifique se os produtos já estão em outro pedido ativo ou se a cotação/vínculo é válido.");
+            throw new RuntimeException("Nenhum item pôde ser adicionado. Verifique se os itens são válidos.");
         }
 
         pedido.setValorTotalPedido(pedido.getItens().stream()

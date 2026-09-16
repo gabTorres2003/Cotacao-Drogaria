@@ -9,7 +9,7 @@ import { baixarRelatorioGeral } from '../utils/pdfExport';
 
 // Componentes Visuais
 import CotacaoHeader from '../components/cotacao/CotacaoHeader';
-import CotacaoFiltros from '../components/cotacao/CotacaoFiltros';
+import FloatingToolsMenu from '../components/cotacao/FloatingToolsMenu';
 import TabelaDetalhes from '../components/cotacao/TabelaDetalhes';
 import TabelaRegistroManual from '../components/cotacao/TabelaRegistroManual';
 import CardsSugestoes from '../components/cotacao/CardsSugestoes';
@@ -24,7 +24,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X, PackageOpen, Tag, Tags } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -1034,10 +1034,10 @@ export default function CotacaoDetalhes() {
   }, 0);
 
   const styles = {
-    container: { padding: '20px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
-    card: { backgroundColor: 'white', padding: '20px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)' },
-    toggleContainer: { display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
-    toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 20px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
+    container: { padding: '12px 16px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
+    card: { backgroundColor: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
+    toggleContainer: { display: 'flex', gap: '8px', marginBottom: '12px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
+    toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '13px', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
     btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' },
     topNBtn: (ativo) => ({ padding: '6px 12px', borderRadius: '6px', border: ativo ? 'none' : '1px solid #cbd5e1', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#475569', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', boxShadow: ativo ? '0 2px 4px rgba(37,99,235,0.2)' : 'none' })
   };
@@ -1055,30 +1055,10 @@ export default function CotacaoDetalhes() {
   return (
     <div style={styles.container}>
       <CotacaoHeader 
-        id={id} isEncerrada={isEncerrada} setIsAddItemModalOpen={setIsAddItemModalOpen} setIsUploadModalOpen={setIsUploadModalOpen}
-        mostrarNomeReal={mostrarNomeReal} setMostrarNomeReal={setMostrarNomeReal} setShowVinculosModal={setShowVinculosModal}
+        id={id} isEncerrada={isEncerrada} 
+        mostrarNomeReal={mostrarNomeReal} setMostrarNomeReal={setMostrarNomeReal}
         mostrarComImposto={mostrarComImposto} setMostrarComImposto={setMostrarComImposto}
-        setIsEnviarModalOpen={setIsEnviarModalOpen} decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos}
-        isProcessandoPedidos={isProcessandoPedidos} modoVisualizacao={modoVisualizacao} baixarRelatorioGeral={handleBaixarPDF}
-        alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
       />
-
-      {!isEncerrada && (
-        <div style={{ marginBottom: '20px', display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-          <button 
-            onClick={() => setIsEncomendasModalOpen(true)}
-            style={{ padding: '10px 20px', backgroundColor: '#4338ca', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-          >
-            <PackageOpen size={20} /> Importar Encomendas do Balcão
-          </button>
-          <button
-            onClick={() => setIsImportarItensModalOpen(true)}
-            style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
-          >
-            <PackageOpen size={20} /> Importar produtos não comprados
-          </button>
-        </div>
-      )}
 
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
@@ -1087,13 +1067,6 @@ export default function CotacaoDetalhes() {
           <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)</button>
         )}
       </div>
-
-      <CotacaoFiltros 
-        termoBusca={termoBusca} setTermoBusca={setTermoBusca} modoVisualizacao={modoVisualizacao} subAbaItens={subAbaItens} setSubAbaItens={setSubAbaItens}
-        isEncerrada={isEncerrada} filtroOrigem={filtroOrigem} setFiltroOrigem={setFiltroOrigem} filtroPropostas={filtroPropostas} setFiltroPropostas={setFiltroPropostas}
-        showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown} colunasVisiveis={colunasVisiveis} setColunasVisiveis={setColunasVisiveis}
-        fornecedores={fornecedores} fornecedoresVisiveis={fornecedoresVisiveis} setFornecedoresVisiveis={setFornecedoresVisiveis}
-      />
 
       {modoVisualizacao === 'comparativo' && (
         <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -1178,6 +1151,20 @@ export default function CotacaoDetalhes() {
         cotacaoId={id}
         itensAtuais={relatorio}
         onSuccess={carregarRelatorio}
+      />
+
+      <FloatingToolsMenu 
+        isEncerrada={isEncerrada} setIsAddItemModalOpen={setIsAddItemModalOpen} setIsUploadModalOpen={setIsUploadModalOpen}
+        setIsEnviarModalOpen={setIsEnviarModalOpen} setShowVinculosModal={setShowVinculosModal}
+        decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos} isProcessandoPedidos={isProcessandoPedidos}
+        baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao} navigate={navigate}
+        setIsEncomendasModalOpen={setIsEncomendasModalOpen} setIsImportarItensModalOpen={setIsImportarItensModalOpen}
+        termoBusca={termoBusca} setTermoBusca={setTermoBusca} filtroOrigem={filtroOrigem} setFiltroOrigem={setFiltroOrigem}
+        filtroPropostas={filtroPropostas} setFiltroPropostas={setFiltroPropostas}
+        showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown}
+        colunasVisiveis={colunasVisiveis} setColunasVisiveis={setColunasVisiveis}
+        fornecedores={fornecedores} fornecedoresVisiveis={fornecedoresVisiveis} setFornecedoresVisiveis={setFornecedoresVisiveis}
+        modoVisualizacao={modoVisualizacao} subAbaItens={subAbaItens} setSubAbaItens={setSubAbaItens}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
