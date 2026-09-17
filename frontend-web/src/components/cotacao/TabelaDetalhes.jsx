@@ -999,7 +999,6 @@ export default function TabelaDetalhes({
               </>
             )}
           </div>
-        </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
               <input type="checkbox" checked={destacarBaixoGiro} onChange={(e) => setDestacarBaixoGiro(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
