@@ -25,6 +25,9 @@ public class Cotacao {
     @Column(name = "setor")
     private String setor;
 
+    @Column(name = "configuracao", columnDefinition = "TEXT")
+    private String configuracao;
+
     @JsonIgnore 
     @OneToMany(mappedBy = "cotacao", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ItemCotacao> itens;
@@ -59,6 +62,9 @@ public class Cotacao {
 
     public String getSetor() { return setor; }
     public void setSetor(String setor) { this.setor = setor; }
+
+    public String getConfiguracao() { return configuracao; }
+    public void setConfiguracao(String configuracao) { this.configuracao = configuracao; }
 
     public List<ItemCotacao> getItens() { return itens; }
     public void setItens(List<ItemCotacao> itens) { this.itens = itens; }

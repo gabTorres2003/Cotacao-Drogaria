@@ -215,6 +215,16 @@ public class CotacaoController {
                 }).orElse(ResponseEntity.notFound().build());
     }
 
+    @PutMapping("/{id}/configuracao")
+    public ResponseEntity<?> salvarConfiguracao(@PathVariable Long id, @RequestBody String payload) {
+        return cotacaoRepository.findById(id)
+                .map(cotacao -> {
+                    cotacao.setConfiguracao(payload);
+                    cotacaoRepository.save(cotacao);
+                    return ResponseEntity.ok("Configuração salva com sucesso");
+                }).orElse(ResponseEntity.notFound().build());
+    }
+
     @PutMapping("/item/{idItem}")
     public ResponseEntity<?> atualizarItem(@PathVariable Long idItem, @RequestBody Map<String, Object> dados) {
         try {

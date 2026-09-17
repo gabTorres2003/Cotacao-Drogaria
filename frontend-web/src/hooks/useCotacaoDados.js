@@ -13,6 +13,7 @@ export function useCotacaoDados(id) {
   const [fornecedoresLista, setFornecedoresLista] = useState([]);
   const [itensJaComprados, setItensJaComprados] = useState({});
   const [vinculos, setVinculos] = useState([]);
+  const [configuracaoSalva, setConfiguracaoSalva] = useState(null);
 
   useEffect(() => {
     if (!id) return;
@@ -30,6 +31,13 @@ export function useCotacaoDados(id) {
       if (res.data) {
         setStatusCotacao(res.data.status || 'ABERTA');
         setSetorCotacao(res.data.setor || 'AMBOS');
+        if (res.data.configuracao) {
+          try {
+            const config = JSON.parse(res.data.configuracao);
+            if (config.decisaoCompra) setDecisaoCompra(config.decisaoCompra);
+            setConfiguracaoSalva(config);
+          } catch (e) {}
+        }
       }
     } catch (error) {
       console.error("Erro ao carregar status da cotação", error);
@@ -153,7 +161,10 @@ export function useCotacaoDados(id) {
       });
 
       setFornecedores(Array.from(nomes));
-      setDecisaoCompra(decisaoInicial);
+      setDecisaoCompra(prev => {
+        const merged = { ...decisaoInicial, ...prev };
+        return merged;
+      });
     } catch (error) {
       console.error("Erro ao carregar detalhes", error);
     } finally {
@@ -173,6 +184,7 @@ export function useCotacaoDados(id) {
     fornecedoresLista,
     itensJaComprados, setItensJaComprados,
     vinculos,
+    configuracaoSalva,
     carregarRelatorio,
     carregarCotacao,
     carregarVinculos,

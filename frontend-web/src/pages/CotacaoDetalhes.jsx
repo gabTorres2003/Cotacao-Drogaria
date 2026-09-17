@@ -33,7 +33,7 @@ export default function CotacaoDetalhes() {
   const {
     statusCotacao, setStatusCotacao, setorCotacao, relatorio, setRelatorio, fornecedores, promocoes, loading, 
     decisaoCompra, setDecisaoCompra, dicionarioDiversos, fornecedoresLista, itensJaComprados, 
-    setItensJaComprados, vinculos, carregarRelatorio, carregarCotacao, carregarVinculos, 
+    setItensJaComprados, vinculos, configuracaoSalva, carregarRelatorio, carregarCotacao, carregarVinculos, 
     carregarPedidosDaCotacao, removerVinculo
   } = useCotacaoDados(id);
 
@@ -65,6 +65,7 @@ export default function CotacaoDetalhes() {
   const [copiadoId, setCopiadoId] = useState(null);
   const [avisosDuplicidade, setAvisosDuplicidade] = useState({});
   const [isProcessandoPedidos, setIsProcessandoPedidos] = useState(false);
+  const [salvandoConfiguracao, setSalvandoConfiguracao] = useState(false);
   const [showColunasDropdown, setShowColunasDropdown] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [isAddItemModalOpen, setIsAddItemModalOpen] = useState(false);
@@ -140,6 +141,50 @@ export default function CotacaoDetalhes() {
     });
     return mapa;
   };
+
+  const salvarConfiguracaoCotacao = async () => {
+    try {
+      const quantidades = {};
+      pedidosGerados.forEach(ped => {
+        ped.itens.forEach(item => {
+          if (item.idItem) {
+            quantidades[item.idItem] = {
+              quantidadePedida: item.quantidadePedida,
+              fornecedor: ped.fornecedorNome
+            };
+          }
+        });
+      });
+      const config = {
+        decisaoCompra,
+        itensExcluidos: itensExcluidosLocal,
+        quantidades,
+      };
+      await api.put(`/api/cotacao/${id}/configuracao`, config);
+    } catch (e) {
+      console.error('Erro ao salvar configuração:', e);
+    }
+  };
+
+  const handleSalvarMudancas = async () => {
+    setSalvandoConfiguracao(true);
+    try {
+      await salvarConfiguracaoCotacao();
+      alert('Alterações salvas com sucesso!');
+      setShowModal(false);
+      await carregarRelatorio();
+    } catch (e) {
+      alert('Erro ao salvar alterações.');
+    } finally {
+      setSalvandoConfiguracao(false);
+    }
+  };
+
+  useEffect(() => {
+    if (configuracaoSalva?.itensExcluidos) {
+      setItensExcluidosLocal(configuracaoSalva.itensExcluidos);
+    }
+  }, [configuracaoSalva]);
 
   // Busca GLOBAL de pedidos em aberto
   useEffect(() => {
@@ -783,17 +828,28 @@ export default function CotacaoDetalhes() {
   };
 
   const removerItemDoPedido = (fornecedorNome, indexItem) => {
-    setPedidosGerados(prev => prev.map(ped => {
-      if (ped.fornecedorNome === fornecedorNome) {
-        const novosItens = [...ped.itens]; novosItens.splice(indexItem, 1);
-        return { ...ped, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
+    setPedidosGerados(prev => {
+      const pedido = prev.find(ped => ped.fornecedorNome === fornecedorNome);
+      if (pedido && pedido.itens[indexItem]) {
+        const itemRemovido = pedido.itens[indexItem];
+        setItensExcluidosLocal(prevExcl => {
+          if (prevExcl.some(e => e.idItem === itemRemovido.idItem)) return prevExcl;
+          return [...prevExcl, { idItem: itemRemovido.idItem, nomeProduto: itemRemovido.nomeProduto, fornecedor: fornecedorNome }];
+        });
       }
-      return ped;
-    }).filter(ped => ped.itens.length > 0));
+      return prev.map(ped => {
+        if (ped.fornecedorNome === fornecedorNome) {
+          const novosItens = [...ped.itens]; novosItens.splice(indexItem, 1);
+          return { ...ped, itens: novosItens, total: novosItens.reduce((acc, it) => acc + it.subtotal, 0) };
+        }
+        return ped;
+      }).filter(ped => ped.itens.length > 0);
+    });
   };
 
   const salvarPedidosNoBanco = async () => {
     setSalvandoPedidos(true);
+    await salvarConfiguracaoCotacao();
     let sucessos = 0;
     let erros = [];
     try {
@@ -1054,7 +1110,7 @@ export default function CotacaoDetalhes() {
 
   return (
     <div style={styles.container}>
-      <CotacaoHeader id={id} isEncerrada={isEncerrada} navigate={navigate} />
+      <CotacaoHeader id={id} isEncerrada={isEncerrada} />
 
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
@@ -1062,6 +1118,17 @@ export default function CotacaoDetalhes() {
         {!isEncerrada && (
           <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)</button>
         )}
+      </div>
+
+      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: mostrarComImposto ? '#854d0e' : '#374151' }}>
+          <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
+          {mostrarComImposto ? 'Valores com imposto' : 'Valores informados'}
+        </label>
+        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
+          <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
+          Alternar Nome Diversos/Real
+        </label>
       </div>
 
       {modoVisualizacao === 'comparativo' && (
@@ -1159,6 +1226,7 @@ export default function CotacaoDetalhes() {
         decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos} isProcessandoPedidos={isProcessandoPedidos}
         baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao}
         setIsEncomendasModalOpen={setIsEncomendasModalOpen} setIsImportarItensModalOpen={setIsImportarItensModalOpen}
+        navigate={navigate}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
@@ -1184,6 +1252,8 @@ export default function CotacaoDetalhes() {
           fMoney={fMoney} 
           pedidosAbertosList={pedidosAbertosList} 
           relatorioOrdenado={relatorioOrdenado} 
+          onSalvarMudancas={handleSalvarMudancas}
+          salvandoConfiguracao={salvandoConfiguracao}
       />
       
       {modalAddPedidoAberto && itemAddPedido && (

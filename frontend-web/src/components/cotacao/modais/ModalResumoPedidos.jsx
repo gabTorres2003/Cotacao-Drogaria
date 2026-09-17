@@ -1,13 +1,16 @@
-import React from 'react';
-import { X, ArrowRight, Loader2, Trash2, Tag, Tags } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, ArrowRight, Loader2, Trash2, Tag, Tags, AlertTriangle, Save, Send } from 'lucide-react';
 
 export default function ModalResumoPedidos({
   isOpen, onClose, pedidosGerados, setPedidosGerados,
   removerItemDoPedido, moverItemParaFornecedor,
   irParaProximoMenorPreco, acaoPosPedido, setAcaoPosPedido,
   salvarPedidosNoBanco, salvandoPedidos, fornecedores, fMoney, pedidosAbertosList,
-  relatorioOrdenado, getNomeRealSempre, setorCotacao 
+  relatorioOrdenado, getNomeRealSempre, setorCotacao,
+  onSalvarMudancas, salvandoConfiguracao
 }) {
+  const [showConfirmModal, setShowConfirmModal] = useState(false);
+
   if (!isOpen) return null;
 
   const normalizeStrId = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
@@ -132,6 +135,15 @@ export default function ModalResumoPedidos({
   const hasAnySelected = pedidosGerados.some(ped => ped.itens.some(i => i.selected));
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
+  const handleConfirmarEnvio = () => {
+    setShowConfirmModal(true);
+  };
+
+  const handleConfirmarEnvioFinal = () => {
+    setShowConfirmModal(false);
+    salvarPedidosNoBanco();
+  };
+
   return (
     <div style={styles.overlay}>
       <div style={styles.modal}>
@@ -208,7 +220,7 @@ export default function ModalResumoPedidos({
                        return (
                          <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                              <input type="checkbox" checked={item.selected} onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                             <input type="checkbox" checked={item.selected} onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                            </td>
                            <td style={{ padding: '8px', fontSize: '13px', fontWeight: '500', color: '#1e293b' }}>
                              {nomeExibir}
@@ -317,12 +329,40 @@ export default function ModalResumoPedidos({
                 <div style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</div>
              </div>
             <button onClick={onClose} disabled={salvandoPedidos} style={styles.btnCancel}>Cancelar</button>
-            <button onClick={salvarPedidosNoBanco} disabled={salvandoPedidos || !hasAnySelected} style={{ ...styles.btnSave, opacity: hasAnySelected ? 1 : 0.5 }}>
-              {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : 'Confirmar e Salvar'}
+            <button onClick={onSalvarMudancas} disabled={salvandoPedidos || salvandoConfiguracao} style={styles.btnSaveMudancas}>
+              {salvandoConfiguracao ? <><Loader2 size={16} className="animate-spin"/> Salvando...</> : <><Save size={16} /> Salvar Mudanças</>}
+            </button>
+            <button onClick={handleConfirmarEnvio} disabled={salvandoPedidos || !hasAnySelected} style={{ ...styles.btnSend, opacity: hasAnySelected ? 1 : 0.5 }}>
+              {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : <><Send size={16} /> Salvar e Enviar</>}
             </button>
           </div>
         </div>
       </div>
+
+      {showConfirmModal && (
+        <div style={styles.confirmOverlay}>
+          <div style={styles.confirmModal}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ backgroundColor: '#fef3c7', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={24} color="#d97706" />
+              </div>
+              <div>
+                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Confirmar Envio de Pedidos</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>Esta ação irá criar ou atualizar pedidos no sistema.</p>
+              </div>
+            </div>
+            <p style={{ fontSize: '14px', color: '#374151', marginBottom: '20px', lineHeight: '1.5' }}>
+              As alterações feitas (quantidades, vencedores, exclusões) serão salvas automaticamente. Deseja prosseguir com a geração dos pedidos?
+            </p>
+            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+              <button onClick={() => setShowConfirmModal(false)} style={styles.btnCancel}>Cancelar</button>
+              <button onClick={handleConfirmarEnvioFinal} disabled={salvandoPedidos} style={styles.btnConfirm}>
+                {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : 'Sim, Salvar e Enviar'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -342,5 +382,9 @@ const styles = {
   footer: { padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   footerOptions: { backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' },
   btnCancel: { padding: '10px 20px', backgroundColor: '#64748b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
-  btnSave: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
+  btnSaveMudancas: { padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+  btnSend: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+  confirmOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 },
+  confirmModal: { backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+  btnConfirm: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
 };
