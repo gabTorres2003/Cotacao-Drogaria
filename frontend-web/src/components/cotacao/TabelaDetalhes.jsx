@@ -525,7 +525,6 @@ export default function TabelaDetalhes({
                   )}
                 </div>
               </div>
-              </>
             )}
           </td>
           
