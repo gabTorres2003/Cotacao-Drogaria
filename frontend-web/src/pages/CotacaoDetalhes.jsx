@@ -1120,14 +1120,25 @@ export default function CotacaoDetalhes() {
         )}
       </div>
 
-      <div style={{ display: 'flex', gap: '12px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', minWidth: '220px', maxWidth: '320px', flex: 1 }}>
+          <Search size={14} color="#6b7280" />
+          <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
+            onChange={e => setTermoBusca(e.target.value)}
+            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
+          {termoBusca && (
+            <button onClick={() => setTermoBusca('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+              <X size={14} color="#6b7280" />
+            </button>
+          )}
+        </div>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: mostrarComImposto ? '#854d0e' : '#374151' }}>
           <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          {mostrarComImposto ? 'Valores com imposto' : 'Valores informados'}
+          {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
         </label>
         <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
           <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          Alternar Nome Diversos/Real
+          Nome Real
         </label>
       </div>
 
@@ -1158,6 +1169,7 @@ export default function CotacaoDetalhes() {
           <TabelaRegistroManual 
             relatorioExibicao={relatorioFiltradoFinal} checklist={checklist} setChecklist={setChecklist} fornecedoresLista={fornecedoresLista}
             isEncerrada={isEncerrada} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
+            setMostrarNomeReal={setMostrarNomeReal} termoBusca={termoBusca} setTermoBusca={setTermoBusca}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} copiarFornecedorParaBaixo={copiarFornecedorParaBaixo}
             reatribuirItem={reatribuirItem} fMoney={fMoney} requestSort={requestSort} sortConfig={sortConfig}
           />

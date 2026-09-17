@@ -1,10 +1,11 @@
 import React from 'react';
-import { ArrowDown, RefreshCcw, Check, Copy, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { ArrowDown, RefreshCcw, Check, Copy, ArrowUpDown, ChevronUp, ChevronDown, Search, Tag, X } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaRegistroManual({
   relatorioExibicao, checklist, setChecklist, fornecedoresLista, isEncerrada, 
-  getNomeExibicao, isDiversos, mostrarNomeReal, copiarParaAreaTransferencia, 
+  getNomeExibicao, isDiversos, mostrarNomeReal, setMostrarNomeReal, termoBusca, setTermoBusca,
+  copiarParaAreaTransferencia, 
   copiadoId, copiarFornecedorParaBaixo, reatribuirItem, fMoney, requestSort, sortConfig
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
@@ -17,6 +18,33 @@ export default function TabelaRegistroManual({
   };
 
   return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+
+      {/* BARRA SUPERIOR DE FERRAMENTAS */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px', maxWidth: '320px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', flex: 1 }}>
+              <Search size={14} color="#6b7280" />
+              <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
+                onChange={e => setTermoBusca(e.target.value)}
+                style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
+              {termoBusca && (
+                <button onClick={() => setTermoBusca('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
+                  <X size={14} color="#6b7280" />
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+              <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+              <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
+              Nome Real
+            </label>
+          </div>
+      </div>
+
     <div style={{ maxHeight: 'calc(100vh - 280px)', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px' }}>
       <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
         <thead>
@@ -97,6 +125,7 @@ export default function TabelaRegistroManual({
           })}
         </tbody>
       </table>
+    </div>
     </div>
   );
 }
