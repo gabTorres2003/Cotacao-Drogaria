@@ -1171,7 +1171,7 @@ export default function TabelaDetalhes({
         ))}
       </div>
 
-      {isItens && itensExcluidosLocal && itensExcluidosLocal.length > 0 && (
+      {(isItens || isComparativo) && itensExcluidosLocal && itensExcluidosLocal.length > 0 && (
         <div style={{ borderTop: '2px solid #e5e7eb', padding: '12px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
           <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b7280', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             🗑️ Itens Excluídos ({itensExcluidosLocal.length})

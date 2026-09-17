@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, ArrowRight, Loader2, Trash2, Tag, Tags, AlertTriangle, Save, Send } from 'lucide-react';
+import { X, ArrowRight, Loader2, Trash2, Tag, Tags, AlertTriangle, Save, Send, CheckCircle, Package, Truck, FileText } from 'lucide-react';
 
 export default function ModalResumoPedidos({
   isOpen, onClose, pedidosGerados, setPedidosGerados,
@@ -10,6 +10,7 @@ export default function ModalResumoPedidos({
   onSalvarMudancas, salvandoConfiguracao
 }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [toastMensagem, setToastMensagem] = useState(null);
 
   if (!isOpen) return null;
 
@@ -135,13 +136,29 @@ export default function ModalResumoPedidos({
   const hasAnySelected = pedidosGerados.some(ped => ped.itens.some(i => i.selected));
   const normalizeStr = str => str ? String(str).normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]/g, "").toLowerCase() : "";
 
+  const totalItensSelecionados = pedidosGerados.reduce((acc, ped) => acc + ped.itens.filter(i => i.selected).length, 0);
+  const totalFornecedoresSelecionados = pedidosGerados.filter(ped => ped.itens.some(i => i.selected)).length;
+  const totalNovosPedidos = pedidosGerados.filter(ped => ped.itens.some(i => i.selected) && (ped.acaoFornecedor || 'NOVO') === 'NOVO').length;
+  const totalAdicionarExistente = pedidosGerados.filter(ped => ped.itens.some(i => i.selected) && (ped.acaoFornecedor || 'NOVO') !== 'NOVO').length;
+
+  const showToast = (mensagem) => {
+    setToastMensagem(mensagem);
+    setTimeout(() => setToastMensagem(null), 4000);
+  };
+
   const handleConfirmarEnvio = () => {
     setShowConfirmModal(true);
   };
 
   const handleConfirmarEnvioFinal = () => {
     setShowConfirmModal(false);
+    showToast('Processando pedidos...');
     salvarPedidosNoBanco();
+  };
+
+  const handleSalvarMudancasClick = () => {
+    showToast('Salvando alterações...');
+    onSalvarMudancas();
   };
 
   return (
@@ -329,7 +346,7 @@ export default function ModalResumoPedidos({
                 <div style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</div>
              </div>
             <button onClick={onClose} disabled={salvandoPedidos} style={styles.btnCancel}>Cancelar</button>
-            <button onClick={onSalvarMudancas} disabled={salvandoPedidos || salvandoConfiguracao} style={styles.btnSaveMudancas}>
+            <button onClick={handleSalvarMudancasClick} disabled={salvandoPedidos || salvandoConfiguracao} style={styles.btnSaveMudancas}>
               {salvandoConfiguracao ? <><Loader2 size={16} className="animate-spin"/> Salvando...</> : <><Save size={16} /> Salvar Mudanças</>}
             </button>
             <button onClick={handleConfirmarEnvio} disabled={salvandoPedidos || !hasAnySelected} style={{ ...styles.btnSend, opacity: hasAnySelected ? 1 : 0.5 }}>
@@ -348,19 +365,76 @@ export default function ModalResumoPedidos({
               </div>
               <div>
                 <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Confirmar Envio de Pedidos</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>Esta ação irá criar ou atualizar pedidos no sistema.</p>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>Revise o resumo antes de confirmar</p>
               </div>
             </div>
-            <p style={{ fontSize: '14px', color: '#374151', marginBottom: '20px', lineHeight: '1.5' }}>
-              As alterações feitas (quantidades, vencedores, exclusões) serão salvas automaticamente. Deseja prosseguir com a geração dos pedidos?
+
+            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ backgroundColor: '#dbeafe', borderRadius: '6px', padding: '6px' }}><Package size={16} color="#2563eb" /></div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Itens Selecionados</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalItensSelecionados}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ backgroundColor: '#e0e7ff', borderRadius: '6px', padding: '6px' }}><Truck size={16} color="#4f46e5" /></div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Fornecedores</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalFornecedoresSelecionados}</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ backgroundColor: '#dcfce7', borderRadius: '6px', padding: '6px' }}><FileText size={16} color="#16a34a" /></div>
+                  <div>
+                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Novos Pedidos</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalNovosPedidos}</div>
+                  </div>
+                </div>
+                {totalAdicionarExistente > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <div style={{ backgroundColor: '#fef08a', borderRadius: '6px', padding: '6px' }}><ArrowRight size={16} color="#854d0e" /></div>
+                    <div>
+                      <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Adicionar a Existente</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalAdicionarExistente}</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+              <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Valor Total:</span>
+                <span style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', backgroundColor: acaoPosPedido === 'ENCERRADA' ? '#fef2f2' : '#f0fdf4', borderRadius: '6px', border: `1px solid ${acaoPosPedido === 'ENCERRADA' ? '#fecaca' : '#bbf7d0'}`, marginBottom: '20px' }}>
+              <AlertTriangle size={14} color={acaoPosPedido === 'ENCERRADA' ? '#dc2626' : '#16a34a'} />
+              <span style={{ fontSize: '12px', color: acaoPosPedido === 'ENCERRADA' ? '#991b1b' : '#166534', fontWeight: '500' }}>
+                {acaoPosPedido === 'ENCERRADA'
+                  ? 'A cotação será encerrada e movida para o histórico após o envio.'
+                  : 'A cotação permanecerá aberta para futuros pedidos.'}
+              </span>
+            </div>
+
+            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px', lineHeight: '1.5' }}>
+              As alterações feitas (quantidades, vencedores, exclusões) serão salvas automaticamente no banco de dados.
             </p>
+
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
               <button onClick={() => setShowConfirmModal(false)} style={styles.btnCancel}>Cancelar</button>
               <button onClick={handleConfirmarEnvioFinal} disabled={salvandoPedidos} style={styles.btnConfirm}>
-                {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : 'Sim, Salvar e Enviar'}
+                {salvandoPedidos ? <><Loader2 size={16} className="animate-spin"/> Processando...</> : <><Send size={16} /> Sim, Salvar e Enviar</>}
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {toastMensagem && (
+        <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: '#059669', color: 'white', padding: '12px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2000, fontSize: '14px', fontWeight: '600', animation: 'slideIn 0.3s ease-out' }}>
+          <CheckCircle size={18} />
+          {toastMensagem}
         </div>
       )}
     </div>
@@ -382,7 +456,7 @@ const styles = {
   footer: { padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
   footerOptions: { backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' },
   btnCancel: { padding: '10px 20px', backgroundColor: '#64748b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
-  btnSaveMudancas: { padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+  btnSaveMudancas: { padding: '10px 24px', backgroundColor: '#2563eb', color: 'white', border: '2px solid #1d4ed8', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)', transition: 'all 0.2s' },
   btnSend: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
   confirmOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 },
   confirmModal: { backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },

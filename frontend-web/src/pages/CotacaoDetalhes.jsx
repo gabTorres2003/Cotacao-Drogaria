@@ -170,11 +170,10 @@ export default function CotacaoDetalhes() {
     setSalvandoConfiguracao(true);
     try {
       await salvarConfiguracaoCotacao();
-      alert('Alterações salvas com sucesso!');
       setShowModal(false);
       await carregarRelatorio();
     } catch (e) {
-      alert('Erro ao salvar alterações.');
+      alert('Erro ao salvar alterações. Tente novamente.');
     } finally {
       setSalvandoConfiguracao(false);
     }
