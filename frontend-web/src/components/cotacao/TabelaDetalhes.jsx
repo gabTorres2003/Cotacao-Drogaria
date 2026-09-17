@@ -902,61 +902,61 @@ export default function TabelaDetalhes({
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       
       {/* BARRA SUPERIOR DE FERRAMENTAS E FILTROS VISUAIS */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 8px', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
           
-          {isComparativo && (
-            <>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
-                <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
-                {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
-              </label>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px', maxWidth: '320px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', flex: 1 }}>
+              <Search size={14} color="#6b7280" />
+              <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
+                onChange={e => setTermoBusca(e.target.value)}
+                style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
+            </div>
+          </div>
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
-                <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
-                Nome Real
-              </label>
-            </>
-          )}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+              <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+              <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
+              Nome Real
+            </label>
 
-          {isComparativo && (
-            <div style={{ position: 'relative' }}>
-              <button onClick={() => setShowColunasDropdown(!showColunasDropdown)}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: showColunasDropdown ? '#f1f5f9' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
-                <Settings2 size={14} /> Filtros e Colunas
-              </button>
-              {showColunasDropdown && (
-                <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
-                  <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '6px' }}>
-                    <button onClick={() => setSubAbaItens('todos')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'white' : 'transparent', color: subAbaItens === 'todos' ? '#4f46e5' : '#64748b', boxShadow: subAbaItens === 'todos' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
-                      Todos
-                    </button>
-                    <button onClick={() => setSubAbaItens('pendentes')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
-                      Pendentes
-                    </button>
-                    <button onClick={() => setSubAbaItens('comprados')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'white' : 'transparent', color: subAbaItens === 'comprados' ? '#16a34a' : '#64748b', boxShadow: subAbaItens === 'comprados' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
-                      Comprados
-                    </button>
-                  </div>
+            {isComparativo && (
+              <>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
+                  <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                  <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
+                  {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
+                </label>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px' }}>
-                    <Search size={14} color="#6b7280" />
-                    <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
-                      onChange={e => setTermoBusca(e.target.value)}
-                      style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
-                  </div>
+                <div style={{ position: 'relative' }}>
+                  <button onClick={() => setShowColunasDropdown(!showColunasDropdown)}
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: showColunasDropdown ? '#f1f5f9' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                    <Settings2 size={14} /> Filtros e Colunas
+                  </button>
+                  {showColunasDropdown && (
+                    <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+                      <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '6px' }}>
+                        <button onClick={() => setSubAbaItens('todos')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'white' : 'transparent', color: subAbaItens === 'todos' ? '#4f46e5' : '#64748b', boxShadow: subAbaItens === 'todos' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                          Todos
+                        </button>
+                        <button onClick={() => setSubAbaItens('pendentes')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                          Pendentes
+                        </button>
+                        <button onClick={() => setSubAbaItens('comprados')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'white' : 'transparent', color: subAbaItens === 'comprados' ? '#16a34a' : '#64748b', boxShadow: subAbaItens === 'comprados' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                          Comprados
+                        </button>
+                      </div>
 
-                  <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
-                    <div style={{ flex: 1, minWidth: '100px' }}>
-                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Origem:</label>
-                      <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)}
-                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
-                        <option value="TODOS">Todas</option>
-                        <option value="Extra Manual">Extra Manual</option>
-                        <option value="Nova Importação">Atualização DNA</option>
-                        <option value="Falta Manual">Falta Manual</option>
-                        <option value="Sugestão">Sugestão</option>
+                      <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                        <div style={{ flex: 1, minWidth: '100px' }}>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Origem:</label>
+                          <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)}
+                            style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
+                            <option value="TODOS">Todas</option>
+                            <option value="Extra Manual">Extra Manual</option>
+                            <option value="Nova Importação">Atualização DNA</option>
+                            <option value="Falta Manual">Falta Manual</option>
+                            <option value="Sugestão">Sugestão</option>
                         <option value="Falta e Sugestão">Falta e Sugestão</option>
                         <option value="Geral">Geral</option>
                       </select>
