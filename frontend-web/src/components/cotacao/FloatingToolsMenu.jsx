@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wrench, X, Plus, RefreshCcw, Users, MessageCircle, ShoppingCart, 
-  FileText, Check, PackageOpen, Loader2, ArrowLeft
+  FileText, Check, PackageOpen, Loader2
 } from 'lucide-react';
 
 export default function FloatingToolsMenu({
@@ -9,7 +9,7 @@ export default function FloatingToolsMenu({
   setIsEnviarModalOpen, setShowVinculosModal,
   decisaoCompra, handleGerarPedidos, isProcessandoPedidos,
   baixarRelatorioGeral, alterarStatusCotacao,
-  setIsEncomendasModalOpen, setIsImportarItensModalOpen, navigate
+  setIsEncomendasModalOpen, setIsImportarItensModalOpen
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
@@ -107,10 +107,6 @@ export default function FloatingToolsMenu({
                 <RefreshCcw size={16} /> Reabrir Cotação
               </button>
             )}
-            <div style={{ height: '6px' }} />
-            <button style={btnStyle('#1f2937')} onClick={() => { navigate('/cotacoes'); setIsOpen(false); }}>
-              <ArrowLeft size={16} /> Voltar ao Painel
-            </button>
           </div>
         </div>
       )}

@@ -24,7 +24,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags, Search } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags, ArrowLeft } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -144,10 +144,12 @@ export default function CotacaoDetalhes() {
 
   const salvarConfiguracaoCotacao = async () => {
     try {
+      const decisaoAtualizada = {};
       const quantidades = {};
       pedidosGerados.forEach(ped => {
         ped.itens.forEach(item => {
-          if (item.idItem) {
+          if (item.idItem && item.selected) {
+            decisaoAtualizada[item.idItem] = ped.fornecedorNome;
             quantidades[item.idItem] = {
               quantidadePedida: item.quantidadePedida,
               fornecedor: ped.fornecedorNome
@@ -156,11 +158,17 @@ export default function CotacaoDetalhes() {
         });
       });
       const config = {
-        decisaoCompra,
+        decisaoCompra: decisaoAtualizada,
         itensExcluidos: itensExcluidosLocal,
         quantidades,
       };
       await api.put(`/api/cotacao/${id}/configuracao`, config);
+      for (const item of itensExcluidosLocal) {
+        if (item.idItem) {
+          try { await api.put(`/api/cotacao/item/${item.idItem}`, { excluido: true }); } catch(e) {}
+        }
+      }
+      setDecisaoCompra(decisaoAtualizada);
     } catch (e) {
       console.error('Erro ao salvar configuração:', e);
     }
@@ -170,7 +178,6 @@ export default function CotacaoDetalhes() {
     setSalvandoConfiguracao(true);
     try {
       await salvarConfiguracaoCotacao();
-      setShowModal(false);
       await carregarRelatorio();
     } catch (e) {
       alert('Erro ao salvar alterações. Tente novamente.');
@@ -520,7 +527,7 @@ export default function CotacaoDetalhes() {
         if (vencedor && vencedor !== 'Sem ofertas') {
           const nomeSubstituto = itemRelatorio.substitutosPorFornecedor?.[vencedor];
           let preco = itemRelatorio.precosPorFornecedor?.[vencedor] || 0;
-          let qtd = itemRelatorio.quantidade || 0;
+          let qtd = configuracaoSalva?.quantidades?.[idItem]?.quantidadePedida || itemRelatorio.quantidade || 0;
           let nomeFinal = getNomeRealSempre(itemRelatorio.nomeProduto);
           let nomeOriginal = null;
           
@@ -1111,34 +1118,18 @@ export default function CotacaoDetalhes() {
     <div style={styles.container}>
       <CotacaoHeader id={id} isEncerrada={isEncerrada} />
 
+      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <button type="button" onClick={() => navigate('/cotacoes')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>
+          <ArrowLeft size={16} /> Voltar
+        </button>
+      </div>
+
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
         {!isEncerrada && (
           <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)</button>
         )}
-      </div>
-
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', minWidth: '220px', maxWidth: '320px', flex: 1 }}>
-          <Search size={14} color="#6b7280" />
-          <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
-            onChange={e => setTermoBusca(e.target.value)}
-            style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
-          {termoBusca && (
-            <button onClick={() => setTermoBusca('')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-              <X size={14} color="#6b7280" />
-            </button>
-          )}
-        </div>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: mostrarComImposto ? '#fef9c3' : 'white', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: mostrarComImposto ? '#854d0e' : '#374151' }}>
-          <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
-        </label>
-        <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', backgroundColor: 'white', padding: '6px 12px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '12px', fontWeight: '600', color: '#374151' }}>
-          <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ transform: 'scale(1.1)' }} />
-          Nome Real
-        </label>
       </div>
 
       {modoVisualizacao === 'comparativo' && (
@@ -1237,7 +1228,6 @@ export default function CotacaoDetalhes() {
         decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos} isProcessandoPedidos={isProcessandoPedidos}
         baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao}
         setIsEncomendasModalOpen={setIsEncomendasModalOpen} setIsImportarItensModalOpen={setIsImportarItensModalOpen}
-        navigate={navigate}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />
