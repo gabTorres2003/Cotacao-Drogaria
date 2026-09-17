@@ -24,7 +24,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags, Search } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
