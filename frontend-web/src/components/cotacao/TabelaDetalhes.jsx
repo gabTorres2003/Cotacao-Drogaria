@@ -525,6 +525,7 @@ export default function TabelaDetalhes({
                   )}
                 </div>
               </div>
+              </>
             )}
           </td>
           
@@ -994,6 +995,7 @@ export default function TabelaDetalhes({
                     )}
                   </div>
                 </div>
+                </>
               )}
             </div>
           )}
