@@ -22,9 +22,10 @@ export default function TabelaDetalhes({
   editandoItem, formEdicao, setFormEdicao, salvarEdicao, isEncerrada, iniciarEdicao, 
   getNomeExibicao, isDiversos, mostrarNomeReal, setMostrarNomeReal, copiarParaAreaTransferencia, copiadoId, 
   itensJaComprados, reatribuirItem, fData, fMoney, decisaoCompra, setDecisaoCompra, aceitesTroca, 
-  handleSetWinner, toggleTroca, subAbaItens, setSubAbaItens, navigate, deletarItem, isComparativo, isItens,
+  handleSetWinner, toggleTroca, subAbaItens, setSubAbaItens, navigate, deletarItem, deletarVariosItens, isComparativo, isItens,
   onAbrirAddPedidoModal, filtroVencedor, setFiltroVencedor, filtroTopN,
   mostrarComImposto, setMostrarComImposto, impostoPctPorNome,
+  destacarBaixoGiro, setDestacarBaixoGiro, mostrarAlertasPreco, setMostrarAlertasPreco,
   editandoResposta, formEdicaoResposta, setFormEdicaoResposta,
   iniciarEdicaoResposta, cancelarEdicaoResposta, salvarEdicaoResposta,
   itensExcluidosLocal, retornarItem, onConfirmarFracoes,
@@ -32,9 +33,7 @@ export default function TabelaDetalhes({
   setFornecedoresVisiveis, termoBusca, setTermoBusca,
   filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas
 }) {
-  const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
-  const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
   const [fracoesPorProduto, setFracoesPorProduto] = useState(() => {
       try { return JSON.parse(localStorage.getItem('fracoesPorProduto') || '{}'); } catch { return {}; }
   });
@@ -49,9 +48,7 @@ export default function TabelaDetalhes({
   useEffect(() => { localStorage.setItem('fracoesConfirmadas', JSON.stringify(fracoesConfirmadas)); }, [fracoesConfirmadas]);
   useEffect(() => { localStorage.setItem('impostoDesconsiderado', JSON.stringify(impostoDesconsiderado)); }, [impostoDesconsiderado]);
 
-  const [mostrarFracao, setMostrarFracao] = useState(() => {
-      try { return localStorage.getItem('mostrarFracao') === 'true'; } catch { return false; }
-  });
+  const [mostrarFracao, setMostrarFracao] = useState(false);
   const [fracaoDesconsiderada, setFracaoDesconsiderada] = useState(() => {
       try { return JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}'); } catch { return {}; }
   });
@@ -67,6 +64,9 @@ export default function TabelaDetalhes({
   const [valoresRecusados, setValoresRecusados] = useState({});
   const [valoresIgnorados, setValoresIgnorados] = useState({});
   const [contextMenu, setContextMenu] = useState(null);
+
+  const [modoExcluirProdutos, setModoExcluirProdutos] = useState(false);
+  const [produtosParaExcluir, setProdutosParaExcluir] = useState({});
 
   const [pinnedRows, setPinnedRows] = useState([]);
   
@@ -409,6 +409,7 @@ export default function TabelaDetalhes({
       let rowBgColor = '#ffffff';
       if (isPinnedRow) rowBgColor = '#f0f9ff';
       else if (isBaixoGiro) rowBgColor = '#fef2f2';
+      else if (modoExcluirProdutos && produtosParaExcluir[item.idItem]) rowBgColor = '#fee2e2';
 
       const ofertasValidas = calcularOfertasValidas(item);
 
@@ -429,6 +430,10 @@ export default function TabelaDetalhes({
               <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                   
+                  {modoExcluirProdutos && (
+                    <input type="checkbox" checked={!!produtosParaExcluir[item.idItem]} onChange={() => setProdutosParaExcluir(prev => ({ ...prev, [item.idItem]: !prev[item.idItem] }))} style={{ cursor: 'pointer', transform: 'scale(1.2)' }} title="Selecionar para excluir" />
+                  )}
+
                   <button type="button" onClick={() => toggleRowPin(item.idItem)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: isPinnedRow ? '#2563eb' : '#9ca3af' }} title={isPinnedRow ? "Descongelar Linha" : "Congelar Linha no Topo"}>
                     <Pin size={16} />
                   </button>
@@ -898,6 +903,20 @@ export default function TabelaDetalhes({
 
   const shouldStickHead = isHeaderPinned || pinnedRows.length > 0;
 
+  const qtdSelecionadosExcluir = Object.keys(produtosParaExcluir).filter(id => produtosParaExcluir[id]).length;
+
+  const handleDeletarSelecionados = () => {
+    if (qtdSelecionadosExcluir === 0) return;
+    deletarVariosItens(Object.keys(produtosParaExcluir).filter(id => produtosParaExcluir[id]));
+    setProdutosParaExcluir({});
+    setModoExcluirProdutos(false);
+  };
+
+  const toggleModoExcluirProdutos = () => {
+    if (modoExcluirProdutos) { setProdutosParaExcluir({}); }
+    setModoExcluirProdutos(!modoExcluirProdutos);
+  };
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       
@@ -922,6 +941,36 @@ export default function TabelaDetalhes({
 
             {isComparativo && (
               <>
+                <button
+                  type="button"
+                  onClick={toggleModoExcluirProdutos}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: modoExcluirProdutos ? '#ffffff' : '#475569', fontWeight: 'bold', backgroundColor: modoExcluirProdutos ? '#dc2626' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: modoExcluirProdutos ? '1px solid #b91c1c' : '1px solid #e2e8f0', userSelect: 'none' }}
+                  title="Selecionar produtos para remover da cotação"
+                >
+                  <Trash2 size={14} color={modoExcluirProdutos ? '#ffffff' : '#ef4444'} /> Excluir Produtos
+                </button>
+
+                {modoExcluirProdutos && (
+                  <>
+                    <button
+                      type="button"
+                      onClick={handleDeletarSelecionados}
+                      disabled={qtdSelecionadosExcluir === 0}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosExcluir === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosExcluir === 0 ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosExcluir === 0 ? '#e5e7eb' : '#dc2626', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosExcluir === 0 ? '1px solid #d1d5db' : '1px solid #b91c1c', userSelect: 'none' }}
+                    >
+                      <Trash2 size={14} /> Deletar Produtos ({qtdSelecionadosExcluir})
+                    </button>
+                    <button
+                      type="button"
+                      onClick={toggleModoExcluirProdutos}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}
+                      title="Cancelar seleção"
+                    >
+                      <X size={14} /> Cancelar
+                    </button>
+                  </>
+                )}
+
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
                   <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                   <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
@@ -1001,24 +1050,10 @@ export default function TabelaDetalhes({
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
-              <input type="checkbox" checked={destacarBaixoGiro} onChange={(e) => setDestacarBaixoGiro(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-              <AlertTriangle size={14} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />
-              Destacar Risco de Excesso
-          </label>
-          
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
               <input type="checkbox" checked={isHeaderPinned} onChange={(e) => setIsHeaderPinned(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
               <Pin size={14} color={isHeaderPinned ? '#2563eb' : '#9ca3af'} />
               Fixar Cabeçalho no Topo
           </label>
-          
-          {isComparativo && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
-                  <input type="checkbox" checked={mostrarAlertasPreco} onChange={(e) => setMostrarAlertasPreco(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                  <AlertTriangle size={14} color={mostrarAlertasPreco ? '#d97706' : '#9ca3af'} />
-                  Destacar Preços Discrepantes (+100% ou -50%)
-              </label>
-          )}
 
           {isComparativo && (
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarFracao ? '#ede9fe' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarFracao ? '1px solid #c4b5fd' : '1px solid #e2e8f0', userSelect: 'none' }}>

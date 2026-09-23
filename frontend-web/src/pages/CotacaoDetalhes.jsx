@@ -24,7 +24,7 @@ import ModalProdutoExtra from '../components/cotacao/modais/ModalProdutoExtra';
 import ModalConfirmacaoManual from '../components/cotacao/modais/ModalConfirmacaoManual';
 import ModalResumoPedidos from '../components/cotacao/modais/ModalResumoPedidos';
 
-import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags, ArrowLeft } from 'lucide-react';
+import { List, BarChart2, ClipboardCheck, Loader2, Save, X, Tag, Tags } from 'lucide-react';
 
 export default function CotacaoDetalhes() {
   const { id } = useParams();
@@ -88,6 +88,8 @@ export default function CotacaoDetalhes() {
   const [filtroVencedor, setFiltroVencedor] = useState('TODOS');
   const [filtroTopN, setFiltroTopN] = useState('TODOS'); 
   const [mostrarComImposto, setMostrarComImposto] = useState(false);
+  const [destacarBaixoGiro, setDestacarBaixoGiro] = useState(false);
+  const [mostrarAlertasPreco, setMostrarAlertasPreco] = useState(true);
 
   const isEncerrada = statusCotacao === 'FINALIZADA';
   const isComparativo = modoVisualizacao === 'comparativo';
@@ -422,6 +424,23 @@ export default function CotacaoDetalhes() {
         });
       } catch (error) { alert('Erro ao remover produto.'); }
     }
+  };
+
+  const deletarVariosItens = async (ids) => {
+    if (!ids || ids.length === 0) return;
+    if (!window.confirm(`Tem certeza que deseja remover ${ids.length} produto(s) da cotação?`)) return;
+    let houveErro = false;
+    for (const idItem of ids) {
+      try {
+        await api.delete(`/api/cotacao/item/${idItem}`);
+        setRelatorio(prev => {
+          const itemRemovido = prev.find(i => i.idItem === idItem);
+          if (itemRemovido) setItensExcluidosLocal(prevExcl => [...prevExcl, { ...itemRemovido, excluido: true }]);
+          return prev.filter(item => item.idItem !== idItem);
+        });
+      } catch (error) { houveErro = true; }
+    }
+    if (houveErro) alert('Alguns produtos não puderam ser removidos.');
   };
 
   const retornarItem = async (idItem) => {
@@ -1100,8 +1119,7 @@ export default function CotacaoDetalhes() {
     card: { backgroundColor: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
     toggleContainer: { display: 'flex', gap: '8px', marginBottom: '12px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
     toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '13px', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' },
-    topNBtn: (ativo) => ({ padding: '6px 12px', borderRadius: '6px', border: ativo ? 'none' : '1px solid #cbd5e1', backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#475569', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', boxShadow: ativo ? '0 2px 4px rgba(37,99,235,0.2)' : 'none' })
+    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }
   };
 
   if (loading) return (
@@ -1116,13 +1134,7 @@ export default function CotacaoDetalhes() {
 
   return (
     <div style={styles.container}>
-      <CotacaoHeader id={id} isEncerrada={isEncerrada} />
-
-      <div style={{ display: 'flex', gap: '10px', marginBottom: '12px', flexWrap: 'wrap', alignItems: 'center' }}>
-        <button type="button" onClick={() => navigate('/cotacoes')} style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 14px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', fontSize: '13px' }}>
-          <ArrowLeft size={16} /> Voltar
-        </button>
-      </div>
+      <CotacaoHeader id={id} isEncerrada={isEncerrada} onVoltar={() => navigate('/cotacoes')} />
 
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
@@ -1131,17 +1143,6 @@ export default function CotacaoDetalhes() {
           <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)</button>
         )}
       </div>
-
-      {modoVisualizacao === 'comparativo' && (
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '16px', padding: '12px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontSize: '13px', fontWeight: 'bold', color: '#475569', marginRight: '8px' }}>Filtro de Competitividade:</span>
-          <button onClick={() => setFiltroTopN('TODOS')} style={styles.topNBtn(filtroTopN === 'TODOS')}>Sem Filtro Top (Ver Todos)</button>
-          <button onClick={() => setFiltroTopN('TOP_1')} style={styles.topNBtn(filtroTopN === 'TOP_1')}>Top 1 (Apenas Ganhador)</button>
-          <button onClick={() => setFiltroTopN('TOP_2')} style={styles.topNBtn(filtroTopN === 'TOP_2')}>Top 2 (Ganhador vs 2º Colocado)</button>
-          <button onClick={() => setFiltroTopN('TOP_3')} style={styles.topNBtn(filtroTopN === 'TOP_3')}>Top 3 Melhores Preços</button>
-          <button onClick={() => setFiltroTopN('TOP_4')} style={styles.topNBtn(filtroTopN === 'TOP_4')}>Top 4 Melhores Preços</button>
-        </div>
-      )}
 
       {modoVisualizacao === 'manual' ? (
         <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
@@ -1162,6 +1163,7 @@ export default function CotacaoDetalhes() {
             setMostrarNomeReal={setMostrarNomeReal} termoBusca={termoBusca} setTermoBusca={setTermoBusca}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} copiarFornecedorParaBaixo={copiarFornecedorParaBaixo}
             reatribuirItem={reatribuirItem} fMoney={fMoney} requestSort={requestSort} sortConfig={sortConfig}
+            deletarItem={deletarItem}
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -1181,10 +1183,12 @@ export default function CotacaoDetalhes() {
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} itensJaComprados={itensJaComprados}
             reatribuirItem={reatribuirItem} fData={fData} fMoney={fMoney} decisaoCompra={decisaoCompra} setDecisaoCompra={setDecisaoCompra} aceitesTroca={aceitesTroca}
             handleSetWinner={handleSetWinner} toggleTroca={toggleTroca} subAbaItens={subAbaItens} setSubAbaItens={setSubAbaItens} navigate={navigate}
-            deletarItem={deletarItem} isComparativo={isComparativo} isItens={isItens}
+            deletarItem={deletarItem} deletarVariosItens={deletarVariosItens} isComparativo={isComparativo} isItens={isItens}
             onAbrirAddPedidoModal={abrirModalAddPedido}
             filtroVencedor={filtroVencedor} setFiltroVencedor={setFiltroVencedor} filtroTopN={filtroTopN}
             mostrarComImposto={mostrarComImposto} setMostrarComImposto={setMostrarComImposto} impostoPctPorNome={calcularImpostoPctPorNome()}
+            destacarBaixoGiro={destacarBaixoGiro} setDestacarBaixoGiro={setDestacarBaixoGiro}
+            mostrarAlertasPreco={mostrarAlertasPreco} setMostrarAlertasPreco={setMostrarAlertasPreco}
             editandoResposta={editandoResposta} formEdicaoResposta={formEdicaoResposta} setFormEdicaoResposta={setFormEdicaoResposta}
             iniciarEdicaoResposta={iniciarEdicaoResposta} cancelarEdicaoResposta={cancelarEdicaoResposta} salvarEdicaoResposta={salvarEdicaoResposta}
             itensExcluidosLocal={itensExcluidosLocal} retornarItem={retornarItem}
@@ -1228,6 +1232,10 @@ export default function CotacaoDetalhes() {
         decisaoCompra={decisaoCompra} handleGerarPedidos={handleGerarPedidos} isProcessandoPedidos={isProcessandoPedidos}
         baixarRelatorioGeral={handleBaixarPDF} alterarStatusCotacao={alterarStatusCotacao}
         setIsEncomendasModalOpen={setIsEncomendasModalOpen} setIsImportarItensModalOpen={setIsImportarItensModalOpen}
+        isComparativo={isComparativo}
+        destacarBaixoGiro={destacarBaixoGiro} setDestacarBaixoGiro={setDestacarBaixoGiro}
+        mostrarAlertasPreco={mostrarAlertasPreco} setMostrarAlertasPreco={setMostrarAlertasPreco}
+        filtroTopN={filtroTopN} setFiltroTopN={setFiltroTopN}
       />
 
       <ModalConfirmacaoManual isOpen={confirmManualModal} onClose={() => setConfirmManualModal(false)} mensagemConfirmacaoManual={mensagemConfirmacaoManual} acaoPosPedido={acaoPosPedido} setAcaoPosPedido={setAcaoPosPedido} processarRegistroManual={processarRegistroManual} salvandoPedidos={salvandoPedidos} isEncerrada={isEncerrada} />

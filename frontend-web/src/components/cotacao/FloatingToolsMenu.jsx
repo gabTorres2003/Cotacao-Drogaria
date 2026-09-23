@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Wrench, X, Plus, RefreshCcw, Users, MessageCircle, ShoppingCart, 
-  FileText, Check, PackageOpen, Loader2
+  FileText, Check, PackageOpen, Loader2, AlertTriangle
 } from 'lucide-react';
 
 export default function FloatingToolsMenu({
@@ -9,7 +9,10 @@ export default function FloatingToolsMenu({
   setIsEnviarModalOpen, setShowVinculosModal,
   decisaoCompra, handleGerarPedidos, isProcessandoPedidos,
   baixarRelatorioGeral, alterarStatusCotacao,
-  setIsEncomendasModalOpen, setIsImportarItensModalOpen
+  setIsEncomendasModalOpen, setIsImportarItensModalOpen,
+  isComparativo, destacarBaixoGiro, setDestacarBaixoGiro,
+  mostrarAlertasPreco, setMostrarAlertasPreco,
+  filtroTopN, setFiltroTopN
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef(null);
@@ -30,6 +33,30 @@ export default function FloatingToolsMenu({
     cursor: 'pointer', fontWeight: '600', fontSize: '13px', width: '100%',
     textAlign: 'left', transition: 'all 0.15s ease'
   });
+
+  const topNBtn = (ativo) => ({
+    padding: '6px 10px', borderRadius: '6px', border: ativo ? 'none' : '1px solid #cbd5e1',
+    backgroundColor: ativo ? '#2563eb' : 'white', color: ativo ? 'white' : '#475569',
+    fontWeight: 'bold', fontSize: '11px', cursor: 'pointer',
+    boxShadow: ativo ? '0 2px 4px rgba(37,99,235,0.2)' : 'none', flex: 1, minWidth: '0'
+  });
+
+  const checkLabelStyle = (ativo, color = '#f59e0b') => ({
+    display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',
+    backgroundColor: ativo ? `${color}1a` : '#f8fafc',
+    color: ativo ? '#1f2937' : '#475569',
+    border: `1px solid ${ativo ? color : '#e2e8f0'}`, borderRadius: '8px',
+    cursor: 'pointer', fontWeight: '600', fontSize: '13px', width: '100%',
+    textAlign: 'left', userSelect: 'none', transition: 'all 0.15s ease'
+  });
+
+  const topNOptions = [
+    ['TODOS', 'Sem Filtro (Ver Todos)'],
+    ['TOP_1', 'Top 1 (Ganhador)'],
+    ['TOP_2', 'Top 2'],
+    ['TOP_3', 'Top 3'],
+    ['TOP_4', 'Top 4'],
+  ];
 
   return (
     <div ref={menuRef} style={{ position: 'fixed', bottom: '24px', right: '24px', zIndex: 1000 }}>
@@ -55,6 +82,59 @@ export default function FloatingToolsMenu({
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
+            {isComparativo && (
+              <>
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
+                  Comparativo
+                </div>
+
+                <label style={checkLabelStyle(destacarBaixoGiro, '#ef4444')}>
+                  <input
+                    type="checkbox"
+                    checked={destacarBaixoGiro}
+                    onChange={(e) => setDestacarBaixoGiro(e.target.checked)}
+                    style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                  />
+                  <AlertTriangle size={16} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />
+                  Destacar Risco de Excesso
+                </label>
+
+                <div style={{ height: '6px' }} />
+
+                <label style={checkLabelStyle(mostrarAlertasPreco, '#f59e0b')}>
+                  <input
+                    type="checkbox"
+                    checked={mostrarAlertasPreco}
+                    onChange={(e) => setMostrarAlertasPreco(e.target.checked)}
+                    style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+                  />
+                  <AlertTriangle size={16} color={mostrarAlertasPreco ? '#f59e0b' : '#9ca3af'} />
+                  Destacar Preços Discrepantes
+                </label>
+
+                <div style={{ height: '10px' }} />
+
+                <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
+                  Filtro de Competitividade
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px', padding: '0 4px 8px' }}>
+                  {topNOptions.map(([valor, rotulo]) => (
+                    <button
+                      key={valor}
+                      type="button"
+                      onClick={() => setFiltroTopN(valor)}
+                      style={{ ...topNBtn(filtroTopN === valor), flex: '1 1 45%' }}
+                      title={rotulo}
+                    >
+                      {rotulo}
+                    </button>
+                  ))}
+                </div>
+
+                <div style={{ height: '6px', borderBottom: '1px solid #e5e7eb', marginBottom: '8px' }} />
+              </>
+            )}
+
             {!isEncerrada && (
               <>
                 <button style={btnStyle('#8b5cf6')} onClick={() => { setIsAddItemModalOpen(true); setIsOpen(false); }}>

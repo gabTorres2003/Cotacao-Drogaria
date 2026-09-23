@@ -1,12 +1,13 @@
 import React from 'react';
-import { ArrowDown, RefreshCcw, Check, Copy, ArrowUpDown, ChevronUp, ChevronDown, Search, Tag, X } from 'lucide-react';
+import { ArrowDown, RefreshCcw, Check, Copy, ArrowUpDown, ChevronUp, ChevronDown, Search, Tag, X, Trash2 } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 
 export default function TabelaRegistroManual({
   relatorioExibicao, checklist, setChecklist, fornecedoresLista, isEncerrada, 
   getNomeExibicao, isDiversos, mostrarNomeReal, setMostrarNomeReal, termoBusca, setTermoBusca,
   copiarParaAreaTransferencia, 
-  copiadoId, copiarFornecedorParaBaixo, reatribuirItem, fMoney, requestSort, sortConfig
+  copiadoId, copiarFornecedorParaBaixo, reatribuirItem, fMoney, requestSort, sortConfig,
+  deletarItem
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: '#ffffff', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
@@ -55,6 +56,7 @@ export default function TabelaRegistroManual({
             <th style={{ ...thStyle, textAlign: 'center', width: '90px', minWidth: '90px', cursor: 'pointer' }} onClick={() => requestSort('quantidade')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Qtd <SortIcon sortKey="quantidade" /></div></th>
             <th style={{ ...thStyle, textAlign: 'right', width: '110px', minWidth: '110px' }}>Custo Final (R$)</th>
             <th style={{ ...thStyle, textAlign: 'right', width: '110px', minWidth: '110px' }}>Subtotal</th>
+            <th style={{ ...thStyle, textAlign: 'center', width: '60px', minWidth: '60px' }}>Remover</th>
             <th style={{ ...thStyle, textAlign: 'center', width: '120px', minWidth: '120px', backgroundColor: '#f0fdf4', color: '#166534', position: 'sticky', right: 0, zIndex: 20, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>Status</th>
           </tr>
         </thead>
@@ -100,6 +102,11 @@ export default function TabelaRegistroManual({
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'right', fontWeight: 'bold', color: (chk.comprado && !chk.bloqueado) ? '#166534' : '#6b7280' }}>
                   {fMoney(chk.qtd * chk.preco)}
+                </td>
+                <td style={{ ...tdStyle, textAlign: 'center' }}>
+                  <button type="button" onClick={() => deletarItem(item.idItem)} disabled={isEncerrada} title="Remover Produto da Cotação" style={{ background: 'none', border: 'none', cursor: isEncerrada ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }}>
+                    <Trash2 size={16} opacity={isEncerrada ? 0.3 : 1} />
+                  </button>
                 </td>
                 <td style={{ ...tdStyle, textAlign: 'center', backgroundColor: chk.bloqueado ? '#e5e7eb' : chk.comprado ? '#dcfce7' : '#ffffff', borderLeft: '1px dashed #d1d5db', position: 'sticky', right: 0, zIndex: 10, boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
                   {chk.bloqueado ? (

@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Tags, Edit2, X, Save, Loader2 } from 'lucide-react';
+import { Tags, Edit2, X, Save, Loader2, ArrowLeft } from 'lucide-react';
 import api from '../../services/api';
 
-export default function CotacaoHeader({ id, isEncerrada }) {
+export default function CotacaoHeader({ id, isEncerrada, onVoltar }) {
   const [setorAtual, setSetorAtual] = useState('AMBOS');
   const [showSetorModal, setShowSetorModal] = useState(false);
   const [novoSetor, setNovoSetor] = useState('AMBOS');
@@ -50,6 +50,26 @@ export default function CotacaoHeader({ id, isEncerrada }) {
           {isEncerrada && <span style={{ marginLeft: '8px', fontSize: '12px', backgroundColor: '#fee2e2', color: '#dc2626', padding: '3px 10px', borderRadius: '20px', verticalAlign: 'middle', fontWeight: 'bold' }}>ENCERRADA</span>}
         </h1>
       </div>
+
+      {onVoltar && (
+        <button
+          type="button"
+          onClick={onVoltar}
+          title="Voltar para a lista de cotações"
+          style={{
+            display: 'inline-flex', alignItems: 'center', gap: '8px',
+            padding: '9px 18px', backgroundColor: 'white', color: '#334155',
+            border: '1px solid #cbd5e1', borderRadius: '999px', cursor: 'pointer',
+            fontWeight: '600', fontSize: '13px', letterSpacing: '0.2px',
+            boxShadow: '0 1px 3px rgba(0,0,0,0.08)', whiteSpace: 'nowrap',
+            transition: 'all 0.15s ease'
+          }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = '#1f2937'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = '#1f2937'; }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = '#334155'; e.currentTarget.style.borderColor = '#cbd5e1'; }}
+        >
+          <ArrowLeft size={16} /> Voltar
+        </button>
+      )}
 
       {showSetorModal && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
