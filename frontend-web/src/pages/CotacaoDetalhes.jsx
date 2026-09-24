@@ -430,17 +430,69 @@ export default function CotacaoDetalhes() {
     if (!ids || ids.length === 0) return;
     if (!window.confirm(`Tem certeza que deseja remover ${ids.length} produto(s) da cotação?`)) return;
     let houveErro = false;
-    for (const idItem of ids) {
+    for (const idRaw of ids) {
+      const idItem = Number(idRaw);
       try {
         await api.delete(`/api/cotacao/item/${idItem}`);
         setRelatorio(prev => {
-          const itemRemovido = prev.find(i => i.idItem === idItem);
+          const itemRemovido = prev.find(i => Number(i.idItem) === idItem);
           if (itemRemovido) setItensExcluidosLocal(prevExcl => [...prevExcl, { ...itemRemovido, excluido: true }]);
-          return prev.filter(item => item.idItem !== idItem);
+          return prev.filter(item => Number(item.idItem) !== idItem);
         });
       } catch (error) { houveErro = true; }
     }
     if (houveErro) alert('Alguns produtos não puderam ser removidos.');
+  };
+
+  const confirmarListaExcluidos = async () => {
+    if (!itensExcluidosLocal || itensExcluidosLocal.length === 0) return;
+    if (!window.confirm(`Confirmar exclusão de ${itensExcluidosLocal.length} item(ns)? A lista será limpa e os itens não voltarão a aparecer.`)) return;
+    try {
+      for (const item of itensExcluidosLocal) {
+        if (item.idItem && item.excluido) {
+          try { await api.put(`/api/cotacao/item/${item.idItem}`, { excluido: true }); } catch (e) {}
+        }
+      }
+      const decisaoAtualizada = {};
+      const quantidades = {};
+      pedidosGerados.forEach(ped => {
+        ped.itens.forEach(item => {
+          if (item.idItem && item.selected) {
+            decisaoAtualizada[item.idItem] = ped.fornecedorNome;
+            quantidades[item.idItem] = {
+              quantidadePedida: item.quantidadePedida,
+              fornecedor: ped.fornecedorNome
+            };
+          }
+        });
+      });
+      const config = {
+        decisaoCompra: Object.keys(decisaoAtualizada).length ? decisaoAtualizada : decisaoCompra,
+        itensExcluidos: [],
+        quantidades,
+      };
+      await api.put(`/api/cotacao/${id}/configuracao`, config);
+      setItensExcluidosLocal([]);
+    } catch (e) {
+      alert('Erro ao confirmar exclusões.');
+    }
+  };
+
+  const excluirOriginalPorTroca = async (idItem) => {
+    try {
+      const idNum = Number(idItem);
+      const itemRemovido = relatorio.find(i => Number(i.idItem) === idNum);
+      if (!itemRemovido) return;
+      await api.put(`/api/cotacao/item/${idNum}`, { excluido: true });
+      setItensExcluidosLocal(prevExcl =>
+        prevExcl.some(e => Number(e.idItem) === idNum)
+          ? prevExcl
+          : [...prevExcl, { ...itemRemovido, excluido: true }]
+      );
+      setRelatorio(prev => prev.filter(i => Number(i.idItem) !== idNum));
+    } catch (e) {
+      console.error('Erro ao excluir original por troca', e);
+    }
   };
 
   const retornarItem = async (idItem) => {
@@ -924,7 +976,19 @@ export default function CotacaoDetalhes() {
         }
       }
       if (acaoPosPedido === 'ENCERRADA') await api.put(`/api/cotacao/${id}/status`, { status: 'FINALIZADA' });
-      
+
+      const idsTrocaEnviados = new Set();
+      for (const pedido of pedidosGerados) {
+        for (const item of pedido.itens) {
+          if (item.selected && item.idItem && aceitesTroca[item.idItem] && item.nomeOriginal) {
+            idsTrocaEnviados.add(Number(item.idItem));
+          }
+        }
+      }
+      for (const idTroca of idsTrocaEnviados) {
+        await excluirOriginalPorTroca(idTroca);
+      }
+
       if (erros.length > 0 && sucessos > 0) {
         alert(`${sucessos} pedido(s) gerado(s) com sucesso.\n\n${erros.length} falha(s):\n${erros.join('\n')}`);
       } else if (erros.length > 0) {
@@ -1055,13 +1119,14 @@ export default function CotacaoDetalhes() {
                 preco = i.precosSubstitutosPorFornecedor?.[fornecedorTargetToModal] || preco;
                 qtd = i.qtdsSubstitutosPorFornecedor?.[fornecedorTargetToModal] || qtd;
                 nomeFinal = getNomeRealSempre(nomeSubstituto);
-                
+
                 condsArr = [];
                 const strCondsSubst = i.condicoesEscalonamentoSubstPorFornecedor?.[fornecedorTargetToModal];
                 try { if (strCondsSubst) condsArr = JSON.parse(strCondsSubst); } catch(e){}
                 if (condsArr.length === 0 && i.qtdCondicaoSubstPorFornecedor?.[fornecedorTargetToModal]) {
                     condsArr.push({ qtd: i.qtdCondicaoSubstPorFornecedor[fornecedorTargetToModal], preco: i.precoCondicaoSubstPorFornecedor[fornecedorTargetToModal] });
                 }
+                await excluirOriginalPorTroca(i.idItem);
              }
 
              let precoFinal = preco;
@@ -1162,8 +1227,10 @@ export default function CotacaoDetalhes() {
             isEncerrada={isEncerrada} getNomeExibicao={getNomeExibicao} isDiversos={isDiversos} mostrarNomeReal={mostrarNomeReal}
             setMostrarNomeReal={setMostrarNomeReal} termoBusca={termoBusca} setTermoBusca={setTermoBusca}
             copiarParaAreaTransferencia={copiarParaAreaTransferencia} copiadoId={copiadoId} copiarFornecedorParaBaixo={copiarFornecedorParaBaixo}
-            reatribuirItem={reatribuirItem} fMoney={fMoney} requestSort={requestSort} sortConfig={sortConfig}
+            reatribuirItem={reatribuirItem} fMoney={fMoney} fData={fData} requestSort={requestSort} sortConfig={sortConfig}
             deletarItem={deletarItem}
+            colunasVisiveis={colunasVisiveis} setColunasVisiveis={setColunasVisiveis}
+            showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown}
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
@@ -1192,6 +1259,7 @@ export default function CotacaoDetalhes() {
             editandoResposta={editandoResposta} formEdicaoResposta={formEdicaoResposta} setFormEdicaoResposta={setFormEdicaoResposta}
             iniciarEdicaoResposta={iniciarEdicaoResposta} cancelarEdicaoResposta={cancelarEdicaoResposta} salvarEdicaoResposta={salvarEdicaoResposta}
             itensExcluidosLocal={itensExcluidosLocal} retornarItem={retornarItem}
+            confirmarListaExcluidos={confirmarListaExcluidos}
             onConfirmarFracoes={handleConfirmarFracoes}
             showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown} setColunasVisiveis={setColunasVisiveis}
             setFornecedoresVisiveis={setFornecedoresVisiveis} termoBusca={termoBusca} setTermoBusca={setTermoBusca}

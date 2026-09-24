@@ -28,7 +28,7 @@ export default function TabelaDetalhes({
   destacarBaixoGiro, setDestacarBaixoGiro, mostrarAlertasPreco, setMostrarAlertasPreco,
   editandoResposta, formEdicaoResposta, setFormEdicaoResposta,
   iniciarEdicaoResposta, cancelarEdicaoResposta, salvarEdicaoResposta,
-  itensExcluidosLocal, retornarItem, onConfirmarFracoes,
+  itensExcluidosLocal, retornarItem, confirmarListaExcluidos, onConfirmarFracoes,
   showColunasDropdown, setShowColunasDropdown, setColunasVisiveis,
   setFornecedoresVisiveis, termoBusca, setTermoBusca,
   filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas
@@ -907,7 +907,7 @@ export default function TabelaDetalhes({
 
   const handleDeletarSelecionados = () => {
     if (qtdSelecionadosExcluir === 0) return;
-    deletarVariosItens(Object.keys(produtosParaExcluir).filter(id => produtosParaExcluir[id]));
+    deletarVariosItens(Object.keys(produtosParaExcluir).filter(id => produtosParaExcluir[id]).map(Number));
     setProdutosParaExcluir({});
     setModoExcluirProdutos(false);
   };
@@ -976,6 +976,8 @@ export default function TabelaDetalhes({
                   <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
                   {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
                 </label>
+              </>
+            )}
 
                 <div style={{ position: 'relative' }}>
                   <button onClick={() => setShowColunasDropdown(!showColunasDropdown)}
@@ -1029,7 +1031,7 @@ export default function TabelaDetalhes({
                         {label}
                       </label>
                     ))}
-                    {fornecedores.length > 0 && (
+                    {isComparativo && fornecedores.length > 0 && (
                       <>
                         <div style={{ borderTop: '1px solid #e5e7eb', margin: '6px 0' }}></div>
                         <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
@@ -1044,9 +1046,7 @@ export default function TabelaDetalhes({
                   </div>
                 </div>
                 )}
-              </div>
-              </>
-            )}
+                </div>
           </div>
 
           <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
@@ -1226,6 +1226,15 @@ export default function TabelaDetalhes({
                 </button>
               </div>
             ))}
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '8px' }}>
+            <button
+              type="button"
+              onClick={confirmarListaExcluidos}
+              style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+            >
+              <Check size={14} /> Confirmar e Limpar Lista de Excluídos
+            </button>
           </div>
         </div>
       )}
