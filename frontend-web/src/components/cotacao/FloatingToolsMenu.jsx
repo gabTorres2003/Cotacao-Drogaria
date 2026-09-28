@@ -82,24 +82,28 @@ export default function FloatingToolsMenu({
           </div>
 
           <div style={{ overflowY: 'auto', flex: 1, padding: '8px' }}>
+            <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
+              Alertas
+            </div>
+
+            <label style={checkLabelStyle(destacarBaixoGiro, '#ef4444')}>
+              <input
+                type="checkbox"
+                checked={destacarBaixoGiro}
+                onChange={(e) => setDestacarBaixoGiro(e.target.checked)}
+                style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
+              />
+              <AlertTriangle size={16} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />
+              Destacar Risco de Excesso
+            </label>
+
+            <div style={{ height: '6px' }} />
+
             {isComparativo && (
               <>
                 <div style={{ fontSize: '11px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', letterSpacing: '0.5px', padding: '6px 8px' }}>
                   Comparativo
                 </div>
-
-                <label style={checkLabelStyle(destacarBaixoGiro, '#ef4444')}>
-                  <input
-                    type="checkbox"
-                    checked={destacarBaixoGiro}
-                    onChange={(e) => setDestacarBaixoGiro(e.target.checked)}
-                    style={{ cursor: 'pointer', transform: 'scale(1.2)' }}
-                  />
-                  <AlertTriangle size={16} color={destacarBaixoGiro ? '#ef4444' : '#9ca3af'} />
-                  Destacar Risco de Excesso
-                </label>
-
-                <div style={{ height: '6px' }} />
 
                 <label style={checkLabelStyle(mostrarAlertasPreco, '#f59e0b')}>
                   <input
