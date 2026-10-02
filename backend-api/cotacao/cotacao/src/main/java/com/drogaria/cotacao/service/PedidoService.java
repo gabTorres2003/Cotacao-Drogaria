@@ -220,11 +220,11 @@ public class PedidoService {
                 ic = new ItemCotacao();
                 ic.setCotacao(cotacaoOrigem);
                 ic.setNomeProduto(item.getNomeProduto());
-                ic.setOrigemItem("Retorno Pedido #" + pedido.getId());
                 ic.setEditadoManual(true);
             }
             ic.setExcluido(false);
             ic.setMotivoRetorno(motivo);
+            ic.setOrigemItem("Falta do Pedido " + pedido.getId());
             ic.setQuantidade(pendente > 0 ? pendente : pedida);
             itemCotacaoRepository.save(ic);
         }
@@ -578,7 +578,14 @@ public class PedidoService {
         Pedido pedido = pedidoRepository.findById(pedidoId)
                 .orElseThrow(() -> new RuntimeException("Pedido não encontrado"));
 
-        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA) {
+        // Pedido já recebido com falta pode receber os itens de volta (retorno de falta
+        // à cotação de origem) e volta a ficar aguardando confirmação/entrega.
+        boolean retornoFalta = pedido.getStatus() == StatusPedido.ENTREGUE_COM_FALTA
+                || pedido.getStatus() == StatusPedido.ENTREGA_PARCIAL
+                || pedido.getStatus() == StatusPedido.DIVERGENCIA
+                || pedido.getStatus() == StatusPedido.VALORES_INCOMPATIVEIS;
+
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA && !retornoFalta) {
             throw new RuntimeException("Não é possível adicionar itens a um pedido que já foi processado pelo fornecedor ou entregue.");
         }
 
@@ -612,6 +619,10 @@ public class PedidoService {
                 .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0)
                         * (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
                 .sum());
+
+        if (retornoFalta) {
+            pedido.setStatus(StatusPedido.PENDENTE_ENTREGA);
+        }
         return pedidoRepository.save(pedido);
     }
 
@@ -804,6 +815,7 @@ public class PedidoService {
                 if (ip.getItemCotacao() != null) {
                     ItemCotacao ic = ip.getItemCotacao();
                     ic.setMotivoRetorno(motivo);
+                    ic.setOrigemItem("Falta do Pedido " + pedidoId);
                     itemCotacaoRepository.save(ic);
                 }
             }

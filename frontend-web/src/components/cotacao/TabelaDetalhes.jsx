@@ -31,7 +31,8 @@ export default function TabelaDetalhes({
   itensExcluidosLocal, retornarItem, confirmarListaExcluidos, onConfirmarFracoes,
   showColunasDropdown, setShowColunasDropdown, setColunasVisiveis,
   setFornecedoresVisiveis, termoBusca, setTermoBusca,
-  filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas
+  filtroOrigem, setFiltroOrigem, filtroPropostas, setFiltroPropostas,
+  origensDisponiveis, pedidosAbertosList, enviarRetornoParaPedidos
 }) {
   const [isHeaderPinned, setIsHeaderPinned] = useState(false);
   const [fracoesPorProduto, setFracoesPorProduto] = useState(() => {
@@ -67,6 +68,10 @@ export default function TabelaDetalhes({
 
   const [modoExcluirProdutos, setModoExcluirProdutos] = useState(false);
   const [produtosParaExcluir, setProdutosParaExcluir] = useState({});
+
+  const [modoRetornoProdutos, setModoRetornoProdutos] = useState(false);
+  const [produtosParaRetorno, setProdutosParaRetorno] = useState({});
+  const [pedidoAlvoRetorno, setPedidoAlvoRetorno] = useState('');
 
   const [pinnedRows, setPinnedRows] = useState([]);
   
@@ -432,6 +437,10 @@ export default function TabelaDetalhes({
                   
                   {modoExcluirProdutos && (
                     <input type="checkbox" checked={!!produtosParaExcluir[item.idItem]} onChange={() => setProdutosParaExcluir(prev => ({ ...prev, [item.idItem]: !prev[item.idItem] }))} style={{ cursor: 'pointer', transform: 'scale(1.2)' }} title="Selecionar para excluir" />
+                  )}
+
+                  {modoRetornoProdutos && isItemRetorno(item) && !isBloqueado && (
+                    <input type="checkbox" checked={!!produtosParaRetorno[item.idItem]} onChange={() => setProdutosParaRetorno(prev => ({ ...prev, [item.idItem]: !prev[item.idItem] }))} style={{ cursor: 'pointer', transform: 'scale(1.2)' }} title="Selecionar para retorno a pedidos" />
                   )}
 
                   <button type="button" onClick={() => toggleRowPin(item.idItem)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: isPinnedRow ? '#2563eb' : '#9ca3af' }} title={isPinnedRow ? "Descongelar Linha" : "Congelar Linha no Topo"}>
@@ -914,7 +923,33 @@ export default function TabelaDetalhes({
 
   const toggleModoExcluirProdutos = () => {
     if (modoExcluirProdutos) { setProdutosParaExcluir({}); }
+    else { setModoRetornoProdutos(false); setProdutosParaRetorno({}); setPedidoAlvoRetorno(''); }
     setModoExcluirProdutos(!modoExcluirProdutos);
+  };
+
+  // Produtos retornados à cotação por falta de pedido (etiqueta "Falta do Pedido X")
+  const isItemRetorno = (item) => String(item.origemItem || '').toUpperCase().includes('FALTA DO PEDIDO');
+  const temItensRetorno = relatorioExibicao.some(i => isItemRetorno(i) && !itensJaComprados[i.idItem]);
+  const qtdSelecionadosRetorno = Object.keys(produtosParaRetorno).filter(id => produtosParaRetorno[id]).length;
+
+  const toggleModoRetornoProdutos = () => {
+    if (modoRetornoProdutos) {
+      setModoRetornoProdutos(false);
+      setProdutosParaRetorno({});
+      setPedidoAlvoRetorno('');
+    } else {
+      setModoExcluirProdutos(false);
+      setProdutosParaExcluir({});
+      setModoRetornoProdutos(true);
+    }
+  };
+
+  const executarRetorno = async (acao) => {
+    const ids = Object.keys(produtosParaRetorno).filter(id => produtosParaRetorno[id]).map(Number);
+    if (ids.length === 0) return;
+    if (acao === 'AGUARDANDO' && !pedidoAlvoRetorno) return;
+    const ok = await enviarRetornoParaPedidos(ids, acao, pedidoAlvoRetorno);
+    if (ok) { setProdutosParaRetorno({}); setPedidoAlvoRetorno(''); setModoRetornoProdutos(false); }
   };
 
   return (
@@ -938,6 +973,61 @@ export default function TabelaDetalhes({
               <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
               Nome Real
             </label>
+
+            {temItensRetorno && !modoExcluirProdutos && !modoRetornoProdutos && (
+              <button
+                type="button"
+                onClick={toggleModoRetornoProdutos}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#9a3412', fontWeight: 'bold', backgroundColor: '#ffedd5', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fdba74', userSelect: 'none' }}
+                title="Enviar produtos retornados por falta para pedidos"
+              >
+                <RefreshCcw size={14} color="#ea580c" /> Retorno a Pedidos
+              </button>
+            )}
+
+            {modoRetornoProdutos && (
+              <>
+                <select
+                  value={pedidoAlvoRetorno}
+                  onChange={e => setPedidoAlvoRetorno(e.target.value)}
+                  style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontWeight: 'bold', color: '#1e293b', backgroundColor: 'white', cursor: 'pointer', maxWidth: '280px' }}
+                >
+                  <option value="">{(pedidosAbertosList || []).length === 0 ? 'Nenhum pedido aguardando confirmação' : 'Aguardando Confirmação: selecione o pedido...'}</option>
+                  {(pedidosAbertosList || []).map(p => (
+                    <option key={p.id} value={p.id}>Pedido #{p.id} — {p.fornecedor?.nome || p.fornecedorNome || 'Fornecedor'}</option>
+                  ))}
+                </select>
+
+                <button
+                  type="button"
+                  onClick={() => executarRetorno('AGUARDANDO')}
+                  disabled={qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '#e5e7eb' : '#2563eb', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '1px solid #d1d5db' : '1px solid #1d4ed8', userSelect: 'none' }}
+                  title="Enviar os produtos selecionados para um pedido aguardando confirmação"
+                >
+                  <ShoppingCart size={14} /> Enviar para Aguardando Confirmação ({qtdSelecionadosRetorno})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => executarRetorno('ORIGINAL')}
+                  disabled={qtdSelecionadosRetorno === 0}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 ? '#e5e7eb' : '#ea580c', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 ? '1px solid #d1d5db' : '1px solid #c2410c', userSelect: 'none' }}
+                  title="Devolver os produtos selecionados ao(s) pedido(s) original(is)"
+                >
+                  <RefreshCcw size={14} /> Retornar ao(s) Pedido(s) Original(is) ({qtdSelecionadosRetorno})
+                </button>
+
+                <button
+                  type="button"
+                  onClick={toggleModoRetornoProdutos}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}
+                  title="Cancelar seleção"
+                >
+                  <X size={14} /> Cancelar
+                </button>
+              </>
+            )}
 
             {isComparativo && (
               <>
@@ -1004,12 +1094,16 @@ export default function TabelaDetalhes({
                           <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)}
                             style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
                             <option value="TODOS">Todas</option>
+                            <option value="Falta do Pedido">Falta do Pedido (retorno)</option>
                             <option value="Extra Manual">Extra Manual</option>
                             <option value="Nova Importação">Atualização DNA</option>
                             <option value="Falta Manual">Falta Manual</option>
                             <option value="Sugestão">Sugestão</option>
                         <option value="Falta e Sugestão">Falta e Sugestão</option>
                         <option value="Geral">Geral</option>
+                        {(origensDisponiveis || [])
+                          .filter(o => !['Extra Manual', 'Nova Importação', 'Falta Manual', 'Sugestão', 'Falta e Sugestão', 'Geral'].includes(o))
+                          .map(o => <option key={o} value={o}>{o}</option>)}
                       </select>
                     </div>
                     <div style={{ flex: 1, minWidth: '100px' }}>

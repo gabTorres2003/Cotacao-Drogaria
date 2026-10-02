@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
@@ -250,6 +250,13 @@ export default function CotacaoDetalhes() {
     }
     return true;
   });
+
+  // Opções dinâmicas do filtro "Origem" (inclui etiquetas de retorno, ex: "Falta do Pedido 149")
+  const origensDisponiveis = useMemo(() => {
+    const mapa = {};
+    relatorio.forEach(i => { if (i.origemItem) mapa[String(i.origemItem)] = true; });
+    return Object.keys(mapa).sort((a, b) => a.localeCompare(b));
+  }, [relatorio]);
 
   const copiarParaAreaTransferencia = (texto, idItem) => {
     navigator.clipboard.writeText(texto).then(() => {
@@ -1008,6 +1015,105 @@ export default function CotacaoDetalhes() {
     }
   };
 
+  const extrairPedidoOriginal = (item) => {
+    const m = String(item.origemItem || '').match(/Falta do Pedido\s*#?\s*(\d+)/i);
+    return m ? m[1] : null;
+  };
+
+  // Envia produtos rotulados ("Falta do Pedido X") para um pedido aguardando confirmação
+  // ou de volta ao(s) pedido(s) original(is).
+  const enviarRetornoParaPedidos = async (ids, acao, pedidoAlvoId) => {
+    const idsSet = new Set(ids.map(Number));
+    const itens = relatorio.filter(r => idsSet.has(Number(r.idItem)));
+    if (itens.length === 0) return false;
+
+    const grupos = new Map();
+    if (acao === 'AGUARDANDO') {
+      const pedidoAlvo = (pedidosAbertosList || []).find(p => String(p.id) === String(pedidoAlvoId));
+      if (!pedidoAlvo) {
+        alert('Pedido de destino não encontrado. Atualize a página e tente novamente.');
+        return false;
+      }
+      grupos.set(String(pedidoAlvo.id), { itens: [], fornecedorNome: pedidoAlvo.fornecedor?.nome || pedidoAlvo.fornecedorNome || '' });
+    } else {
+      for (const item of itens) {
+        const pid = extrairPedidoOriginal(item);
+        if (!pid) {
+          alert(`Não foi possível identificar o pedido original do produto "${item.nomeProduto}".`);
+          return false;
+        }
+        if (!grupos.has(pid)) grupos.set(pid, { itens: [], fornecedorNome: '' });
+      }
+    }
+
+    for (const item of itens) {
+      const pid = acao === 'AGUARDANDO' ? String(pedidoAlvoId) : extrairPedidoOriginal(item);
+      grupos.get(pid).itens.push(item);
+    }
+
+    if (acao === 'ORIGINAL') {
+      try {
+        const res = await api.get(`/api/pedidos/cotacao/${id}`);
+        const pedidosCot = Array.isArray(res.data) ? res.data : [];
+        for (const [pid, g] of grupos) {
+          const ped = pedidosCot.find(p => String(p.id) === pid);
+          g.fornecedorNome = ped?.fornecedor?.nome || ped?.fornecedorNome || '';
+        }
+      } catch (e) { /* segue sem precificar pelo fornecedor do pedido */ }
+    }
+
+    const listaPids = [...grupos.keys()].map(p => `#${p}`).join(', ');
+    const totalItens = itens.length;
+    const msgConfirm = acao === 'AGUARDANDO'
+      ? `Enviar ${totalItens} produto(s) para o pedido ${listaPids} (Aguardando Confirmação)?`
+      : `Retornar ${totalItens} produto(s) para o(s) pedido(s) original(is) ${listaPids}?\n\nO(s) pedido(s) voltará(ram) para "Aguardando Confirmação" e os produtos ficarão pendentes de entrega novamente.`;
+    if (!window.confirm(msgConfirm)) return false;
+
+    const montarPayload = (item, fornecedorNome) => {
+      let preco = null;
+      if (fornecedorNome && item.precosPorFornecedor && Number(item.precosPorFornecedor[fornecedorNome]) > 0) {
+        preco = Number(item.precosPorFornecedor[fornecedorNome]);
+      } else if (Number(item.precoCustom) > 0) {
+        preco = Number(item.precoCustom);
+      }
+      return {
+        nomeProduto: getNomeRealSempre(item.nomeProduto),
+        quantidadePedida: Number(item.quantidade) || 1,
+        valorUnitarioPedido: preco,
+        itemCotacao: { id: Number(item.idItem) },
+        reatribuicaoExplicita: true
+      };
+    };
+
+    const erros = [];
+    let sucessos = 0;
+    for (const [pid, g] of grupos) {
+      try {
+        await api.post(`/api/pedidos/${pid}/itens/lote`, g.itens.map(i => montarPayload(i, g.fornecedorNome)));
+        sucessos += g.itens.length;
+      } catch (e) {
+        erros.push(`Pedido #${pid}: ${e.response?.data?.message || e.message || 'erro desconhecido'}`);
+      }
+    }
+
+    if (erros.length > 0 && sucessos > 0) {
+      alert(`${sucessos} produto(s) enviados com sucesso.\n\nFalhas:\n${erros.join('\n')}`);
+    } else if (erros.length > 0) {
+      alert(`Falha ao enviar os produtos:\n${erros.join('\n')}`);
+    } else {
+      alert(acao === 'AGUARDANDO'
+        ? `${sucessos} produto(s) enviados para o pedido ${listaPids} (Aguardando Confirmação)!`
+        : `${sucessos} produto(s) retornaram para o(s) pedido(s) ${listaPids}.\n\nO(s) pedido(s) voltou(ram) para "Aguardando Confirmação".`);
+    }
+
+    if (sucessos > 0) {
+      await carregarRelatorio();
+      await carregarPedidosDaCotacao();
+      return true;
+    }
+    return false;
+  };
+
   const abrirModalAddPedido = async (item, fornecedorTarget = null) => {
     setItemAddPedido(item);
     setFornecedorTargetToModal(fornecedorTarget);
@@ -1263,6 +1369,9 @@ export default function CotacaoDetalhes() {
             showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown} setColunasVisiveis={setColunasVisiveis}
             setFornecedoresVisiveis={setFornecedoresVisiveis} termoBusca={termoBusca} setTermoBusca={setTermoBusca}
             filtroOrigem={filtroOrigem} setFiltroOrigem={setFiltroOrigem} filtroPropostas={filtroPropostas} setFiltroPropostas={setFiltroPropostas}
+            origensDisponiveis={origensDisponiveis}
+            pedidosAbertosList={pedidosAbertosList}
+            enviarRetornoParaPedidos={enviarRetornoParaPedidos}
           />
           
           {isComparativo && (
