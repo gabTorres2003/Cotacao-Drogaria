@@ -741,10 +741,9 @@ export default function CotacaoDetalhes() {
         alert('Nenhum item válido para processar pedido.'); setIsProcessandoPedidos(false); return;
       }
 
-      // Vínculo por identificador único do fornecedor + categoria compatível
+      // Padrão: gerar novo pedido (opção de adicionar a pedido existente continua disponível no modal)
       pedidosArray.forEach(ped => {
-         const pedAberto = pedidosCompativeisFornecedor(ped.fornecedorNome)[0] || null;
-         ped.acaoFornecedor = pedAberto ? String(pedAberto.id) : 'NOVO';
+         ped.acaoFornecedor = 'NOVO';
       });
 
       setAvisosDuplicidade(await mapearDuplicatas());

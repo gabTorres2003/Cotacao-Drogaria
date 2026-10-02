@@ -4,7 +4,7 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Send } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck } from 'lucide-react';
 
 export default function PedidoConferencia() {
   const { id } = useParams();
@@ -15,12 +15,8 @@ export default function PedidoConferencia() {
   const [salvando, setSalvando] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' });
   const [numeroNota, setNumeroNota] = useState('');
-  const [salvarParcial, setSalvarParcial] = useState(false);
-  const [itensSelecionadosEnvio, setItensSelecionadosEnvio] = useState([]);
-  const [enviandoCotacao, setEnviandoCotacao] = useState(false);
+  const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
-  const [cotacoesAtivas, setCotacoesAtivas] = useState([]);
-  const [cotacaoDestinoId, setCotacaoDestinoId] = useState('');
   const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
 
   useEffect(() => {
@@ -45,7 +41,7 @@ export default function PedidoConferencia() {
               totalmenteRecebido,
               produtoRecebido: item.produtoRecebido || '',
               observacaoIncorreto: item.observacaoDevolucao || '',
-              foiCobrado: false
+              foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota')
             };
           })
         );
@@ -65,7 +61,9 @@ export default function PedidoConferencia() {
             if (field === 'statusRecebimento') {
                 if (value === 'FALTANTE') {
                     newItem.quantidadeRecebidaAgora = 0;
-                    newItem.valorUnitarioReal = '';
+                }
+                if (value !== 'FALTANTE') {
+                    newItem.foiCobrado = false;
                 }
                 if (value !== 'INCORRETO') {
                     newItem.produtoRecebido = '';
@@ -189,135 +187,53 @@ export default function PedidoConferencia() {
     }
   };
 
-  const itensFaltantes = useMemo(
-    () => conferencia.filter(c => c.statusRecebimento === 'FALTANTE' && !c.totalmenteRecebido && !c.foiCobrado),
-    [conferencia]
-  );
-
-  useEffect(() => {
-    if (itensFaltantes.length > 0 && cotacoesAtivas.length === 0) {
-      api.get('/api/cotacao')
-        .then(res => {
-          const ativas = (Array.isArray(res.data) ? res.data : [])
-            .filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
-          setCotacoesAtivas(ativas);
-        })
-        .catch(() => {});
-    }
-  }, [itensFaltantes.length]);
-
-  const toggleSelecaoEnvio = (idItem) => {
-    setItensSelecionadosEnvio(prev =>
-      prev.includes(idItem) ? prev.filter(id => id !== idItem) : [...prev, idItem]
-    );
+  // Itens que ficaram sem destino após esta conferência (não recebidos integralmente,
+  // não cobrados e sem divergência de devolução). Exigem escolha ao finalizar.
+  const getItensSemDestino = () => {
+    if (!pedido?.itens) return [];
+    return conferencia.filter(c => {
+      if (c.isNaoSolicitado || c.totalmenteRecebido || c.foiCobrado) return false;
+      if (c.statusRecebimento === 'INCORRETO' || c.statusRecebimento === 'AVARIADO') return false;
+      const itemPedido = pedido.itens.find(i => i.id === c.id);
+      if (!itemPedido) return false;
+      const pedida = itemPedido.quantidadePedida || 0;
+      const jaRecebida = c.quantidadeJaRecebida || 0;
+      const agora = (c.quantidadeRecebidaAgora === '' || c.quantidadeRecebidaAgora === undefined)
+        ? 0
+        : Number(c.quantidadeRecebidaAgora);
+      return (jaRecebida + agora) < pedida;
+    });
   };
 
-  const enviarParaCotacao = async () => {
-    if (itensSelecionadosEnvio.length === 0) {
-      alert('Selecione ao menos um produto "Não Veio" para enviar à cotação.');
-      return;
-    }
-
-    if (!cotacaoDestinoId) {
-      alert('Selecione uma cotação de destino.');
-      return;
-    }
-
-    try {
-      setEnviandoCotacao(true);
-
-      const cotacao = cotacoesAtivas.find(c => String(c.id) === String(cotacaoDestinoId));
-      if (!cotacao) {
-        alert('Cotação selecionada não encontrada.');
-        return;
-      }
-
-      const resItens = await api.get(`/api/comparativo/listar-itens/${cotacao.id}`);
-      const itensExistentes = Array.isArray(resItens.data) ? resItens.data : [];
-      const nomesExistentes = new Set(itensExistentes.map(i => (i.nomeProduto || '').toUpperCase().trim()));
-
-      const itensParaEnviar = itensSelecionadosEnvio.map(idConf => {
-        const conf = conferencia.find(c => c.id === idConf);
-        const itemPedido = pedido.itens.find(i => i.id === idConf);
-        return { conf, itemPedido };
-      }).filter(e => e.itemPedido);
-
-      const duplicados = [];
-      const paraAdicionar = [];
-
-      for (const { conf, itemPedido } of itensParaEnviar) {
-        const nome = (itemPedido.nomeProduto || itemPedido.itemCotacao?.nomeProduto || '').trim();
-        if (nomesExistentes.has(nome.toUpperCase())) {
-          duplicados.push(nome);
-        } else {
-          paraAdicionar.push({ nome, quantidade: itemPedido.quantidadePedida - (itemPedido.quantidadeReal || 0) });
-          nomesExistentes.add(nome.toUpperCase());
-        }
-      }
-
-      let adicionados = 0;
-      for (const item of paraAdicionar) {
-        try {
-          await api.post(`/api/cotacao/${cotacao.id}/item`, {
-            nomeProduto: item.nome,
-            quantidade: item.quantidade,
-            origemItem: 'Conferência - Não Veio'
-          });
-          adicionados++;
-        } catch (e) {
-          console.error(`Erro ao adicionar "${item.nome}":`, e);
-        }
-      }
-
-      let msg = '';
-      if (adicionados > 0) msg += `${adicionados} produto(s) adicionado(s) à Cotação #${cotacao.id}.\n`;
-      if (duplicados.length > 0) msg += `\nJá existentes (não duplicados): ${duplicados.join(', ')}`;
-      if (!msg) msg = 'Nenhum produto foi adicionado.';
-      alert(msg);
-
-      setItensSelecionadosEnvio([]);
-    } catch (error) {
-      console.error('Erro ao enviar para cotação:', error);
-      alert('Erro ao enviar produtos para cotação.');
-    } finally {
-      setEnviandoCotacao(false);
-    }
+  const getNomeItemConferencia = (c) => {
+    const itemPedido = pedido?.itens?.find(i => i.id === c.id);
+    return c.nomeProduto || itemPedido?.nomeProduto || itemPedido?.itemCotacao?.nomeProduto || 'Produto Desconhecido';
   };
 
-  const enviarRecebimento = async (parcial) => {
+  const enviarRecebimento = async (acao) => {
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
       return;
     }
 
-    const itensParaEnviar = parcial
-      ? conferencia.filter(c =>
-          !c.isNaoSolicitado &&
-          !c.totalmenteRecebido &&
-          (c.conferido || (c.quantidadeRecebidaAgora !== undefined && c.quantidadeRecebidaAgora !== ''))
-        )
-      : conferencia.filter(c => c.conferido && !c.isNaoSolicitado);
-
-    if (parcial && itensParaEnviar.length === 0) {
-      alert('Para salvar como entrega parcial, você precisa preencher e marcar pelo menos um item desta NF.');
+    const itensPendentes = conferencia.filter(c => !c.conferido && !c.isNaoSolicitado);
+    if (itensPendentes.length > 0) {
+      alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
       return;
     }
 
-    if (!parcial) {
-      const itensPendentes = conferencia.filter(c => !c.conferido && !c.isNaoSolicitado);
-      if (itensPendentes.length > 0) {
-        alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
-        return;
-      }
-    }
+    const semDestino = getItensSemDestino();
+    const qtdSemDestino = semDestino.length;
+
+    const itensParaEnviar = conferencia.filter(c => c.conferido && !c.isNaoSolicitado);
 
     setSalvando(true);
-    setSalvarParcial(parcial);
 
     let teveProblemas = false;
 
     const payload = {
       numeroNota: numeroNota.trim(),
+      acaoItensFaltantes: acao || null,
       itens: itensParaEnviar.map(item => {
         const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
           ? 0
@@ -334,12 +250,15 @@ export default function PedidoConferencia() {
           quantidadeRecebidaAgora: qtdNova,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
+          foiCobrado: !!item.foiCobrado,
           observacaoDevolucao: item.statusRecebimento !== 'OK'
             ? (item.statusRecebimento === 'INCORRETO'
                 ? `Produto errado: ${item.produtoRecebido || 'não informado'}. ${item.observacaoIncorreto || ''}`.trim()
-                : (item.statusRecebimento === 'FALTANTE' && item.foiCobrado
+                : (item.foiCobrado
                     ? 'Faturado mas não entregue - Cobrado na nota'
-                    : 'Divergência marcada na conferência cega'))
+                    : (acao === 'AGUARDAR'
+                        ? 'Aguardando entrega - Entrega Parcial'
+                        : 'Divergência marcada na conferência cega')))
             : ''
         };
       })
@@ -364,17 +283,19 @@ export default function PedidoConferencia() {
         }
       }
 
-      if (parcial) {
-        alert('Entrega parcial salva com sucesso! O status do pedido foi atualizado e você poderá continuar a conferência quando chegar o próximo volume.');
-        navigate(`/pedidos/${id}`);
-        return;
-      }
-
       if (teveProblemas) {
-          if (window.confirm('Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.\n\nDeseja registrar a devolução / abatimento agora?')) {
+          const detalhes = [];
+          if (acao === 'AGUARDAR') detalhes.push(`${qtdSemDestino} produto(s) faltante(s) ficaram em aguardo (Entrega Parcial).`);
+          if (acao === 'RETORNAR_COTACAO' && qtdSemDestino > 0) detalhes.push(`${qtdSemDestino} produto(s) faltante(s) retornaram para a cotação de origem.`);
+          const msgDetalhes = detalhes.length > 0 ? `\n\n${detalhes.join('\n')}` : '';
+          if (window.confirm(`Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.${msgDetalhes}\n\nDeseja registrar a devolução / abatimento agora?`)) {
               setShowDevolucaoModal(true);
               return;
           }
+      } else if (acao === 'AGUARDAR') {
+          alert(`Entrega parcial registrada com sucesso!\n\n${qtdSemDestino} produto(s) ficaram em aguardo e o pedido permanece em "Entrega Parcial".\n\nQuando o volume chegar, finalize a conferência normalmente; se não chegar, confirme a falta para retornar os produtos à cotação de origem automaticamente.`);
+      } else if (acao === 'RETORNAR_COTACAO') {
+          alert(`Conferência finalizada com sucesso!\n\n${qtdSemDestino} produto(s) retornaram automaticamente para a cotação de origem (ela poderá estar encerrada ou não).`);
       } else {
           alert('Conferência finalizada com sucesso! Todos os itens chegaram corretamente.');
       }
@@ -385,18 +306,31 @@ export default function PedidoConferencia() {
       alert('Ocorreu um erro ao processar o recebimento do pedido.');
     } finally {
       setSalvando(false);
-      setSalvarParcial(false);
+      setShowModalDestinoFaltantes(false);
     }
   };
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    enviarRecebimento(false);
+    if (!numeroNota.trim()) {
+      alert('Por favor, preencha o Número da NF antes de salvar.');
+      return;
+    }
+    const itensPendentes = conferencia.filter(c => !c.conferido && !c.isNaoSolicitado);
+    if (itensPendentes.length > 0) {
+      alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
+      return;
+    }
+    if (getItensSemDestino().length > 0) {
+      setShowModalDestinoFaltantes(true);
+      return;
+    }
+    enviarRecebimento(null);
   };
 
-  const handleSalvarParcial = (e) => {
-    e.preventDefault();
-    enviarRecebimento(true);
+  const confirmarDestinoFaltantes = (acao) => {
+    setShowModalDestinoFaltantes(false);
+    enviarRecebimento(acao);
   };
 
   const fMoney = (valor) => {
@@ -485,7 +419,6 @@ export default function PedidoConferencia() {
                 <table style={styles.table}>
                   <thead>
                     <tr>
-                      <th style={{ ...styles.th, width: '40px', textAlign: 'center' }}></th>
                       <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
                         Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
                       </th>
@@ -508,16 +441,6 @@ export default function PedidoConferencia() {
                       return (
                         <Fragment key={item.id}>
                         <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
-                          <td style={{ ...styles.td, textAlign: 'center', width: '40px' }}>
-                            {confState.statusRecebimento === 'FALTANTE' && !totalmenteRecebido && (
-                              <input
-                                type="checkbox"
-                                checked={itensSelecionadosEnvio.includes(item.id)}
-                                onChange={() => toggleSelecaoEnvio(item.id)}
-                                style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#f97316' }}
-                              />
-                            )}
-                          </td>
                           <td style={styles.td}>
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
                               {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
@@ -615,7 +538,7 @@ export default function PedidoConferencia() {
                         </tr>
                         {confState.statusRecebimento === 'INCORRETO' && !totalmenteRecebido && (
                           <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
-                            <td colSpan={8} style={{ padding: '8px 14px' }}>
+                            <td colSpan={7} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <div style={{ flex: '1 1 200px' }}>
                                   <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Produto recebido no lugar:</label>
@@ -645,7 +568,7 @@ export default function PedidoConferencia() {
                         )}
                         {confState.statusRecebimento === 'FALTANTE' && !totalmenteRecebido && (
                           <tr key={`${item.id}-faltante`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
-                            <td colSpan={8} style={{ padding: '8px 14px' }}>
+                            <td colSpan={7} style={{ padding: '8px 14px' }}>
                               <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#9a3412', fontWeight: '500' }}>
                                 <input
                                   type="checkbox"
@@ -694,57 +617,6 @@ export default function PedidoConferencia() {
               onConfirm={adicionarProdutoNaoSolicitado}
             />
 
-            {itensFaltantes.length > 0 && (
-              <div style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', padding: '14px 20px', borderRadius: '8px', marginBottom: '20px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px', marginBottom: '12px' }}>
-                  <div style={{ fontSize: '13px', color: '#9a3412' }}>
-                    <strong>{itensFaltantes.length}</strong> produto(s) marcados como "Não Veio" (sem cobrança).
-                    {itensSelecionadosEnvio.length > 0 && (
-                      <span> <strong>{itensSelecionadosEnvio.length}</strong> selecionado(s) para envio à cotação.</span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={enviarParaCotacao}
-                    disabled={itensSelecionadosEnvio.length === 0 || enviandoCotacao || !cotacaoDestinoId}
-                    style={{
-                      padding: '8px 16px',
-                      backgroundColor: (itensSelecionadosEnvio.length > 0 && cotacaoDestinoId) ? '#f97316' : '#d1d5db',
-                      color: 'white',
-                      border: 'none',
-                      borderRadius: '6px',
-                      fontWeight: '600',
-                      fontSize: '13px',
-                      cursor: (itensSelecionadosEnvio.length > 0 && cotacaoDestinoId) ? 'pointer' : 'not-allowed',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      opacity: enviandoCotacao ? 0.7 : 1
-                    }}
-                  >
-                    <Send size={14} />
-                    {enviandoCotacao ? 'Enviando...' : 'Enviar Selecionados para Cotação'}
-                  </button>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-                  <label style={{ fontSize: '12px', fontWeight: '600', color: '#9a3412' }}>Cotação de destino:</label>
-                  <select
-                    value={cotacaoDestinoId}
-                    onChange={e => setCotacaoDestinoId(e.target.value)}
-                    style={{ padding: '6px 10px', borderRadius: '6px', border: '1px solid #fed7aa', fontSize: '13px', backgroundColor: 'white', color: '#9a3412', fontWeight: '500', minWidth: '250px' }}
-                  >
-                    <option value="">Selecione uma cotação...</option>
-                    {cotacoesAtivas.map(c => (
-                      <option key={c.id} value={c.id}>#{c.id} - {c.descricao || c.origem || 'Cotação'} ({c.status})</option>
-                    ))}
-                  </select>
-                  {cotacoesAtivas.length === 0 && (
-                    <span style={{ fontSize: '12px', color: '#dc2626' }}>Nenhuma cotação ativa encontrada.</span>
-                  )}
-                </div>
-              </div>
-            )}
-
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '13px', color: '#64748b' }}>
                 {itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.
@@ -759,28 +631,76 @@ export default function PedidoConferencia() {
                   Cancelar
                 </button>
                 <button
-                  type="button"
-                  onClick={handleSalvarParcial}
-                  style={{ ...styles.btnSalvarParcial, opacity: salvando ? 0.7 : 1 }}
-                  disabled={salvando}
-                  title="Salva o que foi conferido nesta NF e mantém o pedido em ENTREGA PARCIAL para continuar depois."
-                >
-                  <Truck size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  {salvando && salvarParcial ? 'Salvando...' : 'Salvar Entrega Parcial'}
-                </button>
-                <button
                   type="submit"
                   style={{...styles.btnSalvar, opacity: salvando ? 0.7 : 1}}
                   disabled={salvando}
                 >
                   <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  {salvando && !salvarParcial ? 'Processando...' : 'Finalizar e Gravar Conferência'}
+                  {salvando ? 'Processando...' : 'Finalizar e Gravar Conferência'}
                 </button>
               </div>
             </div>
           </form>
         </div>
       </main>
+      {showModalDestinoFaltantes && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
+          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={20} /> Produtos faltantes — defina o destino
+              </h3>
+              <button onClick={() => !salvando && setShowModalDestinoFaltantes(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '18px', fontWeight: 'bold' }}>
+                ✕
+              </button>
+            </div>
+
+            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '10px' }}>
+              Os produtos abaixo <strong>não foram recebidos integralmente</strong> e ainda não foram cobrados. Antes de finalizar, escolha uma das opções:
+            </p>
+
+            <ul style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '12px 12px 12px 32px', margin: '0 0 16px 0', maxHeight: '200px', overflowY: 'auto' }}>
+              {getItensSemDestino().map(c => (
+                <li key={c.id} style={{ fontSize: '13px', color: '#9a3412', padding: '3px 0' }}>{getNomeItemConferencia(c)}</li>
+              ))}
+            </ul>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                type="button"
+                onClick={() => confirmarDestinoFaltantes('RETORNAR_COTACAO')}
+                disabled={salvando}
+                style={{ padding: '12px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
+              >
+                Retornar para a Cotação de Origem
+                <div style={{ fontSize: '11px', fontWeight: '400', marginTop: '2px' }}>
+                  Os produtos voltam para a cotação de origem (encerrada ou não) e esta conferência é finalizada.
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => confirmarDestinoFaltantes('AGUARDAR')}
+                disabled={salvando}
+                style={{ padding: '12px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
+              >
+                Aguardar Produto(s) — Gerar Entrega Parcial
+                <div style={{ fontSize: '11px', fontWeight: '400', marginTop: '2px' }}>
+                  O pedido fica em "Entrega Parcial"; depois você recebe o volume restante ou confirma a falta.
+                </div>
+              </button>
+              <button
+                type="button"
+                onClick={() => !salvando && setShowModalDestinoFaltantes(false)}
+                disabled={salvando}
+                style={{ padding: '10px 16px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: salvando ? 'wait' : 'pointer', alignSelf: 'flex-end' }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showDevolucaoModal && (
         <DevolucaoModal
           pedidoId={id}
@@ -805,6 +725,5 @@ const styles = {
   inputField: { padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', width: '100%', textAlign: 'center', outline: 'none', fontWeight: 'bold', color: '#166534', transition: 'all 0.2s' },
   btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
   btnCancelar: { padding: '12px 24px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
-  btnSalvar: { padding: '12px 24px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' },
-  btnSalvarParcial: { padding: '12px 24px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(249, 115, 22, 0.2)' }
+  btnSalvar: { padding: '12px 24px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' }
 };

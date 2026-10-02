@@ -100,12 +100,13 @@ public class PedidoService {
             pedido.setNumeroNota(pedido.getNumeroNota() + " / " + novaNota);
         }
 
+        // AGUARDAR mantém os itens faltantes no pedido (entrega parcial);
+        // RETORNAR_COTACAO (ou ausente) devolve os itens não recebidos para a cotação de origem.
+        boolean aguardarFaltantes = "AGUARDAR".equalsIgnoreCase(dto.getAcaoItensFaltantes());
+
         boolean temDevolucao = false;
         boolean temIncompatibilidadeValor = false;
-        boolean temItemPendente = false;
         double valorTotalReal = 0.0;
-
-        List<ItemPedido> itensRemover = new ArrayList<>();
 
         for (ItemRecebidoDTO itemConferido : dto.getItens()) {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
@@ -121,14 +122,34 @@ public class PedidoService {
             itemBanco.setQuantidadeReal(novaQuantidadeReal);
             itemBanco.setValorUnitarioReal(itemConferido.getValorUnitarioReal());
 
+            if (itemBanco.getQuantidadeReal() != null && itemBanco.getValorUnitarioReal() != null) {
+                valorTotalReal += (itemBanco.getQuantidadeReal() * itemBanco.getValorUnitarioReal());
+            }
+
             StatusItemRecebimento statusItem = itemConferido.getStatusRecebimento();
 
-            if (itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida()) {
-                temItemPendente = true;
-                if (statusItem == null || statusItem == StatusItemRecebimento.OK) {
-                    statusItem = StatusItemRecebimento.FALTANTE;
-                }
+            boolean incompleto = itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida();
+            if (incompleto && (statusItem == null || statusItem == StatusItemRecebimento.OK)) {
+                statusItem = StatusItemRecebimento.FALTANTE;
             }
+
+            boolean foiCobrado = itemConferido.getFoiCobrado() != null
+                    ? itemConferido.getFoiCobrado()
+                    : (itemConferido.getObservacaoDevolucao() != null
+                        && itemConferido.getObservacaoDevolucao().contains("Cobrado na nota"));
+
+            // Item sem entrega integral e sem cobrança: exige destino definido pelo usuário.
+            boolean semDestino = incompleto && !foiCobrado
+                    && statusItem != StatusItemRecebimento.AVARIADO
+                    && statusItem != StatusItemRecebimento.INCORRETO;
+
+            if (semDestino && !aguardarFaltantes) {
+                retornarItemParaCotacaoOrigem(itemBanco, pedido);
+                continue;
+            }
+
+            itemBanco.setStatusRecebimento(statusItem);
+            itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
 
             if (itemBanco.getValorUnitarioReal() != null
                     && itemBanco.getValorUnitarioPedido() != null
@@ -136,42 +157,30 @@ public class PedidoService {
                 temIncompatibilidadeValor = true;
             }
 
-            boolean isFaltanteSemCobranca = statusItem == StatusItemRecebimento.FALTANTE
-                    && (itemConferido.getObservacaoDevolucao() == null
-                        || !itemConferido.getObservacaoDevolucao().contains("Cobrado na nota"));
-
-            if (isFaltanteSemCobranca) {
-                itensRemover.add(itemBanco);
-                continue;
-            }
-
-            itemBanco.setStatusRecebimento(statusItem);
-            itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
-
             if (statusItem == StatusItemRecebimento.AVARIADO ||
                 statusItem == StatusItemRecebimento.INCORRETO) {
                 temDevolucao = true;
             }
-
-            if (itemBanco.getQuantidadeReal() != null && itemBanco.getValorUnitarioReal() != null) {
-                valorTotalReal += (itemBanco.getQuantidadeReal() * itemBanco.getValorUnitarioReal());
-            }
-        }
-
-        for (ItemPedido itemRemover : itensRemover) {
-            pedido.getItens().remove(itemRemover);
-            itemPedidoRepository.delete(itemRemover);
         }
 
         pedido.setValorTotalReal(valorTotalReal);
+
+        // Pendência calculada somente sobre os itens que permaneceram no pedido,
+        // para que itens devolvidos à cotação não gerem entrega parcial indevida.
+        boolean temItemPendente = pedido.getItens().stream().anyMatch(i ->
+                i.getQuantidadeReal() == null || i.getQuantidadePedida() == null
+                        || i.getQuantidadeReal() < i.getQuantidadePedida());
 
         if (temDevolucao) {
             pedido.setStatus(StatusPedido.DIVERGENCIA);
         } else if (temItemPendente) {
             pedido.setStatus(StatusPedido.ENTREGA_PARCIAL);
+        } else if (pedido.getItens().isEmpty()) {
+            // Todos os itens foram devolvidos à cotação de origem: encerra com falta confirmada.
+            pedido.setStatus(StatusPedido.ENTREGUE_COM_FALTA);
         } else if (temIncompatibilidadeValor) {
             pedido.setStatus(StatusPedido.VALORES_INCOMPATIVEIS);
-        } else if (pedido.getItens().isEmpty() || pedido.getItens().stream().allMatch(i -> i.getQuantidadeReal() != null && i.getQuantidadeReal() > 0)) {
+        } else {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
 
@@ -186,6 +195,53 @@ public class PedidoService {
         }
 
         return pedidoSalvo;
+    }
+
+    /**
+     * Devolve um item não recebido para a cotação de origem.
+     * Reativa o ItemCotacao (mesmo que a cotação esteja encerrada), libera o vínculo com
+     * o pedido e ajusta o pedido: itens sem nenhuma entrega são removidos; itens parciais
+     * passam a considerar somente o que já foi recebido.
+     */
+    private void retornarItemParaCotacaoOrigem(ItemPedido item, Pedido pedido) {
+        int pedida = item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
+        int recebida = item.getQuantidadeReal() != null ? item.getQuantidadeReal() : 0;
+        int pendente = Math.max(pedida - recebida, 0);
+        double valorUnitario = item.getValorUnitarioPedido() != null ? item.getValorUnitarioPedido() : 0.0;
+        double valorTotalPedido = pedido.getValorTotalPedido() != null ? pedido.getValorTotalPedido() : 0.0;
+        String motivo = "Retorno à cotação de origem - falta na conferência do Pedido #" + pedido.getId();
+
+        ItemCotacao itemCotacaoOrigem = item.getItemCotacao();
+        Cotacao cotacaoOrigem = itemCotacaoOrigem != null ? itemCotacaoOrigem.getCotacao() : pedido.getCotacao();
+
+        if (cotacaoOrigem != null) {
+            ItemCotacao ic = itemCotacaoOrigem;
+            if (ic == null) {
+                ic = new ItemCotacao();
+                ic.setCotacao(cotacaoOrigem);
+                ic.setNomeProduto(item.getNomeProduto());
+                ic.setOrigemItem("Retorno Pedido #" + pedido.getId());
+                ic.setEditadoManual(true);
+            }
+            ic.setExcluido(false);
+            ic.setMotivoRetorno(motivo);
+            ic.setQuantidade(pendente > 0 ? pendente : pedida);
+            itemCotacaoRepository.save(ic);
+        }
+
+        item.setItemCotacao(null);
+
+        if (recebida <= 0) {
+            pedido.setValorTotalPedido(valorTotalPedido - (pedida * valorUnitario));
+            pedido.getItens().remove(item);
+            itemPedidoRepository.delete(item);
+        } else {
+            pedido.setValorTotalPedido(valorTotalPedido - (pendente * valorUnitario));
+            item.setQuantidadePedida(recebida);
+            item.setStatusRecebimento(StatusItemRecebimento.OK);
+            item.setObservacaoDevolucao("Retorno parcial: " + pendente + " un pendente(s) retornaram para a cotação de origem");
+            itemPedidoRepository.save(item);
+        }
     }
 
     @Transactional

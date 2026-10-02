@@ -12,4 +12,5 @@ public class ItemRecebidoDTO {
     private String observacaoDevolucao;
     private Integer quantidadeRecebidaAgora;
     private Boolean naoSolicitado;
+    private Boolean foiCobrado;
 }
