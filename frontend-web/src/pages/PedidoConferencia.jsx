@@ -6,6 +6,29 @@ import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck } from 'lucide-react';
 
+const CHAVE_CACHE_CONFERENCIA = (pedidoId) => `conferencia_pedido_${pedidoId}`;
+
+const lerCacheConferencia = (pedidoId) => {
+  try {
+    const raw = localStorage.getItem(CHAVE_CACHE_CONFERENCIA(pedidoId));
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+};
+
+const salvarCacheConferencia = (pedidoId, dados) => {
+  try {
+    localStorage.setItem(CHAVE_CACHE_CONFERENCIA(pedidoId), JSON.stringify(dados));
+  } catch { /* armazenamento indisponível */ }
+};
+
+const limparCacheConferencia = (pedidoId) => {
+  try {
+    localStorage.removeItem(CHAVE_CACHE_CONFERENCIA(pedidoId));
+  } catch { /* armazenamento indisponível */ }
+};
+
 export default function PedidoConferencia() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -23,13 +46,19 @@ export default function PedidoConferencia() {
     carregarPedido();
   }, [id]);
 
+  // Salva o preenchimento automaticamente em cache a cada alteração,
+  // para não perder o progresso em caso de falha ou atualização da página.
+  useEffect(() => {
+    if (loading || conferencia.length === 0) return;
+    salvarCacheConferencia(id, { numeroNota, conferencia, salvoEm: Date.now() });
+  }, [conferencia, numeroNota, loading, id]);
+
   const carregarPedido = async () => {
     try {
       const response = await api.get(`/api/pedidos/${id}`);
       setPedido(response.data);
       if (response.data.itens) {
-        setConferencia(
-          response.data.itens.map(item => {
+        const base = response.data.itens.map(item => {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
             const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
             return {
@@ -43,8 +72,34 @@ export default function PedidoConferencia() {
               observacaoIncorreto: item.observacaoDevolucao || '',
               foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota')
             };
-          })
-        );
+          });
+
+        // Recupera preenchimento salvo em cache (falha ou atualização da página)
+        const cache = lerCacheConferencia(id);
+        if (cache && Array.isArray(cache.conferencia) && cache.conferencia.length > 0) {
+          if (cache.numeroNota) setNumeroNota(cache.numeroNota);
+          const porId = {};
+          cache.conferencia.forEach(c => { porId[String(c.id)] = c; });
+          const mesclada = base.map(item => {
+            const c = porId[String(item.id)];
+            if (!c || item.totalmenteRecebido) return item;
+            return {
+              ...item,
+              quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
+              valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
+              statusRecebimento: c.statusRecebimento || item.statusRecebimento,
+              conferido: !!c.conferido,
+              produtoRecebido: c.produtoRecebido || '',
+              observacaoIncorreto: c.observacaoIncorreto || '',
+              foiCobrado: !!c.foiCobrado,
+              classificacaoNaoSolicitado: c.classificacaoNaoSolicitado
+            };
+          });
+          const extrasCache = cache.conferencia.filter(c => c.isNaoSolicitado);
+          setConferencia([...mesclada, ...extrasCache]);
+        } else {
+          setConferencia(base);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar pedido para conferência:', error);
@@ -282,6 +337,9 @@ export default function PedidoConferencia() {
           console.error('Erro ao salvar itens não solicitados:', eNS);
         }
       }
+
+      // Conferência gravada: descarta o cache de preenchimento
+      limparCacheConferencia(id);
 
       if (teveProblemas) {
           const detalhes = [];

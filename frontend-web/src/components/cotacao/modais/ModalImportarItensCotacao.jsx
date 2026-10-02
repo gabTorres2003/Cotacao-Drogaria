@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { AlertTriangle, Check, FileDown, Loader2, X } from 'lucide-react';
+import { AlertTriangle, Check, FileDown, Loader2, Search, X } from 'lucide-react';
 import api from '../../../services/api';
 
 const normalizarNome = (nome) => String(nome || '')
@@ -20,6 +20,15 @@ const converterDataParaIso = (dataStr) => {
   return null;
 };
 
+const formatarDataBR = (iso) => {
+  if (!iso) return '';
+  const str = String(iso);
+  if (str.includes('/')) return str.slice(0, 10);
+  const partes = str.slice(0, 10).split('-');
+  if (partes.length === 3) return `${partes[2]}/${partes[1]}/${partes[0]}`;
+  return str;
+};
+
 export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, itensAtuais, onSuccess }) {
   const [cotacoes, setCotacoes] = useState([]);
   const [cotacaoOrigem, setCotacaoOrigem] = useState('');
@@ -28,6 +37,9 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
   const [quantidades, setQuantidades] = useState({});
   const [carregando, setCarregando] = useState(false);
   const [salvando, setSalvando] = useState(false);
+  const [buscaCotacao, setBuscaCotacao] = useState('');
+  const [filtroSetor, setFiltroSetor] = useState('TODOS');
+  const [ordemCotacoes, setOrdemCotacoes] = useState('MAIS_RECENTES');
 
   useEffect(() => {
     if (!isOpen) return;
@@ -35,10 +47,50 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
     setItens([]);
     setSelecionados({});
     setQuantidades({});
+    setBuscaCotacao('');
+    setFiltroSetor('TODOS');
+    setOrdemCotacoes('MAIS_RECENTES');
     api.get('/api/cotacao')
       .then(res => setCotacoes((res.data || []).filter(c => String(c.id) !== String(cotacaoId))))
       .catch(() => setCotacoes([]));
   }, [isOpen, cotacaoId]);
+
+  const setoresDisponiveis = useMemo(() => {
+    const mapa = {};
+    cotacoes.forEach(c => { mapa[String(c.setor || 'AMBOS').toUpperCase()] = true; });
+    return Object.keys(mapa).sort();
+  }, [cotacoes]);
+
+  const cotacoesExibicao = useMemo(() => {
+    const busca = normalizarNome(buscaCotacao);
+    const lista = cotacoes.filter(c => {
+      const setor = String(c.setor || 'AMBOS').toUpperCase();
+      if (filtroSetor !== 'TODOS' && setor !== filtroSetor) return false;
+      if (!busca) return true;
+      const alvo = normalizarNome(`${c.descricao || ''} ${c.origem || ''} ${c.nomeUsuario || ''}`) + String(c.id);
+      return alvo.includes(busca);
+    });
+
+    lista.sort((a, b) => {
+      if (ordemCotacoes === 'NOME') {
+        return String(a.descricao || a.origem || '').localeCompare(String(b.descricao || b.origem || ''), 'pt-BR', { sensitivity: 'base' });
+      }
+      if (ordemCotacoes === 'MAIS_ANTIGAS') {
+        return String(a.dataCriacao || '').localeCompare(String(b.dataCriacao || '')) || a.id - b.id;
+      }
+      if (ordemCotacoes === 'MAIS_RECENTES') {
+        return String(b.dataCriacao || '').localeCompare(String(a.dataCriacao || '')) || b.id - a.id;
+      }
+      return b.id - a.id;
+    });
+
+    // Mantém a cotação já selecionada visível mesmo se os filtros a excluírem
+    if (cotacaoOrigem && !lista.some(c => String(c.id) === String(cotacaoOrigem))) {
+      const sel = cotacoes.find(c => String(c.id) === String(cotacaoOrigem));
+      if (sel) lista.unshift(sel);
+    }
+    return lista;
+  }, [cotacoes, buscaCotacao, filtroSetor, ordemCotacoes, cotacaoOrigem]);
 
   const carregarItens = async (idOrigem) => {
     setCotacaoOrigem(idOrigem);
@@ -180,10 +232,49 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
 
         <div style={{ padding: '20px', overflowY: 'auto' }}>
           <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Cotação de origem</label>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
+            <div style={{ flex: 2, minWidth: '190px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '7px 10px', backgroundColor: 'white' }}>
+              <Search size={15} color="#9ca3af" />
+              <input
+                type="text"
+                placeholder="Buscar por nome, número ou descrição..."
+                value={buscaCotacao}
+                onChange={e => setBuscaCotacao(e.target.value)}
+                style={{ border: 'none', outline: 'none', width: '100%', fontSize: '13px' }}
+              />
+            </div>
+            <select
+              value={filtroSetor}
+              onChange={e => setFiltroSetor(e.target.value)}
+              title="Filtrar por grupo"
+              style={{ flex: 1, minWidth: '130px', padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'white' }}
+            >
+              <option value="TODOS">Todos os grupos</option>
+              {setoresDisponiveis.map(s => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
+            </select>
+            <select
+              value={ordemCotacoes}
+              onChange={e => setOrdemCotacoes(e.target.value)}
+              title="Ordenar cotações"
+              style={{ flex: 1, minWidth: '140px', padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'white' }}
+            >
+              <option value="MAIS_RECENTES">Data (mais recentes)</option>
+              <option value="MAIS_ANTIGAS">Data (mais antigas)</option>
+              <option value="NOME">Nome (A-Z)</option>
+              <option value="NUMERO">Nº da cotação</option>
+            </select>
+          </div>
           <select value={cotacaoOrigem} onChange={e => carregarItens(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '16px' }}>
-            <option value="">-- Selecione uma cotação --</option>
-            {cotacoes.map(cotacao => <option key={cotacao.id} value={cotacao.id}>#{cotacao.id} - {cotacao.descricao || cotacao.origem || 'Sem descrição'}</option>)}
+            <option value="">-- Selecione uma cotação ({cotacoesExibicao.length} de {cotacoes.length}) --</option>
+            {cotacoesExibicao.map(cotacao => (
+              <option key={cotacao.id} value={cotacao.id}>
+                #{cotacao.id} - {cotacao.descricao || cotacao.origem || 'Sem descrição'} ({cotacao.setor || 'AMBOS'}) - {formatarDataBR(cotacao.dataCriacao)}
+              </option>
+            ))}
           </select>
+          {cotacoes.length > 0 && cotacoesExibicao.length === 0 && (
+            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px', marginBottom: '12px' }}>Nenhuma cotação encontrada com os filtros aplicados.</div>
+          )}
 
           {carregando && <div style={{ textAlign: 'center', padding: '25px', color: '#6b7280' }}><Loader2 className="animate-spin" size={24} /></div>}
           {!carregando && itens.length > 0 && (
