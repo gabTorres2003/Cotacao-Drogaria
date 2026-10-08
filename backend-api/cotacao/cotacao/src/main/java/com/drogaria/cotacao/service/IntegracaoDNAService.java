@@ -158,6 +158,74 @@ public class IntegracaoDNAService {
         return sugestoesBrutas.stream().filter(item -> item != null).collect(Collectors.toList());
     }
 
+    /**
+     * Lista de compra da Inteligência: produtos com movimentação na janela informada
+     * e cobertura de estoque abaixo do mínimo (dias), sugerindo reposição até o máximo.
+     */
+    public List<ItemCotacao> buscarItensInteligencia(List<String> gruposSelecionados,
+            int diasEstoqueMinimo, int diasEstoqueMaximo, int diasMediaVendas) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT p.CODIGO, p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
+                "g.NOME AS GRUPO, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA, " +
+                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "FROM A_VENDAS v " +
+                "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
+                "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
+                "WHERE v.DATA > :dataLimite AND v.DATA <= CURRENT_DATE");
+
+        MapSqlParameterSource parametros = new MapSqlParameterSource();
+        parametros.addValue("dataLimite", Date.valueOf(LocalDate.now().minusDays(diasMediaVendas)));
+
+        List<String> gruposUpper = gruposSelecionados.stream()
+                .map(g -> g.toUpperCase().trim())
+                .collect(Collectors.toList());
+        sql.append(" AND UPPER(TRIM(g.NOME)) IN (:gruposSelecionados)");
+        parametros.addValue("gruposSelecionados", gruposUpper);
+
+        sql.append(" GROUP BY p.CODIGO, p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
+                   "g.NOME, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA");
+
+        List<ItemCotacao> itens = dnaNamedJdbcTemplate.query(sql.toString(), parametros, (rs, rowNum) -> {
+            double totalVendido = rs.getDouble("TOTAL_VENDIDO");
+            double estoque = rs.getDouble("QUANTIDADE");
+
+            // Apenas produtos com movimentação no período
+            if (totalVendido <= 0) return null;
+
+            double vmd = totalVendido / diasMediaVendas;
+            if (vmd <= 0) return null;
+
+            // Apenas produtos com cobertura abaixo do mínimo de dias de estoque
+            double cobertura = estoque / vmd;
+            if (cobertura >= diasEstoqueMinimo) return null;
+
+            // Reposição até o nível máximo de dias de estoque
+            int quantidade = (int) Math.ceil((vmd * diasEstoqueMaximo) - estoque);
+            if (quantidade <= 0) return null;
+
+            ItemCotacao item = new ItemCotacao();
+            item.setNomeProduto(rs.getString("DESCRICAO"));
+            item.setCodBarras(rs.getString("CODBARRAS"));
+            item.setUltimoPreco(rs.getDouble("PRECOCUSTO"));
+            item.setQuantidade(quantidade);
+            item.setEstoque(estoque);
+            item.setGrupo(rs.getString("GRUPO"));
+            item.setVendidoNoMes(totalVendido);
+            item.setOrigemItem("INTELIGENCIA_COMPRA");
+
+            Date ultCompra = rs.getDate("DTULTCOMPRA");
+            if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
+            item.setUltCompraQtde(rs.getDouble("QTDEULTCOMPRA"));
+
+            Date ultVenda = rs.getDate("DTULTVENDA");
+            if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
+
+            return item;
+        });
+
+        return itens.stream().filter(item -> item != null).collect(Collectors.toList());
+    }
+
     public Optional<ProdutoDnaDTO> buscarProdutoPorCodigoOuBarras(String query) {
         MapSqlParameterSource params = new MapSqlParameterSource();
         

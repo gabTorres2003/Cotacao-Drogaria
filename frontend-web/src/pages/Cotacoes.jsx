@@ -4,7 +4,8 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import ModalNovaCotacaoManual from '../components/cotacao/modais/ModalNovaCotacaoManual';
-import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus, Tag } from 'lucide-react';
+import ModalGerarListaInteligenca from '../components/cotacao/modais/ModalGerarListaInteligenca';
+import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus, Tag, Brain } from 'lucide-react';
 
 export default function Cotacoes() {
   const navigate = useNavigate()
@@ -25,6 +26,7 @@ export default function Cotacoes() {
 
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false)
   const [isModalManualOpen, setIsModalManualOpen] = useState(false);
+  const [isModalInteligencaOpen, setIsModalInteligencaOpen] = useState(false)
 
   useEffect(() => {
     carregarCotacoes()
@@ -173,6 +175,13 @@ export default function Cotacoes() {
               style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
             >
               <FileText size={20} /> Importar Faltas DNA
+            </button>
+
+            <button 
+              onClick={() => setIsModalInteligencaOpen(true)}
+              style={{ padding: '10px 20px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            >
+              <Brain size={20} /> Gerar Lista Inteligência
             </button>
           </div>
         </header>
@@ -388,6 +397,13 @@ export default function Cotacoes() {
         <UploadModal 
           onClose={() => setIsUploadModalOpen(false)} 
           onSuccess={carregarCotacoes} 
+        />
+      )}
+
+      {isModalInteligencaOpen && (
+        <ModalGerarListaInteligenca
+          onClose={() => setIsModalInteligencaOpen(false)}
+          onSuccess={carregarCotacoes}
         />
       )}
 

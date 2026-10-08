@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.service;
 
 import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
+import com.drogaria.cotacao.dto.request.ListaInteligenciaRequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.repository.CotacaoRepository;
@@ -134,6 +135,74 @@ public class CotacaoService {
         });
         novaCotacao.setItens(itensFinais);
         
+        return cotacaoRepository.save(novaCotacao);
+    }
+
+    /**
+     * Gera nova cotação a partir da lista de compra da Inteligência (consulta ao vivo
+     * no DNA com parâmetros de cobertura de estoque), opcionalmente mesclada com as
+     * Faltas do DNA dos mesmos grupos.
+     */
+    @Transactional
+    public Cotacao criarCotacaoInteligencia(ListaInteligenciaRequestDTO request) {
+        if (request.getGrupos() == null || request.getGrupos().isEmpty()) {
+            throw new RuntimeException("Selecione pelo menos um grupo.");
+        }
+        int diasMinimo = request.getDiasEstoqueMinimo() != null ? request.getDiasEstoqueMinimo() : 7;
+        int diasMaximo = request.getDiasEstoqueMaximo() != null ? request.getDiasEstoqueMaximo() : 30;
+        int diasMedia = request.getDiasMediaVendas() != null ? request.getDiasMediaVendas() : 90;
+        if (diasMinimo < 1) throw new RuntimeException("Dias de estoque mínimo inválidos (mínimo 1).");
+        if (diasMaximo < 1) throw new RuntimeException("Dias de estoque máximo inválidos (mínimo 1).");
+        if (diasMaximo < diasMinimo) throw new RuntimeException("Dias de estoque máximo deve ser maior ou igual ao mínimo.");
+        if (diasMedia < 1) throw new RuntimeException("Dias de referência da média de vendas inválidos (mínimo 1).");
+
+        List<ItemCotacao> itensInteligencia =
+                integracaoDNAService.buscarItensInteligencia(request.getGrupos(), diasMinimo, diasMaximo, diasMedia);
+
+        Map<String, ItemCotacao> mapaItens = new HashMap<>();
+        for (ItemCotacao item : itensInteligencia) {
+            mapaItens.put(item.getNomeProduto().toUpperCase().trim(), item);
+        }
+
+        if (Boolean.TRUE.equals(request.getIncluirFaltas())) {
+            List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
+            if (itensFalta != null) {
+                for (ItemCotacao itemFalta : itensFalta) {
+                    String chave = itemFalta.getNomeProduto().toUpperCase().trim();
+                    ItemCotacao existente = mapaItens.get(chave);
+                    if (existente != null) {
+                        if (itemFalta.getQuantidade() > existente.getQuantidade()) {
+                            existente.setQuantidade(itemFalta.getQuantidade());
+                        }
+                        existente.setOrigemItem("Falta e Inteligência");
+                    } else {
+                        mapaItens.put(chave, itemFalta);
+                    }
+                }
+            }
+        }
+
+        List<ItemCotacao> itensFinais = new ArrayList<>(mapaItens.values());
+        if (itensFinais.isEmpty()) {
+            throw new RuntimeException("Nenhum produto encontrado na Inteligência ou Faltas para os filtros selecionados.");
+        }
+
+        Cotacao novaCotacao = new Cotacao();
+        String nomeGrupos = String.join(", ", request.getGrupos());
+        boolean comFaltas = Boolean.TRUE.equals(request.getIncluirFaltas());
+        String tipoBusca = comFaltas ? "(Inteligência+Faltas) " : "(Inteligência) ";
+        novaCotacao.setDescricao("Cotação " + tipoBusca + nomeGrupos);
+        novaCotacao.setStatus("ABERTA");
+        novaCotacao.setDataCriacao(LocalDateTime.now());
+        novaCotacao.setNomeUsuario(request.getNomeUsuario());
+        novaCotacao.setSetor(request.getSetor() != null ? request.getSetor() : "AMBOS");
+
+        itensFinais.forEach(item -> {
+            item.setCotacao(novaCotacao);
+            item.setNomeOriginal(item.getNomeProduto());
+        });
+        novaCotacao.setItens(itensFinais);
+
         return cotacaoRepository.save(novaCotacao);
     }
 

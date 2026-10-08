@@ -1,6 +1,7 @@
 package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.request.ImportacaoDNARequestDTO;
+import com.drogaria.cotacao.dto.request.ListaInteligenciaRequestDTO;
 import com.drogaria.cotacao.dto.request.CriarCotacaoRequestDTO;
 import com.drogaria.cotacao.dto.request.ItemCriarCotacaoDTO;
 import com.drogaria.cotacao.dto.response.SugestaoPromocaoResponseDTO;
@@ -146,6 +147,17 @@ public class CotacaoController {
         } catch (Exception e) {
             e.printStackTrace();
             return ResponseEntity.badRequest().body("Erro interno na importação: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/gerar-lista-inteligencia")
+    public ResponseEntity<String> gerarListaInteligencia(@RequestBody ListaInteligenciaRequestDTO request) {
+        try {
+            Cotacao cotacao = cotacaoService.criarCotacaoInteligencia(request);
+            return ResponseEntity.ok("Cotação gerada com sucesso! " + cotacao.getItens().size() + " itens importados.");
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("Erro ao gerar lista: " + e.getMessage());
         }
     }
 

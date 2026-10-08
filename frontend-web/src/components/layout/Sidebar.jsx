@@ -14,6 +14,7 @@ import {
   ChevronRight,
   ShieldAlert,
   RotateCcw, 
+  Brain,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -235,6 +236,11 @@ export default function Sidebar() {
           <Link to="/devolucoes" className={isActive('/devolucoes')}>
             <RotateCcw size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Devoluções</span>
+          </Link>
+
+          <Link to="/inteligencia" className={isActive('/inteligencia')}>
+            <Brain size={20} style={{ minWidth: '20px' }} />
+            <span className="hide-on-collapse">Inteligência</span>
           </Link>
 
           <Link to="/auditoria" className={isActive('/auditoria')}>

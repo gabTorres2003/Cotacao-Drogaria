@@ -13,6 +13,7 @@ import PedidoDetalhes from './pages/PedidoDetalhes'
 import PedidoConferencia from './pages/PedidoConferencia'
 import Auditoria from './pages/Auditoria'
 import Devolucoes from './pages/Devolucoes'
+import InteligenciaCompras from './pages/InteligenciaCompras'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
@@ -42,6 +43,7 @@ function App() {
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
         <Route path="/auditoria" element={<RotaPrivada><Auditoria /></RotaPrivada>} />
         <Route path="/devolucoes" element={<RotaPrivada><Devolucoes /></RotaPrivada>} />
+        <Route path="/inteligencia" element={<RotaPrivada><InteligenciaCompras /></RotaPrivada>} />
         
         <Route
           path="/responder-cotacao/:idCotacao"
