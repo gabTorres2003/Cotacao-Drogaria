@@ -71,7 +71,8 @@ public class SugestaoCompraService {
     private final SugestaoCompraItemRepository itemRepo;
     private final HistoricoDecisaoCompraRepository historicoRepo;
     private final CotacaoRepository cotacaoRepo;
-    private final ObjectMapper objectMapper;
+    // Instanciado localmente: o Spring Boot 4 não auto-configura bean do Jackson 2.
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     // ------------------------------------------------------------------
     // ETAPA 5/6 — geração da sugestão + snapshot

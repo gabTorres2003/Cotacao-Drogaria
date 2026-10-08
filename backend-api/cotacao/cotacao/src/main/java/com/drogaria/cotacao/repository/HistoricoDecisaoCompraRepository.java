@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface HistoricoDecisaoCompraRepository extends JpaRepository<HistoricoDecisaoCompra, UUID> {
-    List<HistoricoDecisaoCompra> findBySugestaoItemIdOrderByCreatedDesc(UUID sugestaoItemId);
+    List<HistoricoDecisaoCompra> findBySugestaoItemIdOrderByCreatedAtDesc(UUID sugestaoItemId);
 }
