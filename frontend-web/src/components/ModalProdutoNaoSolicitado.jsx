@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Search, X, Package } from 'lucide-react';
 
-export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }) {
+export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, ocultarValor = false }) {
   const [busca, setBusca] = useState('');
   const [resultadoBusca, setResultadoBusca] = useState(null);
   const [buscando, setBuscando] = useState(false);
@@ -147,7 +147,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }
           </div>
         )}
 
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: ocultarValor ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Quantidade:</label>
             <input
@@ -158,7 +158,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
             />
           </div>
-          <div>
+          {!ocultarValor && <div>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Valor unitário (NF):</label>
             <input
               type="number"
@@ -169,7 +169,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm }
               placeholder="R$ 0,00"
               style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
             />
-          </div>
+          </div>}
         </div>
 
         <div style={{ marginBottom: '20px' }}>

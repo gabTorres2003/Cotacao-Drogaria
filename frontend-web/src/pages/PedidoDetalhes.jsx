@@ -38,6 +38,7 @@ export default function PedidoDetalhes() {
     const [cotacaoDestinoId, setCotacaoDestinoId] = useState('');
 
     const [agora, setAgora] = useState(new Date().getTime());
+    const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
     useEffect(() => {
         const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
         return () => clearInterval(interval);
@@ -428,6 +429,90 @@ export default function PedidoDetalhes() {
 
     // TASK 1: Garantir que o link para a cotação funcione, independente se veio da Cotação Manual ou Via DNA
     const idCotacaoOrigem = pedido.cotacao?.id || pedido.cotacaoId;
+
+    if (isConferente) {
+        const itensOrdenados = [...(pedido.itens || [])].sort((a, b) =>
+            (a.nomeProduto || a.itemCotacao?.nomeProduto || '').localeCompare(
+                b.nomeProduto || b.itemCotacao?.nomeProduto || '',
+                'pt-BR',
+                { sensitivity: 'base' }
+            )
+        );
+
+        const statusItem = (item) => {
+            if (item.statusRecebimento === 'AVARIADO') return 'Avariado';
+            if (item.statusRecebimento === 'INCORRETO') return 'Produto incorreto';
+            if (item.statusRecebimento === 'FALTANTE' || (item.quantidadeReal != null && item.quantidadeReal < item.quantidadePedida)) return 'Faltante';
+            if (item.quantidadeReal != null && item.quantidadeReal >= item.quantidadePedida) return 'Recebido';
+            return 'Pendente';
+        };
+
+        return (
+            <div className="layout pedido-detalhes-conferente">
+                <style>{`
+                  .pedido-detalhes-conferente .main-content {
+                    padding: 16px;
+                    max-width: 900px;
+                    margin: 0 auto;
+                    width: 100%;
+                    box-sizing: border-box;
+                  }
+                  .pedido-detalhes-conferente .produto-linha {
+                    display: grid;
+                    grid-template-columns: 1fr auto auto;
+                    gap: 12px;
+                    align-items: center;
+                    padding: 12px 0;
+                    border-bottom: 1px solid #e2e8f0;
+                  }
+                  @media (max-width: 600px) {
+                    .pedido-detalhes-conferente .main-content { padding: 12px 10px 24px; }
+                    .pedido-detalhes-conferente .produto-linha {
+                      grid-template-columns: 1fr auto;
+                      gap: 8px;
+                    }
+                    .pedido-detalhes-conferente .produto-status {
+                      grid-column: 1 / -1;
+                      justify-self: start;
+                    }
+                  }
+                `}</style>
+                <Sidebar />
+                <main className="main-content">
+                    <header style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', alignItems: 'flex-start', marginBottom: '18px' }}>
+                        <div>
+                            <h1 style={{ fontSize: '22px', margin: '0 0 5px' }}>Produtos do Pedido #{pedido.id}</h1>
+                            <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{empresa}</p>
+                        </div>
+                        <button onClick={() => navigate('/pedidos')} style={{ ...styles.btnVoltar, whiteSpace: 'nowrap' }}>
+                            <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
+                        </button>
+                    </header>
+                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                            <strong style={{ color: '#1e293b' }}>Produtos solicitados</strong>
+                            <span style={styles.statusBadge(pedido.status, getStatusExibicao(pedido))}>{getStatusExibicao(pedido)}</span>
+                        </div>
+                        {itensOrdenados.length === 0 ? (
+                            <p style={{ color: '#64748b' }}>Nenhum produto encontrado.</p>
+                        ) : itensOrdenados.map(item => (
+                            <div className="produto-linha" key={item.id}>
+                                <strong style={{ color: '#1e293b' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto sem nome'}</strong>
+                                <span style={{ color: '#475569', whiteSpace: 'nowrap' }}>Qtd.: {item.quantidadePedida ?? 0}</span>
+                                <span className="produto-status" style={{ background: '#f1f5f9', color: '#334155', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }}>{statusItem(item)}</span>
+                            </div>
+                        ))}
+                    </div>
+                    <button
+                        onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)}
+                        style={{ ...styles.btnConferir, width: '100%', justifyContent: 'center', marginTop: '14px' }}
+                    >
+                        <CheckCircle size={18} style={{ marginRight: '6px' }} /> Abrir conferência item a item
+                    </button>
+                </main>
+            </div>
+        );
+    }
 
     return (
         <div className="layout">

@@ -4,7 +4,7 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
-import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck } from 'lucide-react';
+import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Search } from 'lucide-react';
 
 const CHAVE_CACHE_CONFERENCIA = (pedidoId) => `conferencia_pedido_${pedidoId}`;
 
@@ -37,6 +37,7 @@ export default function PedidoConferencia() {
   const [loading, setLoading] = useState(true);
   const [salvando, setSalvando] = useState(false);
   const [sortConfig, setSortConfig] = useState({ key: 'nomeProduto', direction: 'asc' });
+  const [buscaProduto, setBuscaProduto] = useState('');
   const [numeroNota, setNumeroNota] = useState('');
   const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
@@ -191,7 +192,11 @@ export default function PedidoConferencia() {
       statusRecebimento: c.statusRecebimento,
       isNaoSolicitado: true
     }));
-    let ordenavel = [...itensNormais, ...itensExtras];
+    let ordenavel = [...itensNormais, ...itensExtras].filter(item =>
+      (item.nomeProduto || item.itemCotacao?.nomeProduto || '')
+        .toLowerCase()
+        .includes(buscaProduto.toLowerCase())
+    );
     ordenavel.sort((a, b) => {
       let valA = a[sortConfig.key];
       let valB = b[sortConfig.key];
@@ -206,7 +211,7 @@ export default function PedidoConferencia() {
       return 0;
     });
     return ordenavel;
-  }, [pedido, sortConfig, conferencia]);
+  }, [pedido, sortConfig, conferencia, buscaProduto]);
 
   const itensHabilitados = useMemo(
     () => conferencia.filter(c => !c.totalmenteRecebido),
@@ -597,7 +602,9 @@ export default function PedidoConferencia() {
 
           <div className="conferencia-alerta" style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#b45309', fontWeight: '500' }}>
-              <strong>Atenção:</strong> Digite a quantidade deste volume e o valor unitário exatamente como constam na NF. Caso haja algum problema com o produto (Falta, Avariado), selecione o Status correto ao lado.
+              <strong>Atenção:</strong> {isConferente
+                ? 'Informe somente as quantidades recebidas e selecione a condição encontrada no recebimento.'
+                : 'Digite a quantidade deste volume e o valor unitário exatamente como constam na NF. Caso haja algum problema com o produto (Falta, Avariado), selecione o Status correto ao lado.'}
             </p>
           </div>
 
@@ -623,18 +630,39 @@ export default function PedidoConferencia() {
 
             <div className="conferencia-tabela-wrap" style={{ overflowX: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
-                  <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
-                    {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} item(ns) pendente(s)` : 'Todos os itens conferidos'}
-                  </span>
-                  {itensNaoConferidos.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '6px 9px', background: 'white', flex: '1 1 220px' }}>
+                      <Search size={16} color="#64748b" />
+                      <input
+                        type="text"
+                        value={buscaProduto}
+                        onChange={(e) => setBuscaProduto(e.target.value)}
+                        placeholder="Buscar produto..."
+                        style={{ border: 0, outline: 0, width: '100%', minWidth: 0, fontSize: '14px' }}
+                      />
+                    </div>
                     <button
                       type="button"
-                      onClick={conferirTodos}
-                      style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                      onClick={() => requestSort('nomeProduto')}
+                      style={{ padding: '8px 10px', background: 'white', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '7px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
-                      <Check size={14} /> Conferir Todos
+                      <ArrowUpDown size={14} /> {sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A'}
                     </button>
-                  )}
+                  </div>
+                  <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                      {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} pendente(s)` : 'Todos conferidos'}
+                    </span>
+                    {itensNaoConferidos.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={conferirTodos}
+                        style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                      >
+                        <Check size={14} /> Conferir Todos
+                      </button>
+                    )}
+                  </div>
                 </div>
                 <table className="conferencia-tabela" style={styles.table}>
                   <thead>
@@ -645,7 +673,7 @@ export default function PedidoConferencia() {
                       <th style={{ ...styles.th, width: '100px', textAlign: 'center', backgroundColor: '#f9fafb', color: '#1e293b' }}>Qtd (Pedida)</th>
                       <th style={{ ...styles.th, width: '140px', textAlign: 'center', backgroundColor: '#ecfeff', color: '#155e75' }}>Já Recebido</th>
                       <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Qtd nesta NF</th>
-                      <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>
+                      {!isConferente && <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>}
                       <th style={{ ...styles.th, width: '220px', textAlign: 'center' }}>Condição / Problema</th>
                       <th style={{ ...styles.th, width: '120px', textAlign: 'center' }}>Ação</th>
                     </tr>
@@ -702,7 +730,7 @@ export default function PedidoConferencia() {
                             />
                           </td>
 
-                          <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                          {!isConferente && <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
                             <input
                               type="number"
                               step="0.01"
@@ -713,7 +741,7 @@ export default function PedidoConferencia() {
                               value={confState.valorUnitarioReal ?? ''}
                               onChange={(e) => handleInputChange(item.id, 'valorUnitarioReal', e.target.value)}
                             />
-                          </td>
+                          </td>}
 
                           <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${hasProblema ? '#fca5a5' : '#cbd5e1'}`, borderRadius: '6px', padding: '2px', backgroundColor: hasProblema ? '#fef2f2' : 'white' }}>
@@ -758,7 +786,7 @@ export default function PedidoConferencia() {
                         </tr>
                         {confState.statusRecebimento === 'INCORRETO' && !totalmenteRecebido && (
                           <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
-                            <td colSpan={7} style={{ padding: '8px 14px' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <div style={{ flex: '1 1 200px' }}>
                                   <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Produto recebido no lugar:</label>
@@ -835,6 +863,7 @@ export default function PedidoConferencia() {
               isOpen={showProdutoNaoSolicitadoModal}
               onClose={() => setShowProdutoNaoSolicitadoModal(false)}
               onConfirm={adicionarProdutoNaoSolicitado}
+              ocultarValor={isConferente}
             />
 
             <div className="conferencia-botoes" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>

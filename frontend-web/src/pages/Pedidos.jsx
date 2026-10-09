@@ -322,6 +322,103 @@ export default function Pedidos() {
     }
   }
 
+  if (isConferente) {
+    return (
+      <div className="layout pedidos-conferente-mobile">
+        <style>{`
+          .pedidos-conferente-mobile .main-content {
+            padding: 16px;
+            max-width: 900px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          .conferente-pedido-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 14px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+          }
+          .conferente-pedido-card button {
+            min-height: 42px;
+            width: 100%;
+          }
+          @media (max-width: 768px) {
+            .pedidos-conferente-mobile .main-content {
+              padding: 12px 10px 24px;
+            }
+            .pedidos-conferente-mobile h1 {
+              font-size: 21px !important;
+            }
+            .conferente-pedido-card {
+              border-radius: 10px;
+              padding: 12px;
+            }
+          }
+        `}</style>
+        <Sidebar />
+        <main className="main-content">
+          <header style={{ marginBottom: '16px' }}>
+            <h1 style={{ fontSize: '24px', margin: '0 0 5px' }}>Conferência de Pedidos</h1>
+            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>
+              Selecione um pedido para conferir os produtos recebidos.
+            </p>
+          </header>
+
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Search size={18} color="#64748b" />
+            <input
+              type="text"
+              placeholder="Buscar por produto, empresa, NF ou pedido..."
+              value={busca}
+              onChange={(e) => setBusca(e.target.value)}
+              style={{ border: 0, outline: 0, width: '100%', fontSize: '16px' }}
+            />
+          </div>
+
+          {loading ? (
+            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+              <Loader2 size={28} className="animate-spin" />
+              <p>Carregando pedidos...</p>
+            </div>
+          ) : pedidosProcessados.length === 0 ? (
+            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '28px 16px', textAlign: 'center', color: '#64748b' }}>
+              Nenhum pedido disponível para conferência.
+            </div>
+          ) : (
+            pedidosProcessados.map((p) => {
+              const empresa = p.fornecedor?.empresa || p.fornecedor?.nome || 'Empresa não informada';
+              const statusInfo = getStatusFormatado(p);
+              return (
+                <article className="conferente-pedido-card" key={p.id}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start', marginBottom: '8px' }}>
+                    <div>
+                      <strong style={{ color: '#1e293b', fontSize: '16px' }}>Pedido #{p.id}</strong>
+                      <div style={{ color: '#475569', fontSize: '14px', marginTop: '4px' }}>{empresa}</div>
+                    </div>
+                    <span style={statusInfo.style}>{statusInfo.texto}</span>
+                  </div>
+                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>
+                    <span>{p.itens?.length || 0} produto(s)</span>
+                    <span>NF: {p.numeroNota || 'Não informada'}</span>
+                  </div>
+                  <button
+                    onClick={() => navigate(`/pedidos/${p.id}`)}
+                    style={{ background: '#2563eb', border: 0, borderRadius: '8px', color: 'white', fontWeight: '700', cursor: 'pointer' }}
+                  >
+                    Ver produtos e conferir
+                  </button>
+                </article>
+              );
+            })
+          )}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className={`layout pedidos-page ${isConferente ? 'pedidos-conferente' : ''}`}>
       <style>{`
