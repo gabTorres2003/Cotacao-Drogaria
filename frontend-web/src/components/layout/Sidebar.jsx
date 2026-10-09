@@ -29,6 +29,7 @@ export default function Sidebar() {
     localStorage.getItem('sidebarCollapsed') === 'true',
   )
   const [isMobileOpen, setIsMobileOpen] = useState(false)
+  const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE'
 
   useEffect(() => {
     if (localStorage.getItem('primeiroAcesso') === 'true') {
@@ -208,50 +209,50 @@ export default function Sidebar() {
           style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}
           onClick={() => setIsMobileOpen(false)}
         >
-          <Link to="/cotacoes" className={isActive('/cotacoes')}>
+          {!isConferente && <Link to="/cotacoes" className={isActive('/cotacoes')}>
             <LayoutDashboard size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Cotação</span>
-          </Link>
+          </Link>}
 
           <Link to="/pedidos" className={isActive('/pedidos')}>
             <ShoppingCart size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Pedidos</span>
           </Link>
 
-          <Link to="/fornecedores" className={isActive('/fornecedores')}>
+          {!isConferente && <Link to="/fornecedores" className={isActive('/fornecedores')}>
             <Users size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Fornecedores</span>
-          </Link>
+          </Link>}
 
-          <Link to="/usuarios" className={isActive('/usuarios')}>
+          {!isConferente && <Link to="/usuarios" className={isActive('/usuarios')}>
             <UserCog size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Usuários</span>
-          </Link>
+          </Link>}
 
-          <Link to="/relatorios" className={isActive('/relatorios')}>
+          {!isConferente && <Link to="/relatorios" className={isActive('/relatorios')}>
             <FileSpreadsheet size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Relatórios</span>
-          </Link>
+          </Link>}
 
-          <Link to="/devolucoes" className={isActive('/devolucoes')}>
+          {!isConferente && <Link to="/devolucoes" className={isActive('/devolucoes')}>
             <RotateCcw size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Devoluções</span>
-          </Link>
+          </Link>}
 
-          <Link to="/inteligencia" className={isActive('/inteligencia')}>
+          {!isConferente && <Link to="/inteligencia" className={isActive('/inteligencia')}>
             <Brain size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Inteligência</span>
-          </Link>
+          </Link>}
 
-          <Link to="/auditoria" className={isActive('/auditoria')}>
+          {!isConferente && <Link to="/auditoria" className={isActive('/auditoria')}>
             <ShieldAlert size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Auditoria</span>
-          </Link>
+          </Link>}
 
-          <div className="menu-item" style={{ cursor: 'pointer' }}>
+          {!isConferente && <div className="menu-item" style={{ cursor: 'pointer' }}>
             <Settings size={20} style={{ minWidth: '20px' }} />
             <span className="hide-on-collapse">Configurações</span>
-          </div>
+          </div>}
         </nav>
 
         <div

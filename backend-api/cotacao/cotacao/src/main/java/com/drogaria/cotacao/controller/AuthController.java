@@ -46,12 +46,15 @@ public class AuthController {
         
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        String perfil = isAdmin ? "ADMIN" : authentication.getAuthorities().stream()
+                .findFirst().map(a -> a.getAuthority().replace("ROLE_", "")).orElse("FORNECEDOR");
+        boolean isUsuarioInterno = isAdmin || "CONFERENTE".equals(perfil);
 
         boolean primeiroAcesso = false;
         String nome = "";
         Long idUsuario = null; 
 
-        if (isAdmin) {
+        if (isUsuarioInterno) {
             Usuario u = usuarioRepository.findByUsername(authentication.getName()).orElseThrow();
             primeiroAcesso = u.isPrimeiroAcesso();
             nome = u.getNome();
@@ -65,7 +68,7 @@ public class AuthController {
         
         logAuditoriaService.registrarLog(
             nome, 
-            isAdmin ? "INTERNO" : "FORNECEDOR", 
+            isUsuarioInterno ? "INTERNO" : "FORNECEDOR",
             TipoAcao.LOGIN, 
             "Sistema", 
             idUsuario, 
@@ -74,7 +77,7 @@ public class AuthController {
 
         Map<String, Object> response = new HashMap<>();
         response.put("token", token);
-        response.put("tipoUsuario", isAdmin ? "ADMIN" : "FORNECEDOR");
+        response.put("tipoUsuario", perfil);
         response.put("primeiroAcesso", primeiroAcesso);
         response.put("nome", nome);
         response.put("id", idUsuario);

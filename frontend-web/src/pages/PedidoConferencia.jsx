@@ -41,6 +41,7 @@ export default function PedidoConferencia() {
   const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
   const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
+  const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
 
   useEffect(() => {
     carregarPedido();
@@ -136,7 +137,7 @@ export default function PedidoConferencia() {
       if (item.id === idItem) {
         if (!item.conferido) {
           const isFaltante = item.statusRecebimento === 'FALTANTE';
-          if (!isFaltante) {
+          if (!isFaltante && !isConferente) {
             const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
             if (qtdNova <= 0 || item.valorUnitarioReal === '') {
               alert('Preencha a quantidade e o valor unitário da nota antes de confirmar este item.');
@@ -226,7 +227,7 @@ export default function PedidoConferencia() {
         return { ...item, conferido: true };
       }
       const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
-      if (qtdNova > 0 && item.valorUnitarioReal !== '' && item.valorUnitarioReal !== undefined) {
+      if (qtdNova > 0 && (isConferente || (item.valorUnitarioReal !== '' && item.valorUnitarioReal !== undefined))) {
         confirmados++;
         return { ...item, conferido: true };
       }
@@ -316,6 +317,45 @@ export default function PedidoConferencia() {
                         : 'Divergência marcada na conferência cega')))
             : ''
         };
+
+        const salvarConferenciaParcial = async () => {
+          if (!numeroNota.trim()) {
+            alert('Por favor, preencha o Número da NF antes de salvar.');
+            return;
+          }
+          setSalvando(true);
+          try {
+            await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
+              numeroNota: numeroNota.trim(),
+              itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item => ({
+                id: item.id,
+                quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
+                  ? 0 : Number(item.quantidadeRecebidaAgora),
+                statusRecebimento: item.statusRecebimento,
+                observacaoDevolucao: item.statusRecebimento !== 'OK'
+                  ? (item.produtoRecebido || item.observacaoIncorreto || item.statusRecebimento)
+                  : ''
+              }))
+            });
+
+            const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
+            if (itensNaoSolicitados.length > 0) {
+              await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, itensNaoSolicitados.map(c => ({
+                nomeProduto: c.nomeProduto,
+                quantidade: c.quantidadeRecebidaAgora || 0,
+                valorUnitarioReal: 0,
+                observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
+              })));
+            }
+            limparCacheConferencia(id);
+            alert('Conferência física salva. O ADM deverá continuar a conferência para finalizar.');
+            navigate(`/pedidos/${id}`);
+          } catch (error) {
+            alert(error.response?.data?.message || 'Não foi possível salvar a conferência física.');
+          } finally {
+            setSalvando(false);
+          }
+        };
       })
     };
 
@@ -370,6 +410,10 @@ export default function PedidoConferencia() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isConferente) {
+      salvarConferenciaParcial();
+      return;
+    }
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
       return;
@@ -404,10 +448,121 @@ export default function PedidoConferencia() {
   const nfAnterior = pedido.numeroNota;
 
   return (
-    <div className="layout">
+    <div className="layout conferencia-page">
+      <style>{`
+        .conferencia-page .conferencia-header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          gap: 16px;
+          margin-bottom: 30px;
+        }
+        .conferencia-page .conferencia-tabela-wrap {
+          overflow-x: auto;
+          -webkit-overflow-scrolling: touch;
+        }
+        @media (max-width: 768px) {
+          .conferencia-page .main-content {
+            padding: 14px 10px;
+          }
+          .conferencia-page .conferencia-header {
+            align-items: stretch;
+            flex-direction: column;
+            gap: 12px;
+            margin-bottom: 18px;
+          }
+          .conferencia-page .conferencia-header h1 {
+            font-size: 20px !important;
+            line-height: 1.25;
+          }
+          .conferencia-page .conferencia-header p {
+            font-size: 13px;
+          }
+          .conferencia-page .conferencia-header button {
+            width: 100%;
+            justify-content: center;
+          }
+          .conferencia-page .conferencia-card {
+            padding: 12px !important;
+            border-radius: 8px !important;
+          }
+          .conferencia-page .conferencia-alerta {
+            padding: 10px 12px !important;
+            font-size: 12px;
+          }
+          .conferencia-page .conferencia-tabela-wrap {
+            overflow: visible;
+          }
+          .conferencia-page .conferencia-tabela {
+            display: block;
+            min-width: 0 !important;
+          }
+          .conferencia-page .conferencia-tabela thead {
+            display: none;
+          }
+          .conferencia-page .conferencia-tabela tbody,
+          .conferencia-page .conferencia-tabela tr,
+          .conferencia-page .conferencia-tabela td {
+            display: block;
+            width: auto !important;
+          }
+          .conferencia-page .conferencia-tabela tr {
+            background: #fff;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            padding: 8px;
+          }
+          .conferencia-page .conferencia-tabela td {
+            display: grid;
+            grid-template-columns: minmax(105px, 38%) 1fr;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 4px !important;
+            border-bottom: 1px solid #f1f5f9;
+            text-align: left !important;
+          }
+          .conferencia-page .conferencia-tabela td:last-child {
+            border-bottom: 0;
+          }
+          .conferencia-page .conferencia-tabela td::before {
+            content: attr(data-label);
+            color: #64748b;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+          }
+          .conferencia-page .conferencia-tabela td:first-child {
+            display: block;
+          }
+          .conferencia-page .conferencia-tabela td:first-child::before {
+            display: none;
+          }
+          .conferencia-page .conferencia-tabela input,
+          .conferencia-page .conferencia-tabela select {
+            min-height: 40px;
+            font-size: 16px !important;
+          }
+          .conferencia-page .conferencia-tabela td:last-child {
+            display: flex;
+            justify-content: flex-end;
+          }
+          .conferencia-page .conferencia-tabela td:last-child::before {
+            display: none;
+          }
+          .conferencia-page .conferencia-botoes {
+            flex-direction: column-reverse;
+            align-items: stretch !important;
+          }
+          .conferencia-page .conferencia-botoes button {
+            width: 100%;
+            justify-content: center;
+          }
+        }
+      `}</style>
       <Sidebar />
       <main className="main-content">
-        <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
+        <header className="conferencia-header">
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Conferência de Entrega (Cega)</h1>
             <p style={{ color: '#6b7280' }}>Pedido #{pedido.id} - {fornecedorNome}</p>
@@ -421,7 +576,14 @@ export default function PedidoConferencia() {
           </button>
         </header>
 
-        <div style={styles.card}>
+        {pedido.conferenciaIniciadaPor && (
+          <div style={{ backgroundColor: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', padding: '14px 18px', borderRadius: '8px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+            <strong>Iniciada por {pedido.conferenciaIniciadaPor}</strong>
+            {!isConferente && <span style={{ fontSize: '13px' }}>Continuar conferência da nota</span>}
+          </div>
+        )}
+
+        <div className="conferencia-card" style={styles.card}>
           {isEntregaParcial && (
             <div style={{ backgroundColor: '#fff7ed', borderLeft: '4px solid #f97316', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
               <Truck size={20} color="#c2410c" />
@@ -433,7 +595,7 @@ export default function PedidoConferencia() {
             </div>
           )}
 
-          <div style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+          <div className="conferencia-alerta" style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
             <p style={{ margin: 0, fontSize: '14px', color: '#b45309', fontWeight: '500' }}>
               <strong>Atenção:</strong> Digite a quantidade deste volume e o valor unitário exatamente como constam na NF. Caso haja algum problema com o produto (Falta, Avariado), selecione o Status correto ao lado.
             </p>
@@ -459,7 +621,7 @@ export default function PedidoConferencia() {
               </div>
             </div>
 
-            <div style={{ overflowX: 'auto' }}>
+            <div className="conferencia-tabela-wrap" style={{ overflowX: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
                   <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500' }}>
                     {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} item(ns) pendente(s)` : 'Todos os itens conferidos'}
@@ -474,7 +636,7 @@ export default function PedidoConferencia() {
                     </button>
                   )}
                 </div>
-                <table style={styles.table}>
+                <table className="conferencia-tabela" style={styles.table}>
                   <thead>
                     <tr>
                       <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
@@ -499,7 +661,7 @@ export default function PedidoConferencia() {
                       return (
                         <Fragment key={item.id}>
                         <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
-                          <td style={styles.td}>
+                          <td data-label="Produto" style={styles.td}>
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
                               {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
                             </strong>
@@ -520,15 +682,15 @@ export default function PedidoConferencia() {
                             )}
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#475569', fontWeight: '600' }}>
+                          <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#475569', fontWeight: '600' }}>
                             {item.quantidadePedida} un
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', backgroundColor: '#ecfeff', color: '#155e75', fontWeight: 'bold' }}>
+                          <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', backgroundColor: '#ecfeff', color: '#155e75', fontWeight: 'bold' }}>
                             {qtdJaRecebida > 0 ? `${qtdJaRecebida} de ${item.quantidadePedida}` : '-'}
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                          <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
                             <input
                               type="number"
                               min="0"
@@ -540,12 +702,12 @@ export default function PedidoConferencia() {
                             />
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                          <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
                             <input
                               type="number"
                               step="0.01"
                               min="0"
-                              disabled={totalmenteRecebido || isConferido}
+                              disabled={isConferente || totalmenteRecebido || isConferido}
                               placeholder="0,00"
                               style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#cbd5e1' }}
                               value={confState.valorUnitarioReal ?? ''}
@@ -553,7 +715,7 @@ export default function PedidoConferencia() {
                             />
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
+                          <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${hasProblema ? '#fca5a5' : '#cbd5e1'}`, borderRadius: '6px', padding: '2px', backgroundColor: hasProblema ? '#fef2f2' : 'white' }}>
                                 {hasProblema && <AlertTriangle size={16} color="#ef4444" style={{ marginLeft: '6px' }} />}
                                 <select
@@ -570,7 +732,7 @@ export default function PedidoConferencia() {
                             </div>
                           </td>
 
-                          <td style={{ ...styles.td, textAlign: 'center' }}>
+                          <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
                             {totalmenteRecebido ? (
                               <span style={{ padding: '6px 10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <Check size={14} /> OK
@@ -675,7 +837,7 @@ export default function PedidoConferencia() {
               onConfirm={adicionarProdutoNaoSolicitado}
             />
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
+            <div className="conferencia-botoes" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '13px', color: '#64748b' }}>
                 {itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.
               </div>
@@ -694,7 +856,7 @@ export default function PedidoConferencia() {
                   disabled={salvando}
                 >
                   <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  {salvando ? 'Processando...' : 'Finalizar e Gravar Conferência'}
+                  {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência física' : 'Finalizar e Gravar Conferência')}
                 </button>
               </div>
             </div>

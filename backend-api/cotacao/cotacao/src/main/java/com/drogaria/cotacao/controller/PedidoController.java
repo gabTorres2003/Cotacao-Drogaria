@@ -16,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 
 import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
@@ -39,6 +40,11 @@ public class PedidoController {
                 return URLDecoder.decode(nome, StandardCharsets.UTF_8.name());
             } catch (Exception e) {
                 return nome;
+            }
+
+            private boolean isAdmin(Authentication authentication) {
+                return authentication != null && authentication.getAuthorities().stream()
+                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
             }
         }
         return "Sistema";
@@ -160,8 +166,14 @@ public class PedidoController {
     @PutMapping("/{id}/receber")
     public ResponseEntity<Pedido> processarRecebimento(
             @PathVariable Long id,
-            @RequestBody ReceberPedidoRequestDTO requestDTO) {
+            @RequestBody ReceberPedidoRequestDTO requestDTO,
+            Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
+        pedidoAtualizado.setConferenciaFinalizadaPor(getUsuarioLogado());
+        pedidoAtualizado = pedidoService.salvarPedido(pedidoAtualizado);
 
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
@@ -171,11 +183,34 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoAtualizado);
     }
 
+    @PatchMapping("/{id}/conferencia/parcial")
+    public ResponseEntity<?> salvarConferenciaParcial(
+            @PathVariable Long id,
+            @RequestBody ReceberPedidoRequestDTO requestDTO,
+            Authentication authentication) {
+        boolean permitido = authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_CONFERENTE".equals(a.getAuthority()));
+        if (!permitido) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        try {
+            return ResponseEntity.ok(pedidoService.salvarConferenciaParcial(
+                    id, requestDTO, getUsuarioLogado(), authentication.getName()));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
+    }
+
     @PostMapping("/{id}/itens-nao-solicitados")
     public ResponseEntity<Pedido> adicionarItensNaoSolicitados(
             @PathVariable Long id,
-            @RequestBody List<ItemNaoSolicitadoDTO> itens) {
-        Pedido pedidoAtualizado = pedidoService.adicionarItensNaoSolicitados(id, itens);
+            @RequestBody List<ItemNaoSolicitadoDTO> itens,
+            Authentication authentication) {
+        if (!isAdmin(authentication) && (authentication == null ||
+                authentication.getAuthorities().stream().noneMatch(a -> "ROLE_CONFERENTE".equals(a.getAuthority())))) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        boolean conferente = authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_CONFERENTE".equals(a.getAuthority()));
+        Pedido pedidoAtualizado = pedidoService.adicionarItensNaoSolicitados(id, itens, conferente);
 
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,

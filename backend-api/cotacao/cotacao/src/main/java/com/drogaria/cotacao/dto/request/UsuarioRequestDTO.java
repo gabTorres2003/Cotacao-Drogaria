@@ -15,4 +15,6 @@ public class UsuarioRequestDTO {
     @NotBlank
     @Size(min = 4, max = 6, message = "O PIN deve ter entre 4 e 6 dígitos")
     private String pin;
+
+    private String perfil;
 }

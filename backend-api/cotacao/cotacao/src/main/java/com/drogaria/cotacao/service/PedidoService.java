@@ -197,6 +197,61 @@ public class PedidoService {
         return pedidoSalvo;
     }
 
+    @Transactional
+    public Pedido salvarConferenciaParcial(Long pedidoId, ReceberPedidoRequestDTO dto,
+                                            String nomeConferente, String username) {
+        Pedido pedido = buscarPorId(pedidoId);
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA
+                && pedido.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR
+                && pedido.getStatus() != StatusPedido.CONFERENCIA_INICIADA) {
+            throw new RuntimeException("Este pedido não está disponível para conferência física.");
+        }
+
+        if (dto.getNumeroNota() != null && !dto.getNumeroNota().trim().isEmpty()) {
+            pedido.setNumeroNota(dto.getNumeroNota().trim());
+        }
+        if (pedido.getConferenciaIniciadaPor() == null) {
+            pedido.setConferenciaIniciadaPor(nomeConferente);
+            pedido.setConferenciaIniciadaUsername(username);
+            pedido.setDataInicioConferencia(LocalDateTime.now());
+        }
+
+        if (dto.getItens() != null) {
+            for (ItemRecebidoDTO itemDTO : dto.getItens()) {
+                if (itemDTO.getId() == null) continue;
+                ItemPedido item = itemPedidoRepository.findById(itemDTO.getId())
+                        .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
+                if (!item.getPedido().getId().equals(pedidoId)) {
+                    throw new RuntimeException("Item não pertence ao pedido informado.");
+                }
+                int atual = item.getQuantidadeReal() == null ? 0 : item.getQuantidadeReal();
+                int incremento = itemDTO.getQuantidadeRecebidaAgora() == null
+                        ? 0 : itemDTO.getQuantidadeRecebidaAgora();
+                item.setQuantidadeReal(atual + incremento);
+                item.setStatusRecebimento(itemDTO.getStatusRecebimento());
+                item.setObservacaoDevolucao(itemDTO.getObservacaoDevolucao());
+                itemPedidoRepository.save(item);
+            }
+        }
+        pedido.setStatus(StatusPedido.CONFERENCIA_INICIADA);
+        return pedidoRepository.save(pedido);
+    }
+
+    public boolean ehConferente(String perfil) {
+        return "CONFERENTE".equalsIgnoreCase(perfil);
+    }
+
+    public void exigirAdministrador(org.springframework.security.core.Authentication authentication) {
+        if (authentication == null || authentication.getAuthorities().stream()
+                .noneMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()))) {
+            throw new org.springframework.security.access.AccessDeniedException("Apenas o ADM pode finalizar a conferência.");
+        }
+    }
+
+    public void registrarFinalizador(Pedido pedido, String nome) {
+        pedido.setConferenciaFinalizadaPor(nome);
+    }
+
     /**
      * Devolve um item não recebido para a cotação de origem.
      * Reativa o ItemCotacao (mesmo que a cotação esteja encerrada), libera o vínculo com
@@ -246,6 +301,11 @@ public class PedidoService {
 
     @Transactional
     public Pedido adicionarItensNaoSolicitados(Long pedidoId, List<ItemNaoSolicitadoDTO> itens) {
+        return adicionarItensNaoSolicitados(pedidoId, itens, false);
+    }
+
+    @Transactional
+    public Pedido adicionarItensNaoSolicitados(Long pedidoId, List<ItemNaoSolicitadoDTO> itens, boolean conferente) {
         Pedido pedido = buscarPorId(pedidoId);
 
         for (ItemNaoSolicitadoDTO dto : itens) {
@@ -255,7 +315,8 @@ public class PedidoService {
             novoItem.setQuantidadePedida(0);
             novoItem.setValorUnitarioPedido(0.0);
             novoItem.setQuantidadeReal(dto.getQuantidade() != null ? dto.getQuantidade() : 0);
-            novoItem.setValorUnitarioReal(dto.getValorUnitarioReal() != null ? dto.getValorUnitarioReal() : 0.0);
+            novoItem.setValorUnitarioReal(conferente ? 0.0
+                    : (dto.getValorUnitarioReal() != null ? dto.getValorUnitarioReal() : 0.0));
             novoItem.setStatusRecebimento(StatusItemRecebimento.OK);
             novoItem.setObservacaoDevolucao(dto.getObservacaoDevolucao() != null ? dto.getObservacaoDevolucao() : "Produto Não Solicitado");
             novoItem.setCondicaoAplicada(false);

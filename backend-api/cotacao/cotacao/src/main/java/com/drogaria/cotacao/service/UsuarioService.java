@@ -26,6 +26,9 @@ public class UsuarioService {
         usuario.setNome(dto.getNome());
         usuario.setPin(dto.getPin()); 
         usuario.setAtivo(true);
+        if (dto.getPerfil() != null) {
+            usuario.setPerfil(normalizarPerfil(dto.getPerfil()));
+        }
         
         return toResponseDTO(repository.save(usuario));
     }
@@ -36,6 +39,7 @@ public class UsuarioService {
 
         usuario.setUsername(dto.getUsername());
         usuario.setNome(dto.getNome());
+        usuario.setPerfil(normalizarPerfil(dto.getPerfil()));
         
         if (dto.getPin() != null && !dto.getPin().isBlank()) {
             usuario.setPin(dto.getPin());
@@ -58,7 +62,12 @@ public class UsuarioService {
         dto.setUsername(usuario.getUsername());
         dto.setNome(usuario.getNome());
         dto.setAtivo(usuario.isAtivo());
+        dto.setPerfil(normalizarPerfil(usuario.getPerfil()));
         return dto;
+    }
+
+    private String normalizarPerfil(String perfil) {
+        return "CONFERENTE".equalsIgnoreCase(perfil) ? "CONFERENTE" : "ADMIN";
     }
 
     public void alterarPin(String username, String novoPin) {

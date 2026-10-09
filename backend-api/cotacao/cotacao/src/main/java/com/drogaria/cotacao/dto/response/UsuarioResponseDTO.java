@@ -8,4 +8,5 @@ public class UsuarioResponseDTO {
     private String username;
     private String nome;
     private boolean ativo;
+    private String perfil;
 }

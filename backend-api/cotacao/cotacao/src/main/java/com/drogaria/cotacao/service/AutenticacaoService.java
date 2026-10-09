@@ -23,10 +23,11 @@ public class AutenticacaoService implements UserDetailsService {
         var usuarioOpt = usuarioRepository.findByUsername(username);
         if (usuarioOpt.isPresent()) {
             var u = usuarioOpt.get();
+            String perfil = u.getPerfil() == null || u.getPerfil().isBlank() ? "ADMIN" : u.getPerfil();
             return User.builder()
                     .username(u.getUsername())
                     .password(u.getPin())
-                    .authorities("ROLE_ADMIN") 
+                    .authorities("ROLE_" + perfil)
                     .disabled(!u.isAtivo())
                     .build();
         }

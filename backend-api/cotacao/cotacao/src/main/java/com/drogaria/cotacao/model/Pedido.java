@@ -52,6 +52,18 @@ public class Pedido {
     @Column(name = "motivo_cancelamento")
     private String motivoCancelamento;
 
+    @Column(name = "conferencia_iniciada_por")
+    private String conferenciaIniciadaPor;
+
+    @Column(name = "conferencia_iniciada_username")
+    private String conferenciaIniciadaUsername;
+
+    @Column(name = "data_inicio_conferencia")
+    private LocalDateTime dataInicioConferencia;
+
+    @Column(name = "conferencia_finalizada_por")
+    private String conferenciaFinalizadaPor;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;

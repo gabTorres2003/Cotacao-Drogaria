@@ -8,7 +8,7 @@ export default function Usuarios() {
   const [loading, setLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingUser, setEditingUser] = useState(null);
-  const [formData, setFormData] = useState({ nome: '', username: '', pin: '' });
+  const [formData, setFormData] = useState({ nome: '', username: '', pin: '', perfil: 'ADMIN' });
   const [erroMsg, setErroMsg] = useState('');
 
   useEffect(() => {
@@ -30,10 +30,10 @@ export default function Usuarios() {
     setErroMsg('');
     if (user) {
       setEditingUser(user);
-      setFormData({ nome: user.nome, username: user.username, pin: '' });
+      setFormData({ nome: user.nome, username: user.username, pin: '', perfil: user.perfil || 'ADMIN' });
     } else {
       setEditingUser(null);
-      setFormData({ nome: '', username: '', pin: '' });
+      setFormData({ nome: '', username: '', pin: '', perfil: 'ADMIN' });
     }
     setIsModalOpen(true);
   };
@@ -214,6 +214,18 @@ export default function Usuarios() {
                     style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }}
                     placeholder="Ex: gabriel"
                   />
+                </div>
+
+                <div style={{ marginBottom: '24px' }}>
+                  <label style={{ display: 'block', fontSize: '14px', fontWeight: '500', color: '#334155', marginBottom: '8px' }}>Perfil</label>
+                  <select
+                    value={formData.perfil}
+                    onChange={e => setFormData({ ...formData, perfil: e.target.value })}
+                    style={{ width: '100%', padding: '10px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box' }}
+                  >
+                    <option value="ADMIN">Administrador</option>
+                    <option value="CONFERENTE">Conferente</option>
+                  </select>
                 </div>
 
                 <div style={{ marginBottom: '24px' }}>

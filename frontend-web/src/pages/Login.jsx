@@ -41,7 +41,7 @@ export default function Login() {
 
       if (from) {
         navigate(from)
-      } else if (tipoUsuario === 'ADMIN') {
+      } else if (tipoUsuario === 'ADMIN' || tipoUsuario === 'CONFERENTE') {
         navigate('/cotacoes')
       } else {
         navigate('/portal-fornecedor')

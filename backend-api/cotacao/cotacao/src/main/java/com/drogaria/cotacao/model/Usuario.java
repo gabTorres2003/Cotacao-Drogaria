@@ -25,4 +25,7 @@ public class Usuario {
 
     @Column(name = "primeiro_acesso")
     private boolean primeiroAcesso = true;
+
+    @Column(name = "perfil")
+    private String perfil = "ADMIN";
 }

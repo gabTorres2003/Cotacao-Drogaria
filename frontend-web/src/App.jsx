@@ -23,6 +23,11 @@ const RotaPrivada = ({ children }) => {
   return isLogado ? children : <Navigate to="/" state={{ from: location.pathname }} replace />
 }
 
+const RotaPerfil = ({ children, permitidos }) => {
+  const perfil = localStorage.getItem('tipoUsuario')
+  return permitidos.includes(perfil) ? children : <Navigate to="/pedidos" replace />
+}
+
 function App() {
   return (
     <BrowserRouter>
@@ -30,20 +35,20 @@ function App() {
       <Routes>
         <Route path="/" element={<Login />} />
         
-        <Route path="/usuarios" element={<RotaPrivada><Usuarios /></RotaPrivada>} />
-        <Route path="/cotacoes" element={<RotaPrivada><Cotacoes /></RotaPrivada>} />
-        <Route path="/fornecedores" element={<RotaPrivada><Fornecedores /></RotaPrivada>} />
-        <Route path="/cotacao/:id" element={<RotaPrivada><CotacaoDetalhes /></RotaPrivada>} />
+        <Route path="/usuarios" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Usuarios /></RotaPerfil></RotaPrivada>} />
+        <Route path="/cotacoes" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Cotacoes /></RotaPerfil></RotaPrivada>} />
+        <Route path="/fornecedores" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Fornecedores /></RotaPerfil></RotaPrivada>} />
+        <Route path="/cotacao/:id" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><CotacaoDetalhes /></RotaPerfil></RotaPrivada>} />
         <Route path="/pedidos" element={<RotaPrivada><Pedidos /></RotaPrivada>} />
         <Route path="/pedidos/:id" element={<RotaPrivada><PedidoDetalhes /></RotaPrivada>} />
-        <Route path="/pedidos/:id/conferir" element={<RotaPrivada><PedidoConferencia /></RotaPrivada>} />
+        <Route path="/pedidos/:id/conferir" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN', 'CONFERENTE']}><PedidoConferencia /></RotaPerfil></RotaPrivada>} />
     
-        <Route path="/relatorios" element={<RotaPrivada><DashboardEstrategico /></RotaPrivada>} />
+        <Route path="/relatorios" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><DashboardEstrategico /></RotaPerfil></RotaPrivada>} />
         
         <Route path="/portal-fornecedor" element={<RotaPrivada><FornecedorDashboard /></RotaPrivada>} />
-        <Route path="/auditoria" element={<RotaPrivada><Auditoria /></RotaPrivada>} />
-        <Route path="/devolucoes" element={<RotaPrivada><Devolucoes /></RotaPrivada>} />
-        <Route path="/inteligencia" element={<RotaPrivada><InteligenciaCompras /></RotaPrivada>} />
+        <Route path="/auditoria" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Auditoria /></RotaPerfil></RotaPrivada>} />
+        <Route path="/devolucoes" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Devolucoes /></RotaPerfil></RotaPrivada>} />
+        <Route path="/inteligencia" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><InteligenciaCompras /></RotaPerfil></RotaPrivada>} />
         
         <Route
           path="/responder-cotacao/:idCotacao"

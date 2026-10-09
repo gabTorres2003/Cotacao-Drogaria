@@ -41,6 +41,16 @@ public class SecurityConfigurations {
                         .permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/cotacao", "/api/cotacao/**").permitAll()
                         .requestMatchers(HttpMethod.DELETE, "/api/cotacao/**").permitAll()
+                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/conferencia/parcial",
+                                "/api/pedidos/*/itens-nao-solicitados").hasAnyRole("ADMIN", "CONFERENTE")
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos/*/itens-nao-solicitados")
+                                .hasAnyRole("ADMIN", "CONFERENTE")
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/receber",
+                                "/api/pedidos/*/valores-reais", "/api/pedidos/*/valores-previstos").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/reabrir-conferencia",
+                                "/api/pedidos/*/refazer-conferencia", "/api/pedidos/*/status",
+                                "/api/pedidos/*/cancelar-confirmacao", "/api/pedidos/*/falha-entrega",
+                                "/api/pedidos/*/recebimento-rapido", "/api/pedidos/*/valor-minimo").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").permitAll()

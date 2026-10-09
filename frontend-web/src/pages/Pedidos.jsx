@@ -7,6 +7,7 @@ import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual'
 import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X, Tag, ClipboardCheck } from 'lucide-react'
 
 export default function Pedidos() {
+  const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE'
   const [pedidos, setPedidos] = useState([])
   const [pedidosCache, setPedidosCache] = useState({})
   const [loading, setLoading] = useState(true)
@@ -17,7 +18,7 @@ export default function Pedidos() {
   
   const [pedidosSelecionados, setPedidosSelecionados] = useState([])
   
-  const [abaAtiva, setAbaAtiva] = useState('TRATAMENTO')
+  const [abaAtiva, setAbaAtiva] = useState(isConferente ? 'AGUARDANDO_ENTREGA' : 'TRATAMENTO')
   const [busca, setBusca] = useState('')
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [ordenacao, setOrdenacao] = useState('RECENTES')
@@ -40,7 +41,7 @@ export default function Pedidos() {
 
   const [agora, setAgora] = useState(new Date().getTime());
 
-  const STATUS_TRATAMENTO = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL'];
+  const STATUS_TRATAMENTO = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL', 'CONFERENCIA_INICIADA'];
   const STATUS_AGUARDANDO_ENTREGA = ['CONFIRMADO_FORNECEDOR'];
   const STATUS_AGUARDANDO_CONFIRMACAO = ['PENDENTE_ENTREGA'];
   const STATUS_HISTORICO = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
@@ -55,6 +56,7 @@ export default function Pedidos() {
   }, [abaAtiva])
 
   const getStatusParaAba = (aba) => {
+    if (isConferente) return ['PENDENTE_ENTREGA', 'CONFIRMADO_FORNECEDOR', 'CONFERENCIA_INICIADA'];
     switch (aba) {
       case 'TRATAMENTO': return STATUS_TRATAMENTO;
       case 'AGUARDANDO_ENTREGA': return STATUS_AGUARDANDO_ENTREGA;
@@ -314,13 +316,59 @@ export default function Pedidos() {
       case 'DIVERGENCIA': return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
       case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: '#f3e8ff', color: '#7e22ce' } };
       case 'ENTREGA_PARCIAL': return { texto: 'Entrega Parcial', style: { ...baseStyle, backgroundColor: '#fff7ed', color: '#c2410c' } };
+      case 'CONFERENCIA_INICIADA': return { texto: 'Conferência em andamento', style: { ...baseStyle, backgroundColor: '#e0e7ff', color: '#3730a3' } };
       case 'CANCELADO': return { texto: 'Cancelado / Falha na Entrega', style: { ...baseStyle, backgroundColor: '#f1f5f9', color: '#475569', textDecoration: 'line-through' } };
       default: return { texto: status, style: { ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' } };
     }
   }
 
   return (
-    <div className="layout">
+    <div className={`layout pedidos-page ${isConferente ? 'pedidos-conferente' : ''}`}>
+      <style>{`
+        .pedidos-page .pedidos-abas {
+          overflow-x: auto;
+          scrollbar-width: thin;
+        }
+        .pedidos-page .pedidos-abas > div {
+          flex-wrap: nowrap;
+        }
+        @media (max-width: 768px) {
+          .pedidos-conferente .main-content {
+            padding: 14px 10px;
+          }
+          .pedidos-conferente .main-content > header {
+            margin-bottom: 18px !important;
+          }
+          .pedidos-conferente .main-content > header h1 {
+            font-size: 21px !important;
+          }
+          .pedidos-conferente .main-content > header p {
+            font-size: 13px;
+          }
+          .pedidos-page .filters-bar {
+            padding: 10px !important;
+            gap: 8px !important;
+          }
+          .pedidos-page .table-container {
+            border-radius: 8px;
+          }
+          .pedidos-page .table-container table {
+            min-width: 760px;
+          }
+          .pedidos-page .table-container th,
+          .pedidos-page .table-container td {
+            padding: 9px 7px !important;
+            font-size: 12px !important;
+          }
+          .pedidos-page .pedidos-acoes {
+            gap: 4px !important;
+          }
+          .pedidos-page .btn-icon {
+            min-width: 34px;
+            min-height: 34px;
+          }
+        }
+      `}</style>
       <Sidebar />
 
       <main className="main-content">
@@ -356,7 +404,7 @@ export default function Pedidos() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+          <div className="pedidos-abas" style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
               <button 
                 onClick={() => { setAbaAtiva('TRATAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
                 style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'TRATAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'TRATAMENTO' ? '#dc2626' : '#6b7280', boxShadow: abaAtiva === 'TRATAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
@@ -443,6 +491,7 @@ export default function Pedidos() {
                   <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
                   <option value="PENDENTE_DEVOLUCAO">Devolução Pendente</option>
                   <option value="ENTREGA_PARCIAL">Entrega Parcial</option>
+                  <option value="CONFERENCIA_INICIADA">Conferência em andamento</option>
                 </>
               )}
               {abaAtiva === 'AGUARDANDO_ENTREGA' && (
@@ -585,7 +634,7 @@ export default function Pedidos() {
                     if (gruposUnicos.length > 0) gruposFormatados = gruposUnicos.join(', ');
                   }
                   
-                  const isAguardando = p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR';
+                  const isAguardando = p.status === 'PENDENTE_ENTREGA' || p.status === 'CONFIRMADO_FORNECEDOR' || p.status === 'CONFERENCIA_INICIADA';
                   const valorExibir = (!isAguardando && p.valorTotalReal != null) ? p.valorTotalReal : p.valorTotalPedido;
                   
                   const isSelected = pedidosSelecionados.includes(p.id);
@@ -652,12 +701,12 @@ export default function Pedidos() {
                       </td>
 
                       <td>
-                        <div style={{ display: 'flex', gap: '8px' }}>
+                        <div className="pedidos-acoes" style={{ display: 'flex', gap: '8px' }}>
                           <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/pedidos/${p.id}`)}>
                             <Eye size={18} />
                           </button>
                           
-                          {p.status === 'PENDENTE_ENTREGA' && (
+                          {!isConferente && p.status === 'PENDENTE_ENTREGA' && (
                              <button className="btn-icon" title="Avisar Fornecedor (WhatsApp)" onClick={() => handleAvisarIndividual(p)}>
                                <MessageCircle size={18} color="#25D366" />
                              </button>
@@ -669,21 +718,21 @@ export default function Pedidos() {
                             </button>
                           )}
 
-                          {isAguardando && (
+                          {!isConferente && isAguardando && (
                             <button className="btn-icon" title="Registrar Falha na Entrega / Cancelar" onClick={() => abrirModalFalha(p)}>
                               <XCircle size={18} color="#ef4444" />
                             </button>
                           )}
 
-                          {p.status === 'PENDENTE_DEVOLUCAO' && (
+                          {!isConferente && p.status === 'PENDENTE_DEVOLUCAO' && (
                             <button className="btn-icon" title="Tratar Devolução" onClick={() => abrirModalDevolucao(p)}>
                               <RotateCcw size={18} color="#ef4444" />
                             </button>
                           )}
 
-                          <button className="btn-icon" title="Excluir Pedido" onClick={() => deletarPedido(p.id)}>
+                          {!isConferente && <button className="btn-icon" title="Excluir Pedido" onClick={() => deletarPedido(p.id)}>
                             <Trash2 size={18} color="#ef4444" />
-                          </button>
+                          </button>}
                         </div>
                       </td>
                     </tr>
