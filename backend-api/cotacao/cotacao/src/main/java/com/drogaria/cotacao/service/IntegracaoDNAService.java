@@ -40,11 +40,11 @@ public class IntegracaoDNAService {
                 "WHERE ti.CODPRODUTO = " + produtoExpr + " AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' " +
                 "AND t.VENDAFINALIZADA = 'S' AND t.DATA >= " + dataRefExpr + "), 0) + " +
                 "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi " +
-                "JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO " +
-                "WHERE fi.CODPRODUTO = " + produtoExpr + " AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 " +
-                "AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 " +
-                "WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) " +
-                "AND f.DTEMISSAO >= " + dataRefExpr + "), 0))";
+                "JOIN FATURAMENTOS fat ON fat.CODIGO = fi.CODFATURAMENTO " +
+                "WHERE fi.CODPRODUTO = " + produtoExpr + " AND fat.TIPOOPERACAO = 1 AND fat.SITUACAONFE = 1 " +
+                "AND (fat.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 " +
+                "WHERE t2.CODIGO = fat.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) " +
+                "AND fat.DTEMISSAO >= " + dataRefExpr + "), 0))";
         String devolucoes =
                 "COALESCE((SELECT SUM(di.QUANTIDADE) FROM DEVOLUCOESMERCADORIASITENS di " +
                 "JOIN DEVOLUCOESMERCADORIAS d ON d.CODIGO = di.CODDEVOLUCAO " +
