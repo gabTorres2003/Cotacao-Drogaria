@@ -26,6 +26,7 @@ export default function Pedidos() {
   const [dataFim, setDataFim] = useState('')
 
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
+  const [periodoConferente, setPeriodoConferente] = useState('TODOS')
 
   const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0 })
   const navigate = useNavigate()
@@ -248,7 +249,21 @@ export default function Pedidos() {
           }
       }
 
-      return matchTexto && matchStatus && matchData && matchSetor;
+      let matchPeriodoConferente = true;
+      if (isConferente && periodoConferente !== 'TODOS') {
+        const dataPedido = new Date(p.dataCriacao);
+        const inicioPeriodo = new Date();
+        inicioPeriodo.setHours(0, 0, 0, 0);
+        if (periodoConferente === 'SEMANA') {
+          const diasDesdeSegunda = inicioPeriodo.getDay() === 0 ? 6 : inicioPeriodo.getDay() - 1;
+          inicioPeriodo.setDate(inicioPeriodo.getDate() - diasDesdeSegunda);
+        } else if (periodoConferente === 'MES') {
+          inicioPeriodo.setDate(1);
+        }
+        matchPeriodoConferente = dataPedido >= inicioPeriodo;
+      }
+
+      return matchTexto && matchStatus && matchData && matchSetor && matchPeriodoConferente;
     })
     .sort((a, b) => {
       if (ordenacao === 'RECENTES') return new Date(b.dataCriacao || 0) - new Date(a.dataCriacao || 0) || b.id - a.id;
@@ -332,6 +347,7 @@ export default function Pedidos() {
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
+            padding-bottom: calc(104px + env(safe-area-inset-bottom));
           }
           .conferente-pedido-card {
             background: white;
@@ -347,7 +363,7 @@ export default function Pedidos() {
           }
           @media (max-width: 768px) {
             .pedidos-conferente-mobile .main-content {
-              padding: 12px 10px 24px;
+              padding: 12px 10px calc(104px + env(safe-area-inset-bottom));
             }
             .pedidos-conferente-mobile h1 {
               font-size: 21px !important;
@@ -378,6 +394,41 @@ export default function Pedidos() {
             />
           </div>
 
+          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+              <Filter size={16} />
+              <select value={setorAtivo} onChange={(e) => setSetorAtivo(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+                <option value="TODOS">Todos os grupos</option>
+                <option value="MEDICAMENTOS">Medicamentos</option>
+                <option value="PERFUMARIA">Perfumaria</option>
+              </select>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+              <Calendar size={16} />
+              <select value={periodoConferente} onChange={(e) => setPeriodoConferente(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+                <option value="TODOS">Todo o período</option>
+                <option value="SEMANA">Esta semana</option>
+                <option value="MES">Este mês</option>
+              </select>
+            </label>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+              <ArrowUpDown size={16} />
+              <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+                <option value="RECENTES">Mais recentes</option>
+                <option value="ANTIGOS">Mais antigos</option>
+              </select>
+            </label>
+            {(busca || setorAtivo !== 'TODOS' || periodoConferente !== 'TODOS' || ordenacao !== 'RECENTES') && (
+              <button
+                type="button"
+                onClick={() => { setBusca(''); setSetorAtivo('TODOS'); setPeriodoConferente('TODOS'); setOrdenacao('RECENTES'); }}
+                style={{ minHeight: '42px', border: '1px solid #fecaca', borderRadius: '7px', background: '#fef2f2', color: '#b91c1c', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+              >
+                Limpar filtros
+              </button>
+            )}
+          </div>
+
           {loading ? (
             <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
               <Loader2 size={28} className="animate-spin" />
@@ -406,7 +457,7 @@ export default function Pedidos() {
                   </div>
                   <button
                     onClick={() => navigate(`/pedidos/${p.id}`)}
-                    style={{ background: '#2563eb', border: 0, borderRadius: '8px', color: 'white', fontWeight: '700', cursor: 'pointer' }}
+                    style={{ background: '#2563eb', border: 0, borderRadius: '8px', color: 'white', fontWeight: '700', cursor: 'pointer', minHeight: '50px', padding: '12px 16px', marginBottom: '8px', boxShadow: '0 2px 4px rgba(37, 99, 235, .25)' }}
                   >
                     Ver produtos e conferir
                   </button>

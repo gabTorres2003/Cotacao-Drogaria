@@ -107,8 +107,13 @@ export default function PedidoConferencia() {
         } else {
           setConferencia(base);
         }
-        const fotosResponse = await api.get(`/api/pedidos/${id}/conferencia/fotos`);
-        setFotos(fotosResponse.data || []);
+        try {
+          const fotosResponse = await api.get(`/api/pedidos/${id}/conferencia/fotos`);
+          setFotos(fotosResponse.data || []);
+        } catch (fotosError) {
+          console.warn('Fotos da conferência não puderam ser carregadas:', fotosError.response?.status || fotosError.message);
+          setFotos([]);
+        }
       }
     } catch (error) {
       console.error('Erro ao carregar pedido para conferência:', error);
@@ -506,6 +511,10 @@ export default function PedidoConferencia() {
         @media (max-width: 768px) {
           .conferencia-page .main-content {
             padding: 14px 10px;
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+            -webkit-text-size-adjust: 100%;
           }
           .conferencia-page .conferencia-header {
             align-items: stretch;
@@ -584,6 +593,7 @@ export default function PedidoConferencia() {
           .conferencia-page .conferencia-tabela select {
             min-height: 40px;
             font-size: 16px !important;
+            -webkit-text-size-adjust: 100%;
           }
           .conferencia-page .conferencia-tabela td:last-child {
             display: flex;
