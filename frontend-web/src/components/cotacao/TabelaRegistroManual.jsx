@@ -53,7 +53,7 @@ export default function TabelaRegistroManual({
                 <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
                   <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
                     <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Colunas da Tabela</div>
-                    {Object.entries({ estoque: 'Estoque Atual', vendidoNoMes: 'Vendido no Mês', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
+                    {Object.entries({ estoque: 'Estoque Atual', vmd: 'VMD', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
                       <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
                         <input type="checkbox" checked={colunasVisiveis[key]} onChange={(e) => setColunasVisiveis(prev => ({ ...prev, [key]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
                         {label}
@@ -73,7 +73,7 @@ export default function TabelaRegistroManual({
             <th style={{ ...thStyle, width: '120px', minWidth: '100px', cursor: 'pointer' }} onClick={() => requestSort('origemItem')}><div style={{ display: 'flex', alignItems: 'center' }}>Origem <SortIcon sortKey="origemItem" /></div></th>
             <th style={{ ...thStyle, cursor: 'pointer', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
             {colunasVisiveis.estoque && <th style={{ ...thStyle, textAlign: 'center', minWidth: '110px' }} onClick={() => requestSort('estoque')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Estoque <SortIcon sortKey="estoque" /></div></th>}
-            {colunasVisiveis.vendidoNoMes && <th style={{ ...thStyle, textAlign: 'center', minWidth: '120px' }} onClick={() => requestSort('vendidoNoMes')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div></th>}
+            {colunasVisiveis.vmd && <th style={{ ...thStyle, textAlign: 'center', minWidth: '120px' }} onClick={() => requestSort('vmd')} title="VMD: média diária de vendas no período da geração da lista (un/dia)"><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>VMD <SortIcon sortKey="vmd" /></div></th>}
             {colunasVisiveis.vendidoAposUltCompra && <th style={{ ...thStyle, textAlign: 'center', minWidth: '140px' }} onClick={() => requestSort('vendidoAposUltCompra')}><div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div></th>}
             {colunasVisiveis.ultCompraData && <th style={{ ...thStyle, textAlign: 'center', minWidth: '120px' }}>Data Últ. Compra</th>}
             {colunasVisiveis.ultCompraQtde && <th style={{ ...thStyle, textAlign: 'center', minWidth: '110px' }}>Qtd Últ. Compra</th>}
@@ -108,7 +108,7 @@ export default function TabelaRegistroManual({
                   </div>
                 </td>
                 {colunasVisiveis.estoque && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{item.estoque ?? '-'}</span></td>}
-                {colunasVisiveis.vendidoNoMes && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
+                {colunasVisiveis.vmd && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{(item.vmd != null && item.vmd > 0) ? Number(item.vmd).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—'}</span></td>}
                 {colunasVisiveis.vendidoAposUltCompra && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
                 {colunasVisiveis.ultCompraData && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
                 {colunasVisiveis.ultCompraQtde && <td style={{ ...tdStyle, textAlign: 'center' }}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}

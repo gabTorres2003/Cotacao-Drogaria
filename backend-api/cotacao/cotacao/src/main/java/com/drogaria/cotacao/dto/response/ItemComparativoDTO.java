@@ -17,6 +17,9 @@ public class ItemComparativoDTO {
     private Double ultCompraQtde;
     private String ultVendaData;
     private Double vendidoAposUltCompra;
+    private Double vmd;
+    private Integer quantidadeBalcao;
+    private Integer quantidadeSugerida;
     private Double ultimoPreco;
     private String codBarras;
     private String origemItem;
@@ -89,6 +92,15 @@ public class ItemComparativoDTO {
 
     public Double getVendidoAposUltCompra() { return vendidoAposUltCompra; }
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
+
+    public Double getVmd() { return vmd; }
+    public void setVmd(Double vmd) { this.vmd = vmd; }
+
+    public Integer getQuantidadeBalcao() { return quantidadeBalcao; }
+    public void setQuantidadeBalcao(Integer quantidadeBalcao) { this.quantidadeBalcao = quantidadeBalcao; }
+
+    public Integer getQuantidadeSugerida() { return quantidadeSugerida; }
+    public void setQuantidadeSugerida(Integer quantidadeSugerida) { this.quantidadeSugerida = quantidadeSugerida; }
 
     public String getCodBarras() { return codBarras; }
     public void setCodBarras(String codBarras) { this.codBarras = codBarras; }

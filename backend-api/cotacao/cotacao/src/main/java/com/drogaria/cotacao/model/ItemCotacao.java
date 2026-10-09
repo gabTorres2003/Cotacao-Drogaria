@@ -38,7 +38,17 @@ public class ItemCotacao {
     private LocalDate ultVendaData;
     
     private Double vendidoAposUltCompra;
-    
+
+    // VMD = média diária de vendas no período da geração da lista (nulos em listas antigas/faltas sem período)
+    private Double vmd;
+
+    // Separação de quantidades: somente em gerações mescladas com a lista de faltas
+    @Column(name = "quantidade_balcao")
+    private Integer quantidadeBalcao;
+
+    @Column(name = "quantidade_sugerida")
+    private Integer quantidadeSugerida;
+
     @Column(name = "cod_barras")
     private String codBarras;
 
@@ -105,6 +115,12 @@ public class ItemCotacao {
     public void setUltVendaData(LocalDate ultVendaData) { this.ultVendaData = ultVendaData; }
     public Double getVendidoAposUltCompra() { return vendidoAposUltCompra; }
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
+    public Double getVmd() { return vmd; }
+    public void setVmd(Double vmd) { this.vmd = vmd; }
+    public Integer getQuantidadeBalcao() { return quantidadeBalcao; }
+    public void setQuantidadeBalcao(Integer quantidadeBalcao) { this.quantidadeBalcao = quantidadeBalcao; }
+    public Integer getQuantidadeSugerida() { return quantidadeSugerida; }
+    public void setQuantidadeSugerida(Integer quantidadeSugerida) { this.quantidadeSugerida = quantidadeSugerida; }
     public List<PrecoCotacao> getPrecos() { return precos; }
     public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
     public String getOrigemItem() { return origemItem; }

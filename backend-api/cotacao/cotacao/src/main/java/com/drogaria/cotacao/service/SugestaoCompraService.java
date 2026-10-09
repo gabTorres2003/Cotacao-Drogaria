@@ -450,6 +450,15 @@ public class SugestaoCompraService {
                     ? aprovado.getQuantidadeUltimaCompra().doubleValue() : null);
             item.setUltVendaData(aprovado.getDataUltimaVenda());
             item.setOrigemItem("INTELIGENCIA_COMPRA");
+
+            if (sugestao.getPeriodoInicio() != null && sugestao.getPeriodoFim() != null) {
+                long diasPeriodo = sugestao.getPeriodoFim().toEpochDay() - sugestao.getPeriodoInicio().toEpochDay() + 1;
+                BigDecimal vendasPeriodo = vendasNoPeriodo(aprovado, diasPeriodo);
+                if (vendasPeriodo != null && diasPeriodo > 0 && vendasPeriodo.doubleValue() > 0) {
+                    item.setVmd(vendasPeriodo.doubleValue() / diasPeriodo);
+                }
+            }
+
             item.setCotacao(cotacao);
             itens.add(item);
         }
@@ -464,6 +473,16 @@ public class SugestaoCompraService {
         log.info("[IntelCompra] Sugestão {} convertida na cotação {} ({} item(ns))",
                 sugestaoId, salva.getId(), itens.size());
         return salva.getId();
+    }
+
+    /** Vendas persistidas do item que correspondem exatamente ao período da sugestão. */
+    private static BigDecimal vendasNoPeriodo(SugestaoCompraItem item, long diasPeriodo) {
+        if (diasPeriodo == 7) return item.getVendas7d();
+        if (diasPeriodo == 14) return item.getVendas14d();
+        if (diasPeriodo == 30) return item.getVendas30d();
+        if (diasPeriodo == 60) return item.getVendas60d();
+        if (diasPeriodo == 90) return item.getVendas90d();
+        return null;
     }
 
     // ------------------------------------------------------------------

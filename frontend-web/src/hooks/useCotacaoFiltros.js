@@ -9,8 +9,12 @@ export function useCotacaoFiltros(relatorio, itensJaComprados, modoVisualizacao,
 
   const [colunasVisiveis, setColunasVisiveis] = useState({
     quantidade: true,
+    qtdBalcao: true,
+    qtdSugerida: true,
     estoque: true,
-    vendidoNoMes: true,
+    vmd: true,
+    cad: true,
+    cpd: true,
     vendidoAposUltCompra: true,
     ultCompraData: true,
     ultCompraQtde: true,
@@ -63,6 +67,12 @@ export function useCotacaoFiltros(relatorio, itensJaComprados, modoVisualizacao,
     if (key === 'idItem') return item.idItem || 0;
     if (key === 'nomeProduto') return getNomeExibicao(item.nomeProduto);
     if (key === 'origemItem') return item.origemItem || 'Geral';
+    if (key === 'cad') {
+      return (item.vmd > 0 && item.estoque != null) ? item.estoque / item.vmd : 0;
+    }
+    if (key === 'cpd') {
+      return (item.vmd > 0 && item.estoque != null && item.quantidade != null) ? (item.estoque + item.quantidade) / item.vmd : 0;
+    }
     return item[key] ?? 0;
   };
 

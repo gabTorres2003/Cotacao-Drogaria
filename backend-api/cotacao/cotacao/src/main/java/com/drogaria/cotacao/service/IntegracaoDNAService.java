@@ -10,6 +10,7 @@ import org.springframework.stereotype.Service;
 
 import jakarta.persistence.EntityManager;
 import java.sql.Date;
+import java.sql.ResultSet;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -26,11 +27,44 @@ public class IntegracaoDNAService {
     @Autowired
     private EntityManager entityManager;
 
+    /**
+     * Venda líquida (bruta - devoluções) a partir da data de referência da última compra.
+     * Mesmas regras do sistema: talão não cancelado e finalizado + faturamento de venda
+     * sem talão vinculado, menos devoluções. NULL quando não há produto/data de referência.
+     */
+    private static String sqlVendidoLiquidoAposCompra(String produtoExpr, String dataRefExpr) {
+        String bruta =
+                "(COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti " +
+                "JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL " +
+                "WHERE ti.CODPRODUTO = " + produtoExpr + " AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' " +
+                "AND t.VENDAFINALIZADA = 'S' AND t.DATA >= " + dataRefExpr + "), 0) + " +
+                "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi " +
+                "JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO " +
+                "WHERE fi.CODPRODUTO = " + produtoExpr + " AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 " +
+                "AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 " +
+                "WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) " +
+                "AND f.DTEMISSAO >= " + dataRefExpr + "), 0))";
+        String devolucoes =
+                "COALESCE((SELECT SUM(di.QUANTIDADE) FROM DEVOLUCOESMERCADORIASITENS di " +
+                "JOIN DEVOLUCOESMERCADORIAS d ON d.CODIGO = di.CODDEVOLUCAO " +
+                "WHERE di.CODPRODUTO = " + produtoExpr + " AND d.DTDEVOLUCAO >= " + dataRefExpr + "), 0)";
+        return "CASE WHEN " + produtoExpr + " IS NULL OR " + dataRefExpr + " IS NULL THEN NULL ELSE " +
+                bruta + " - " + devolucoes + " END";
+    }
+
+    /** Lê a coluna de venda líquida; nulo vira nulo e resultado negativo é limitado a zero. */
+    private static Double lerVendidoLiquido(ResultSet rs, String coluna) {
+        double liquido = rs.getDouble(coluna);
+        if (rs.wasNull()) return null;
+        return Math.max(0, liquido);
+    }
+
     public List<ItemCotacao> buscarFaltasDiretoDoBanco(List<String> gruposSelecionados) {
         StringBuilder sql = new StringBuilder(
                 "SELECT f.DESCRICAO, p.CODBARRAS, f.ESTOQUE, f.FALTAS, f.PRECOCUSTO, f.GRUPO, " +
                 "f.VENDIDO_NO_MES, f.ULTCOMPRA_DATA, f.ULTCOMPRA_QTDE, " +
-                "f.ULTVENDA_DATA, f.VENDIDO_APOS_ULTCOMPRA " +
+                "f.ULTVENDA_DATA, " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "f.ULTCOMPRA_DATA") + " AS VENDIDO_APOS_ULTCOMPRA " +
                 "FROM A_FALTAS f " +
                 "LEFT JOIN PRODUTOS p ON p.DESCRICAO = f.DESCRICAO"
         );
@@ -56,11 +90,12 @@ public class IntegracaoDNAService {
             item.setGrupo(rs.getString("GRUPO"));
             item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
             item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
-            
-            if (rs.getObject("VENDIDO_APOS_ULTCOMPRA") != null) {
-                item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+
+            Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
+            if (vendidoApos != null) {
+                item.setVendidoAposUltCompra(vendidoApos);
             }
-            
+
             item.setOrigemItem("Falta Manual");
 
             Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
@@ -90,10 +125,7 @@ public class IntegracaoDNAService {
                 "(COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL WHERE ti.CODPRODUTO = p.CODIGO AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' AND t.VENDAFINALIZADA = 'S' AND t.DATA > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND t.DATA <= CURRENT_DATE), 0) + " +
                 "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO WHERE fi.CODPRODUTO = p.CODIGO AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) AND f.DTEMISSAO > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND f.DTEMISSAO <= CURRENT_DATE), 0)) AS VENDIDO_NO_MES, " +
                 
-                "(CASE WHEN p.DTULTCOMPRA IS NULL THEN NULL ELSE " +
-                "COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL WHERE ti.CODPRODUTO = p.CODIGO AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' AND t.VENDAFINALIZADA = 'S' AND t.DATA >= p.DTULTCOMPRA), 0) + " +
-                "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO WHERE fi.CODPRODUTO = p.CODIGO AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) AND f.DTEMISSAO >= p.DTULTCOMPRA), 0) " +
-                "END) AS VENDIDO_APOS_ULTCOMPRA " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA " +
 
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
@@ -137,9 +169,11 @@ public class IntegracaoDNAService {
                 item.setGrupo(rs.getString("GRUPO"));
                 item.setOrigemItem("Sugestão");
                 item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
-                
-                if (rs.getObject("VENDIDO_APOS_ULTCOMPRA") != null) {
-                    item.setVendidoAposUltCompra(rs.getDouble("VENDIDO_APOS_ULTCOMPRA"));
+                item.setVmd(mediaDiaria);
+
+                Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
+                if (vendidoApos != null) {
+                    item.setVendidoAposUltCompra(vendidoApos);
                 }
                 
                 Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
@@ -167,7 +201,8 @@ public class IntegracaoDNAService {
         StringBuilder sql = new StringBuilder(
                 "SELECT p.CODIGO, p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
                 "g.NOME AS GRUPO, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA, " +
-                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO " +
+                "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO, " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA " +
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
                 "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
@@ -211,7 +246,13 @@ public class IntegracaoDNAService {
             item.setEstoque(estoque);
             item.setGrupo(rs.getString("GRUPO"));
             item.setVendidoNoMes(totalVendido);
+            item.setVmd(vmd);
             item.setOrigemItem("INTELIGENCIA_COMPRA");
+
+            Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
+            if (vendidoApos != null) {
+                item.setVendidoAposUltCompra(vendidoApos);
+            }
 
             Date ultCompra = rs.getDate("DTULTCOMPRA");
             if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());

@@ -257,8 +257,8 @@ export default function TabelaDetalhes({
 
   const getLeftOffset = (colKey, type = 'stat') => {
       let offset = 250; 
-      const statsOrder = ['quantidade', 'estoque', 'vendidoNoMes', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco', 'codBarras'];
-      const widths = { quantidade: 130, estoque: 130, vendidoNoMes: 140, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150, codBarras: 140 };
+      const statsOrder = ['quantidade', 'qtdBalcao', 'qtdSugerida', 'estoque', 'vmd', 'cad', 'cpd', 'vendidoAposUltCompra', 'ultCompraData', 'ultCompraQtde', 'ultVendaData', 'ultimoPreco', 'codBarras'];
+      const widths = { quantidade: 130, qtdBalcao: 110, qtdSugerida: 120, estoque: 130, vmd: 110, cad: 110, cpd: 110, vendidoAposUltCompra: 160, ultCompraData: 130, ultCompraQtde: 130, ultVendaData: 130, ultimoPreco: 150, codBarras: 140 };
       
       for (let stat of statsOrder) {
           if (stat === colKey && type === 'stat') break;
@@ -305,6 +305,12 @@ export default function TabelaDetalhes({
 
   const pinnedItems = relatorioExibicao.filter(i => pinnedRows.includes(i.idItem));
   const unpinnedItems = relatorioExibicao.filter(i => !pinnedRows.includes(i.idItem));
+
+  const temModoMesclado = relatorioExibicao.some(i => i.quantidadeBalcao != null || i.quantidadeSugerida != null);
+  const fmtVmd = (v) => (v != null && v > 0) ? Number(v).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '—';
+  const fmtCobertura = (v) => v != null ? v.toLocaleString('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 }) : '—';
+  const calcCad = (item) => (item.vmd > 0 && item.estoque != null) ? item.estoque / item.vmd : null;
+  const calcCpd = (item) => (item.vmd > 0 && item.estoque != null && item.quantidade != null) ? (item.estoque + item.quantidade) / item.vmd : null;
 
   const fornecedoresCompetitivos = (() => {
       if (filtroTopN === 'TODOS') return null;
@@ -554,7 +560,10 @@ export default function TabelaDetalhes({
                 </td>
               );
           })()}
-          
+
+          {temModoMesclado && colunasVisiveis.qtdBalcao && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.quantidadeBalcao ?? '—'}</span></td>}
+          {temModoMesclado && colunasVisiveis.qtdSugerida && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.quantidadeSugerida ?? '—'}</span></td>}
+
           {colunasVisiveis.estoque && (() => {
               const isPinned = pinnedStats.includes('estoque');
               return <td style={getCellColStyle(isPinned, getLeftOffset('estoque', 'stat'), false, false, textStyle.color, isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.estoque ?? '-'}</span></td>;
@@ -562,7 +571,9 @@ export default function TabelaDetalhes({
 
           {isItens && (
             <>
-              {colunasVisiveis.vendidoNoMes && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendidoNoMes ?? '-'}</span></td>}
+              {colunasVisiveis.vmd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtVmd(item.vmd)}</span></td>}
+              {colunasVisiveis.cad && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCad(item))}</span></td>}
+              {colunasVisiveis.cpd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCpd(item))}</span></td>}
               {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
               {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
               {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
@@ -1119,7 +1130,7 @@ export default function TabelaDetalhes({
 
                   <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
                     <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Colunas da Tabela</div>
-                    {Object.entries({ quantidade: 'Qtd Solicitada', estoque: 'Estoque Atual', vendidoNoMes: 'Vendido no Mês', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
+                    {Object.entries({ quantidade: 'Qtd Solicitada', qtdBalcao: 'Qtd. Balcão', qtdSugerida: 'Qtd. Sugerida', estoque: 'Estoque Atual', vmd: 'VMD', cad: 'CAD (dias)', cpd: 'CPD (dias)', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
                       <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
                         <input type="checkbox" checked={colunasVisiveis[key]} onChange={(e) => setColunasVisiveis(prev => ({ ...prev, [key]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
                         {label}
@@ -1193,6 +1204,9 @@ export default function TabelaDetalhes({
                   );
               })()}
 
+              {temModoMesclado && colunasVisiveis.qtdBalcao && <th style={getHeaderStyle(false, 0, '110px')} onClick={() => requestSort('qtdBalcao')} title="Quantidade da lista de faltas do DNA (balcão)"><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Qtd. Balcão <SortIcon sortKey="qtdBalcao" /></div></th>}
+              {temModoMesclado && colunasVisiveis.qtdSugerida && <th style={getHeaderStyle(false, 0, '120px')} onClick={() => requestSort('qtdSugerida')} title="Quantidade recomendada pela sugestão/inteligência"><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Qtd. Sugerida <SortIcon sortKey="qtdSugerida" /></div></th>}
+
               {colunasVisiveis.estoque && (() => {
                   const isPinned = pinnedStats.includes('estoque');
                   return (
@@ -1207,7 +1221,9 @@ export default function TabelaDetalhes({
 
               {isItens && (
                 <>
-                  {colunasVisiveis.vendidoNoMes && <th style={getHeaderStyle(false, 0, '140px')} onClick={() => requestSort('vendidoNoMes')}><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Vendido no Mês <SortIcon sortKey="vendidoNoMes" /></div></th>}
+                  {colunasVisiveis.vmd && <th style={getHeaderStyle(false, 0, '110px')} onClick={() => requestSort('vmd')} title="VMD: média diária de vendas no período da geração da lista (un/dia)"><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>VMD <SortIcon sortKey="vmd" /></div></th>}
+                  {colunasVisiveis.cad && <th style={getHeaderStyle(false, 0, '110px')} onClick={() => requestSort('cad')} title="CAD: dias de cobertura com o estoque atual (Estoque ÷ VMD)"><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>CAD <SortIcon sortKey="cad" /></div></th>}
+                  {colunasVisiveis.cpd && <th style={getHeaderStyle(false, 0, '110px')} onClick={() => requestSort('cpd')} title="CPD: dias de cobertura com estoque + quantidade solicitada ((Estoque + Qtd.) ÷ VMD)"><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>CPD <SortIcon sortKey="cpd" /></div></th>}
                   {colunasVisiveis.vendidoAposUltCompra && <th style={getHeaderStyle(false, 0, '160px')} onClick={() => requestSort('vendidoAposUltCompra')}><div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>Vend. pós Últ. Compra <SortIcon sortKey="vendidoAposUltCompra" /></div></th>}
                   {colunasVisiveis.ultCompraData && <th style={getHeaderStyle(false, 0, '130px')}>Data Últ. Compra</th>}
                   {colunasVisiveis.ultCompraQtde && <th style={getHeaderStyle(false, 0, '130px')}>Qtd. Últ. Compra</th>}

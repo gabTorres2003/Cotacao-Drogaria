@@ -70,16 +70,22 @@ public class CotacaoService {
     }
 
     private List<ItemCotacao> obterItensDoDNA(ImportacaoDNARequestDTO request) {
+        boolean modoMesclado = Boolean.TRUE.equals(request.getIncluirSugestao())
+                && request.getDataInicial() != null && request.getDataFinal() != null;
+
         List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
         Map<String, ItemCotacao> mapaItens = new HashMap<>();
         
         if (itensFalta != null) {
             for (ItemCotacao item : itensFalta) {
+                if (modoMesclado) {
+                    item.setQuantidadeBalcao(item.getQuantidade());
+                }
                 mapaItens.put(item.getNomeProduto().toUpperCase().trim(), item);
             }
         }
 
-        if (Boolean.TRUE.equals(request.getIncluirSugestao()) && request.getDataInicial() != null && request.getDataFinal() != null) {
+        if (modoMesclado) {
             List<ItemCotacao> itensSugestao = integracaoDNAService.buscarSugestoes(
                     request.getGrupos(), 
                     request.getDataInicial(), 
@@ -93,11 +99,16 @@ public class CotacaoService {
                     
                     if (mapaItens.containsKey(chave)) {
                         ItemCotacao itemExistente = mapaItens.get(chave);
+                        itemExistente.setQuantidadeSugerida(itemSugestao.getQuantidade());
+                        if (itemExistente.getVmd() == null) {
+                            itemExistente.setVmd(itemSugestao.getVmd());
+                        }
                         if (itemSugestao.getQuantidade() > itemExistente.getQuantidade()) {
                             itemExistente.setQuantidade(itemSugestao.getQuantidade());
                         }
                         itemExistente.setOrigemItem("Falta e Sugestão");
                     } else {
+                        itemSugestao.setQuantidadeSugerida(itemSugestao.getQuantidade());
                         mapaItens.put(chave, itemSugestao);
                     }
                 }
@@ -165,12 +176,17 @@ public class CotacaoService {
         }
 
         if (Boolean.TRUE.equals(request.getIncluirFaltas())) {
+            for (ItemCotacao item : mapaItens.values()) {
+                item.setQuantidadeSugerida(item.getQuantidade());
+            }
             List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
             if (itensFalta != null) {
                 for (ItemCotacao itemFalta : itensFalta) {
+                    itemFalta.setQuantidadeBalcao(itemFalta.getQuantidade());
                     String chave = itemFalta.getNomeProduto().toUpperCase().trim();
                     ItemCotacao existente = mapaItens.get(chave);
                     if (existente != null) {
+                        existente.setQuantidadeBalcao(itemFalta.getQuantidade());
                         if (itemFalta.getQuantidade() > existente.getQuantidade()) {
                             existente.setQuantidade(itemFalta.getQuantidade());
                         }
@@ -230,6 +246,19 @@ public class CotacaoService {
                 if (Boolean.TRUE.equals(existente.getExcluido())) continue;
                 
                 if (Boolean.TRUE.equals(existente.getEditadoManual())) continue;
+
+                if (itemDna.getVmd() != null && !itemDna.getVmd().equals(existente.getVmd())) {
+                    existente.setVmd(itemDna.getVmd());
+                    houveAlteracao = true;
+                }
+                if (itemDna.getQuantidadeBalcao() != null && !itemDna.getQuantidadeBalcao().equals(existente.getQuantidadeBalcao())) {
+                    existente.setQuantidadeBalcao(itemDna.getQuantidadeBalcao());
+                    houveAlteracao = true;
+                }
+                if (itemDna.getQuantidadeSugerida() != null && !itemDna.getQuantidadeSugerida().equals(existente.getQuantidadeSugerida())) {
+                    existente.setQuantidadeSugerida(itemDna.getQuantidadeSugerida());
+                    houveAlteracao = true;
+                }
 
                 if (itemDna.getQuantidade() > existente.getQuantidade()) {
                     existente.setQuantidade(itemDna.getQuantidade());
