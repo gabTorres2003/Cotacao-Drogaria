@@ -20,6 +20,7 @@ public class ItemComparativoDTO {
     private Double vmd;
     private Integer quantidadeBalcao;
     private Integer quantidadeSugerida;
+    private String classificacaoInteligencia;
     private Double ultimoPreco;
     private String codBarras;
     private String origemItem;
@@ -101,6 +102,9 @@ public class ItemComparativoDTO {
 
     public Integer getQuantidadeSugerida() { return quantidadeSugerida; }
     public void setQuantidadeSugerida(Integer quantidadeSugerida) { this.quantidadeSugerida = quantidadeSugerida; }
+
+    public String getClassificacaoInteligencia() { return classificacaoInteligencia; }
+    public void setClassificacaoInteligencia(String classificacaoInteligencia) { this.classificacaoInteligencia = classificacaoInteligencia; }
 
     public String getCodBarras() { return codBarras; }
     public void setCodBarras(String codBarras) { this.codBarras = codBarras; }

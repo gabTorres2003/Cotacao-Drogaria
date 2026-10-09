@@ -95,6 +95,7 @@ public class ComparativoService {
             linha.setVmd(item.getVmd());
             linha.setQuantidadeBalcao(item.getQuantidadeBalcao());
             linha.setQuantidadeSugerida(item.getQuantidadeSugerida());
+            linha.setClassificacaoInteligencia(item.getClassificacaoInteligencia());
             linha.setUltCompraData(item.getUltCompraData() != null ? item.getUltCompraData().format(formatter) : null);
             linha.setUltCompraQtde(item.getUltCompraQtde());
             linha.setUltVendaData(item.getUltVendaData() != null ? item.getUltVendaData().format(formatter) : null);

@@ -537,6 +537,8 @@ export default function TabelaDetalhes({
                 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <BadgeOrigem origem={item.origemItem} />
+                  {item.classificacaoInteligencia === 'BAIXO_GIRO' && <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }} title="Poucas vendas na janela e compra antiga em relação à última venda: incluir manualmente se necessário">⚠ Baixo giro — análise manual</span>}
+                  {item.classificacaoInteligencia === 'HISTORICO_INSUFICIENTE' && <span style={{ fontSize: '10px', backgroundColor: '#f3f4f6', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', border: '1px solid #d1d5db', fontWeight: 'bold' }} title="Sem dados suficientes para estimativa confiável: incluir manualmente se necessário">Histórico insuficiente</span>}
                   {isBloqueado && (
                     <>
                       <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>

@@ -193,9 +193,23 @@ public class IntegracaoDNAService {
         return sugestoesBrutas.stream().filter(item -> item != null).collect(Collectors.toList());
     }
 
+    /** Classificação: compra recomendada automaticamente pela Inteligência. */
+    public static final String CLASSIFICACAO_COMPRA_SUGERIDA = "COMPRA_SUGERIDA";
+    /** Classificação: demanda esporádica; entra na lista com qtd 0 para análise manual. */
+    public static final String CLASSIFICACAO_BAIXO_GIRO = "BAIXO_GIRO";
+    /** Classificação: sem dados para estimativa confiável; entra na lista com qtd 0. */
+    public static final String CLASSIFICACAO_HISTORICO_INSUFICIENTE = "HISTORICO_INSUFICIENTE";
+
+    // Regra de baixo giro (critério do usuário): poucas vendas na janela E compra antiga
+    // em relação à última venda => não vale reposição automática.
+    private static final double BAIXO_GIRO_TOTAL_VENDIDO_JANELA = 2.0;
+    private static final long BAIXO_GIRO_DISTANCIA_COMPRA_VENDA_DIAS = 30L;
+
     /**
      * Lista de compra da Inteligência: produtos com movimentação na janela informada
      * e cobertura de estoque abaixo do mínimo (dias), sugerindo reposição até o máximo.
+     * Produtos com demanda esporádica entram com quantidade 0 e classificação para
+     * análise manual; não são excluídos da lista.
      */
     public List<ItemCotacao> buscarItensInteligencia(List<String> gruposSelecionados,
             int diasEstoqueMinimo, int diasEstoqueMaximo, int diasMediaVendas) {
@@ -231,13 +245,35 @@ public class IntegracaoDNAService {
             double vmd = totalVendido / diasMediaVendas;
             if (vmd <= 0) return null;
 
-            // Apenas produtos com cobertura abaixo do mínimo de dias de estoque
+            // Necessidade de reposição: cobertura atual abaixo do mínimo de dias
             double cobertura = estoque / vmd;
             if (cobertura >= diasEstoqueMinimo) return null;
 
-            // Reposição até o nível máximo de dias de estoque
-            int quantidade = (int) Math.ceil((vmd * diasEstoqueMaximo) - estoque);
-            if (quantidade <= 0) return null;
+            Date ultCompra = rs.getDate("DTULTCOMPRA");
+            Date ultVenda = rs.getDate("DTULTVENDA");
+
+            // Elegibilidade: demanda esporádica não gera compra automática;
+            // o produto continua na lista com quantidade 0 para análise manual.
+            String classificacao = CLASSIFICACAO_COMPRA_SUGERIDA;
+            int quantidade;
+            if (totalVendido <= BAIXO_GIRO_TOTAL_VENDIDO_JANELA) {
+                if (ultCompra == null || ultVenda == null) {
+                    classificacao = CLASSIFICACAO_HISTORICO_INSUFICIENTE;
+                } else {
+                    long distanciaDias = ChronoUnit.DAYS.between(ultCompra.toLocalDate(), ultVenda.toLocalDate());
+                    if (distanciaDias >= BAIXO_GIRO_DISTANCIA_COMPRA_VENDA_DIAS) {
+                        classificacao = CLASSIFICACAO_BAIXO_GIRO;
+                    }
+                }
+            }
+
+            if (CLASSIFICACAO_COMPRA_SUGERIDA.equals(classificacao)) {
+                // Reposição até o nível máximo de dias de estoque
+                quantidade = (int) Math.ceil((vmd * diasEstoqueMaximo) - estoque);
+                if (quantidade <= 0) return null;
+            } else {
+                quantidade = 0;
+            }
 
             ItemCotacao item = new ItemCotacao();
             item.setNomeProduto(rs.getString("DESCRICAO"));
@@ -249,17 +285,16 @@ public class IntegracaoDNAService {
             item.setVendidoNoMes(totalVendido);
             item.setVmd(vmd);
             item.setOrigemItem("INTELIGENCIA_COMPRA");
+            item.setClassificacaoInteligencia(classificacao);
 
             Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
             if (vendidoApos != null) {
                 item.setVendidoAposUltCompra(vendidoApos);
             }
 
-            Date ultCompra = rs.getDate("DTULTCOMPRA");
             if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
             item.setUltCompraQtde(rs.getDouble("QTDEULTCOMPRA"));
 
-            Date ultVenda = rs.getDate("DTULTVENDA");
             if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
 
             return item;

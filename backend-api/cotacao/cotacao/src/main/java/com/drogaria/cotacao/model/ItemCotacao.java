@@ -49,6 +49,10 @@ public class ItemCotacao {
     @Column(name = "quantidade_sugerida")
     private Integer quantidadeSugerida;
 
+    // Classificação da geração por Inteligência: COMPRA_SUGERIDA, BAIXO_GIRO, HISTORICO_INSUFICIENTE
+    @Column(name = "classificacao_inteligencia")
+    private String classificacaoInteligencia;
+
     @Column(name = "cod_barras")
     private String codBarras;
 
@@ -121,6 +125,8 @@ public class ItemCotacao {
     public void setQuantidadeBalcao(Integer quantidadeBalcao) { this.quantidadeBalcao = quantidadeBalcao; }
     public Integer getQuantidadeSugerida() { return quantidadeSugerida; }
     public void setQuantidadeSugerida(Integer quantidadeSugerida) { this.quantidadeSugerida = quantidadeSugerida; }
+    public String getClassificacaoInteligencia() { return classificacaoInteligencia; }
+    public void setClassificacaoInteligencia(String classificacaoInteligencia) { this.classificacaoInteligencia = classificacaoInteligencia; }
     public List<PrecoCotacao> getPrecos() { return precos; }
     public void setPrecos(List<PrecoCotacao> precos) { this.precos = precos; }
     public String getOrigemItem() { return origemItem; }
