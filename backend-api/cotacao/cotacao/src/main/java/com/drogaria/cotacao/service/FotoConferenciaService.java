@@ -113,15 +113,6 @@ public class FotoConferenciaService {
             throw new IllegalArgumentException("A foto não pertence ao pedido.");
         }
 
-        @Transactional(readOnly = true)
-        public String tipoConteudo(Long pedidoId, Long fotoId) {
-            FotoConferencia foto = fotoRepository.findById(fotoId)
-                    .orElseThrow(() -> new IllegalArgumentException("Foto não encontrada."));
-            if (!pedidoId.equals(foto.getPedido().getId())) {
-                throw new IllegalArgumentException("A foto não pertence ao pedido.");
-            }
-            return foto.getTipoConteudo();
-        }
         Path destino = resolverDiretorio().resolve(foto.getCaminhoArquivo()).normalize();
         if (!destino.startsWith(resolverDiretorio())) {
             throw new IllegalArgumentException("Caminho de arquivo inválido.");
@@ -135,6 +126,16 @@ public class FotoConferenciaService {
         } catch (MalformedURLException e) {
             throw new IllegalArgumentException("Arquivo da foto inválido.", e);
         }
+    }
+
+    @Transactional(readOnly = true)
+    public String tipoConteudo(Long pedidoId, Long fotoId) {
+        FotoConferencia foto = fotoRepository.findById(fotoId)
+                .orElseThrow(() -> new IllegalArgumentException("Foto não encontrada."));
+        if (!pedidoId.equals(foto.getPedido().getId())) {
+            throw new IllegalArgumentException("A foto não pertence ao pedido.");
+        }
+        return foto.getTipoConteudo();
     }
 
     private Path resolverDiretorio() {
