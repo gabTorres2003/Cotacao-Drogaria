@@ -45,6 +45,12 @@ public class ItemPedido {
     @Column(name = "observacao_devolucao")
     private String observacaoDevolucao;
 
+    @Column(name = "codigo_barras_recebido")
+    private String codigoBarrasRecebido;
+
+    @Column(name = "nome_produto_recebido")
+    private String nomeProdutoRecebido;
+
     @Enumerated(EnumType.STRING)
     @Column(name = "status_recebimento")
     private StatusItemRecebimento statusRecebimento;

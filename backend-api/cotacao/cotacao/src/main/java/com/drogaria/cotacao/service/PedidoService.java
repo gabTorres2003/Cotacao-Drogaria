@@ -150,6 +150,8 @@ public class PedidoService {
 
             itemBanco.setStatusRecebimento(statusItem);
             itemBanco.setObservacaoDevolucao(itemConferido.getObservacaoDevolucao());
+            itemBanco.setCodigoBarrasRecebido(itemConferido.getCodigoBarrasRecebido());
+            itemBanco.setNomeProdutoRecebido(itemConferido.getNomeProdutoRecebido());
 
             if (itemBanco.getValorUnitarioReal() != null
                     && itemBanco.getValorUnitarioPedido() != null
@@ -230,6 +232,8 @@ public class PedidoService {
                 item.setQuantidadeReal(atual + incremento);
                 item.setStatusRecebimento(itemDTO.getStatusRecebimento());
                 item.setObservacaoDevolucao(itemDTO.getObservacaoDevolucao());
+                item.setCodigoBarrasRecebido(itemDTO.getCodigoBarrasRecebido());
+                item.setNomeProdutoRecebido(itemDTO.getNomeProdutoRecebido());
                 itemPedidoRepository.save(item);
             }
         }
@@ -319,6 +323,8 @@ public class PedidoService {
                     : (dto.getValorUnitarioReal() != null ? dto.getValorUnitarioReal() : 0.0));
             novoItem.setStatusRecebimento(StatusItemRecebimento.OK);
             novoItem.setObservacaoDevolucao(dto.getObservacaoDevolucao() != null ? dto.getObservacaoDevolucao() : "Produto Não Solicitado");
+            novoItem.setCodigoBarrasRecebido(dto.getCodigoBarrasRecebido());
+            novoItem.setNomeProdutoRecebido(dto.getNomeProdutoRecebido());
             novoItem.setCondicaoAplicada(false);
             novoItem.setValorAlteradoAposPedido(false);
 

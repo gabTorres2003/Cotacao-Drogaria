@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
 import { Search, X, Package } from 'lucide-react';
+import LeitorCodigoBarras from './LeitorCodigoBarras';
 
 export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, ocultarValor = false }) {
   const [busca, setBusca] = useState('');
@@ -11,6 +12,8 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
   const [quantidade, setQuantidade] = useState(1);
   const [valorUnitario, setValorUnitario] = useState('');
   const [classificacao, setClassificacao] = useState('ENVIADO_POR_ENGANO');
+  const [codigoBarrasRecebido, setCodigoBarrasRecebido] = useState('');
+  const [nomeProdutoRecebido, setNomeProdutoRecebido] = useState('');
 
   useEffect(() => {
     if (!isOpen) {
@@ -21,8 +24,28 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
       setQuantidade(1);
       setValorUnitario('');
       setClassificacao('ENVIADO_POR_ENGANO');
+      setCodigoBarrasRecebido('');
+      setNomeProdutoRecebido('');
     }
   }, [isOpen]);
+
+  const identificarCodigo = async (codigo) => {
+    const texto = String(codigo || '').trim();
+    if (!texto) return;
+    setCodigoBarrasRecebido(texto);
+    setBusca(texto);
+    try {
+      const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(texto)}`);
+      const nome = res.data?.nome || res.data?.descricao || res.data?.name || '';
+      setNomeProdutoRecebido(nome);
+      setResultadoBusca(res.data);
+      setProdutoManual(!nome);
+    } catch {
+      setNomeProdutoRecebido('');
+      setResultadoBusca({ erro: true });
+      setProdutoManual(true);
+    }
+  };
 
   const buscarProduto = async () => {
     if (!busca.trim()) return;
@@ -41,7 +64,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
   const handleConfirm = () => {
     const nome = resultadoBusca && !resultadoBusca.erro
       ? (resultadoBusca.nome || resultadoBusca.descricao || resultadoBusca.name || '')
-      : (produtoManual ? nomeManual.trim() : busca.trim());
+      : (nomeProdutoRecebido.trim() || (produtoManual ? nomeManual.trim() : busca.trim()));
 
     if (!nome) {
       alert('Informe o nome do produto.');
@@ -54,6 +77,8 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
     onConfirm({
       nomeProduto: nome,
+      codigoBarrasRecebido,
+      nomeProdutoRecebido: nome,
       quantidade,
       valorUnitario: valorUnitario ? Number(valorUnitario) : 0,
       classificacao,
@@ -80,6 +105,25 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
         <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
           Produto que veio na entrega mas não faz parte do pedido original.
         </p>
+
+        <div style={{ marginBottom: '16px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+            Código de barras do produto recebido:
+          </label>
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+            <input
+              type="text"
+              inputMode="numeric"
+              value={codigoBarrasRecebido}
+              onChange={e => setCodigoBarrasRecebido(e.target.value)}
+              onBlur={() => codigoBarrasRecebido.trim() && identificarCodigo(codigoBarrasRecebido)}
+              placeholder="Preserva zeros à esquerda"
+              style={{ flex: '1 1 220px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+            />
+            <LeitorCodigoBarras onDetected={identificarCodigo} />
+          </div>
+          {nomeProdutoRecebido && <div style={{ marginTop: '6px', color: '#166534', fontSize: '12px' }}>Produto identificado: {nomeProdutoRecebido}</div>}
+        </div>
 
         {!produtoManual && (
           <div style={{ marginBottom: '16px' }}>

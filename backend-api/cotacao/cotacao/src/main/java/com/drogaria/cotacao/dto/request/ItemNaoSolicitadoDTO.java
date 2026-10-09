@@ -8,4 +8,6 @@ public class ItemNaoSolicitadoDTO {
     private Integer quantidade;
     private Double valorUnitarioReal;
     private String observacaoDevolucao;
+    private String codigoBarrasRecebido;
+    private String nomeProdutoRecebido;
 }

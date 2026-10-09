@@ -4,6 +4,8 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
+import LeitorCodigoBarras from '../components/LeitorCodigoBarras';
+import FotosConferencia from '../components/FotosConferencia';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Search } from 'lucide-react';
 
 const CHAVE_CACHE_CONFERENCIA = (pedidoId) => `conferencia_pedido_${pedidoId}`;
@@ -42,6 +44,7 @@ export default function PedidoConferencia() {
   const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
   const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
+  const [fotos, setFotos] = useState([]);
   const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
 
   useEffect(() => {
@@ -70,7 +73,8 @@ export default function PedidoConferencia() {
               statusRecebimento: item.statusRecebimento || 'OK',
               conferido: totalmenteRecebido,
               totalmenteRecebido,
-              produtoRecebido: item.produtoRecebido || '',
+              codigoBarrasRecebido: item.codigoBarrasRecebido || '',
+              produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
               observacaoIncorreto: item.observacaoDevolucao || '',
               foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota')
             };
@@ -92,6 +96,7 @@ export default function PedidoConferencia() {
               statusRecebimento: c.statusRecebimento || item.statusRecebimento,
               conferido: !!c.conferido,
               produtoRecebido: c.produtoRecebido || '',
+              codigoBarrasRecebido: c.codigoBarrasRecebido || '',
               observacaoIncorreto: c.observacaoIncorreto || '',
               foiCobrado: !!c.foiCobrado,
               classificacaoNaoSolicitado: c.classificacaoNaoSolicitado
@@ -102,6 +107,8 @@ export default function PedidoConferencia() {
         } else {
           setConferencia(base);
         }
+        const fotosResponse = await api.get(`/api/pedidos/${id}/conferencia/fotos`);
+        setFotos(fotosResponse.data || []);
       }
     } catch (error) {
       console.error('Erro ao carregar pedido para conferência:', error);
@@ -110,6 +117,25 @@ export default function PedidoConferencia() {
       setLoading(false);
     }
   };
+
+  const identificarProdutoRecebido = async (idItem, codigo) => {
+    const codigoTexto = String(codigo || '').trim();
+    if (!codigoTexto) return;
+    handleInputChange(idItem, 'codigoBarrasRecebido', codigoTexto);
+    try {
+      const resposta = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoTexto)}`);
+      const produto = resposta.data || {};
+      const nome = produto.nome || produto.descricao || produto.name || '';
+      if (nome) {
+        handleInputChange(idItem, 'produtoRecebido', nome);
+      }
+    } catch {
+      handleInputChange(idItem, 'produtoRecebido', '');
+      alert('Código não encontrado no DNA. Informe manualmente o nome do produto recebido.');
+    }
+  };
+
+  const adicionarFoto = (foto) => setFotos(prev => [...prev, foto]);
 
   const handleInputChange = (idItem, field, value) => {
     setConferencia(prev => prev.map(item => {
@@ -123,6 +149,7 @@ export default function PedidoConferencia() {
                     newItem.foiCobrado = false;
                 }
                 if (value !== 'INCORRETO') {
+                    newItem.codigoBarrasRecebido = '';
                     newItem.produtoRecebido = '';
                     newItem.observacaoIncorreto = '';
                 }
@@ -164,7 +191,8 @@ export default function PedidoConferencia() {
       conferido: true,
       totalmenteRecebido: false,
       quantidadeRecebidaAgora: dados.quantidade,
-      produtoRecebido: '',
+      codigoBarrasRecebido: dados.codigoBarrasRecebido || '',
+      produtoRecebido: dados.nomeProdutoRecebido || '',
       observacaoIncorreto: '',
       foiCobrado: false,
       isNaoSolicitado: true,
@@ -271,6 +299,49 @@ export default function PedidoConferencia() {
     return c.nomeProduto || itemPedido?.nomeProduto || itemPedido?.itemCotacao?.nomeProduto || 'Produto Desconhecido';
   };
 
+  const salvarConferenciaParcial = async () => {
+    if (!numeroNota.trim()) {
+      alert('Por favor, preencha o Número da NF antes de salvar.');
+      return;
+    }
+    setSalvando(true);
+    try {
+      await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
+        numeroNota: numeroNota.trim(),
+        itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item => ({
+          id: item.id,
+          quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
+            ? 0 : Number(item.quantidadeRecebidaAgora),
+          statusRecebimento: item.statusRecebimento,
+          codigoBarrasRecebido: item.codigoBarrasRecebido || '',
+          nomeProdutoRecebido: item.produtoRecebido || '',
+          observacaoDevolucao: item.statusRecebimento !== 'OK'
+            ? (item.produtoRecebido || item.observacaoIncorreto || item.statusRecebimento)
+            : ''
+        }))
+      });
+
+      const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
+      if (itensNaoSolicitados.length > 0) {
+        await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, itensNaoSolicitados.map(c => ({
+          nomeProduto: c.nomeProduto,
+          quantidade: c.quantidadeRecebidaAgora || 0,
+          valorUnitarioReal: 0,
+          codigoBarrasRecebido: c.codigoBarrasRecebido || '',
+          nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
+          observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
+        })));
+      }
+      limparCacheConferencia(id);
+      alert('Conferência física salva. O ADM deverá continuar a conferência para finalizar.');
+      navigate(`/pedidos/${id}`);
+    } catch (error) {
+      alert(error.response?.data?.message || 'Não foi possível salvar a conferência física.');
+    } finally {
+      setSalvando(false);
+    }
+  };
+
   const enviarRecebimento = async (acao) => {
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
@@ -311,6 +382,8 @@ export default function PedidoConferencia() {
           quantidadeRecebidaAgora: qtdNova,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
+          codigoBarrasRecebido: item.codigoBarrasRecebido || '',
+          nomeProdutoRecebido: item.produtoRecebido || '',
           foiCobrado: !!item.foiCobrado,
           observacaoDevolucao: item.statusRecebimento !== 'OK'
             ? (item.statusRecebimento === 'INCORRETO'
@@ -323,44 +396,6 @@ export default function PedidoConferencia() {
             : ''
         };
 
-        const salvarConferenciaParcial = async () => {
-          if (!numeroNota.trim()) {
-            alert('Por favor, preencha o Número da NF antes de salvar.');
-            return;
-          }
-          setSalvando(true);
-          try {
-            await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
-              numeroNota: numeroNota.trim(),
-              itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item => ({
-                id: item.id,
-                quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
-                  ? 0 : Number(item.quantidadeRecebidaAgora),
-                statusRecebimento: item.statusRecebimento,
-                observacaoDevolucao: item.statusRecebimento !== 'OK'
-                  ? (item.produtoRecebido || item.observacaoIncorreto || item.statusRecebimento)
-                  : ''
-              }))
-            });
-
-            const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
-            if (itensNaoSolicitados.length > 0) {
-              await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, itensNaoSolicitados.map(c => ({
-                nomeProduto: c.nomeProduto,
-                quantidade: c.quantidadeRecebidaAgora || 0,
-                valorUnitarioReal: 0,
-                observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
-              })));
-            }
-            limparCacheConferencia(id);
-            alert('Conferência física salva. O ADM deverá continuar a conferência para finalizar.');
-            navigate(`/pedidos/${id}`);
-          } catch (error) {
-            alert(error.response?.data?.message || 'Não foi possível salvar a conferência física.');
-          } finally {
-            setSalvando(false);
-          }
-        };
       })
     };
 
@@ -375,6 +410,8 @@ export default function PedidoConferencia() {
             nomeProduto: c.nomeProduto,
             quantidade: c.quantidadeRecebidaAgora || 0,
             valorUnitarioReal: c.valorUnitarioReal || 0,
+            codigoBarrasRecebido: c.codigoBarrasRecebido || '',
+            nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
             observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
           }));
           await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, payloadNS);
@@ -789,10 +826,24 @@ export default function PedidoConferencia() {
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
                                 <div style={{ flex: '1 1 200px' }}>
-                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Produto recebido no lugar:</label>
+                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Código de barras recebido:</label>
                                   <input
                                     type="text"
-                                    placeholder="Ex: Outra marca / laboratório"
+                                    inputMode="numeric"
+                                    placeholder="Ex: 7891234567890"
+                                    disabled={totalmenteRecebido || isConferido}
+                                    value={confState.codigoBarrasRecebido || ''}
+                                    onChange={(e) => handleInputChange(item.id, 'codigoBarrasRecebido', e.target.value)}
+                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
+                                  />
+                                  {!totalmenteRecebido && !isConferido && <div style={{ marginTop: '5px' }}><LeitorCodigoBarras onDetected={(codigo) => identificarProdutoRecebido(item.id, codigo)} /></div>}
+                                </div>
+                                <div style={{ flex: '1 1 220px' }}>
+                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Nome do produto recebido:</label>
+                                  <input
+                                    type="text"
+                                    required
+                                    placeholder="Preenchido pelo DNA ou informe manualmente"
                                     disabled={totalmenteRecebido || isConferido}
                                     value={confState.produtoRecebido || ''}
                                     onChange={(e) => handleInputChange(item.id, 'produtoRecebido', e.target.value)}
@@ -810,7 +861,24 @@ export default function PedidoConferencia() {
                                     style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
                                   />
                                 </div>
+                                <div style={{ flex: '1 1 100%' }}>
+                                  <FotosConferencia pedidoId={id} itemPedidoId={item.id} ocorrencia="PRODUTO_INCORRETO" fotos={fotos} onUploaded={adicionarFoto} />
+                                </div>
                               </div>
+                            </td>
+                          </tr>
+                        )}
+                        {confState.statusRecebimento === 'AVARIADO' && !totalmenteRecebido && (
+                          <tr key={`${item.id}-avariado`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
+                              <FotosConferencia pedidoId={id} itemPedidoId={item.id} ocorrencia="AVARIA" fotos={fotos} onUploaded={adicionarFoto} />
+                            </td>
+                          </tr>
+                        )}
+                        {confState.isNaoSolicitado && (
+                          <tr key={`${item.id}-fotos`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#f5f3ff' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
+                              <FotosConferencia pedidoId={id} ocorrencia="PRODUTO_NAO_SOLICITADO" fotos={fotos} onUploaded={adicionarFoto} />
                             </td>
                           </tr>
                         )}

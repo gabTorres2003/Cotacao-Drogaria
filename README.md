@@ -65,6 +65,16 @@ A arquitetura de produção atual é:
 
 O repositório contém um `Dockerfile` no backend, porém o modelo de produção atualmente utilizado é a execução do JAR no servidor da drogaria por serviço do Windows.
 
+### Fotos da conferência
+
+As fotos registradas na conferência não são armazenadas no `localStorage`, no banco ou diretamente no arquivo JAR. O backend persiste somente os metadados no PostgreSQL e grava os arquivos no diretório persistente dedicado `C:\GabrielProjetos\Cotacao\Produtos Avariados-Incorretos`. A variável de ambiente `APP_UPLOAD_DIR` pode sobrescrever esse caminho no serviço Windows:
+
+```text
+APP_UPLOAD_DIR=C:\GabrielProjetos\Cotacao\Produtos Avariados-Incorretos
+```
+
+Esse diretório deve existir como subdiretório dedicado, não deve ser usado para executar o JAR, e precisa ter permissão de leitura/escrita somente para a conta do serviço, backup e espaço suficientes. O endpoint de arquivo é autenticado e não há exposição pública do diretório. A configuração de HTTPS/proxy e a conta/permissões reais do serviço ainda precisam ser confirmadas no servidor.
+
 ---
 
 ## 🔄 Fluxo principal do sistema
