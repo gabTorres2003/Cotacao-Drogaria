@@ -43,6 +43,15 @@ public class ItemCotacao {
     private Double vmd;
 
     // Separação de quantidades: somente em gerações mescladas com a lista de faltas
+    @Column(name = "vendas_30d")
+    private Double vendas30d;
+
+    @Column(name = "vendas_60d")
+    private Double vendas60d;
+
+    @Column(name = "vendas_90d")
+    private Double vendas90d;
+
     @Column(name = "quantidade_balcao")
     private Integer quantidadeBalcao;
 
@@ -121,6 +130,12 @@ public class ItemCotacao {
     public void setVendidoAposUltCompra(Double vendidoAposUltCompra) { this.vendidoAposUltCompra = vendidoAposUltCompra; }
     public Double getVmd() { return vmd; }
     public void setVmd(Double vmd) { this.vmd = vmd; }
+    public Double getVendas30d() { return vendas30d; }
+    public void setVendas30d(Double vendas30d) { this.vendas30d = vendas30d; }
+    public Double getVendas60d() { return vendas60d; }
+    public void setVendas60d(Double vendas60d) { this.vendas60d = vendas60d; }
+    public Double getVendas90d() { return vendas90d; }
+    public void setVendas90d(Double vendas90d) { this.vendas90d = vendas90d; }
     public Integer getQuantidadeBalcao() { return quantidadeBalcao; }
     public void setQuantidadeBalcao(Integer quantidadeBalcao) { this.quantidadeBalcao = quantidadeBalcao; }
     public Integer getQuantidadeSugerida() { return quantidadeSugerida; }

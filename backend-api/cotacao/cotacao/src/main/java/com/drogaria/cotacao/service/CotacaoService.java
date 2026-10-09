@@ -103,6 +103,15 @@ public class CotacaoService {
                         if (itemExistente.getVmd() == null) {
                             itemExistente.setVmd(itemSugestao.getVmd());
                         }
+                        if (itemExistente.getVendas30d() == null) {
+                            itemExistente.setVendas30d(itemSugestao.getVendas30d());
+                        }
+                        if (itemExistente.getVendas60d() == null) {
+                            itemExistente.setVendas60d(itemSugestao.getVendas60d());
+                        }
+                        if (itemExistente.getVendas90d() == null) {
+                            itemExistente.setVendas90d(itemSugestao.getVendas90d());
+                        }
                         if (itemSugestao.getQuantidade() > itemExistente.getQuantidade()) {
                             itemExistente.setQuantidade(itemSugestao.getQuantidade());
                         }
@@ -249,6 +258,18 @@ public class CotacaoService {
 
                 if (itemDna.getVmd() != null && !itemDna.getVmd().equals(existente.getVmd())) {
                     existente.setVmd(itemDna.getVmd());
+                    houveAlteracao = true;
+                }
+                if (itemDna.getVendas30d() != null && !itemDna.getVendas30d().equals(existente.getVendas30d())) {
+                    existente.setVendas30d(itemDna.getVendas30d());
+                    houveAlteracao = true;
+                }
+                if (itemDna.getVendas60d() != null && !itemDna.getVendas60d().equals(existente.getVendas60d())) {
+                    existente.setVendas60d(itemDna.getVendas60d());
+                    houveAlteracao = true;
+                }
+                if (itemDna.getVendas90d() != null && !itemDna.getVendas90d().equals(existente.getVendas90d())) {
+                    existente.setVendas90d(itemDna.getVendas90d());
                     houveAlteracao = true;
                 }
                 if (itemDna.getQuantidadeBalcao() != null && !itemDna.getQuantidadeBalcao().equals(existente.getQuantidadeBalcao())) {

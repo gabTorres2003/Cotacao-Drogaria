@@ -93,6 +93,9 @@ public class ComparativoService {
             linha.setGrupo(item.getGrupo());
             linha.setVendidoNoMes(item.getVendidoNoMes());
             linha.setVmd(item.getVmd());
+            linha.setVendas30d(item.getVendas30d());
+            linha.setVendas60d(item.getVendas60d());
+            linha.setVendas90d(item.getVendas90d());
             linha.setQuantidadeBalcao(item.getQuantidadeBalcao());
             linha.setQuantidadeSugerida(item.getQuantidadeSugerida());
             linha.setClassificacaoInteligencia(item.getClassificacaoInteligencia());

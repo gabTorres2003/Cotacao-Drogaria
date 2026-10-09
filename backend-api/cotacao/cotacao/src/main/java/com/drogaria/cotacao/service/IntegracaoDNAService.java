@@ -60,17 +60,54 @@ public class IntegracaoDNAService {
         return Math.max(0, liquido);
     }
 
+    /** Lê coluna numérica; SQL NULL vira null. */
+    private static Double lerDoubleNulo(ResultSet rs, String coluna) throws SQLException {
+        double valor = rs.getDouble(coluna);
+        return rs.wasNull() ? null : valor;
+    }
+
+    /**
+     * Vendas nos últimos N dias (janela móvel, não mês calendário), com o mesmo
+     * conceito de venda do sistema. NULL quando o produto não tem correspondência.
+     * Parâmetro SQL gerado: :dataLimiteN (ex.: :dataLimite30).
+     */
+    private static String sqlVendasJanelaDias(String produtoExpr, int dias) {
+        return "(SELECT SUM(v2.QTDEVENDIDA) FROM A_VENDAS v2 " +
+                "WHERE v2.CODPRODUTO = " + produtoExpr +
+                " AND v2.DATA > :dataLimite" + dias + " AND v2.DATA <= CURRENT_DATE)";
+    }
+
+    private static void adicionarParametrosJanelaVendas(MapSqlParameterSource parametros, LocalDate hoje) {
+        parametros.addValue("dataLimite30", Date.valueOf(hoje.minusDays(30)));
+        parametros.addValue("dataLimite60", Date.valueOf(hoje.minusDays(60)));
+        parametros.addValue("dataLimite90", Date.valueOf(hoje.minusDays(90)));
+    }
+
+    /** Preenche as janelas de venda (V30/V60/V90) do item a partir das colunas da query. */
+    private static void preencherJanelasVendas(ResultSet rs, ItemCotacao item) throws SQLException {
+        Double vendas30d = lerDoubleNulo(rs, "VENDAS_30D");
+        if (vendas30d != null) item.setVendas30d(vendas30d);
+        Double vendas60d = lerDoubleNulo(rs, "VENDAS_60D");
+        if (vendas60d != null) item.setVendas60d(vendas60d);
+        Double vendas90d = lerDoubleNulo(rs, "VENDAS_90D");
+        if (vendas90d != null) item.setVendas90d(vendas90d);
+    }
+
     public List<ItemCotacao> buscarFaltasDiretoDoBanco(List<String> gruposSelecionados) {
         StringBuilder sql = new StringBuilder(
                 "SELECT f.DESCRICAO, p.CODBARRAS, f.ESTOQUE, f.FALTAS, f.PRECOCUSTO, f.GRUPO, " +
                 "f.VENDIDO_NO_MES, f.ULTCOMPRA_DATA, f.ULTCOMPRA_QTDE, " +
                 "f.ULTVENDA_DATA, " +
-                sqlVendidoLiquidoAposCompra("p.CODIGO", "f.ULTCOMPRA_DATA") + " AS VENDIDO_APOS_ULTCOMPRA " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "f.ULTCOMPRA_DATA") + " AS VENDIDO_APOS_ULTCOMPRA, " +
+                sqlVendasJanelaDias("p.CODIGO", 30) + " AS VENDAS_30D, " +
+                sqlVendasJanelaDias("p.CODIGO", 60) + " AS VENDAS_60D, " +
+                sqlVendasJanelaDias("p.CODIGO", 90) + " AS VENDAS_90D " +
                 "FROM A_FALTAS f " +
                 "LEFT JOIN PRODUTOS p ON p.DESCRICAO = f.DESCRICAO"
         );
 
         MapSqlParameterSource parametros = new MapSqlParameterSource();
+        adicionarParametrosJanelaVendas(parametros, LocalDate.now());
 
         if (gruposSelecionados != null && !gruposSelecionados.isEmpty()) {
             List<String> gruposUpper = gruposSelecionados.stream()
@@ -96,6 +133,8 @@ public class IntegracaoDNAService {
             if (vendidoApos != null) {
                 item.setVendidoAposUltCompra(vendidoApos);
             }
+
+            preencherJanelasVendas(rs, item);
 
             item.setOrigemItem("Falta Manual");
 
@@ -126,7 +165,10 @@ public class IntegracaoDNAService {
                 "(COALESCE((SELECT SUM(ti.QUANTIDADEVENDIDA) FROM TALAOMANUALITENS ti JOIN TALAOMANUAL t ON t.CODIGO = ti.CODTALAOMANUAL WHERE ti.CODPRODUTO = p.CODIGO AND ti.CANCELADO = 'N' AND t.CANCELADO = 'N' AND t.VENDAFINALIZADA = 'S' AND t.DATA > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND t.DATA <= CURRENT_DATE), 0) + " +
                 "COALESCE((SELECT SUM(fi.QUANTIDADE) FROM FATURAMENTOSITENS fi JOIN FATURAMENTOS f ON f.CODIGO = fi.CODFATURAMENTO WHERE fi.CODPRODUTO = p.CODIGO AND f.TIPOOPERACAO = 1 AND f.SITUACAONFE = 1 AND (f.CODTALAOMANUAL IS NULL OR NOT EXISTS (SELECT 1 FROM TALAOMANUAL t2 WHERE t2.CODIGO = f.CODTALAOMANUAL AND t2.CANCELADO = 'N' AND t2.VENDAFINALIZADA = 'S')) AND f.DTEMISSAO > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) AND f.DTEMISSAO <= CURRENT_DATE), 0)) AS VENDIDO_NO_MES, " +
                 
-                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA, " +
+                sqlVendasJanelaDias("p.CODIGO", 30) + " AS VENDAS_30D, " +
+                sqlVendasJanelaDias("p.CODIGO", 60) + " AS VENDAS_60D, " +
+                sqlVendasJanelaDias("p.CODIGO", 90) + " AS VENDAS_90D " +
 
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
@@ -137,6 +179,7 @@ public class IntegracaoDNAService {
         MapSqlParameterSource parametros = new MapSqlParameterSource();
         parametros.addValue("dataInicial", java.sql.Date.valueOf(dataInicial));
         parametros.addValue("dataFinal", java.sql.Date.valueOf(dataFinal));
+        adicionarParametrosJanelaVendas(parametros, LocalDate.now());
 
         if (gruposSelecionados != null && !gruposSelecionados.isEmpty()) {
             List<String> gruposUpper = gruposSelecionados.stream()
@@ -176,6 +219,8 @@ public class IntegracaoDNAService {
                 if (vendidoApos != null) {
                     item.setVendidoAposUltCompra(vendidoApos);
                 }
+
+                preencherJanelasVendas(rs, item);
                 
                 Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
                 if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
@@ -217,7 +262,10 @@ public class IntegracaoDNAService {
                 "SELECT p.CODIGO, p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
                 "g.NOME AS GRUPO, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA, " +
                 "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO, " +
-                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA, " +
+                sqlVendasJanelaDias("p.CODIGO", 30) + " AS VENDAS_30D, " +
+                sqlVendasJanelaDias("p.CODIGO", 60) + " AS VENDAS_60D, " +
+                sqlVendasJanelaDias("p.CODIGO", 90) + " AS VENDAS_90D " +
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
                 "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
@@ -225,6 +273,7 @@ public class IntegracaoDNAService {
 
         MapSqlParameterSource parametros = new MapSqlParameterSource();
         parametros.addValue("dataLimite", Date.valueOf(LocalDate.now().minusDays(diasMediaVendas)));
+        adicionarParametrosJanelaVendas(parametros, LocalDate.now());
 
         List<String> gruposUpper = gruposSelecionados.stream()
                 .map(g -> g.toUpperCase().trim())
@@ -291,6 +340,8 @@ public class IntegracaoDNAService {
             if (vendidoApos != null) {
                 item.setVendidoAposUltCompra(vendidoApos);
             }
+
+            preencherJanelasVendas(rs, item);
 
             if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
             item.setUltCompraQtde(rs.getDouble("QTDEULTCOMPRA"));

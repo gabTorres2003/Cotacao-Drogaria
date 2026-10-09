@@ -18,6 +18,9 @@ public class ItemComparativoDTO {
     private String ultVendaData;
     private Double vendidoAposUltCompra;
     private Double vmd;
+    private Double vendas30d;
+    private Double vendas60d;
+    private Double vendas90d;
     private Integer quantidadeBalcao;
     private Integer quantidadeSugerida;
     private String classificacaoInteligencia;
@@ -96,6 +99,15 @@ public class ItemComparativoDTO {
 
     public Double getVmd() { return vmd; }
     public void setVmd(Double vmd) { this.vmd = vmd; }
+
+    public Double getVendas30d() { return vendas30d; }
+    public void setVendas30d(Double vendas30d) { this.vendas30d = vendas30d; }
+
+    public Double getVendas60d() { return vendas60d; }
+    public void setVendas60d(Double vendas60d) { this.vendas60d = vendas60d; }
+
+    public Double getVendas90d() { return vendas90d; }
+    public void setVendas90d(Double vendas90d) { this.vendas90d = vendas90d; }
 
     public Integer getQuantidadeBalcao() { return quantidadeBalcao; }
     public void setQuantidadeBalcao(Integer quantidadeBalcao) { this.quantidadeBalcao = quantidadeBalcao; }

@@ -450,6 +450,9 @@ public class SugestaoCompraService {
                     ? aprovado.getQuantidadeUltimaCompra().doubleValue() : null);
             item.setUltVendaData(aprovado.getDataUltimaVenda());
             item.setOrigemItem("INTELIGENCIA_COMPRA");
+            item.setVendas30d(aprovado.getVendas30d() != null ? aprovado.getVendas30d().doubleValue() : null);
+            item.setVendas60d(aprovado.getVendas60d() != null ? aprovado.getVendas60d().doubleValue() : null);
+            item.setVendas90d(aprovado.getVendas90d() != null ? aprovado.getVendas90d().doubleValue() : null);
 
             if (sugestao.getPeriodoInicio() != null && sugestao.getPeriodoFim() != null) {
                 long diasPeriodo = sugestao.getPeriodoFim().toEpochDay() - sugestao.getPeriodoInicio().toEpochDay() + 1;
