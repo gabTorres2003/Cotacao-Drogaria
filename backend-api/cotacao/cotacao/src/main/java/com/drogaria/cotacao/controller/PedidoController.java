@@ -41,13 +41,13 @@ public class PedidoController {
             } catch (Exception e) {
                 return nome;
             }
-
-            private boolean isAdmin(Authentication authentication) {
-                return authentication != null && authentication.getAuthorities().stream()
-                        .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
-            }
         }
         return "Sistema";
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
     }
 
     @GetMapping
