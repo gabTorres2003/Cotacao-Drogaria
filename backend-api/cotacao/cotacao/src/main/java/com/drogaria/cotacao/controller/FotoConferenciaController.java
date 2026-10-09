@@ -2,6 +2,7 @@ package com.drogaria.cotacao.controller;
 
 import com.drogaria.cotacao.dto.response.FotoConferenciaResponseDTO;
 import com.drogaria.cotacao.service.FotoConferenciaService;
+import com.drogaria.cotacao.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
@@ -20,6 +21,7 @@ import java.util.List;
 public class FotoConferenciaController {
 
     private final FotoConferenciaService fotoService;
+    private final UsuarioRepository usuarioRepository;
 
     @PostMapping(consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<FotoConferenciaResponseDTO> enviar(
@@ -55,7 +57,13 @@ public class FotoConferenciaController {
     }
 
     private boolean interno(Authentication authentication) {
-        return authentication != null && authentication.getAuthorities().stream()
+        if (authentication == null) return false;
+        boolean porAutoridade = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()) || "ROLE_CONFERENTE".equals(a.getAuthority()));
+        if (porAutoridade) return true;
+        return usuarioRepository.findByUsername(authentication.getName())
+                .map(usuario -> "ADMIN".equalsIgnoreCase(usuario.getPerfil())
+                        || "CONFERENTE".equalsIgnoreCase(usuario.getPerfil()))
+                .orElse(false);
     }
 }

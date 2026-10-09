@@ -14,10 +14,6 @@ export default function LeitorCodigoBarras({ onDetected }) {
 
     let ativo = true;
     const iniciar = async () => {
-      if (!('BarcodeDetector' in window)) {
-        setErro('A leitura automática não é suportada neste navegador. Digite o código manualmente.');
-        return;
-      }
       if (!navigator.mediaDevices?.getUserMedia) {
         setErro('A câmera não está disponível. Digite o código manualmente.');
         return;
@@ -31,6 +27,10 @@ export default function LeitorCodigoBarras({ onDetected }) {
         streamRef.current = stream;
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
+        if (!('BarcodeDetector' in window)) {
+          setErro('A câmera foi aberta. A leitura automática não está disponível neste navegador; digite o código no campo acima.');
+          return;
+        }
         const detector = new window.BarcodeDetector();
         const detectar = async () => {
           if (!ativo || !videoRef.current) return;
@@ -80,7 +80,7 @@ export default function LeitorCodigoBarras({ onDetected }) {
             <button type="button" onClick={fechar} style={{ border: 0, background: 'transparent', cursor: 'pointer' }}><X size={16} /></button>
           </div>
           <video ref={videoRef} muted playsInline style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '6px', background: '#111827' }} />
-          {erro && <p style={{ color: '#b91c1c', fontSize: '12px', margin: '6px 0 0' }}>{erro}</p>}
+          {erro && <p style={{ color: erro.startsWith('A câmera foi aberta') ? '#92400e' : '#b91c1c', fontSize: '12px', margin: '6px 0 0' }}>{erro}</p>}
         </div>
       )}
     </div>

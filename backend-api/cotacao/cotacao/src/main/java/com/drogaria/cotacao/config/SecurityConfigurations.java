@@ -53,9 +53,9 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/*/itens-nao-solicitados")
                                 .hasAnyRole("ADMIN", "CONFERENTE")
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/*/conferencia/fotos")
-                                .hasAnyRole("ADMIN", "CONFERENTE")
+                                .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/*/conferencia/fotos/**")
-                                .hasAnyRole("ADMIN", "CONFERENTE")
+                                .authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/receber",
                                 "/api/pedidos/*/valores-reais", "/api/pedidos/*/valores-previstos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/reabrir-conferencia",

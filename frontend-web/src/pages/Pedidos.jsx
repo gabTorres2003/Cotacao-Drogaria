@@ -347,7 +347,7 @@ export default function Pedidos() {
             margin: 0 auto;
             width: 100%;
             box-sizing: border-box;
-            padding-bottom: calc(104px + env(safe-area-inset-bottom));
+            padding-bottom: calc(220px + env(safe-area-inset-bottom));
           }
           .conferente-pedido-card {
             background: white;
@@ -360,10 +360,13 @@ export default function Pedidos() {
           .conferente-pedido-card button {
             min-height: 42px;
             width: 100%;
+            scroll-margin-bottom: 220px;
           }
           @media (max-width: 768px) {
             .pedidos-conferente-mobile .main-content {
-              padding: 12px 10px calc(104px + env(safe-area-inset-bottom));
+              padding: 12px 10px calc(220px + env(safe-area-inset-bottom));
+              min-height: calc(100vh - 64px);
+              overflow: visible;
             }
             .pedidos-conferente-mobile h1 {
               font-size: 21px !important;
@@ -371,6 +374,9 @@ export default function Pedidos() {
             .conferente-pedido-card {
               border-radius: 10px;
               padding: 12px;
+            }
+            .conferente-pedido-card:last-child {
+              margin-bottom: 160px;
             }
           }
         `}</style>

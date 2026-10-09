@@ -258,26 +258,27 @@ export default function PedidoConferencia() {
 
   const conferirTodos = () => {
     let confirmados = 0;
-    let erros = 0;
+    let pendentes = 0;
     setConferencia(prev => prev.map(item => {
       if (item.conferido || item.totalmenteRecebido || item.isNaoSolicitado) return item;
-      if (item.statusRecebimento === 'FALTANTE') {
-        return { ...item, conferido: true };
+      const quantidadePreenchida = item.quantidadeRecebidaAgora !== ''
+        && item.quantidadeRecebidaAgora !== undefined
+        && item.quantidadeRecebidaAgora !== null
+        && Number.isFinite(Number(item.quantidadeRecebidaAgora))
+        && (item.statusRecebimento === 'FALTANTE'
+          ? Number(item.quantidadeRecebidaAgora) >= 0
+          : Number(item.quantidadeRecebidaAgora) > 0);
+      if (!quantidadePreenchida) {
+        pendentes++;
+        return item;
       }
-      const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
-      if (qtdNova > 0 && (isConferente || (item.valorUnitarioReal !== '' && item.valorUnitarioReal !== undefined))) {
-        confirmados++;
-        return { ...item, conferido: true };
-      }
-      erros++;
-      return item;
+      confirmados++;
+      return { ...item, conferido: true };
     }));
-    if (confirmados > 0 && erros === 0) {
-      alert(`${confirmados} item(ns) conferido(s) com sucesso!`);
+    if (pendentes > 0) {
+      alert(`${confirmados} item(ns) marcado(s) como conferido(s). ${pendentes} item(ns) permanecem pendentes porque a quantidade não foi preenchida.`);
     } else if (confirmados > 0) {
-      alert(`${confirmados} item(ns) conferido(s). ${erros} item(ns) sem quantidade ou preço preenchidos foram ignorados.`);
-    } else {
-      alert('Nenhum item pôde ser conferido automaticamente. Preencha a quantidade e o valor unitário de pelo menos um item.');
+      alert(`${confirmados} item(ns) marcado(s) como conferido(s).`);
     }
   };
 
@@ -508,6 +509,9 @@ export default function PedidoConferencia() {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
         }
+        .conferencia-page .conferencia-acoes-mobile {
+          display: none;
+        }
         @media (max-width: 768px) {
           .conferencia-page .main-content {
             padding: 14px 10px;
@@ -515,6 +519,7 @@ export default function PedidoConferencia() {
             max-width: 100%;
             overflow-x: hidden;
             -webkit-text-size-adjust: 100%;
+            padding-bottom: 150px;
           }
           .conferencia-page .conferencia-header {
             align-items: stretch;
@@ -610,6 +615,9 @@ export default function PedidoConferencia() {
             width: 100%;
             justify-content: center;
           }
+          .conferencia-page .conferencia-acoes-mobile {
+            display: flex;
+          }
         }
       `}</style>
       <Sidebar />
@@ -700,15 +708,6 @@ export default function PedidoConferencia() {
                     <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', whiteSpace: 'nowrap' }}>
                       {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} pendente(s)` : 'Todos conferidos'}
                     </span>
-                    {itensNaoConferidos.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={conferirTodos}
-                        style={{ padding: '6px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
-                      >
-                        <Check size={14} /> Conferir Todos
-                      </button>
-                    )}
                   </div>
                 </div>
                 <table className="conferencia-tabela" style={styles.table}>
@@ -949,6 +948,15 @@ export default function PedidoConferencia() {
                 {itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.
               </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                {itensNaoConferidos.length > 0 && (
+                  <button
+                    type="button"
+                    onClick={conferirTodos}
+                    style={{ width: '100%', padding: '10px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                  >
+                    <Check size={15} /> Conferir todos os produtos
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => navigate(`/pedidos/${id}`)}
@@ -970,6 +978,36 @@ export default function PedidoConferencia() {
           </form>
         </div>
       </main>
+      <div className="conferencia-acoes-mobile" style={{
+        position: 'fixed',
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 80,
+        padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
+        backgroundColor: 'rgba(255, 255, 255, 0.97)',
+        borderTop: '1px solid #cbd5e1',
+        boxShadow: '0 -3px 12px rgba(15, 23, 42, 0.14)',
+        gap: '8px'
+      }}>
+        <button
+          type="button"
+          onClick={() => navigate(`/pedidos/${id}`)}
+          disabled={salvando}
+          style={{ ...styles.btnCancelar, flex: '0 0 38%', padding: '12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+        >
+          <ArrowLeft size={17} /> Voltar
+        </button>
+        <button
+          type="button"
+          onClick={() => document.querySelector('.conferencia-page form')?.requestSubmit()}
+          disabled={salvando}
+          style={{ ...styles.btnSalvar, flex: 1, justifyContent: 'center', padding: '12px 8px', opacity: salvando ? 0.7 : 1 }}
+        >
+          <CheckCircle size={17} />
+          {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência' : 'Finalizar conferência')}
+        </button>
+      </div>
       {showModalDestinoFaltantes && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
           <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>

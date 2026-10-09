@@ -11,6 +11,7 @@ import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtDecoder;
 import org.springframework.security.oauth2.jwt.NimbusJwtEncoder;
 import org.springframework.security.oauth2.server.resource.authentication.JwtAuthenticationConverter;
+import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 
 import java.util.Collection;
@@ -43,8 +44,10 @@ public class JwtConfig {
         JwtAuthenticationConverter converter = new JwtAuthenticationConverter();
         converter.setJwtGrantedAuthoritiesConverter(jwt -> {
             List<String> authorities = jwt.getClaimAsStringList("authorities");
-            if (authorities == null) return List.of();
-            return authorities.stream().map(SimpleGrantedAuthority::new).toList();
+            if (authorities == null) return List.<GrantedAuthority>of();
+            return authorities.stream()
+                    .map(authority -> (GrantedAuthority) new SimpleGrantedAuthority(authority))
+                    .toList();
         });
         return converter;
     }
