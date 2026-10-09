@@ -451,11 +451,14 @@ export default function PedidoDetalhes() {
             <div className="layout pedido-detalhes-conferente">
                 <style>{`
                   .pedido-detalhes-conferente .main-content {
-                    padding: 16px;
+                    padding: 16px 16px 28px;
                     max-width: 900px;
                     margin: 0 auto;
                     width: 100%;
                     box-sizing: border-box;
+                  }
+                  .pedido-detalhes-conferente .acoes-mobile {
+                    display: none;
                   }
                   .pedido-detalhes-conferente .produto-linha {
                     display: grid;
@@ -466,7 +469,12 @@ export default function PedidoDetalhes() {
                     border-bottom: 1px solid #e2e8f0;
                   }
                   @media (max-width: 600px) {
-                    .pedido-detalhes-conferente .main-content { padding: 12px 10px 24px; }
+                    .pedido-detalhes-conferente .main-content {
+                      padding: 12px 10px calc(86px + env(safe-area-inset-bottom));
+                    }
+                    .pedido-detalhes-conferente .voltar-topo {
+                      display: none;
+                    }
                     .pedido-detalhes-conferente .produto-linha {
                       grid-template-columns: 1fr auto;
                       gap: 8px;
@@ -474,6 +482,26 @@ export default function PedidoDetalhes() {
                     .pedido-detalhes-conferente .produto-status {
                       grid-column: 1 / -1;
                       justify-self: start;
+                    }
+                    .pedido-detalhes-conferente .acoes-mobile {
+                      position: fixed;
+                      z-index: 20;
+                      right: 0;
+                      bottom: 0;
+                      left: 0;
+                      display: grid;
+                      grid-template-columns: 0.8fr 1.2fr;
+                      gap: 8px;
+                      padding: 10px 10px calc(10px + env(safe-area-inset-bottom));
+                      background: rgba(255, 255, 255, 0.98);
+                      border-top: 1px solid #cbd5e1;
+                      box-shadow: 0 -4px 12px rgba(15, 23, 42, 0.12);
+                    }
+                    .pedido-detalhes-conferente .acoes-mobile button {
+                      min-height: 46px;
+                      justify-content: center;
+                      padding: 10px 8px;
+                      font-size: 13px;
                     }
                   }
                 `}</style>
@@ -484,7 +512,7 @@ export default function PedidoDetalhes() {
                             <h1 style={{ fontSize: '22px', margin: '0 0 5px' }}>Produtos do Pedido #{pedido.id}</h1>
                             <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{empresa}</p>
                         </div>
-                        <button onClick={() => navigate('/pedidos')} style={{ ...styles.btnVoltar, whiteSpace: 'nowrap' }}>
+                        <button className="voltar-topo" onClick={() => navigate('/pedidos')} style={{ ...styles.btnVoltar, whiteSpace: 'nowrap' }}>
                             <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
                         </button>
                     </header>
@@ -510,6 +538,14 @@ export default function PedidoDetalhes() {
                         <CheckCircle size={18} style={{ marginRight: '6px' }} /> Abrir conferência item a item
                     </button>
                 </main>
+                <div className="acoes-mobile">
+                    <button onClick={() => navigate('/pedidos')} style={styles.btnVoltar}>
+                        <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
+                    </button>
+                    <button onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} style={styles.btnConferir}>
+                        <CheckCircle size={17} style={{ marginRight: '5px' }} /> Conferir pedido
+                    </button>
+                </div>
             </div>
         );
     }
