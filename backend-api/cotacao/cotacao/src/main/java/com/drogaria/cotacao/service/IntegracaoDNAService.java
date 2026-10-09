@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import jakarta.persistence.EntityManager;
 import java.sql.Date;
 import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
@@ -53,7 +54,7 @@ public class IntegracaoDNAService {
     }
 
     /** Lê a coluna de venda líquida; nulo vira nulo e resultado negativo é limitado a zero. */
-    private static Double lerVendidoLiquido(ResultSet rs, String coluna) {
+    private static Double lerVendidoLiquido(ResultSet rs, String coluna) throws SQLException {
         double liquido = rs.getDouble(coluna);
         if (rs.wasNull()) return null;
         return Math.max(0, liquido);
