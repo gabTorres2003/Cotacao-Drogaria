@@ -42,7 +42,7 @@ public class AuthController {
         var authToken = new UsernamePasswordAuthenticationToken(dto.getUsername(), dto.getPin());
         var authentication = authenticationManager.authenticate(authToken);
         
-        String token = tokenService.gerarToken(authentication.getName());
+        String token = tokenService.gerarToken(authentication);
         
         boolean isAdmin = authentication.getAuthorities().stream()
                 .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));

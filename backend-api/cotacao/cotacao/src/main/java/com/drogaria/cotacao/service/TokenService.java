@@ -5,10 +5,10 @@ import org.springframework.security.oauth2.jwt.JwsHeader;
 import org.springframework.security.oauth2.jwt.JwtClaimsSet;
 import org.springframework.security.oauth2.jwt.JwtEncoder;
 import org.springframework.security.oauth2.jwt.JwtEncoderParameters;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Service;
 
 import java.time.Instant;
-import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
@@ -20,15 +20,14 @@ public class TokenService {
         this.jwtEncoder = jwtEncoder;
     }
 
-    public String gerarToken(String username) {
+    public String gerarToken(Authentication authentication) {
         Instant now = Instant.now();
-        var authorities = org.springframework.security.core.context.SecurityContextHolder
-                .getContext().getAuthentication().getAuthorities().stream()
+        var authorities = authentication.getAuthorities().stream()
                 .map(authority -> authority.getAuthority())
                 .collect(Collectors.toList());
         JwtClaimsSet claims = JwtClaimsSet.builder()
                 .issuer("drogaria-api")
-                .subject(username)
+                .subject(authentication.getName())
                 .claim("authorities", authorities)
                 .issuedAt(now)
                 .expiresAt(now.plusSeconds(36000L))
