@@ -56,8 +56,9 @@ public class SecurityConfigurations {
                                 .authenticated()
                         .requestMatchers(HttpMethod.GET, "/api/pedidos/*/conferencia/fotos/**")
                                 .authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/receber",
-                                "/api/pedidos/*/valores-reais", "/api/pedidos/*/valores-previstos").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/receber").authenticated()
+                        .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/valores-reais",
+                                "/api/pedidos/*/valores-previstos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/reabrir-conferencia",
                                 "/api/pedidos/*/refazer-conferencia", "/api/pedidos/*/status",
                                 "/api/pedidos/*/cancelar-confirmacao", "/api/pedidos/*/falha-entrega",

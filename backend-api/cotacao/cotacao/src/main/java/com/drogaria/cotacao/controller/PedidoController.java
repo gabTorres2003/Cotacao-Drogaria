@@ -8,6 +8,7 @@ import com.drogaria.cotacao.model.Pedido;
 import com.drogaria.cotacao.model.SugestaoPedido;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.model.enums.TipoAcao;
+import com.drogaria.cotacao.repository.UsuarioRepository;
 import com.drogaria.cotacao.service.LogAuditoriaService;
 import com.drogaria.cotacao.service.PedidoService;
 
@@ -32,6 +33,7 @@ public class PedidoController {
     private final PedidoService pedidoService;
     private final LogAuditoriaService logAuditoriaService;
     private final HttpServletRequest request;
+    private final UsuarioRepository usuarioRepository;
     
     private String getUsuarioLogado() {
         String nome = request.getHeader("X-Usuario-Nome");
@@ -46,8 +48,13 @@ public class PedidoController {
     }
 
     private boolean isAdmin(Authentication authentication) {
-        return authentication != null && authentication.getAuthorities().stream()
+        if (authentication == null) return false;
+        boolean porAutoridade = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_ADMIN".equals(a.getAuthority()));
+        if (porAutoridade) return true;
+        return usuarioRepository.findByUsername(authentication.getName())
+                .map(usuario -> "ADMIN".equalsIgnoreCase(usuario.getPerfil()))
+                .orElse(false);
     }
 
     @GetMapping
