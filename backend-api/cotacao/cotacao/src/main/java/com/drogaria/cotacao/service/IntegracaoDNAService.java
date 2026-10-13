@@ -135,6 +135,10 @@ public class IntegracaoDNAService {
             }
 
             preencherJanelasVendas(rs, item);
+            Double vendas30d = item.getVendas30d();
+            if (vendas30d != null && vendas30d > 0) {
+                item.setVmd(vendas30d / 30.0);
+            }
 
             item.setOrigemItem("Falta Manual");
 
