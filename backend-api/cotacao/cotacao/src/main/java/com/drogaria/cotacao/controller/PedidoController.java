@@ -57,6 +57,11 @@ public class PedidoController {
                 .orElse(false);
     }
 
+    private boolean isFornecedor(Authentication authentication) {
+        return authentication != null && authentication.getAuthorities().stream()
+                .anyMatch(a -> "ROLE_FORNECEDOR".equals(a.getAuthority()));
+    }
+
     @GetMapping
     public ResponseEntity<List<Pedido>> listarTodos() {
         return ResponseEntity.ok(pedidoService.listarTodos());
@@ -240,9 +245,16 @@ public class PedidoController {
     @PatchMapping("/{id}/status")
     public ResponseEntity<Pedido> atualizarStatus(
             @PathVariable Long id, 
-            @RequestBody Map<String, String> body) {
+            @RequestBody Map<String, String> body,
+            Authentication authentication) {
         
         StatusPedido novoStatus = StatusPedido.valueOf(body.get("status"));
+        boolean fornecedorPodeAtualizar = isFornecedor(authentication)
+                && (novoStatus == StatusPedido.CONFIRMADO_FORNECEDOR
+                    || novoStatus == StatusPedido.CANCELADO);
+        if (!isAdmin(authentication) && !fornecedorPodeAtualizar) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         Pedido pedidoAtualizado = pedidoService.atualizarStatus(id, novoStatus);
 
         logAuditoriaService.registrarLog(
