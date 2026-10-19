@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import FotosConferencia from './FotosConferencia';
 import { X, Plus, Trash2, Save, CheckSquare, ListX, AlertCircle, Edit2, Check } from 'lucide-react';
 
 export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSuccess, readOnly, itensNaoSolicitados }) {
@@ -10,6 +11,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
   const [internalDevId, setInternalDevId] = useState(devolucaoId);
   const [pedidoOriginal, setPedidoOriginal] = useState(null);
+  const [fotos, setFotos] = useState([]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -69,6 +71,15 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
         pedido: data.pedido
       });
       setItens(data.itens || []);
+      const pedidoVinculadoId = data.pedido?.id;
+      if (pedidoVinculadoId) {
+        try {
+          const fotosResponse = await api.get(`/api/pedidos/${pedidoVinculadoId}/conferencia/fotos`);
+          setFotos(fotosResponse.data || []);
+        } catch (fotoError) {
+          console.warn('Fotos da conferência não puderam ser carregadas:', fotoError.response?.status || fotoError.message);
+        }
+      }
     } catch (error) { alert("Erro ao carregar devolução"); }
   };
 
@@ -82,6 +93,12 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
       const { data } = await api.get(`/api/pedidos/${idPed}`);
       setPedidoOriginal(data);
+      try {
+        const fotosResponse = await api.get(`/api/pedidos/${idPed}/conferencia/fotos`);
+        setFotos(fotosResponse.data || []);
+      } catch (fotoError) {
+        console.warn('Fotos da conferência não puderam ser carregadas:', fotoError.response?.status || fotoError.message);
+      }
       
       setForm(prev => ({ 
         ...prev, 
@@ -129,8 +146,9 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
       const isFaltaParcial = i.quantidadeReal > 0 && i.quantidadeReal < i.quantidadePedida;
       const isAvariado = i.statusRecebimento === 'AVARIADO';
       const isIncorreto = i.statusRecebimento === 'INCORRETO';
+      const isProximoVencimento = i.statusRecebimento === 'PROXIMO_VENCIMENTO';
 
-      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isFaltanteCobrado;
+      const isDivergente = isFaltaTotal || isFaltaParcial || isAvariado || isIncorreto || isProximoVencimento || isFaltanteCobrado;
       const isSelected = tipo === 'TOTAL' ? true : (tipo === 'DIVERGENCIAS' ? isDivergente : false);
 
       let motivoPadrao = 'Devolução Padrão';
@@ -151,8 +169,8 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
           isApenasFinanceiro = true;
       } else if (isAvariado) {
           motivoPadrao = 'Produto Avariado / Quebrado';
-          qtdSugerida = i.quantidadeReal; 
-          maxPermitido = i.quantidadeReal;
+          qtdSugerida = i.quantidadeAvariada || i.quantidadeReal || 0;
+          maxPermitido = i.quantidadeAvariada || i.quantidadeReal || 0;
       } else if (isIncorreto) {
           motivoPadrao = 'Produto Incorreto / Invertido';
           qtdSugerida = i.quantidadeReal; 
@@ -163,6 +181,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
               nomeProdutoUsado = match[1].trim();
             }
           }
+      } else if (isProximoVencimento) {
+          motivoPadrao = 'Vencimento Próximo';
+          qtdSugerida = i.quantidadeReal || 0;
+          maxPermitido = i.quantidadeReal || 0;
       } else if (isFaltaParcial && !isAvariado && !isIncorreto) {
           motivoPadrao = 'Falta Parcial';
           qtdSugerida = i.quantidadePedida - i.quantidadeReal;
@@ -467,6 +489,14 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                                     </span>
                                 )}
                             </div>
+                            {fotos.some(foto => foto.itemPedidoId === item.id) && (
+                              <FotosConferencia
+                                pedidoId={pedidoOriginal.id}
+                                itemPedidoId={item.id}
+                                fotos={fotos}
+                                somenteLeitura
+                              />
+                            )}
                           </td>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <input 
@@ -491,6 +521,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                                 <option value="Falta Parcial">Falta Parcial</option>
                                 <option value="Produto Avariado / Quebrado">Produto Avariado / Quebrado</option>
                                 <option value="Produto Incorreto / Invertido">Produto Incorreto / Invertido</option>
+                                <option value="Vencimento Próximo">Vencimento Próximo</option>
                                 <option value="Produto Não Solicitado">Produto Não Solicitado</option>
                                 <option value="Sobra (Entregue a mais)">Sobra (Entregue a mais)</option>
                                 <option value="Vencimento Próximo">Vencimento Próximo</option>

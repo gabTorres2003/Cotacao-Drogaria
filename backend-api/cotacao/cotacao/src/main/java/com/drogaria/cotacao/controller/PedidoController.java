@@ -276,7 +276,10 @@ public class PedidoController {
     }
 
     @PatchMapping("/{id}/refazer-conferencia")
-    public ResponseEntity<Pedido> refazerConferencia(@PathVariable Long id) {
+    public ResponseEntity<?> refazerConferencia(@PathVariable Long id, Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
         Pedido pedidoAtualizado = pedidoService.refazerConferencia(id);
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id, 

@@ -15,6 +15,9 @@ import java.util.List;
 @Repository
 public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     List<Pedido> findByFornecedorId(Long fornecedorId);
+
+    @Query("SELECT DISTINCT p FROM Pedido p LEFT JOIN FETCH p.itens WHERE p.fornecedor.id = :fornecedorId")
+    List<Pedido> findWithItensByFornecedorId(@Param("fornecedorId") Long fornecedorId);
     List<Pedido> findByCotacaoId(Long cotacaoId);
 
     List<Pedido> findByDataCriacaoBefore(LocalDateTime dataLimite);

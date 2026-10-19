@@ -39,6 +39,7 @@ export default function PedidoDetalhes() {
 
     const [agora, setAgora] = useState(new Date().getTime());
     const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
+    const isAdmin = localStorage.getItem('tipoUsuario') === 'ADMIN';
     useEffect(() => {
         const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
         return () => clearInterval(interval);
@@ -109,6 +110,7 @@ export default function PedidoDetalhes() {
         if (window.confirm('Tem certeza que deseja APAGAR os valores recebidos e REFAZER a conferência cega deste pedido?')) {
             try {
                 await api.patch(`/api/pedidos/${id}/refazer-conferencia`);
+                localStorage.removeItem(`conferencia_pedido_${id}`);
                 alert('Conferência apagada. Você foi redirecionado para lançar a NF novamente.');
                 navigate(`/pedidos/${id}/conferir`);
             } catch (error) {
@@ -385,16 +387,18 @@ export default function PedidoDetalhes() {
         }
 
         if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status)) {
-            let faltas = 0, avarias = 0, incorretos = 0;
+            let faltas = 0, avarias = 0, incorretos = 0, vencimentosProximos = 0;
             pedidoObj.itens?.forEach(item => {
                 if (item.statusRecebimento === 'FALTA' || (item.quantidadeReal !== null && item.quantidadeReal < item.quantidadePedida)) faltas++;
                 if (item.statusRecebimento === 'AVARIADO') avarias++;
                 if (item.statusRecebimento === 'INCORRETO') incorretos++;
+                if (item.statusRecebimento === 'PROXIMO_VENCIMENTO') vencimentosProximos++;
             });
             let detalhes = [];
             if (faltas > 0) detalhes.push(`${faltas} Falta(s)`);
             if (avarias > 0) detalhes.push(`${avarias} Avariado(s)`);
             if (incorretos > 0) detalhes.push(`${incorretos} Incorreto(s)`);
+            if (vencimentosProximos > 0) detalhes.push(`${vencimentosProximos} Próximo(s) do vencimento`);
 
             let textoDivergencia = detalhes.length > 0 ? `(${detalhes.join(' | ')})` : '';
             if (status === 'PENDENTE_DEVOLUCAO') return `DEVOLUÇÃO EM TRATATIVA ${textoDivergencia}`;
@@ -414,12 +418,14 @@ export default function PedidoDetalhes() {
     const podeConferir = pedido.status === 'PENDENTE_ENTREGA' || pedido.status === 'CONFIRMADO_FORNECEDOR' || pedido.status === 'ENTREGA_PARCIAL';
     const mostrarReais = !podeConferir && pedido.status !== 'CANCELADO';
     const isEntregaParcial = pedido.status === 'ENTREGA_PARCIAL';
+    const conferenciaIniciada = pedido.status === 'CONFERENCIA_INICIADA';
     
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
     const podeAdicionarProduto = pedido.status === 'PENDENTE_ENTREGA'; 
     const estaConfirmadoForn = pedido.status === 'CONFIRMADO_FORNECEDOR';
-    const podeRefazerConferencia = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO';
+    const podeRefazerConferencia = isAdmin
+       && (temDivergencia || pedido.status === 'ENTREGUE_SUCESSO' || conferenciaIniciada);
 
     const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
     const totalConsiderado = pedido.valorTotalPedido || 0;
@@ -442,6 +448,7 @@ export default function PedidoDetalhes() {
         const statusItem = (item) => {
             if (item.statusRecebimento === 'AVARIADO') return 'Avariado';
             if (item.statusRecebimento === 'INCORRETO') return 'Produto incorreto';
+            if (item.statusRecebimento === 'PROXIMO_VENCIMENTO') return 'Próximo do vencimento';
             if (item.statusRecebimento === 'FALTANTE' || (item.quantidadeReal != null && item.quantidadeReal < item.quantidadePedida)) return 'Faltante';
             if (item.quantidadeReal != null && item.quantidadeReal >= item.quantidadePedida) return 'Recebido';
             return 'Pendente';
@@ -652,6 +659,14 @@ export default function PedidoDetalhes() {
                             </div>
                         </div>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px' }}>
+                            {conferenciaIniciada && (
+                                <button
+                                    onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)}
+                                    style={{ ...styles.btnConferir, backgroundColor: '#f97316' }}
+                                >
+                                    <CheckCircle size={18} style={{ marginRight: '6px' }} /> Continuar Conferência
+                                </button>
+                            )}
                             {podeConferir && (
                                 <>
                                     <button onClick={isEditandoValores ? () => setIsEditandoValores(false) : iniciarEdicaoValores} style={{ ...styles.btnConferir, backgroundColor: isEditandoValores ? '#6b7280' : '#3b82f6' }}>
@@ -1138,7 +1153,7 @@ const styles = {
     statusBadge: (status, label) => ({ fontWeight: '700', color: status === 'CANCELADO' ? '#991b1b' : status === 'ENTREGA_PARCIAL' ? '#c2410c' : ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status) || label.includes('ESTOURADO') ? '#dc2626' : '#2563eb' }),
     itemStatus: (status, qtdReal, qtdPedida, pedidoStatus) => {
         const isFalta = status === 'FALTA' || (qtdReal !== null && qtdReal < qtdPedida);
-        const isError = ['AVARIADO', 'INCORRETO'].includes(status) || isFalta || pedidoStatus === 'CANCELADO';
+        const isError = ['AVARIADO', 'INCORRETO', 'PROXIMO_VENCIMENTO'].includes(status) || isFalta || pedidoStatus === 'CANCELADO';
         return { padding: '4px 8px', borderRadius: '4px', fontSize: '11px', fontWeight: '600', backgroundColor: isError ? '#fee2e2' : status === 'OK' ? '#dcfce7' : '#f3f4f6', color: isError ? '#991b1b' : status === 'OK' ? '#166534' : '#374151', whiteSpace: 'nowrap' }
     }
 };

@@ -11,6 +11,7 @@ public class ItemRecebidoDTO {
     private StatusItemRecebimento statusRecebimento;
     private String observacaoDevolucao;
     private Integer quantidadeRecebidaAgora;
+    private Integer quantidadeAvariadaAgora;
     private Boolean naoSolicitado;
     private Boolean foiCobrado;
     private String codigoBarrasRecebido;

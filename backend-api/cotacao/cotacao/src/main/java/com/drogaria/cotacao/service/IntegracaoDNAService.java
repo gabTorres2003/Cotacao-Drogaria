@@ -378,6 +378,7 @@ public class IntegracaoDNAService {
                 sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
                          "FROM PRODUTOS WHERE CODBARRAS = :codbarras";
             }
+
             ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sqlDna, params, (rs, rowNum) -> {
                 return new ProdutoDnaDTO(
                     rs.getInt("CODIGO"),
@@ -441,5 +442,61 @@ public class IntegracaoDNAService {
         } catch (Exception ignored) {}
 
         return Optional.empty();
+    }
+
+    /**
+     * Busca os dados históricos usados na tabela da cotação para um produto
+     * adicionado manualmente à cotação aberta.
+     */
+    public Optional<ItemCotacao> buscarHistoricoPorDescricao(String descricao) {
+        if (descricao == null || descricao.isBlank()) {
+            return Optional.empty();
+        }
+
+        String sql =
+                "SELECT p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
+                "g.NOME AS GRUPO, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA, " +
+                "(SELECT SUM(v.QTDEVENDIDA) FROM A_VENDAS v " +
+                "WHERE v.CODPRODUTO = p.CODIGO AND v.DATA > CURRENT_DATE - EXTRACT(DAY FROM CURRENT_DATE) " +
+                "AND v.DATA <= CURRENT_DATE) AS VENDIDO_NO_MES, " +
+                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA, " +
+                sqlVendasJanelaDias("p.CODIGO", 30) + " AS VENDAS_30D, " +
+                sqlVendasJanelaDias("p.CODIGO", 60) + " AS VENDAS_60D, " +
+                sqlVendasJanelaDias("p.CODIGO", 90) + " AS VENDAS_90D " +
+                "FROM PRODUTOS p " +
+                "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
+                "WHERE UPPER(TRIM(p.DESCRICAO)) = UPPER(TRIM(:descricao)) " +
+                "ROWS 1";
+
+        MapSqlParameterSource parametros = new MapSqlParameterSource()
+                .addValue("descricao", descricao.trim());
+
+        List<ItemCotacao> encontrados = dnaNamedJdbcTemplate.query(sql, parametros, (rs, rowNum) -> {
+            ItemCotacao item = new ItemCotacao();
+            item.setNomeProduto(rs.getString("DESCRICAO"));
+            item.setCodBarras(rs.getString("CODBARRAS"));
+            item.setEstoque(rs.getDouble("QUANTIDADE"));
+            item.setUltimoPreco(rs.getDouble("PRECOCUSTO"));
+            item.setGrupo(rs.getString("GRUPO"));
+            item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
+            item.setUltCompraQtde(rs.getDouble("QTDEULTCOMPRA"));
+
+            Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
+            if (vendidoApos != null) item.setVendidoAposUltCompra(vendidoApos);
+
+            preencherJanelasVendas(rs, item);
+            Double vendas30d = item.getVendas30d();
+            if (vendas30d != null && vendas30d > 0) {
+                item.setVmd(vendas30d / 30.0);
+            }
+
+            Date ultCompra = rs.getDate("DTULTCOMPRA");
+            if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
+            Date ultVenda = rs.getDate("DTULTVENDA");
+            if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
+            return item;
+        });
+
+        return encontrados.stream().findFirst();
     }
 }

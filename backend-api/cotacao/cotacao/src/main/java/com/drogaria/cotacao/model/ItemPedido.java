@@ -39,6 +39,9 @@ public class ItemPedido {
     @Column(name = "quantidade_real")
     private Integer quantidadeReal;
 
+    @Column(name = "quantidade_avariada")
+    private Integer quantidadeAvariada = 0;
+
     @Column(name = "valor_unitario_real")
     private Double valorUnitarioReal;
 

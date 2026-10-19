@@ -176,7 +176,11 @@ export default function TabelaDetalhes({
       return () => { window.removeEventListener('resize', handler); };
   }, [updateBalloonPositions, relatorioExibicao, sortConfig, fornecedoresVisiveis, filtroVencedor, filtroTopN, fracoesPorProduto, fracoesConfirmadas, impostoDesconsiderado, mostrarComImposto, mostrarFracao, fracaoDesconsiderada, supplierOrder]);
 
-  const calcularOfertasValidas = (item, fracaoDesconsideradaAtual = fracaoDesconsiderada) => {
+  const calcularOfertasValidas = (
+    item,
+    fracaoDesconsideradaAtual = fracaoDesconsiderada,
+    mostrarComImpostoAtual = mostrarComImposto
+  ) => {
     return supplierOrder.map(forn => {
       const fracao = fracoesPorProduto[item.idItem] || fracoesConfirmadas[item.idItem] || 1;
       const isFracaoDesc = fracao > 1 && !!fracaoDesconsideradaAtual[`${item.idItem}-${forn}`];
@@ -196,7 +200,7 @@ export default function TabelaDetalhes({
           ? pSraw
           : ((fracao > 1 && !isFracaoDesc && pSraw > 0) ? pSraw / fracao : pSraw);
       const isImpostoDesc = !!impostoDesconsiderado[`${item.idItem}-${forn}`];
-      const pctForn = (mostrarComImposto && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
+      const pctForn = (mostrarComImpostoAtual && !isImpostoDesc) ? (impostoPctPorNome?.[forn] || 0) : 0;
       const pO = pctForn > 0 && pOeff > 0 ? pOeff * (1 + pctForn / 100) : pOeff;
       const pS = pctForn > 0 && pSeff > 0 ? pSeff * (1 + pctForn / 100) : pSeff;
       const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
@@ -210,6 +214,23 @@ export default function TabelaDetalhes({
       if (val !== Infinity && (isIrreal || (!isDivergenciaIgnorada && mostrarAlertasPreco && isDiscrepante))) val = Infinity;
       return { forn, val };
     }).filter(x => x.val !== Infinity).sort((a, b) => a.val - b.val);
+  };
+
+  const alterarVisualizacaoImposto = (event) => {
+    const novoValor = event.target.checked;
+    setMostrarComImposto(novoValor);
+
+    if (!setDecisaoCompra || !isComparativo) return;
+
+    const vencedoresAtualizados = {};
+    relatorioExibicao.forEach(item => {
+      if (item.excluido) return;
+      const ofertasValidas = calcularOfertasValidas(item, fracaoDesconsiderada, novoValor);
+      if (ofertasValidas.length > 0) {
+        vencedoresAtualizados[item.idItem] = ofertasValidas[0].forn;
+      }
+    });
+    setDecisaoCompra(prev => ({ ...prev, ...vencedoresAtualizados }));
   };
 
   const alterarFracaoDesconsiderada = (itemId, fornecedor, desconsiderar) => {
@@ -1078,7 +1099,7 @@ export default function TabelaDetalhes({
                 )}
 
                 <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
-                  <input type="checkbox" checked={mostrarComImposto} onChange={(e) => setMostrarComImposto(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
+                  <input type="checkbox" checked={mostrarComImposto} onChange={alterarVisualizacaoImposto} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                   <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
                   {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
                 </label>

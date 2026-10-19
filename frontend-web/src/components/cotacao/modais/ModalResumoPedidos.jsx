@@ -7,7 +7,7 @@ export default function ModalResumoPedidos({
   irParaProximoMenorPreco, acaoPosPedido, setAcaoPosPedido,
   salvarPedidosNoBanco, salvandoPedidos, fornecedores, fMoney, pedidosAbertosList,
   relatorioOrdenado, getNomeRealSempre, setorCotacao,
-  onSalvarMudancas, salvandoConfiguracao
+  onSalvarMudancas, salvandoConfiguracao, mostrarComImposto, impostoPctPorNome
 }) {
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [toastMensagem, setToastMensagem] = useState(null);
@@ -214,6 +214,49 @@ export default function ModalResumoPedidos({
                   <tbody>
                     {pedido.itens.map((item, iIndex) => {
                        const nomeExibir = item.nomeOriginal && item.nomeProduto !== item.nomeOriginal ? item.nomeProduto : item.nomeProduto;
+                       const dadosItem = item.todosDadosItem;
+                       const fracao = (() => {
+                         try {
+                           return JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}')[item.idItem] || 1;
+                         } catch { return 1; }
+                       })();
+                       const fracaoDesconsiderada = (() => {
+                         try {
+                           return JSON.parse(localStorage.getItem('fracaoDesconsiderada') || '{}');
+                         } catch { return {}; }
+                       })();
+                       const impostoDesconsiderado = (() => {
+                         try {
+                           return JSON.parse(localStorage.getItem('impostoDesconsiderado') || '{}');
+                         } catch { return {}; }
+                       })();
+                       const proximoMenor = (() => {
+                         if (!dadosItem || item.isExtra || !item.idItem) return null;
+                         const candidatos = Object.entries(dadosItem.precosPorFornecedor || {})
+                           .filter(([fornecedor, preco]) => fornecedor !== pedido.fornecedorNome && preco > 0)
+                           .map(([fornecedor, preco]) => {
+                             const fracaoIgnorada = fracao > 1 && fracaoDesconsiderada[`${item.idItem}-${fornecedor}`];
+                             const precoBase = dadosItem.precoOriginalPorFornecedor?.[fornecedor] || preco;
+                             let precoEfetivo = (() => {
+                               try {
+                                 const fracoesConfirmadas = JSON.parse(localStorage.getItem('fracoesConfirmadas') || '{}');
+                                 return fracoesConfirmadas[item.idItem]
+                                   ? preco
+                                   : (fracao > 1 && !fracaoIgnorada && precoBase > 0 ? precoBase / fracao : preco);
+                               } catch {
+                                 return fracao > 1 && !fracaoIgnorada && precoBase > 0 ? precoBase / fracao : preco;
+                               }
+                             })();
+                             const imposto = mostrarComImposto && !impostoDesconsiderado[`${item.idItem}-${fornecedor}`]
+                               ? (impostoPctPorNome?.[fornecedor] || 0)
+                               : 0;
+                             if (imposto > 0) precoEfetivo *= 1 + imposto / 100;
+                             return { fornecedor, preco: precoEfetivo };
+                           })
+                           .filter(candidato => candidato.preco > 0)
+                           .sort((a, b) => a.preco - b.preco)[0];
+                         return proximoMenor || null;
+                       })();
 
                        let rankBadge = null;
                        if (item.isExtra && relatorioOrdenado) {
@@ -276,6 +319,11 @@ export default function ModalResumoPedidos({
                                    ⭐ {item.isSugestaoTroca ? 'Sugestão de Troca' : 'Sugestão Extra'}
                                  </span>
                                  {rankBadge}
+                               </div>
+                             )}
+                             {proximoMenor && (
+                               <div style={{ marginTop: '5px', fontSize: '10px', color: '#475569', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '3px 6px', width: 'fit-content' }}>
+                                 Próximo menor: <strong>{proximoMenor.fornecedor}</strong> ({fMoney(proximoMenor.preco)})
                                </div>
                              )}
                            </td>

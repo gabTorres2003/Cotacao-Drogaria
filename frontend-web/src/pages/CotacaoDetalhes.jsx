@@ -1435,6 +1435,8 @@ export default function CotacaoDetalhes() {
           setorCotacao={setorCotacao}
           getNomeRealSempre={getNomeRealSempre} 
           fMoney={fMoney} 
+          mostrarComImposto={mostrarComImposto}
+          impostoPctPorNome={calcularImpostoPctPorNome()}
           pedidosAbertosList={pedidosAbertosList} 
           relatorioOrdenado={relatorioOrdenado} 
           onSalvarMudancas={handleSalvarMudancas}

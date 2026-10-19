@@ -11,6 +11,7 @@ public class ItemPedidoResponseDTO {
     private Integer quantidadePedida;
     private Double valorUnitarioPedido;
     private Integer quantidadeReal;
+    private Integer quantidadeAvariada;
     private Double valorUnitarioReal;
     private StatusItemRecebimento statusRecebimento;
     private String observacaoDevolucao;

@@ -264,6 +264,7 @@ export default function Fornecedores() {
                 <th>Nome / Login</th>
                 <th>Empresa</th>
                 <th style={{ width: '150px', textAlign: 'center' }}>Setor</th>
+                <th style={{ width: '130px', textAlign: 'center' }}>Imposto médio</th>
                 <th>Entregue por</th>
                 <th>Telefone (WhatsApp)</th>
                 <th style={{ width: '120px' }}>Ações</th>
@@ -273,7 +274,7 @@ export default function Fornecedores() {
               {filtrados.length === 0 ? (
                 <tr>
                   <td
-                    colSpan="7"
+                    colSpan="8"
                     style={{
                       textAlign: 'center',
                       padding: '20px',
@@ -338,6 +339,11 @@ export default function Fornecedores() {
                       <div style={{ fontSize: '11px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? '#2563eb' : f.setorCompra === 'PERFUMARIA' ? '#9333ea' : '#475569', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? '#dbeafe' : f.setorCompra === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <Tags size={12} /> {f.setorCompra === 'AMBOS' ? 'Med / Perf' : (f.setorCompra || 'Ambos')}
                       </div>
+                    </td>
+                    <td style={{ textAlign: 'center' }}>
+                      <span style={{ color: '#92400e', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '4px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '12px' }}>
+                        {f.percentualImposto != null ? `${Number(f.percentualImposto).toFixed(2)}%` : 'Não calculado'}
+                      </span>
                     </td>
                     <td>
                       <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>

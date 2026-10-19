@@ -120,6 +120,14 @@ public class PedidoService {
 
             int novaQuantidadeReal = jaRecebido + incremento;
             itemBanco.setQuantidadeReal(novaQuantidadeReal);
+            int avariadaAgora = itemConferido.getQuantidadeAvariadaAgora() != null
+                    ? itemConferido.getQuantidadeAvariadaAgora() : 0;
+            if (avariadaAgora < 0 || avariadaAgora > incremento) {
+                throw new RuntimeException("A quantidade avariada não pode exceder a quantidade recebida nesta NF.");
+            }
+            int avariadaAnterior = itemBanco.getQuantidadeAvariada() != null
+                    ? itemBanco.getQuantidadeAvariada() : 0;
+            itemBanco.setQuantidadeAvariada(avariadaAnterior + avariadaAgora);
             itemBanco.setValorUnitarioReal(itemConferido.getValorUnitarioReal());
 
             if (itemBanco.getQuantidadeReal() != null && itemBanco.getValorUnitarioReal() != null) {
@@ -141,7 +149,8 @@ public class PedidoService {
             // Item sem entrega integral e sem cobrança: exige destino definido pelo usuário.
             boolean semDestino = incompleto && !foiCobrado
                     && statusItem != StatusItemRecebimento.AVARIADO
-                    && statusItem != StatusItemRecebimento.INCORRETO;
+                    && statusItem != StatusItemRecebimento.INCORRETO
+                    && statusItem != StatusItemRecebimento.PROXIMO_VENCIMENTO;
 
             if (semDestino && !aguardarFaltantes) {
                 retornarItemParaCotacaoOrigem(itemBanco, pedido);
@@ -160,7 +169,8 @@ public class PedidoService {
             }
 
             if (statusItem == StatusItemRecebimento.AVARIADO ||
-                statusItem == StatusItemRecebimento.INCORRETO) {
+                statusItem == StatusItemRecebimento.INCORRETO ||
+                statusItem == StatusItemRecebimento.PROXIMO_VENCIMENTO) {
                 temDevolucao = true;
             }
         }
@@ -230,7 +240,23 @@ public class PedidoService {
                 int incremento = itemDTO.getQuantidadeRecebidaAgora() == null
                         ? 0 : itemDTO.getQuantidadeRecebidaAgora();
                 item.setQuantidadeReal(atual + incremento);
-                item.setStatusRecebimento(itemDTO.getStatusRecebimento());
+                int avariadaAgora = itemDTO.getQuantidadeAvariadaAgora() != null
+                        ? itemDTO.getQuantidadeAvariadaAgora() : 0;
+                if (avariadaAgora < 0 || avariadaAgora > incremento) {
+                    throw new RuntimeException("A quantidade avariada não pode exceder a quantidade recebida nesta NF.");
+                }
+                int avariadaAnterior = item.getQuantidadeAvariada() != null
+                        ? item.getQuantidadeAvariada() : 0;
+                item.setQuantidadeAvariada(avariadaAnterior + avariadaAgora);
+                StatusItemRecebimento status = itemDTO.getStatusRecebimento() != null
+                        ? itemDTO.getStatusRecebimento()
+                        : item.getStatusRecebimento();
+                if (status == null
+                        && item.getQuantidadePedida() != null
+                        && item.getQuantidadeReal() < item.getQuantidadePedida()) {
+                    status = StatusItemRecebimento.FALTANTE;
+                }
+                item.setStatusRecebimento(status);
                 item.setObservacaoDevolucao(itemDTO.getObservacaoDevolucao());
                 item.setCodigoBarrasRecebido(itemDTO.getCodigoBarrasRecebido());
                 item.setNomeProdutoRecebido(itemDTO.getNomeProdutoRecebido());
@@ -344,31 +370,30 @@ public class PedidoService {
     }
 
     private void atualizarPercentualImpostoFornecedor(Pedido pedido) {
-        if (pedido.getItens() == null || pedido.getItens().isEmpty()) return;
-
+        if (pedido.getFornecedor() == null || pedido.getFornecedor().getId() == null) return;
         Fornecedor fornecedor = fornecedorRepository.findById(pedido.getFornecedor().getId()).orElse(null);
         if (fornecedor == null) return;
 
-        List<Double> percentuais = new ArrayList<>();
-        for (ItemPedido item : pedido.getItens()) {
-            if (item.getQuantidadeReal() == null || item.getQuantidadeReal() <= 0) continue;
-            if (item.getValorUnitarioPedido() == null || item.getValorUnitarioPedido() <= 0) continue;
-            if (item.getValorUnitarioReal() == null || item.getValorUnitarioReal() <= 0) continue;
+        List<Pedido> pedidosFornecedor = pedidoRepository.findWithItensByFornecedorId(fornecedor.getId());
+        double totalPedido = 0.0;
+        double totalReal = 0.0;
+        for (Pedido pedidoFornecedor : pedidosFornecedor) {
+            if (pedidoFornecedor.getStatus() == StatusPedido.CANCELADO) continue;
+            if (pedidoFornecedor.getItens() == null) continue;
+            for (ItemPedido item : pedidoFornecedor.getItens()) {
+                if (item.getQuantidadeReal() == null || item.getQuantidadeReal() <= 0) continue;
+                if (item.getValorUnitarioPedido() == null || item.getValorUnitarioPedido() <= 0) continue;
+                if (item.getValorUnitarioReal() == null || item.getValorUnitarioReal() <= 0) continue;
 
-            double valorPedido = item.getValorUnitarioPedido();
-            double valorReal = item.getValorUnitarioReal();
-
-            double percentual = ((valorReal / valorPedido) - 1.0) * 100.0;
-
-            if (percentual >= -50 && percentual <= 100) {
-                percentuais.add(percentual);
+                totalPedido += item.getQuantidadeReal() * item.getValorUnitarioPedido();
+                totalReal += item.getQuantidadeReal() * item.getValorUnitarioReal();
             }
         }
 
-        if (percentuais.isEmpty()) return;
+        if (totalPedido <= 0) return;
 
-        double soma = percentuais.stream().mapToDouble(Double::doubleValue).sum();
-        double media = soma / percentuais.size();
+        double media = ((totalReal / totalPedido) - 1.0) * 100.0;
+        if (media < -50 || media > 100) return;
         double mediaArredondada = Math.round(media * 100.0) / 100.0;
 
         fornecedor.setPercentualImposto(mediaArredondada);
@@ -386,9 +411,14 @@ public class PedidoService {
         pedido.setStatus(StatusPedido.CONFIRMADO_FORNECEDOR);
         pedido.setValorTotalReal(null);
         pedido.setNumeroNota(null);
+        pedido.setConferenciaIniciadaPor(null);
+        pedido.setConferenciaIniciadaUsername(null);
+        pedido.setDataInicioConferencia(null);
+        pedido.setConferenciaFinalizadaPor(null);
 
         for (ItemPedido item : pedido.getItens()) {
             item.setQuantidadeReal(null);
+            item.setQuantidadeAvariada(0);
             item.setValorUnitarioReal(null);
             item.setStatusRecebimento(null);
             item.setObservacaoDevolucao(null);
@@ -1015,6 +1045,8 @@ public class PedidoService {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
 
-        return pedidoRepository.save(pedido);
+        Pedido pedidoSalvo = pedidoRepository.save(pedido);
+        atualizarPercentualImpostoFornecedor(pedidoSalvo);
+        return pedidoSalvo;
     }
 }

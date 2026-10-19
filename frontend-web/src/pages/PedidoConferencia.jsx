@@ -69,9 +69,11 @@ export default function PedidoConferencia() {
             return {
               id: item.id,
               quantidadeJaRecebida: qtdJaRecebida,
+              quantidadeAvariada: item.quantidadeAvariada || 0,
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
-              conferido: totalmenteRecebido,
+              conferido: totalmenteRecebido
+                || (item.statusRecebimento && item.statusRecebimento !== 'OK'),
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
@@ -88,10 +90,11 @@ export default function PedidoConferencia() {
           cache.conferencia.forEach(c => { porId[String(c.id)] = c; });
           const mesclada = base.map(item => {
             const c = porId[String(item.id)];
-            if (!c || item.totalmenteRecebido) return item;
+            if (!c) return item;
             return {
               ...item,
               quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
+              quantidadeAvariada: c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariada,
               valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
               statusRecebimento: c.statusRecebimento || item.statusRecebimento,
               conferido: !!c.conferido,
@@ -150,6 +153,9 @@ export default function PedidoConferencia() {
                 if (value === 'FALTANTE') {
                     newItem.quantidadeRecebidaAgora = 0;
                 }
+                if (value !== 'AVARIADO') {
+                    newItem.quantidadeAvariada = 0;
+                }
                 if (value !== 'FALTANTE') {
                     newItem.foiCobrado = false;
                 }
@@ -170,8 +176,13 @@ export default function PedidoConferencia() {
       if (item.id === idItem) {
         if (!item.conferido) {
           const isFaltante = item.statusRecebimento === 'FALTANTE';
+          const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
+          const qtdAvariada = Number(item.quantidadeAvariada || 0);
+          if (item.statusRecebimento === 'AVARIADO' && (qtdAvariada <= 0 || qtdAvariada > qtdNova)) {
+            alert('Informe a quantidade avariada, sem ultrapassar a quantidade recebida nesta NF.');
+            return item;
+          }
           if (!isFaltante && !isConferente) {
-            const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
             if (qtdNova <= 0 || item.valorUnitarioReal === '') {
               alert('Preencha a quantidade e o valor unitário da nota antes de confirmar este item.');
               return item;
@@ -288,7 +299,9 @@ export default function PedidoConferencia() {
     if (!pedido?.itens) return [];
     return conferencia.filter(c => {
       if (c.isNaoSolicitado || c.totalmenteRecebido || c.foiCobrado) return false;
-      if (c.statusRecebimento === 'INCORRETO' || c.statusRecebimento === 'AVARIADO') return false;
+      if (c.statusRecebimento === 'INCORRETO'
+        || c.statusRecebimento === 'AVARIADO'
+        || c.statusRecebimento === 'PROXIMO_VENCIMENTO') return false;
       const itemPedido = pedido.itens.find(i => i.id === c.id);
       if (!itemPedido) return false;
       const pedida = itemPedido.quantidadePedida || 0;
@@ -377,7 +390,7 @@ export default function PedidoConferencia() {
           ? 0
           : Number(item.quantidadeRecebidaAgora);
 
-        if (item.statusRecebimento === 'INCORRETO' || item.statusRecebimento === 'AVARIADO' ||
+        if (item.statusRecebimento === 'INCORRETO' || item.statusRecebimento === 'AVARIADO' || item.statusRecebimento === 'PROXIMO_VENCIMENTO' ||
             (item.statusRecebimento === 'FALTANTE' && item.foiCobrado)) {
           teveProblemas = true;
         }
@@ -386,6 +399,7 @@ export default function PedidoConferencia() {
           id: item.id,
           quantidadeReal: (item.quantidadeJaRecebida || 0) + qtdNova,
           quantidadeRecebidaAgora: qtdNova,
+          quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO' ? Number(item.quantidadeAvariada || 0) : 0,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
           codigoBarrasRecebido: item.codigoBarrasRecebido || '',
@@ -781,9 +795,9 @@ export default function PedidoConferencia() {
                               type="number"
                               step="0.01"
                               min="0"
-                              disabled={isConferente || totalmenteRecebido || isConferido}
+                              disabled={isConferente || isConferido}
                               placeholder="0,00"
-                              style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#cbd5e1' }}
+                              style={{ ...styles.inputField, backgroundColor: (isConferente || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (isConferente || isConferido) ? 'transparent' : '#cbd5e1' }}
                               value={confState.valorUnitarioReal ?? ''}
                               onChange={(e) => handleInputChange(item.id, 'valorUnitarioReal', e.target.value)}
                             />
@@ -802,12 +816,14 @@ export default function PedidoConferencia() {
                                     <option value="FALTANTE">Não Veio (Falta)</option>
                                     <option value="INCORRETO">Produto Errado</option>
                                     <option value="AVARIADO">Avariado / Quebrado</option>
+                                    <option value="PROXIMO_VENCIMENTO">Próximo do Vencimento</option>
                                 </select>
                             </div>
                           </td>
 
                           <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
-                            {totalmenteRecebido ? (
+                            {totalmenteRecebido && confState.statusRecebimento === 'OK'
+                              && (isConferente || confState.valorUnitarioReal !== '' && confState.valorUnitarioReal != null) ? (
                               <span style={{ padding: '6px 10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <Check size={14} /> OK
                               </span>
@@ -830,7 +846,40 @@ export default function PedidoConferencia() {
                             )}
                           </td>
                         </tr>
-                        {confState.statusRecebimento === 'INCORRETO' && !totalmenteRecebido && (
+                        {confState.statusRecebimento === 'AVARIADO' && (
+                          <tr key={`${item.id}-qtd-avariada`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#9a3412', fontWeight: '600' }}>
+                                Quantidade avariada nesta NF:
+                                <input
+                                  type="number"
+                                  min="1"
+                                  max={Number(confState.quantidadeRecebidaAgora) || 0}
+                                  value={confState.quantidadeAvariada ?? ''}
+                                  onChange={(e) => handleInputChange(item.id, 'quantidadeAvariada', e.target.value)}
+                                  disabled={isConferido}
+                                  style={{ ...styles.inputField, width: '90px', backgroundColor: isConferido ? 'transparent' : 'white', borderColor: '#fbbf24' }}
+                                />
+                                <span style={{ fontWeight: 'normal' }}>de {confState.quantidadeRecebidaAgora || 0} recebida(s)</span>
+                              </label>
+                            </td>
+                          </tr>
+                        )}
+                        {confState.statusRecebimento === 'PROXIMO_VENCIMENTO' && (
+                          <tr key={`${item.id}-proximo-vencimento`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
+                              <FotosConferencia
+                                pedidoId={id}
+                                itemPedidoId={item.id}
+                                ocorrencia="PROXIMO_VENCIMENTO"
+                                fotos={fotos}
+                                somenteLeitura={isConferido}
+                                onUploaded={adicionarFoto}
+                              />
+                            </td>
+                          </tr>
+                        )}
+                        {confState.statusRecebimento === 'INCORRETO' && (
                           <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -877,10 +926,17 @@ export default function PedidoConferencia() {
                             </td>
                           </tr>
                         )}
-                        {confState.statusRecebimento === 'AVARIADO' && !totalmenteRecebido && (
+                        {confState.statusRecebimento === 'AVARIADO' && (
                           <tr key={`${item.id}-avariado`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
-                              <FotosConferencia pedidoId={id} itemPedidoId={item.id} ocorrencia="AVARIA" fotos={fotos} onUploaded={adicionarFoto} />
+                              <FotosConferencia
+                                pedidoId={id}
+                                itemPedidoId={item.id}
+                                ocorrencia="AVARIA"
+                                fotos={fotos}
+                                somenteLeitura={totalmenteRecebido || isConferido}
+                                onUploaded={adicionarFoto}
+                              />
                             </td>
                           </tr>
                         )}

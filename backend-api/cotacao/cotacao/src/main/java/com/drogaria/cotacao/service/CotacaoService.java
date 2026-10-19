@@ -306,6 +306,21 @@ public class CotacaoService {
         Cotacao cotacao = cotacaoRepository.findById(cotacaoId)
                 .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
 
+        integracaoDNAService.buscarHistoricoPorDescricao(novoItem.getNomeProduto())
+                .ifPresent(historico -> {
+                    novoItem.setCodBarras(historico.getCodBarras());
+                    novoItem.setEstoque(historico.getEstoque());
+                    novoItem.setGrupo(historico.getGrupo());
+                    novoItem.setVendidoNoMes(historico.getVendidoNoMes());
+                    novoItem.setUltCompraData(historico.getUltCompraData());
+                    novoItem.setUltCompraQtde(historico.getUltCompraQtde());
+                    novoItem.setUltVendaData(historico.getUltVendaData());
+                    novoItem.setVendidoAposUltCompra(historico.getVendidoAposUltCompra());
+                    novoItem.setVmd(historico.getVmd());
+                    novoItem.setVendas30d(historico.getVendas30d());
+                    novoItem.setVendas60d(historico.getVendas60d());
+                    novoItem.setVendas90d(historico.getVendas90d());
+                });
         novoItem.setCotacao(cotacao);
         novoItem.setNomeOriginal(novoItem.getNomeProduto());
         novoItem.setEditadoManual(true);

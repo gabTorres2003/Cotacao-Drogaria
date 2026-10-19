@@ -74,6 +74,7 @@ public class FornecedorController {
                     fornecedor.setEmpresa(dados.getEmpresa()); 
                     fornecedor.setEntreguePor(dados.getEntreguePor());
                     fornecedor.setSetorCompra(dados.getSetorCompra()); 
+                    fornecedor.setPercentualImposto(dados.getPercentualImposto());
                     
                     Fornecedor atualizado = fornecedorRepository.save(fornecedor);
 

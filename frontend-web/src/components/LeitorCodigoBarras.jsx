@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Camera, X } from 'lucide-react';
+import { Html5Qrcode } from 'html5-qrcode';
 
 export default function LeitorCodigoBarras({ onDetected }) {
-  const videoRef = useRef(null);
-  const streamRef = useRef(null);
-  const animationRef = useRef(null);
+  const scannerRef = useRef(null);
+  const containerId = `leitor-codigo-${useId().replace(/:/g, '')}`;
   const ultimoCodigoRef = useRef('');
   const [aberto, setAberto] = useState(false);
   const [erro, setErro] = useState('');
@@ -19,49 +19,37 @@ export default function LeitorCodigoBarras({ onDetected }) {
         return;
       }
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: { ideal: 'environment' } } });
-        if (!ativo) {
-          stream.getTracks().forEach(track => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        videoRef.current.srcObject = stream;
-        await videoRef.current.play();
-        if (!('BarcodeDetector' in window)) {
-          setErro('A câmera foi aberta. A leitura automática não está disponível neste navegador; digite o código no campo acima.');
-          return;
-        }
-        const detector = new window.BarcodeDetector();
-        const detectar = async () => {
-          if (!ativo || !videoRef.current) return;
-          try {
-            const encontrados = await detector.detect(videoRef.current);
-            const codigo = encontrados?.[0]?.rawValue?.trim();
-            if (codigo && codigo !== ultimoCodigoRef.current) {
-              ultimoCodigoRef.current = codigo;
-              onDetected(codigo);
-              fechar();
-              return;
-            }
-          } catch {
-            setErro('Não foi possível ler o código. Mantenha o produto centralizado e tente novamente.');
-          }
-          animationRef.current = requestAnimationFrame(detectar);
-        };
-        detectar();
+        const scanner = new Html5Qrcode(containerId);
+        scannerRef.current = scanner;
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 280, height: 120 }, aspectRatio: 1.777778 },
+          (codigo) => {
+            const codigoNormalizado = codigo?.trim();
+            if (!ativo || !codigoNormalizado || codigoNormalizado === ultimoCodigoRef.current) return;
+            ultimoCodigoRef.current = codigoNormalizado;
+            onDetected(codigoNormalizado);
+            fechar();
+          },
+          () => {}
+        );
       } catch {
-        setErro('Permissão de câmera negada ou câmera indisponível. Digite o código manualmente.');
+        setErro('Não foi possível iniciar a câmera ou ler o código. Verifique a permissão e tente novamente ou digite o código manualmente.');
       }
     };
 
     iniciar();
     return () => {
       ativo = false;
-      if (animationRef.current) cancelAnimationFrame(animationRef.current);
-      streamRef.current?.getTracks().forEach(track => track.stop());
-      streamRef.current = null;
+      const scanner = scannerRef.current;
+      scannerRef.current = null;
+      if (scanner) {
+        scanner.stop()
+          .catch(() => {})
+          .finally(() => scanner.clear().catch(() => {}));
+      }
     };
-  }, [aberto, onDetected]);
+  }, [aberto, containerId, onDetected]);
 
   const fechar = () => {
     setAberto(false);
@@ -79,8 +67,8 @@ export default function LeitorCodigoBarras({ onDetected }) {
             <strong style={{ fontSize: '12px' }}>Aponte para o código de barras</strong>
             <button type="button" onClick={fechar} style={{ border: 0, background: 'transparent', cursor: 'pointer' }}><X size={16} /></button>
           </div>
-          <video ref={videoRef} muted playsInline style={{ width: '100%', maxHeight: '180px', objectFit: 'cover', borderRadius: '6px', background: '#111827' }} />
-          {erro && <p style={{ color: erro.startsWith('A câmera foi aberta') ? '#92400e' : '#b91c1c', fontSize: '12px', margin: '6px 0 0' }}>{erro}</p>}
+          <div id={containerId} style={{ width: '100%', overflow: 'hidden', borderRadius: '6px', background: '#111827' }} />
+          {erro && <p style={{ color: '#b91c1c', fontSize: '12px', margin: '6px 0 0' }}>{erro}</p>}
         </div>
       )}
     </div>
