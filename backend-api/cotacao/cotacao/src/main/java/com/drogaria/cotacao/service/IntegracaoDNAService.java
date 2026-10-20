@@ -152,6 +152,50 @@ public class IntegracaoDNAService {
         });
     }
 
+    /**
+     * Consulta reduzida usada somente ao mesclar faltas com a lista de inteligência.
+     * A consulta detalhada acima possui várias subconsultas correlacionadas por produto
+     * e pode ultrapassar o timeout do proxy quando executada junto da inteligência.
+     */
+    public List<ItemCotacao> buscarFaltasParaMesclagemInteligencia(List<String> gruposSelecionados) {
+        StringBuilder sql = new StringBuilder(
+                "SELECT f.DESCRICAO, p.CODBARRAS, f.ESTOQUE, f.FALTAS, f.PRECOCUSTO, f.GRUPO, " +
+                "f.VENDIDO_NO_MES, f.ULTCOMPRA_DATA, f.ULTCOMPRA_QTDE, f.ULTVENDA_DATA " +
+                "FROM A_FALTAS f " +
+                "LEFT JOIN PRODUTOS p ON p.DESCRICAO = f.DESCRICAO"
+        );
+
+        MapSqlParameterSource parametros = new MapSqlParameterSource();
+        if (gruposSelecionados != null && !gruposSelecionados.isEmpty()) {
+            List<String> gruposUpper = gruposSelecionados.stream()
+                    .map(String::toUpperCase)
+                    .collect(Collectors.toList());
+            sql.append(" WHERE UPPER(TRIM(f.GRUPO)) IN (:gruposSelecionados)");
+            parametros.addValue("gruposSelecionados", gruposUpper);
+        }
+
+        return dnaNamedJdbcTemplate.query(sql.toString(), parametros, (rs, rowNum) -> {
+            ItemCotacao item = new ItemCotacao();
+            item.setNomeProduto(rs.getString("DESCRICAO"));
+            item.setCodBarras(rs.getString("CODBARRAS"));
+            item.setUltimoPreco(rs.getDouble("PRECOCUSTO"));
+            item.setQuantidade((int) rs.getDouble("FALTAS"));
+            item.setQuantidadeBalcao(item.getQuantidade());
+            item.setEstoque(rs.getDouble("ESTOQUE"));
+            item.setGrupo(rs.getString("GRUPO"));
+            item.setVendidoNoMes(rs.getDouble("VENDIDO_NO_MES"));
+            item.setVmd(item.getVendidoNoMes() != null ? item.getVendidoNoMes() / 30.0 : null);
+            item.setUltCompraQtde(rs.getDouble("ULTCOMPRA_QTDE"));
+            item.setOrigemItem("Falta Manual");
+
+            Date ultCompra = rs.getDate("ULTCOMPRA_DATA");
+            if (ultCompra != null) item.setUltCompraData(ultCompra.toLocalDate());
+            Date ultVenda = rs.getDate("ULTVENDA_DATA");
+            if (ultVenda != null) item.setUltVendaData(ultVenda.toLocalDate());
+            return item;
+        });
+    }
+
     public List<ItemCotacao> buscarSugestoes(List<String> gruposSelecionados, LocalDate dataInicial, LocalDate dataFinal, int diasSuprir) {
         StringBuilder sql = new StringBuilder(
                 "SELECT " +

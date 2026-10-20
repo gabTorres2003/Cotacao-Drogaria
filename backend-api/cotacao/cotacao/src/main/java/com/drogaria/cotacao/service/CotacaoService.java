@@ -188,7 +188,7 @@ public class CotacaoService {
             for (ItemCotacao item : mapaItens.values()) {
                 item.setQuantidadeSugerida(item.getQuantidade());
             }
-            List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasDiretoDoBanco(request.getGrupos());
+            List<ItemCotacao> itensFalta = integracaoDNAService.buscarFaltasParaMesclagemInteligencia(request.getGrupos());
             if (itensFalta != null) {
                 for (ItemCotacao itemFalta : itensFalta) {
                     itemFalta.setQuantidadeBalcao(itemFalta.getQuantidade());
