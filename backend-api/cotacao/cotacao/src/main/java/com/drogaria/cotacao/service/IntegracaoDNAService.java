@@ -310,10 +310,9 @@ public class IntegracaoDNAService {
                 "SELECT p.CODIGO, p.DESCRICAO, p.CODBARRAS, p.QUANTIDADE, p.PRECOCUSTO, " +
                 "g.NOME AS GRUPO, p.DTULTCOMPRA, p.QTDEULTCOMPRA, p.DTULTVENDA, " +
                 "SUM(v.QTDEVENDIDA) AS TOTAL_VENDIDO, " +
-                sqlVendidoLiquidoAposCompra("p.CODIGO", "p.DTULTCOMPRA") + " AS VENDIDO_APOS_ULTCOMPRA, " +
-                sqlVendasJanelaDias("p.CODIGO", 30) + " AS VENDAS_30D, " +
-                sqlVendasJanelaDias("p.CODIGO", 60) + " AS VENDAS_60D, " +
-                sqlVendasJanelaDias("p.CODIGO", 90) + " AS VENDAS_90D " +
+                "SUM(CASE WHEN v.DATA > :dataLimite30 THEN v.QTDEVENDIDA ELSE 0 END) AS VENDAS_30D, " +
+                "SUM(CASE WHEN v.DATA > :dataLimite60 THEN v.QTDEVENDIDA ELSE 0 END) AS VENDAS_60D, " +
+                "SUM(CASE WHEN v.DATA > :dataLimite90 THEN v.QTDEVENDIDA ELSE 0 END) AS VENDAS_90D " +
                 "FROM A_VENDAS v " +
                 "JOIN PRODUTOS p ON p.CODIGO = v.CODPRODUTO " +
                 "LEFT JOIN GRUPOS g ON g.CODIGO = p.CODGRUPO " +
@@ -383,11 +382,6 @@ public class IntegracaoDNAService {
             item.setVmd(vmd);
             item.setOrigemItem("INTELIGENCIA_COMPRA");
             item.setClassificacaoInteligencia(classificacao);
-
-            Double vendidoApos = lerVendidoLiquido(rs, "VENDIDO_APOS_ULTCOMPRA");
-            if (vendidoApos != null) {
-                item.setVendidoAposUltCompra(vendidoApos);
-            }
 
             preencherJanelasVendas(rs, item);
 
