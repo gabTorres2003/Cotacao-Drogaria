@@ -2,11 +2,10 @@ package com.drogaria.cotacao.repository;
 
 import com.drogaria.cotacao.model.CondicaoComercialItem;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.UUID;
 
-@Repository
-public interface CondicaoComercialItemRepository extends JpaRepository<CondicaoComercialItem, String> {
+public interface CondicaoComercialItemRepository extends JpaRepository<CondicaoComercialItem, UUID> {
     List<CondicaoComercialItem> findByCondicaoId(String condicaoId);
 }
