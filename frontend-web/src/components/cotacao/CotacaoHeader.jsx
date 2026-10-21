@@ -2,22 +2,16 @@ import React, { useState, useEffect } from 'react';
 import { Tags, Edit2, X, Save, Loader2, ArrowLeft } from 'lucide-react';
 import api from '../../services/api';
 
-export default function CotacaoHeader({ id, isEncerrada, onVoltar }) {
-  const [setorAtual, setSetorAtual] = useState('AMBOS');
+export default function CotacaoHeader({ id, setorCotacao = 'AMBOS', isEncerrada, onVoltar }) {
+  const [setorAtual, setSetorAtual] = useState(setorCotacao);
   const [showSetorModal, setShowSetorModal] = useState(false);
   const [novoSetor, setNovoSetor] = useState('AMBOS');
   const [salvandoSetor, setSalvandoSetor] = useState(false);
 
   useEffect(() => {
-    const fetchSetor = async () => {
-      try {
-        const res = await api.get(`/api/cotacao/${id}`);
-        setSetorAtual(res.data.setor || 'AMBOS');
-        setNovoSetor(res.data.setor || 'AMBOS');
-      } catch(e) {}
-    };
-    fetchSetor();
-  }, [id]);
+    setSetorAtual(setorCotacao || 'AMBOS');
+    setNovoSetor(setorCotacao || 'AMBOS');
+  }, [setorCotacao]);
 
   const handleSalvarSetor = async () => {
     setSalvandoSetor(true);

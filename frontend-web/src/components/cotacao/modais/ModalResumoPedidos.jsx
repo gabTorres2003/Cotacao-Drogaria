@@ -255,7 +255,7 @@ export default function ModalResumoPedidos({
                            })
                            .filter(candidato => candidato.preco > 0)
                            .sort((a, b) => a.preco - b.preco)[0];
-                         return proximoMenor || null;
+                         return candidatos || null;
                        })();
 
                        let rankBadge = null;

@@ -287,7 +287,13 @@ export default function CotacaoDetalhes() {
       setIsAddItemModalOpen(false);
       setNovoItemManual({ nomeProduto: '', quantidade: 1, origemItem: 'Extra Manual' });
       carregarRelatorio();
-    } catch (error) { alert('Erro ao adicionar produto.'); } 
+    } catch (error) {
+      const resposta = error.response?.data;
+      const mensagem = typeof resposta === 'string'
+        ? resposta
+        : resposta?.message;
+      alert(`Erro ao adicionar produto: ${mensagem || error.message || 'erro desconhecido'}`);
+    }
     finally { setSalvandoItemManual(false); }
   };
 
@@ -1304,7 +1310,7 @@ export default function CotacaoDetalhes() {
 
   return (
     <div style={styles.container}>
-      <CotacaoHeader id={id} isEncerrada={isEncerrada} onVoltar={() => navigate('/cotacoes')} />
+      <CotacaoHeader id={id} setorCotacao={setorCotacao} isEncerrada={isEncerrada} onVoltar={() => navigate('/cotacoes')} />
 
       <div style={styles.toggleContainer}>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>

@@ -79,7 +79,7 @@ public class ComparativoService {
                 .distinct()
                 .collect(Collectors.toList());
                 
-        List<PrecoCotacao> todoHistorico = precoRepository.findHistoricoEmLote(nomesProdutos);
+        List<PrecoCotacao> todoHistorico = precoRepository.findUltimoHistoricoEmLote(nomesProdutos, idCotacao);
         Map<String, List<PrecoCotacao>> historicoPorProduto = todoHistorico.stream()
                 .collect(Collectors.groupingBy(preco -> preco.getItem().getNomeProduto()));
 

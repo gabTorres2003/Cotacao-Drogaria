@@ -8,6 +8,8 @@ import com.drogaria.cotacao.repository.CotacaoRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import jakarta.persistence.EntityManager;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -20,6 +22,8 @@ import java.util.stream.Collectors;
 
 @Service
 public class CotacaoService {
+
+    private static final Logger logger = LoggerFactory.getLogger(CotacaoService.class);
 
     @Autowired
     private CotacaoRepository cotacaoRepository;
@@ -306,21 +310,26 @@ public class CotacaoService {
         Cotacao cotacao = cotacaoRepository.findById(cotacaoId)
                 .orElseThrow(() -> new RuntimeException("Cotação não encontrada"));
 
-        integracaoDNAService.buscarHistoricoPorDescricao(novoItem.getNomeProduto())
-                .ifPresent(historico -> {
-                    novoItem.setCodBarras(historico.getCodBarras());
-                    novoItem.setEstoque(historico.getEstoque());
-                    novoItem.setGrupo(historico.getGrupo());
-                    novoItem.setVendidoNoMes(historico.getVendidoNoMes());
-                    novoItem.setUltCompraData(historico.getUltCompraData());
-                    novoItem.setUltCompraQtde(historico.getUltCompraQtde());
-                    novoItem.setUltVendaData(historico.getUltVendaData());
-                    novoItem.setVendidoAposUltCompra(historico.getVendidoAposUltCompra());
-                    novoItem.setVmd(historico.getVmd());
-                    novoItem.setVendas30d(historico.getVendas30d());
-                    novoItem.setVendas60d(historico.getVendas60d());
-                    novoItem.setVendas90d(historico.getVendas90d());
-                });
+        try {
+            integracaoDNAService.buscarHistoricoPorDescricao(novoItem.getNomeProduto())
+                    .ifPresent(historico -> {
+                        novoItem.setCodBarras(historico.getCodBarras());
+                        novoItem.setEstoque(historico.getEstoque());
+                        novoItem.setGrupo(historico.getGrupo());
+                        novoItem.setVendidoNoMes(historico.getVendidoNoMes());
+                        novoItem.setUltCompraData(historico.getUltCompraData());
+                        novoItem.setUltCompraQtde(historico.getUltCompraQtde());
+                        novoItem.setUltVendaData(historico.getUltVendaData());
+                        novoItem.setVendidoAposUltCompra(historico.getVendidoAposUltCompra());
+                        novoItem.setVmd(historico.getVmd());
+                        novoItem.setVendas30d(historico.getVendas30d());
+                        novoItem.setVendas60d(historico.getVendas60d());
+                        novoItem.setVendas90d(historico.getVendas90d());
+                    });
+        } catch (RuntimeException e) {
+            logger.warn("Não foi possível carregar o histórico DNA do produto extra '{}'. O item será salvo sem histórico.",
+                    novoItem.getNomeProduto(), e);
+        }
         novoItem.setCotacao(cotacao);
         novoItem.setNomeOriginal(novoItem.getNomeProduto());
         novoItem.setEditadoManual(true);
