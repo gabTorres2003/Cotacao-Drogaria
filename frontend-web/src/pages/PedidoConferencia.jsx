@@ -63,6 +63,8 @@ export default function PedidoConferencia() {
       const response = await api.get(`/api/pedidos/${id}`);
       setPedido(response.data);
       if (response.data.itens) {
+        const continuidadeAdministrativa = !isConferente
+          && response.data.status === 'CONFERENCIA_INICIADA';
         const base = response.data.itens.map(item => {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
             const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
@@ -70,14 +72,18 @@ export default function PedidoConferencia() {
             return {
               id: item.id,
               quantidadeJaRecebida: qtdJaRecebida,
+              quantidadeRecebidaAgora: continuidadeAdministrativa ? qtdJaRecebida : '',
+              quantidadeRecebidaPersistida: continuidadeAdministrativa,
               quantidadeAvariada: item.quantidadeAvariada || 0,
-              quantidadeAvariadaAgora: 0,
+              quantidadeAvariadaAgora: continuidadeAdministrativa ? (item.quantidadeAvariada || 0) : 0,
+              quantidadeAvariadaPersistida: continuidadeAdministrativa,
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
               conferido: isConferente
                 ? totalmenteRecebido || (item.statusRecebimento && item.statusRecebimento !== 'OK')
-                : valorInformado && (totalmenteRecebido
-                  || (item.statusRecebimento && item.statusRecebimento !== 'OK')),
+                : item.statusRecebimento === 'FALTANTE'
+                  || (valorInformado && (totalmenteRecebido
+                    || (item.statusRecebimento && item.statusRecebimento !== 'OK'))),
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
@@ -89,7 +95,7 @@ export default function PedidoConferencia() {
         // Recupera preenchimento salvo em cache (falha ou atualização da página)
         const cache = lerCacheConferencia(id);
         if (cache && Array.isArray(cache.conferencia) && cache.conferencia.length > 0) {
-          if (cache.numeroNota) setNumeroNota(cache.numeroNota);
+          setNumeroNota(cache.numeroNota || response.data.numeroNota || '');
           const porId = {};
           cache.conferencia.forEach(c => { porId[String(c.id)] = c; });
           const mesclada = base.map(item => {
@@ -101,10 +107,12 @@ export default function PedidoConferencia() {
             return {
               ...item,
               quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
+              quantidadeRecebidaPersistida: item.quantidadeRecebidaPersistida,
               quantidadeAvariada: c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariada,
               quantidadeAvariadaAgora: c.quantidadeAvariadaAgora !== undefined
                 ? c.quantidadeAvariadaAgora
                 : (c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariadaAgora),
+              quantidadeAvariadaPersistida: item.quantidadeAvariadaPersistida,
               valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
               statusRecebimento: c.statusRecebimento || item.statusRecebimento,
               conferido: isConferente
@@ -121,6 +129,7 @@ export default function PedidoConferencia() {
           const extrasCache = cache.conferencia.filter(c => c.isNaoSolicitado);
           setConferencia([...mesclada, ...extrasCache]);
         } else {
+          setNumeroNota(response.data.numeroNota || '');
           setConferencia(base);
         }
         try {
@@ -414,7 +423,7 @@ export default function PedidoConferencia() {
       itens: itensParaEnviar.map(item => {
         const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
           ? 0
-          : Number(item.quantidadeRecebidaAgora);
+          : (item.quantidadeRecebidaPersistida ? 0 : Number(item.quantidadeRecebidaAgora));
 
         if (item.statusRecebimento === 'INCORRETO' || item.statusRecebimento === 'AVARIADO' || item.statusRecebimento === 'PROXIMO_VENCIMENTO' ||
             (item.statusRecebimento === 'FALTANTE' && item.foiCobrado)) {
@@ -426,7 +435,7 @@ export default function PedidoConferencia() {
           quantidadeReal: (item.quantidadeJaRecebida || 0) + qtdNova,
           quantidadeRecebidaAgora: qtdNova,
           quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
-            ? Number(item.quantidadeAvariadaAgora || 0) : 0,
+            ? (item.quantidadeAvariadaPersistida ? 0 : Number(item.quantidadeAvariadaAgora || 0)) : 0,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
           codigoBarrasRecebido: item.codigoBarrasRecebido || '',
@@ -809,8 +818,8 @@ export default function PedidoConferencia() {
                             <input
                               type="number"
                               min="0"
-                              disabled={totalmenteRecebido || isConferido}
-                              style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido) ? 'transparent' : '#cbd5e1' }}
+                              disabled={totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida}
+                              style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#cbd5e1' }}
                               placeholder="0"
                               value={confState.quantidadeRecebidaAgora ?? ''}
                               onChange={(e) => handleInputChange(item.id, 'quantidadeRecebidaAgora', e.target.value)}
@@ -881,13 +890,13 @@ export default function PedidoConferencia() {
                                 <input
                                   type="number"
                                   min="1"
-                                  max={Number(confState.quantidadeRecebidaAgora) || 0}
+                                  max={Number(confState.quantidadeRecebidaAgora || confState.quantidadeJaRecebida) || 0}
                                   value={confState.quantidadeAvariadaAgora ?? ''}
                                   onChange={(e) => handleInputChange(item.id, 'quantidadeAvariadaAgora', e.target.value)}
-                                  disabled={isConferido}
-                                  style={{ ...styles.inputField, width: '90px', backgroundColor: isConferido ? 'transparent' : 'white', borderColor: '#fbbf24' }}
+                                  disabled={isConferido || confState.quantidadeAvariadaPersistida}
+                                  style={{ ...styles.inputField, width: '90px', backgroundColor: (isConferido || confState.quantidadeAvariadaPersistida) ? 'transparent' : 'white', borderColor: '#fbbf24' }}
                                 />
-                                <span style={{ fontWeight: 'normal' }}>de {confState.quantidadeRecebidaAgora || 0} recebida(s)</span>
+                                <span style={{ fontWeight: 'normal' }}>de {confState.quantidadeRecebidaAgora || confState.quantidadeJaRecebida || 0} recebida(s)</span>
                               </label>
                             </td>
                           </tr>

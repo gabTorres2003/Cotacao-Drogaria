@@ -26,7 +26,7 @@ export default function TabelaRegistroManual({
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px', maxWidth: '320px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', flex: 1 }}>
               <Search size={14} color="#6b7280" />
-              <input type="text" placeholder="Filtrar por produto..." value={termoBusca}
+              <input type="text" placeholder="Buscar por EAN, nome ou código DNA..." value={termoBusca}
                 onChange={e => setTermoBusca(e.target.value)}
                 style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
               {termoBusca && (

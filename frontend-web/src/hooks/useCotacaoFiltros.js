@@ -105,7 +105,17 @@ export function useCotacaoFiltros(relatorio, itensJaComprados, modoVisualizacao,
           if (subAbaItens === 'comprados' && !isComprado) return false;
       }
 
-      const matchBusca = getNomeExibicao(item.nomeProduto).toLowerCase().includes(termoBusca.toLowerCase());
+      const termoNormalizado = termoBusca.trim().toLowerCase();
+      const camposBusca = [
+        getNomeExibicao(item.nomeProduto),
+        item.codBarras,
+        item.codigoDna,
+        item.codigoDNA,
+        item.codigoProduto
+      ];
+      const matchBusca = !termoNormalizado || camposBusca.some(campo =>
+        campo != null && String(campo).toLowerCase().includes(termoNormalizado)
+      );
       
       const origemSegura = String(item.origemItem || 'Geral').toUpperCase();
       const filtroOrigemUpper = filtroOrigem.toUpperCase();
