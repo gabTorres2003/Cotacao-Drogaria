@@ -53,10 +53,12 @@ export default function PedidoConferencia() {
 
   // Salva o preenchimento automaticamente em cache a cada alteração,
   // para não perder o progresso em caso de falha ou atualização da página.
+  // O status do pedido é gravado junto para descartar cache de uma etapa anterior
+  // (ex.: cache criado antes de o conferente salvar a conferência).
   useEffect(() => {
-    if (loading || conferencia.length === 0) return;
-    salvarCacheConferencia(id, { numeroNota, conferencia, salvoEm: Date.now() });
-  }, [conferencia, numeroNota, loading, id]);
+    if (loading || conferencia.length === 0 || !pedido) return;
+    salvarCacheConferencia(id, { numeroNota, conferencia, pedidoStatus: pedido.status, salvoEm: Date.now() });
+  }, [conferencia, numeroNota, loading, id, pedido]);
 
   const carregarPedido = async () => {
     try {
@@ -69,21 +71,27 @@ export default function PedidoConferencia() {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
             const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
             const valorInformado = item.valorUnitarioReal != null && Number(item.valorUnitarioReal) > 0;
+            // Na continuidade administrativa, só trava o que realmente já foi persistido.
+            // Itens sem quantidade salva permanecem editáveis para o ADM completar a conferência.
+            const quantidadeJaPersistida = continuidadeAdministrativa && qtdJaRecebida > 0;
+            const avariadaJaPersistida = continuidadeAdministrativa && (item.quantidadeAvariada || 0) > 0;
             return {
               id: item.id,
               quantidadeJaRecebida: qtdJaRecebida,
-              quantidadeRecebidaAgora: continuidadeAdministrativa ? qtdJaRecebida : '',
-              quantidadeRecebidaPersistida: continuidadeAdministrativa,
+              quantidadeRecebidaAgora: quantidadeJaPersistida ? qtdJaRecebida : '',
+              quantidadeRecebidaPersistida: quantidadeJaPersistida,
               quantidadeAvariada: item.quantidadeAvariada || 0,
-              quantidadeAvariadaAgora: continuidadeAdministrativa ? (item.quantidadeAvariada || 0) : 0,
-              quantidadeAvariadaPersistida: continuidadeAdministrativa,
+              quantidadeAvariadaAgora: avariadaJaPersistida ? (item.quantidadeAvariada || 0) : 0,
+              quantidadeAvariadaPersistida: avariadaJaPersistida,
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
+              // Faltas de uma etapa anterior precisam ser confirmadas de novo (com valor),
+              // pois o produto pode ter chegado no volume atual.
               conferido: isConferente
                 ? totalmenteRecebido || (item.statusRecebimento && item.statusRecebimento !== 'OK')
-                : item.statusRecebimento === 'FALTANTE'
-                  || (valorInformado && (totalmenteRecebido
-                    || (item.statusRecebimento && item.statusRecebimento !== 'OK'))),
+                : valorInformado && (totalmenteRecebido
+                  || (item.statusRecebimento && item.statusRecebimento !== 'OK'
+                    && item.statusRecebimento !== 'FALTANTE')),
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
@@ -92,9 +100,15 @@ export default function PedidoConferencia() {
             };
           });
 
-        // Recupera preenchimento salvo em cache (falha ou atualização da página)
+        // Recupera preenchimento salvo em cache (falha ou atualização da página).
+        // Ignora cache de uma etapa anterior do pedido: ele pode estar com quantidades
+        // zeradas e itens já confirmados de antes de o conferente salvar.
         const cache = lerCacheConferencia(id);
-        if (cache && Array.isArray(cache.conferencia) && cache.conferencia.length > 0) {
+        const cacheValido = cache
+          && Array.isArray(cache.conferencia)
+          && cache.conferencia.length > 0
+          && cache.pedidoStatus === response.data.status;
+        if (cacheValido) {
           setNumeroNota(cache.numeroNota || response.data.numeroNota || '');
           const porId = {};
           cache.conferencia.forEach(c => { porId[String(c.id)] = c; });
@@ -129,6 +143,7 @@ export default function PedidoConferencia() {
           const extrasCache = cache.conferencia.filter(c => c.isNaoSolicitado);
           setConferencia([...mesclada, ...extrasCache]);
         } else {
+          if (cache) limparCacheConferencia(id);
           setNumeroNota(response.data.numeroNota || '');
           setConferencia(base);
         }
