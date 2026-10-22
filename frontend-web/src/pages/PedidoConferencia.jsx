@@ -66,14 +66,17 @@ export default function PedidoConferencia() {
         const base = response.data.itens.map(item => {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
             const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
+            const valorInformado = item.valorUnitarioReal != null && Number(item.valorUnitarioReal) > 0;
             return {
               id: item.id,
               quantidadeJaRecebida: qtdJaRecebida,
               quantidadeAvariada: item.quantidadeAvariada || 0,
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
-              conferido: totalmenteRecebido
-                || (item.statusRecebimento && item.statusRecebimento !== 'OK'),
+              conferido: isConferente
+                ? totalmenteRecebido || (item.statusRecebimento && item.statusRecebimento !== 'OK')
+                : valorInformado && (totalmenteRecebido
+                  || (item.statusRecebimento && item.statusRecebimento !== 'OK')),
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
@@ -91,13 +94,19 @@ export default function PedidoConferencia() {
           const mesclada = base.map(item => {
             const c = porId[String(item.id)];
             if (!c) return item;
+            const valorMesclado = c.valorUnitarioReal !== undefined
+              ? c.valorUnitarioReal
+              : item.valorUnitarioReal;
             return {
               ...item,
               quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
               quantidadeAvariada: c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariada,
               valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
               statusRecebimento: c.statusRecebimento || item.statusRecebimento,
-              conferido: !!c.conferido,
+              conferido: isConferente
+                ? !!c.conferido
+                : !!c.conferido
+                  && (valorMesclado != null && Number(valorMesclado) > 0),
               produtoRecebido: c.produtoRecebido || '',
               codigoBarrasRecebido: c.codigoBarrasRecebido || '',
               observacaoIncorreto: c.observacaoIncorreto || '',
@@ -176,14 +185,18 @@ export default function PedidoConferencia() {
       if (item.id === idItem) {
         if (!item.conferido) {
           const isFaltante = item.statusRecebimento === 'FALTANTE';
-          const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined ? 0 : Number(item.quantidadeRecebidaAgora);
+          const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
+            ? Number(item.quantidadeJaRecebida || 0)
+            : Number(item.quantidadeRecebidaAgora);
           const qtdAvariada = Number(item.quantidadeAvariada || 0);
           if (item.statusRecebimento === 'AVARIADO' && (qtdAvariada <= 0 || qtdAvariada > qtdNova)) {
             alert('Informe a quantidade avariada, sem ultrapassar a quantidade recebida nesta NF.');
             return item;
           }
           if (!isFaltante && !isConferente) {
-            if (qtdNova <= 0 || item.valorUnitarioReal === '') {
+            if (qtdNova <= 0 || item.valorUnitarioReal === ''
+              || !Number.isFinite(Number(item.valorUnitarioReal))
+              || Number(item.valorUnitarioReal) <= 0) {
               alert('Preencha a quantidade e o valor unitário da nota antes de confirmar este item.');
               return item;
             }
@@ -263,7 +276,7 @@ export default function PedidoConferencia() {
   );
 
   const itensNaoConferidos = useMemo(
-    () => conferencia.filter(c => !c.conferido && !c.totalmenteRecebido && !c.isNaoSolicitado),
+    () => conferencia.filter(c => !c.conferido && !c.isNaoSolicitado),
     [conferencia]
   );
 
@@ -271,15 +284,22 @@ export default function PedidoConferencia() {
     let confirmados = 0;
     let pendentes = 0;
     setConferencia(prev => prev.map(item => {
-      if (item.conferido || item.totalmenteRecebido || item.isNaoSolicitado) return item;
-      const quantidadePreenchida = item.quantidadeRecebidaAgora !== ''
+      if (item.conferido || item.isNaoSolicitado) return item;
+      const quantidadePreenchida = item.totalmenteRecebido
+        ? Number(item.quantidadeJaRecebida) > 0
+        : item.quantidadeRecebidaAgora !== ''
         && item.quantidadeRecebidaAgora !== undefined
         && item.quantidadeRecebidaAgora !== null
         && Number.isFinite(Number(item.quantidadeRecebidaAgora))
         && (item.statusRecebimento === 'FALTANTE'
           ? Number(item.quantidadeRecebidaAgora) >= 0
           : Number(item.quantidadeRecebidaAgora) > 0);
-      if (!quantidadePreenchida) {
+      const valorPreenchido = isConferente
+        || (item.valorUnitarioReal !== ''
+          && item.valorUnitarioReal !== undefined
+          && Number.isFinite(Number(item.valorUnitarioReal))
+          && Number(item.valorUnitarioReal) > 0);
+      if (!quantidadePreenchida || !valorPreenchido) {
         pendentes++;
         return item;
       }
@@ -369,7 +389,7 @@ export default function PedidoConferencia() {
 
     const itensPendentes = conferencia.filter(c => !c.conferido && !c.isNaoSolicitado);
     if (itensPendentes.length > 0) {
-      alert(`Atenção: Você precisa confirmar (conferir) todos os itens individualmente na tabela. Restam ${itensPendentes.length} itens pendentes de conferência.`);
+      alert(`Atenção: preencha os valores pendentes e use "Conferir todos os produtos" antes de finalizar. Restam ${itensPendentes.length} itens pendentes.`);
       return;
     }
 
