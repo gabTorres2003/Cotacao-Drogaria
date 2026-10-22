@@ -176,7 +176,7 @@ public class PedidoController {
     }
 
     @PutMapping("/{id}/receber")
-    public ResponseEntity<Pedido> processarRecebimento(
+    public ResponseEntity<?> processarRecebimento(
             @PathVariable Long id,
             @RequestBody ReceberPedidoRequestDTO requestDTO,
             Authentication authentication) {
