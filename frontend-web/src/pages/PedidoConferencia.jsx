@@ -71,6 +71,7 @@ export default function PedidoConferencia() {
               id: item.id,
               quantidadeJaRecebida: qtdJaRecebida,
               quantidadeAvariada: item.quantidadeAvariada || 0,
+              quantidadeAvariadaAgora: 0,
               valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
               statusRecebimento: item.statusRecebimento || 'OK',
               conferido: isConferente
@@ -101,6 +102,9 @@ export default function PedidoConferencia() {
               ...item,
               quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
               quantidadeAvariada: c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariada,
+              quantidadeAvariadaAgora: c.quantidadeAvariadaAgora !== undefined
+                ? c.quantidadeAvariadaAgora
+                : (c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariadaAgora),
               valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
               statusRecebimento: c.statusRecebimento || item.statusRecebimento,
               conferido: isConferente
@@ -163,7 +167,7 @@ export default function PedidoConferencia() {
                     newItem.quantidadeRecebidaAgora = 0;
                 }
                 if (value !== 'AVARIADO') {
-                    newItem.quantidadeAvariada = 0;
+                    newItem.quantidadeAvariadaAgora = 0;
                 }
                 if (value !== 'FALTANTE') {
                     newItem.foiCobrado = false;
@@ -188,7 +192,7 @@ export default function PedidoConferencia() {
           const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
             ? Number(item.quantidadeJaRecebida || 0)
             : Number(item.quantidadeRecebidaAgora);
-          const qtdAvariada = Number(item.quantidadeAvariada || 0);
+          const qtdAvariada = Number(item.quantidadeAvariadaAgora || 0);
           if (item.statusRecebimento === 'AVARIADO' && (qtdAvariada <= 0 || qtdAvariada > qtdNova)) {
             alert('Informe a quantidade avariada, sem ultrapassar a quantidade recebida nesta NF.');
             return item;
@@ -351,6 +355,8 @@ export default function PedidoConferencia() {
           id: item.id,
           quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
             ? 0 : Number(item.quantidadeRecebidaAgora),
+          quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
+            ? Number(item.quantidadeAvariadaAgora || 0) : 0,
           statusRecebimento: item.statusRecebimento,
           codigoBarrasRecebido: item.codigoBarrasRecebido || '',
           nomeProdutoRecebido: item.produtoRecebido || '',
@@ -419,7 +425,8 @@ export default function PedidoConferencia() {
           id: item.id,
           quantidadeReal: (item.quantidadeJaRecebida || 0) + qtdNova,
           quantidadeRecebidaAgora: qtdNova,
-          quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO' ? Number(item.quantidadeAvariada || 0) : 0,
+          quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
+            ? Number(item.quantidadeAvariadaAgora || 0) : 0,
           valorUnitarioReal: Number(item.valorUnitarioReal),
           statusRecebimento: item.statusRecebimento,
           codigoBarrasRecebido: item.codigoBarrasRecebido || '',
@@ -483,7 +490,7 @@ export default function PedidoConferencia() {
       navigate(`/pedidos/${id}`);
     } catch (error) {
       console.error('Erro ao finalizar conferência:', error);
-      alert('Ocorreu um erro ao processar o recebimento do pedido.');
+      alert(error.response?.data?.message || 'Ocorreu um erro ao processar o recebimento do pedido.');
     } finally {
       setSalvando(false);
       setShowModalDestinoFaltantes(false);
@@ -875,8 +882,8 @@ export default function PedidoConferencia() {
                                   type="number"
                                   min="1"
                                   max={Number(confState.quantidadeRecebidaAgora) || 0}
-                                  value={confState.quantidadeAvariada ?? ''}
-                                  onChange={(e) => handleInputChange(item.id, 'quantidadeAvariada', e.target.value)}
+                                  value={confState.quantidadeAvariadaAgora ?? ''}
+                                  onChange={(e) => handleInputChange(item.id, 'quantidadeAvariadaAgora', e.target.value)}
                                   disabled={isConferido}
                                   style={{ ...styles.inputField, width: '90px', backgroundColor: isConferido ? 'transparent' : 'white', borderColor: '#fbbf24' }}
                                 />

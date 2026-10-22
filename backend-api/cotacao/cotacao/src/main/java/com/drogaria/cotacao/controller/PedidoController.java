@@ -183,16 +183,24 @@ public class PedidoController {
         if (!isAdmin(authentication)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
-        pedidoAtualizado.setConferenciaFinalizadaPor(getUsuarioLogado());
-        pedidoAtualizado = pedidoService.salvarPedido(pedidoAtualizado);
+        try {
+            Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
+            pedidoAtualizado.setConferenciaFinalizadaPor(getUsuarioLogado());
+            pedidoAtualizado = pedidoService.salvarPedido(pedidoAtualizado);
 
-        logAuditoriaService.registrarLog(
-            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
-            "Realizou a conferência física e recebimento do pedido."
-        );
+            logAuditoriaService.registrarLog(
+                getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
+                "Realizou a conferência física e recebimento do pedido."
+            );
 
-        return ResponseEntity.ok(pedidoAtualizado);
+            return ResponseEntity.ok(pedidoAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", e.getMessage() != null
+                    ? e.getMessage()
+                    : "Não foi possível processar o recebimento do pedido."
+            ));
+        }
     }
 
     @PatchMapping("/{id}/conferencia/parcial")
