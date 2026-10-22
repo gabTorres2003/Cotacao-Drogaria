@@ -326,8 +326,16 @@ public class PedidoController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletarPedido(@PathVariable Long id) {
-        pedidoService.deletarPedido(id);
+    public ResponseEntity<?> deletarPedido(@PathVariable Long id) {
+        try {
+            pedidoService.deletarPedido(id);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", e.getMessage() != null
+                    ? e.getMessage()
+                    : "Não foi possível excluir o pedido."
+            ));
+        }
         logAuditoriaService.registrarLog(
             getUsuarioLogado(), "INTERNO", TipoAcao.EXCLUSAO, "Pedido", id, 
             "Excluiu permanentemente o pedido de compra do sistema."

@@ -6,7 +6,9 @@ import com.drogaria.cotacao.dto.request.ItemNaoSolicitadoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
+import com.drogaria.cotacao.model.Devolucao;
 import com.drogaria.cotacao.model.Fornecedor;
+import com.drogaria.cotacao.model.FotoConferencia;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
@@ -16,7 +18,9 @@ import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
 import com.drogaria.cotacao.repository.CotacaoRepository;
+import com.drogaria.cotacao.repository.DevolucaoRepository;
 import com.drogaria.cotacao.repository.FornecedorRepository;
+import com.drogaria.cotacao.repository.FotoConferenciaRepository;
 import com.drogaria.cotacao.repository.ItemCotacaoRepository;
 import com.drogaria.cotacao.repository.ItemPedidoRepository;
 import com.drogaria.cotacao.repository.PedidoRepository;
@@ -46,6 +50,8 @@ public class PedidoService {
     private final EncomendaRepository encomendaRepository;
     private final CotacaoFornecedorRepository cotacaoFornecedorRepository;
     private final PrecoCotacaoRepository precoRepository;
+    private final DevolucaoRepository devolucaoRepository;
+    private final FotoConferenciaRepository fotoConferenciaRepository;
 
     @Autowired
     private jakarta.persistence.EntityManager entityManager;
@@ -599,12 +605,25 @@ public class PedidoService {
 
     @Transactional
     public void deletarPedido(Long id) {
+        Pedido pedido = buscarPorId(id);
+
+        if (!devolucaoRepository.findByPedidoId(id).isEmpty()) {
+            throw new RuntimeException("Não é possível excluir este pedido, pois existe uma devolução vinculada a ele no histórico.");
+        }
+
+        // As fotos da conferência referenciam o pedido e os itens do pedido (sem cascade no banco).
+        // Precisam ser removidas antes da exclusão para não violar a chave estrangeira.
+        List<FotoConferencia> fotos = fotoConferenciaRepository.findByPedidoIdOrderByDataCriacaoAsc(id);
+        if (!fotos.isEmpty()) {
+            fotoConferenciaRepository.deleteAll(fotos);
+            fotoConferenciaRepository.flush();
+        }
+
         try {
-            Pedido pedido = buscarPorId(id);
             pedidoRepository.delete(pedido);
-            pedidoRepository.flush(); 
+            pedidoRepository.flush();
         } catch (DataIntegrityViolationException e) {
-            throw new RuntimeException("Alerta de Segurança: Não é possível excluir este pedido, pois existe uma devolução vinculada a ele no histórico.");
+            throw new RuntimeException("Não é possível excluir este pedido: existem registros vinculados a ele (devoluções ou conferências).");
         }
     }
 
