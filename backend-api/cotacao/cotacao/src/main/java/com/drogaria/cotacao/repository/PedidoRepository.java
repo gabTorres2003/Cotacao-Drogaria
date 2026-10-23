@@ -32,4 +32,7 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens", "itens.itemCotacao"})
     List<Pedido> findByStatusInOrderByDataCriacaoDesc(@Param("status") List<StatusPedido> status);
+
+    @Query("SELECT p.status, COUNT(p) FROM Pedido p GROUP BY p.status")
+    List<Object[]> contarPorStatus();
 }

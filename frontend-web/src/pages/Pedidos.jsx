@@ -20,6 +20,9 @@ export default function Pedidos() {
   
   const [abaAtiva, setAbaAtiva] = useState(isConferente ? 'AGUARDANDO_ENTREGA' : 'TRATAMENTO')
   const [busca, setBusca] = useState('')
+  const [buscaGeral, setBuscaGeral] = useState('')
+  const [pedidosAtivos, setPedidosAtivos] = useState(null)
+  const [carregandoBusca, setCarregandoBusca] = useState(false)
   const [filtroStatus, setFiltroStatus] = useState('TODOS')
   const [ordenacao, setOrdenacao] = useState('RECENTES')
   const [dataInicio, setDataInicio] = useState('')
@@ -28,7 +31,7 @@ export default function Pedidos() {
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
   const [periodoConferente, setPeriodoConferente] = useState('TODOS')
 
-  const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0 })
+  const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0, historico: 0 })
   const navigate = useNavigate()
 
   const [isModalManualOpen, setIsModalManualOpen] = useState(false)
@@ -46,6 +49,49 @@ export default function Pedidos() {
   const STATUS_AGUARDANDO_ENTREGA = ['CONFIRMADO_FORNECEDOR'];
   const STATUS_AGUARDANDO_CONFIRMACAO = ['PENDENTE_ENTREGA'];
   const STATUS_HISTORICO = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
+  const STATUS_ATIVOS = [...STATUS_TRATAMENTO, ...STATUS_AGUARDANDO_ENTREGA, ...STATUS_AGUARDANDO_CONFIRMACAO];
+
+  const normalizarTexto = (valor) => String(valor ?? '').toLowerCase().trim();
+
+  const pedidoCombinaTexto = (pedido, termo) => {
+    const termoNormalizado = normalizarTexto(termo);
+    if (!termoNormalizado) return true;
+
+    const combina = (valor) => normalizarTexto(valor).includes(termoNormalizado);
+
+    const camposDoPedido = [
+      pedido.id,
+      pedido.numeroNota,
+      pedido.cotacao?.id,
+      pedido.cotacaoId,
+      pedido.fornecedor?.empresa,
+      pedido.fornecedor?.nomeEmpresa,
+      pedido.fornecedor?.nome,
+      pedido.fornecedorNome,
+      pedido.fornecedor?.entreguePor,
+      pedido.cotacao?.setor,
+    ];
+
+    if (camposDoPedido.some(combina)) return true;
+
+    return pedido.itens?.some(item =>
+      [item.nomeProduto, item.codigoBarrasRecebido, item.itemCotacao?.codBarras].some(combina)
+    ) || false;
+  };
+
+  const calcularResumo = (contagens) => {
+    const somar = (statuses) => statuses.reduce((total, status) => total + (contagens[status] || 0), 0);
+
+    return {
+      total: Object.values(contagens).reduce((total, quantidade) => total + quantidade, 0),
+      emTratamento: somar(STATUS_TRATAMENTO),
+      aguardandoEntrega: somar(STATUS_AGUARDANDO_ENTREGA),
+      aguardandoConfirmacao: somar(STATUS_AGUARDANDO_CONFIRMACAO),
+      entregues: somar(['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA']),
+      devolucoes: contagens['PENDENTE_DEVOLUCAO'] || 0,
+      historico: somar(STATUS_HISTORICO),
+    };
+  };
   
   useEffect(() => {
       const interval = setInterval(() => setAgora(new Date().getTime()), 60000); 
@@ -55,6 +101,14 @@ export default function Pedidos() {
   useEffect(() => {
     carregarPedidosAba(abaAtiva);
   }, [abaAtiva])
+
+  useEffect(() => {
+    if (!isConferente) carregarResumo();
+  }, [])
+
+  useEffect(() => {
+    if (buscaGeral.trim()) carregarPedidosAtivos();
+  }, [buscaGeral])
 
   const getStatusParaAba = (aba) => {
     if (isConferente) return ['PENDENTE_ENTREGA', 'CONFIRMADO_FORNECEDOR', 'CONFERENCIA_INICIADA'];
@@ -89,7 +143,36 @@ export default function Pedidos() {
     }
   };
 
-  const refreshAbaAtual = () => carregarPedidosAba(abaAtiva, true);
+  const carregarResumo = async () => {
+    try {
+      const response = await api.get('/api/pedidos/resumo');
+      setResumo(calcularResumo(response.data || {}));
+    } catch (error) {
+      console.error('Erro ao carregar resumo de pedidos:', error);
+    }
+  };
+
+  const carregarPedidosAtivos = async (forceReload = false) => {
+    if (!forceReload && pedidosAtivos) return;
+    setCarregandoBusca(true);
+    try {
+      const queryString = STATUS_ATIVOS.map(s => `statuses=${encodeURIComponent(s)}`).join('&');
+      const response = await api.get(`/api/pedidos/filtrar?${queryString}`);
+      setPedidosAtivos(response.data || []);
+    } catch (error) {
+      console.error('Erro ao carregar pedidos ativos:', error);
+      setPedidosAtivos([]);
+    } finally {
+      setCarregandoBusca(false);
+    }
+  };
+
+  const refreshAbaAtual = () => {
+    carregarResumo();
+    setPedidosAtivos(null);
+    carregarPedidosAba(abaAtiva, true);
+    if (buscaGeral.trim()) carregarPedidosAtivos(true);
+  };
 
   const deletarPedido = async (id) => {
     if (window.confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) {
@@ -194,16 +277,10 @@ export default function Pedidos() {
 
   const fMoney = (valor) => valor != null ? Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }) : '-';
 
-  const pedidosProcessados = pedidos
-    .filter((p) => {
-      const textoBusca = busca.toLowerCase()
-      const nomeEmpresa = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || p.fornecedor?.nome || ''
-      const idCotacaoStr = p.cotacao?.id ? p.cotacao.id.toString() : (p.cotacaoId ? p.cotacaoId.toString() : '');
-      const entreguePorTexto = p.fornecedor?.entreguePor ? p.fornecedor.entreguePor.toLowerCase() : '';
-      const nfStr = p.numeroNota ? p.numeroNota.toLowerCase() : '';
-      
-      const matchProduto = p.itens ? p.itens.some(item => item.nomeProduto && item.nomeProduto.toLowerCase().includes(textoBusca)) : false;
+  const emBuscaGeral = buscaGeral.trim().length > 0;
 
+  const pedidosProcessados = (emBuscaGeral ? (pedidosAtivos || []) : pedidos)
+    .filter((p) => {
       let gruposFormatados = '-';
       if (p.itens && p.itens.length > 0) {
           const listaDeGrupos = p.itens.map(item => item.itemCotacao?.grupo).filter(Boolean); 
@@ -211,14 +288,9 @@ export default function Pedidos() {
           if (gruposUnicos.length > 0) gruposFormatados = gruposUnicos.join(', ');
       }
 
-      const matchTexto = nomeEmpresa.toLowerCase().includes(textoBusca) || 
-                         p.id.toString().includes(textoBusca) || 
-                         idCotacaoStr.includes(textoBusca) || 
-                         entreguePorTexto.includes(textoBusca) ||
-                         nfStr.includes(textoBusca) ||
-                         matchProduto;
+      const matchTexto = pedidoCombinaTexto(p, emBuscaGeral ? buscaGeral : busca)
 
-      const matchStatus = filtroStatus === 'TODOS' || p.status === filtroStatus;
+      const matchStatus = emBuscaGeral || filtroStatus === 'TODOS' || p.status === filtroStatus;
 
       let matchData = true;
       if (dataInicio || dataFim) {
@@ -479,13 +551,6 @@ export default function Pedidos() {
   return (
     <div className={`layout pedidos-page ${isConferente ? 'pedidos-conferente' : ''}`}>
       <style>{`
-        .pedidos-page .pedidos-abas {
-          overflow-x: auto;
-          scrollbar-width: thin;
-        }
-        .pedidos-page .pedidos-abas > div {
-          flex-wrap: nowrap;
-        }
         @media (max-width: 768px) {
           .pedidos-conferente .main-content {
             padding: 14px 10px;
@@ -533,6 +598,34 @@ export default function Pedidos() {
           </div>
         </header>
 
+        <div style={{ backgroundColor: 'white', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 320px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '10px 12px', borderRadius: '8px' }}>
+            <Search size={18} color="#9ca3af" />
+            <input
+              type="text"
+              placeholder="Busca geral em pedidos ativos: produto, EAN, fornecedor, empresa, NF ou nº do pedido"
+              value={buscaGeral}
+              onChange={(e) => { setBuscaGeral(e.target.value); setPedidosSelecionados([]); }}
+              style={{ border: 'none', outline: 'none', width: '100%', fontSize: '14px' }}
+            />
+            {buscaGeral && (
+              <button
+                type="button"
+                onClick={() => { setBuscaGeral(''); setPedidosSelecionados([]); }}
+                title="Limpar busca geral"
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', padding: 0 }}
+              >
+                <X size={18} />
+              </button>
+            )}
+          </div>
+          {emBuscaGeral && (
+            <span style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+              {carregandoBusca ? 'Buscando em todos os pedidos ativos...' : `${pedidosProcessados.length} resultado(s) em todos os pedidos ativos`}
+            </span>
+          )}
+        </div>
+
         <div className="stats-grid">
           <div className="stat-card">
             <div className="stat-value">{resumo.total}</div>
@@ -556,35 +649,54 @@ export default function Pedidos() {
           </div>
         </div>
 
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '20px' }}>
+          {[
+            { chave: 'TRATAMENTO', titulo: 'Em Tratamento', descricao: 'Divergências e pendências', cor: '#dc2626', fundo: '#fef2f2', icone: <AlertTriangle size={20} />, quantidade: resumo.emTratamento },
+            { chave: 'AGUARDANDO_ENTREGA', titulo: 'Aguardando Entrega', descricao: 'Confirmados pelo fornecedor', cor: '#ea580c', fundo: '#fff7ed', icone: <PackagePlus size={20} />, quantidade: resumo.aguardandoEntrega },
+            { chave: 'AGUARDANDO_CONFIRMACAO', titulo: 'Aguardando Confirmação', descricao: 'Aguardando fornecedor', cor: '#ca8a04', fundo: '#fefce8', icone: <Calendar size={20} />, quantidade: resumo.aguardandoConfirmacao },
+            { chave: 'HISTORICO', titulo: 'Histórico', descricao: 'Entregues e cancelados', cor: '#16a34a', fundo: '#f0fdf4', icone: <CheckCircle size={20} />, quantidade: resumo.historico },
+          ].map((categoria) => {
+            const ativa = abaAtiva === categoria.chave;
+            return (
+              <button
+                key={categoria.chave}
+                type="button"
+                onClick={() => {
+                  setAbaAtiva(categoria.chave);
+                  setFiltroStatus('TODOS');
+                  setOrdenacao('RECENTES');
+                  setPedidosSelecionados([]);
+                  setBuscaGeral('');
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'flex-start',
+                  gap: '6px',
+                  padding: '14px 16px',
+                  borderRadius: '12px',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  backgroundColor: ativa ? categoria.fundo : 'white',
+                  border: `2px solid ${ativa ? categoria.cor : '#e2e8f0'}`,
+                  boxShadow: ativa ? `0 4px 10px ${categoria.cor}22` : '0 1px 2px rgba(15, 23, 42, 0.04)',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', color: categoria.cor, fontWeight: '700', fontSize: '14px' }}>
+                    {categoria.icone} {categoria.titulo}
+                  </span>
+                  <span style={{ color: categoria.cor, fontWeight: '800', fontSize: '20px' }}>{categoria.quantidade}</span>
+                </div>
+                <span style={{ color: '#64748b', fontSize: '12px' }}>{categoria.descricao}</span>
+              </button>
+            );
+          })}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-          <div className="pedidos-abas" style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
-              <button 
-                onClick={() => { setAbaAtiva('TRATAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'TRATAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'TRATAMENTO' ? '#dc2626' : '#6b7280', boxShadow: abaAtiva === 'TRATAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-              >
-                Em Tratamento
-              </button>
-              <button 
-                onClick={() => { setAbaAtiva('AGUARDANDO_ENTREGA'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'AGUARDANDO_ENTREGA' ? 'white' : 'transparent', color: abaAtiva === 'AGUARDANDO_ENTREGA' ? '#ea580c' : '#6b7280', boxShadow: abaAtiva === 'AGUARDANDO_ENTREGA' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-              >
-                Aguardando Entrega
-              </button>
-              <button 
-                onClick={() => { setAbaAtiva('AGUARDANDO_CONFIRMACAO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? 'white' : 'transparent', color: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? '#ca8a04' : '#6b7280', boxShadow: abaAtiva === 'AGUARDANDO_CONFIRMACAO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-              >
-                Aguardando Confirmação
-              </button>
-              <button 
-                onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setPedidosSelecionados([]); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
-              >
-                Histórico
-              </button>
-            </div>
-
             <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid #cbd5e1' }}>
               <button 
                 onClick={() => setSetorAtivo('TODOS')}
@@ -695,7 +807,7 @@ export default function Pedidos() {
                     if (pedidosSelecionados.length === 1) {
                       navigate(`/conferencia/${pedidosSelecionados[0]}`);
                     } else {
-                      const pendentes = pedidos.filter(p => pedidosSelecionados.includes(p.id) && ['CONFIRMADO_FORNECEDOR', 'ENTREGA_PARCIAL'].includes(p.status));
+                      const pendentes = pedidosProcessados.filter(p => pedidosSelecionados.includes(p.id) && ['CONFIRMADO_FORNECEDOR', 'ENTREGA_PARCIAL'].includes(p.status));
                       if (pendentes.length === 0) {
                         alert('Nenhum dos pedidos selecionados está pendente de conferência.\n\nStatus elegíveis: Confirmado no Fornecedor, Entrega Parcial.');
                         return;
@@ -753,7 +865,7 @@ export default function Pedidos() {
               </tr>
             </thead>
             <tbody>
-              {loading ? (
+              {loading || (emBuscaGeral && carregandoBusca) ? (
                 <tr>
                   <td colSpan="12" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
@@ -765,7 +877,7 @@ export default function Pedidos() {
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
                   <td colSpan="12" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
-                    Nenhum pedido encontrado nesta aba ou setor.
+                    {emBuscaGeral ? 'Nenhum pedido ativo encontrado para a busca.' : 'Nenhum pedido encontrado nesta aba ou setor.'}
                   </td>
                 </tr>
               ) : (

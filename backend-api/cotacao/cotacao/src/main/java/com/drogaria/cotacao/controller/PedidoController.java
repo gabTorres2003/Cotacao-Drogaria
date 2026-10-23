@@ -72,6 +72,11 @@ public class PedidoController {
         return ResponseEntity.ok(pedidoService.listarPorStatuses(statuses));
     }
 
+    @GetMapping("/resumo")
+    public ResponseEntity<Map<String, Long>> contarPorStatus() {
+        return ResponseEntity.ok(pedidoService.contarPorStatus());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<Pedido> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(pedidoService.buscarPorId(id));
