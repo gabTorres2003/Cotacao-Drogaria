@@ -14,8 +14,10 @@ public class ProdutoController {
     private IntegracaoDNAService integracaoDNAService;
 
     @GetMapping("/buscar")
-    public ResponseEntity<?> buscarProduto(@RequestParam("q") String query) {
-        return integracaoDNAService.buscarProdutoPorCodigoOuBarras(query)
+    public ResponseEntity<?> buscarProduto(
+            @RequestParam("q") String query,
+            @RequestParam(value = "tipo", required = false) String tipo) {
+        return integracaoDNAService.buscarProdutoPorCodigoOuBarras(query, tipo)
                 .<ResponseEntity<?>>map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.status(404).body("Produto não encontrado"));
     }

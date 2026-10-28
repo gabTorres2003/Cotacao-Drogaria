@@ -15,6 +15,7 @@ import java.sql.SQLException;
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.Optional;
 
@@ -397,19 +398,46 @@ public class IntegracaoDNAService {
     }
 
     public Optional<ProdutoDnaDTO> buscarProdutoPorCodigoOuBarras(String query) {
+        return buscarProdutoPorCodigoOuBarras(query, null);
+    }
+
+    /**
+     * Busca produto no DNA. O parâmetro tipo é opcional e permite separar
+     * código de barras (EAN/BARRAS) de código interno (DNA/CODIGO), evitando
+     * que um número seja interpretado como o outro. Sem tipo, mantém o
+     * comportamento anterior (código ou barras, com fallbacks).
+     */
+    public Optional<ProdutoDnaDTO> buscarProdutoPorCodigoOuBarras(String query, String tipo) {
+        if (query == null || query.isBlank()) {
+            return Optional.empty();
+        }
+
+        String termo = query.trim();
+        String filtro = tipo == null ? "" : tipo.trim().toUpperCase(Locale.ROOT);
+        boolean somenteBarras = "EAN".equals(filtro) || "BARRAS".equals(filtro) || "CODIGOBARRAS".equals(filtro);
+        boolean somenteCodigo = "DNA".equals(filtro) || "CODIGO".equals(filtro) || "INTERNO".equals(filtro);
+
         MapSqlParameterSource params = new MapSqlParameterSource();
-        
+
         Integer codigoNum = null;
         try {
-            codigoNum = Integer.parseInt(query.trim());
+            codigoNum = Integer.parseInt(termo);
         } catch (NumberFormatException ignored) {}
 
         params.addValue("codigoNum", codigoNum);
-        params.addValue("codbarras", query.trim());
+        params.addValue("codbarras", termo);
 
         try {
-            String sqlDna;
-            if (codigoNum != null) {
+            String sqlDna = null;
+            if (somenteBarras) {
+                sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                         "FROM PRODUTOS WHERE CODBARRAS = :codbarras";
+            } else if (somenteCodigo) {
+                if (codigoNum != null) {
+                    sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
+                             "FROM PRODUTOS WHERE CODIGO = :codigoNum";
+                }
+            } else if (codigoNum != null) {
                 sqlDna = "SELECT CODIGO, CODBARRAS, DESCRICAO, QUANTIDADE, PRECOVENDA, PRECOCUSTO, INATIVO " +
                          "FROM PRODUTOS WHERE CODIGO = :codigoNum OR CODBARRAS = :codbarras";
             } else {
@@ -417,26 +445,38 @@ public class IntegracaoDNAService {
                          "FROM PRODUTOS WHERE CODBARRAS = :codbarras";
             }
 
-            ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sqlDna, params, (rs, rowNum) -> {
-                return new ProdutoDnaDTO(
-                    rs.getInt("CODIGO"),
-                    rs.getString("CODBARRAS"),
-                    rs.getString("DESCRICAO"),
-                    rs.getDouble("QUANTIDADE"), 
-                    rs.getDouble("PRECOVENDA"),
-                    rs.getDouble("PRECOCUSTO"),
-                    rs.getString("INATIVO")
-                );
-            });
-            if (produto != null) return Optional.of(produto);
+            if (sqlDna != null) {
+                ProdutoDnaDTO produto = dnaNamedJdbcTemplate.queryForObject(sqlDna, params, (rs, rowNum) -> {
+                    return new ProdutoDnaDTO(
+                        rs.getInt("CODIGO"),
+                        rs.getString("CODBARRAS"),
+                        rs.getString("DESCRICAO"),
+                        rs.getDouble("QUANTIDADE"),
+                        rs.getDouble("PRECOVENDA"),
+                        rs.getDouble("PRECOCUSTO"),
+                        rs.getString("INATIVO")
+                    );
+                });
+                if (produto != null) return Optional.of(produto);
+            }
         } catch (Exception ignored) {}
 
         try {
-            String sqlSupabase = "SELECT codigo, codbarras, descricao, quantidade, precovenda, precocusto, inativo " +
-                                 "FROM produtos WHERE CAST(codigo AS TEXT) = :q OR codbarras = :q LIMIT 1";
+            String sqlSupabase;
+            if (somenteBarras) {
+                sqlSupabase = "SELECT codigo, codbarras, descricao, quantidade, precovenda, precocusto, inativo " +
+                              "FROM produtos WHERE codbarras = :q LIMIT 1";
+            } else if (somenteCodigo) {
+                sqlSupabase = "SELECT codigo, codbarras, descricao, quantidade, precovenda, precocusto, inativo " +
+                              "FROM produtos WHERE CAST(codigo AS TEXT) = :q LIMIT 1";
+            } else {
+                sqlSupabase = "SELECT codigo, codbarras, descricao, quantidade, precovenda, precocusto, inativo " +
+                              "FROM produtos WHERE CAST(codigo AS TEXT) = :q OR codbarras = :q LIMIT 1";
+            }
+
             @SuppressWarnings("unchecked")
             List<Object[]> resultados = entityManager.createNativeQuery(sqlSupabase)
-                    .setParameter("q", query.trim())
+                    .setParameter("q", termo)
                     .getResultList();
 
             if (!resultados.isEmpty()) {
@@ -454,30 +494,41 @@ public class IntegracaoDNAService {
             }
         } catch (Exception ignored) {}
 
-        // 3. Tenta na tabela 'medicamentos_diversos' do Supabase
-        try {
-            String sqlDiversos = "SELECT codigo_diversos, produto, preco FROM medicamentos_diversos " +
-                                 "WHERE codigo_diversos = :q OR produto ILIKE :likeQuery LIMIT 1";
-            @SuppressWarnings("unchecked")
-            List<Object[]> resultadosDiv = entityManager.createNativeQuery(sqlDiversos)
-                    .setParameter("q", query.trim())
-                    .setParameter("likeQuery", "%" + query.trim() + "%")
-                    .getResultList();
+        if (!somenteBarras) {
+            try {
+                String sqlDiversos;
+                if (somenteCodigo) {
+                    sqlDiversos = "SELECT codigo_diversos, produto, preco FROM medicamentos_diversos " +
+                                  "WHERE codigo_diversos = :q LIMIT 1";
+                } else {
+                    sqlDiversos = "SELECT codigo_diversos, produto, preco FROM medicamentos_diversos " +
+                                  "WHERE codigo_diversos = :q OR produto ILIKE :likeQuery LIMIT 1";
+                }
 
-            if (!resultadosDiv.isEmpty()) {
-                Object[] row = resultadosDiv.get(0);
-                ProdutoDnaDTO prodDiv = new ProdutoDnaDTO(
-                    null,
-                    (String) row[0],
-                    (String) row[1],
-                    0.0,
-                    row[2] != null ? ((Number) row[2]).doubleValue() : 0.0,
-                    0.0,
-                    "N"
-                );
-                return Optional.of(prodDiv);
-            }
-        } catch (Exception ignored) {}
+                var consulta = entityManager.createNativeQuery(sqlDiversos)
+                        .setParameter("q", termo);
+                if (!somenteCodigo) {
+                    consulta.setParameter("likeQuery", "%" + termo + "%");
+                }
+
+                @SuppressWarnings("unchecked")
+                List<Object[]> resultadosDiv = consulta.getResultList();
+
+                if (!resultadosDiv.isEmpty()) {
+                    Object[] row = resultadosDiv.get(0);
+                    ProdutoDnaDTO prodDiv = new ProdutoDnaDTO(
+                        null,
+                        (String) row[0],
+                        (String) row[1],
+                        0.0,
+                        row[2] != null ? ((Number) row[2]).doubleValue() : 0.0,
+                        0.0,
+                        "N"
+                    );
+                    return Optional.of(prodDiv);
+                }
+            } catch (Exception ignored) {}
+        }
 
         return Optional.empty();
     }

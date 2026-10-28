@@ -332,6 +332,15 @@ O backend também possui uma segunda conexão de banco dedicada ao **DNA da drog
 
 Essa conexão é tratada como fonte operacional de leitura e fica separada da persistência principal da aplicação.
 
+### Consulta de produtos pelo sistema de Atendimento (Balcão)
+
+O backend expõe `GET /api/integracao-balcao/produtos?q=<código ou EAN>` para
+o sistema de Atendimento, sempre por leitura no DNA e autenticado por JWT
+com perfil `ADMIN` ou `CONFERENTE`. A chamada chega por uma Edge Function do
+Supabase do Balcão (servidor-a-servidor); o navegador não recebe
+credenciais do DNA. Contrato, configuração e limitações estão em
+[`INTEGRACAO_BALCAO_DNA.md`](./INTEGRACAO_BALCAO_DNA.md).
+
 > **Importante:** credenciais, tokens, senhas e URLs privadas de banco não devem ser documentados neste README. Utilize variáveis de ambiente/segredos de produção para informações sensíveis.
 
 ---

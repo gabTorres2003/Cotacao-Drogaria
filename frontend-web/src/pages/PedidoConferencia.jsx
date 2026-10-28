@@ -4,7 +4,7 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
-import LeitorCodigoBarras from '../components/LeitorCodigoBarras';
+import IdentificacaoProdutoRecebido from '../components/IdentificacaoProdutoRecebido';
 import FotosConferencia from '../components/FotosConferencia';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Search } from 'lucide-react';
 
@@ -31,6 +31,20 @@ const limparCacheConferencia = (pedidoId) => {
   } catch { /* armazenamento indisponível */ }
 };
 
+const extrairObservacaoIncorreto = (item) => {
+  const persistida = String(item.observacaoDevolucao || '');
+  if (item.statusRecebimento !== 'INCORRETO') return persistida;
+  const nome = String(item.nomeProdutoRecebido || item.produtoRecebido || '').trim();
+  let observacao = persistida;
+  if (nome) {
+    const prefixo = `Produto errado: ${nome}.`;
+    if (observacao.startsWith(prefixo)) observacao = observacao.slice(prefixo.length);
+    else if (observacao.trim() === nome) observacao = '';
+  }
+  observacao = observacao.replace(/\s*Código DNA:\s*[^.]+\.?\s*$/i, '');
+  return observacao.trim();
+};
+
 export default function PedidoConferencia() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -44,6 +58,7 @@ export default function PedidoConferencia() {
   const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
   const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
+  const [itemCameraAberta, setItemCameraAberta] = useState(null);
   const [fotos, setFotos] = useState([]);
   const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
 
@@ -95,7 +110,7 @@ export default function PedidoConferencia() {
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
-              observacaoIncorreto: item.observacaoDevolucao || '',
+              observacaoIncorreto: extrairObservacaoIncorreto(item),
               foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota')
             };
           });
@@ -135,6 +150,7 @@ export default function PedidoConferencia() {
                   && (valorMesclado != null && Number(valorMesclado) > 0),
               produtoRecebido: c.produtoRecebido || '',
               codigoBarrasRecebido: c.codigoBarrasRecebido || '',
+              codigoDnaRecebido: c.codigoDnaRecebido || '',
               observacaoIncorreto: c.observacaoIncorreto || '',
               foiCobrado: !!c.foiCobrado,
               classificacaoNaoSolicitado: c.classificacaoNaoSolicitado
@@ -163,21 +179,18 @@ export default function PedidoConferencia() {
     }
   };
 
-  const identificarProdutoRecebido = async (idItem, codigo) => {
-    const codigoTexto = String(codigo || '').trim();
-    if (!codigoTexto) return;
-    handleInputChange(idItem, 'codigoBarrasRecebido', codigoTexto);
-    try {
-      const resposta = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoTexto)}`);
-      const produto = resposta.data || {};
-      const nome = produto.nome || produto.descricao || produto.name || '';
-      if (nome) {
-        handleInputChange(idItem, 'produtoRecebido', nome);
-      }
-    } catch {
-      handleInputChange(idItem, 'produtoRecebido', '');
-      alert('Código não encontrado no DNA. Informe manualmente o nome do produto recebido.');
-    }
+  const montarObservacaoIncorreto = (item) => {
+    const partes = [`Produto errado: ${item.produtoRecebido || 'não informado'}.`];
+    if (String(item.observacaoIncorreto || '').trim()) partes.push(String(item.observacaoIncorreto).trim());
+    if (String(item.codigoDnaRecebido || '').trim()) partes.push(`Código DNA: ${String(item.codigoDnaRecebido).trim()}.`);
+    return partes.join(' ').trim();
+  };
+
+  const montarObservacaoNaoSolicitado = (item) => {
+    const partes = [item.classificacaoNaoSolicitado || 'Produto Não Solicitado'];
+    if (String(item.codigoDnaRecebido || '').trim()) partes.push(`Código DNA: ${String(item.codigoDnaRecebido).trim()}`);
+    if (String(item.observacaoIncorreto || '').trim()) partes.push(`Obs.: ${String(item.observacaoIncorreto).trim()}`);
+    return partes.join(' | ');
   };
 
   const adicionarFoto = (foto) => setFotos(prev => [...prev, foto]);
@@ -198,6 +211,7 @@ export default function PedidoConferencia() {
                 }
                 if (value !== 'INCORRETO') {
                     newItem.codigoBarrasRecebido = '';
+                    newItem.codigoDnaRecebido = '';
                     newItem.produtoRecebido = '';
                     newItem.observacaoIncorreto = '';
                 }
@@ -219,6 +233,10 @@ export default function PedidoConferencia() {
           const qtdAvariada = Number(item.quantidadeAvariadaAgora || 0);
           if (item.statusRecebimento === 'AVARIADO' && (qtdAvariada <= 0 || qtdAvariada > qtdNova)) {
             alert('Informe a quantidade avariada, sem ultrapassar a quantidade recebida nesta NF.');
+            return item;
+          }
+          if (item.statusRecebimento === 'INCORRETO' && !String(item.produtoRecebido || '').trim()) {
+            alert('Informe o nome do produto recebido antes de confirmar este item.');
             return item;
           }
           if (!isFaltante && !isConferente) {
@@ -249,8 +267,9 @@ export default function PedidoConferencia() {
       totalmenteRecebido: false,
       quantidadeRecebidaAgora: dados.quantidade,
       codigoBarrasRecebido: dados.codigoBarrasRecebido || '',
+      codigoDnaRecebido: dados.codigoDnaRecebido || '',
       produtoRecebido: dados.nomeProdutoRecebido || '',
-      observacaoIncorreto: '',
+      observacaoIncorreto: dados.observacao || '',
       foiCobrado: false,
       isNaoSolicitado: true,
       classificacaoNaoSolicitado: dados.classificacao
@@ -313,6 +332,10 @@ export default function PedidoConferencia() {
     let pendentes = 0;
     setConferencia(prev => prev.map(item => {
       if (item.conferido || item.isNaoSolicitado) return item;
+      if (item.statusRecebimento === 'INCORRETO' && !String(item.produtoRecebido || '').trim()) {
+        pendentes++;
+        return item;
+      }
       const quantidadePreenchida = item.totalmenteRecebido
         ? Number(item.quantidadeJaRecebida) > 0
         : item.quantidadeRecebidaAgora !== ''
@@ -335,7 +358,7 @@ export default function PedidoConferencia() {
       return { ...item, conferido: true };
     }));
     if (pendentes > 0) {
-      alert(`${confirmados} item(ns) marcado(s) como conferido(s). ${pendentes} item(ns) permanecem pendentes porque a quantidade não foi preenchida.`);
+      alert(`${confirmados} item(ns) marcado(s) como conferido(s). ${pendentes} item(ns) permanecem pendentes porque faltam dados obrigatórios (quantidade, valor ou identificação do produto recebido).`);
     } else if (confirmados > 0) {
       alert(`${confirmados} item(ns) marcado(s) como conferido(s).`);
     }
@@ -371,6 +394,12 @@ export default function PedidoConferencia() {
       alert('Por favor, preencha o Número da NF antes de salvar.');
       return;
     }
+    const incorretosSemNome = conferencia.filter(c => c.conferido && !c.isNaoSolicitado
+      && c.statusRecebimento === 'INCORRETO' && !String(c.produtoRecebido || '').trim());
+    if (incorretosSemNome.length > 0) {
+      alert('Informe o nome do produto recebido nos itens marcados como Produto Errado antes de salvar.');
+      return;
+    }
     setSalvando(true);
     try {
       await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
@@ -384,9 +413,11 @@ export default function PedidoConferencia() {
           statusRecebimento: item.statusRecebimento,
           codigoBarrasRecebido: item.codigoBarrasRecebido || '',
           nomeProdutoRecebido: item.produtoRecebido || '',
-          observacaoDevolucao: item.statusRecebimento !== 'OK'
-            ? (item.produtoRecebido || item.observacaoIncorreto || item.statusRecebimento)
-            : ''
+          observacaoDevolucao: item.statusRecebimento === 'INCORRETO'
+            ? montarObservacaoIncorreto(item)
+            : (item.statusRecebimento !== 'OK'
+                ? (item.observacaoIncorreto || item.statusRecebimento)
+                : '')
         }))
       });
 
@@ -398,7 +429,7 @@ export default function PedidoConferencia() {
           valorUnitarioReal: 0,
           codigoBarrasRecebido: c.codigoBarrasRecebido || '',
           nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
-          observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
+          observacaoDevolucao: montarObservacaoNaoSolicitado(c)
         })));
       }
       limparCacheConferencia(id);
@@ -414,6 +445,13 @@ export default function PedidoConferencia() {
   const enviarRecebimento = async (acao) => {
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
+      return;
+    }
+
+    const incorretosSemNome = conferencia.filter(c => c.conferido && !c.isNaoSolicitado
+      && c.statusRecebimento === 'INCORRETO' && !String(c.produtoRecebido || '').trim());
+    if (incorretosSemNome.length > 0) {
+      alert('Informe o nome do produto recebido nos itens marcados como Produto Errado antes de finalizar.');
       return;
     }
 
@@ -458,7 +496,7 @@ export default function PedidoConferencia() {
           foiCobrado: !!item.foiCobrado,
           observacaoDevolucao: item.statusRecebimento !== 'OK'
             ? (item.statusRecebimento === 'INCORRETO'
-                ? `Produto errado: ${item.produtoRecebido || 'não informado'}. ${item.observacaoIncorreto || ''}`.trim()
+                ? montarObservacaoIncorreto(item)
                 : (item.foiCobrado
                     ? 'Faturado mas não entregue - Cobrado na nota'
                     : (acao === 'AGUARDAR'
@@ -483,7 +521,7 @@ export default function PedidoConferencia() {
             valorUnitarioReal: c.valorUnitarioReal || 0,
             codigoBarrasRecebido: c.codigoBarrasRecebido || '',
             nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
-            observacaoDevolucao: c.classificacaoNaoSolicitado || 'Produto Não Solicitado'
+            observacaoDevolucao: montarObservacaoNaoSolicitado(c)
           }));
           await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, payloadNS);
         } catch (eNS) {
@@ -796,6 +834,10 @@ export default function PedidoConferencia() {
                       const hasProblema = confState.statusRecebimento !== 'OK';
                       const totalmenteRecebido = confState.totalmenteRecebido;
                       const qtdJaRecebida = confState.quantidadeJaRecebida || 0;
+                      const isExtra = confState.isNaoSolicitado
+                        || (Number(item.quantidadePedida) === 0
+                          && !item.itemCotacao
+                          && Boolean(confState.produtoRecebido || confState.observacaoIncorreto || confState.codigoBarrasRecebido));
 
                       return (
                         <Fragment key={item.id}>
@@ -804,9 +846,18 @@ export default function PedidoConferencia() {
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
                               {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
                             </strong>
-                            {confState.isNaoSolicitado && (
-                              <div style={{ fontSize: '10px', color: '#6b21a8', backgroundColor: '#f3e8ff', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #d8b4fe' }}>
-                                <Tag size={10} /> Não Solicitado
+                            {isExtra && (
+                              <div style={{ marginTop: '4px' }}>
+                                <div style={{ fontSize: '10px', color: '#6b21a8', backgroundColor: '#f3e8ff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #d8b4fe' }}>
+                                  <Tag size={10} /> Não Solicitado
+                                </div>
+                                {(confState.codigoBarrasRecebido || confState.codigoDnaRecebido || confState.observacaoIncorreto) && (
+                                  <div style={{ fontSize: '11px', color: '#6b21a8', marginTop: '4px', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                                    {confState.codigoBarrasRecebido && <div>Código: {confState.codigoBarrasRecebido}</div>}
+                                    {confState.codigoDnaRecebido && <div>Código DNA: {confState.codigoDnaRecebido}</div>}
+                                    {confState.observacaoIncorreto && <div>Obs.: {confState.observacaoIncorreto}</div>}
+                                  </div>
+                                )}
                               </div>
                             )}
                             {item.condicaoAplicada && (
@@ -933,46 +984,19 @@ export default function PedidoConferencia() {
                         {confState.statusRecebimento === 'INCORRETO' && (
                           <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
-                              <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
-                                <div style={{ flex: '1 1 200px' }}>
-                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Código de barras recebido:</label>
-                                  <input
-                                    type="text"
-                                    inputMode="numeric"
-                                    placeholder="Ex: 7891234567890"
-                                    disabled={totalmenteRecebido || isConferido}
-                                    value={confState.codigoBarrasRecebido || ''}
-                                    onChange={(e) => handleInputChange(item.id, 'codigoBarrasRecebido', e.target.value)}
-                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
-                                  />
-                                  {!totalmenteRecebido && !isConferido && <div style={{ marginTop: '5px' }}><LeitorCodigoBarras onDetected={(codigo) => identificarProdutoRecebido(item.id, codigo)} /></div>}
-                                </div>
-                                <div style={{ flex: '1 1 220px' }}>
-                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Nome do produto recebido:</label>
-                                  <input
-                                    type="text"
-                                    required
-                                    placeholder="Preenchido pelo DNA ou informe manualmente"
-                                    disabled={totalmenteRecebido || isConferido}
-                                    value={confState.produtoRecebido || ''}
-                                    onChange={(e) => handleInputChange(item.id, 'produtoRecebido', e.target.value)}
-                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
-                                  />
-                                </div>
-                                <div style={{ flex: '1 1 200px' }}>
-                                  <label style={{ fontSize: '11px', color: '#92400e', fontWeight: '600', display: 'block', marginBottom: '2px' }}>Observação:</label>
-                                  <input
-                                    type="text"
-                                    placeholder="Detalhes sobre a divergência"
-                                    disabled={totalmenteRecebido || isConferido}
-                                    value={confState.observacaoIncorreto || ''}
-                                    onChange={(e) => handleInputChange(item.id, 'observacaoIncorreto', e.target.value)}
-                                    style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido) ? 'transparent' : 'white', borderColor: '#fbbf24', textAlign: 'left', fontWeight: 'normal', color: '#92400e' }}
-                                  />
-                                </div>
-                                <div style={{ flex: '1 1 100%' }}>
-                                  <FotosConferencia pedidoId={id} itemPedidoId={item.id} ocorrencia="PRODUTO_INCORRETO" fotos={fotos} onUploaded={adicionarFoto} />
-                                </div>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                <IdentificacaoProdutoRecebido
+                                  codigo={confState.codigoBarrasRecebido || ''}
+                                  codigoDna={confState.codigoDnaRecebido || ''}
+                                  nome={confState.produtoRecebido || ''}
+                                  observacao={confState.observacaoIncorreto || ''}
+                                  onCampo={(campo, valor) => handleInputChange(item.id, campo, valor)}
+                                  disabled={totalmenteRecebido || isConferido}
+                                  cameraPermitida={itemCameraAberta === item.id}
+                                  onSolicitarCamera={() => setItemCameraAberta(item.id)}
+                                  onFecharCamera={() => setItemCameraAberta(prev => (prev === item.id ? null : prev))}
+                                />
+                                <FotosConferencia pedidoId={id} itemPedidoId={item.id} ocorrencia="PRODUTO_INCORRETO" fotos={fotos} onUploaded={adicionarFoto} />
                               </div>
                             </td>
                           </tr>
@@ -1024,7 +1048,7 @@ export default function PedidoConferencia() {
             <div style={{ marginBottom: '20px' }}>
               <button
                 type="button"
-                onClick={() => setShowProdutoNaoSolicitadoModal(true)}
+                onClick={() => { setItemCameraAberta(null); setShowProdutoNaoSolicitadoModal(true); }}
                 style={{
                   padding: '10px 16px',
                   backgroundColor: '#6366f1',

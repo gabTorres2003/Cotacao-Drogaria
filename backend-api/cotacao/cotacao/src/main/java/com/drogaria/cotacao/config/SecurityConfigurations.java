@@ -64,6 +64,8 @@ public class SecurityConfigurations {
                                 "/api/pedidos/*/refazer-conferencia",
                                 "/api/pedidos/*/cancelar-confirmacao", "/api/pedidos/*/falha-entrega",
                                 "/api/pedidos/*/recebimento-rapido", "/api/pedidos/*/valor-minimo").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/integracao-balcao/**")
+                                .hasAnyRole("ADMIN", "CONFERENTE")
                         .requestMatchers(HttpMethod.GET, "/api/pedidos", "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").permitAll()

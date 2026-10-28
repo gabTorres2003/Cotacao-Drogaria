@@ -1,71 +1,172 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import { Search, X, Package } from 'lucide-react';
+import { Camera, CheckCircle2, MessageSquare, Package, PackageSearch, PencilLine, Search, X } from 'lucide-react';
 import LeitorCodigoBarras from './LeitorCodigoBarras';
+import { validarCodigoLido } from '../utils/codigoBarras';
+
+const estiloBotaoModo = (ativo) => ({
+  padding: '10px',
+  border: `1px solid ${ativo ? '#f97316' : '#d1d5db'}`,
+  borderRadius: '8px',
+  backgroundColor: ativo ? '#fff7ed' : 'white',
+  color: ativo ? '#9a3412' : '#374151',
+  cursor: 'pointer',
+  display: 'inline-flex',
+  alignItems: 'center',
+  justifyContent: 'center',
+  gap: '6px',
+  fontSize: '12px',
+  fontWeight: '700',
+  flex: '1 1 150px',
+  minHeight: '46px'
+});
+
+const estiloPainel = {
+  padding: '10px',
+  border: '1px solid #e2e8f0',
+  borderRadius: '8px',
+  backgroundColor: '#f8fafc',
+  marginBottom: '14px'
+};
+
+const estiloCampo = {
+  width: '100%',
+  padding: '9px 12px',
+  border: '1px solid #d1d5db',
+  borderRadius: '6px',
+  fontSize: '14px',
+  boxSizing: 'border-box'
+};
+
+const estiloLink = {
+  marginTop: '8px',
+  background: 'none',
+  border: 'none',
+  color: '#2563eb',
+  cursor: 'pointer',
+  fontSize: '12px',
+  textDecoration: 'underline',
+  padding: 0
+};
 
 export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, ocultarValor = false }) {
-  const [busca, setBusca] = useState('');
+  const [modo, setModo] = useState('ESCOLHA');
+  const [codigoBarrasRecebido, setCodigoBarrasRecebido] = useState('');
+  const [codigoDna, setCodigoDna] = useState('');
+  const [nomeManual, setNomeManual] = useState('');
+  const [nomeProdutoRecebido, setNomeProdutoRecebido] = useState('');
   const [resultadoBusca, setResultadoBusca] = useState(null);
   const [buscando, setBuscando] = useState(false);
-  const [produtoManual, setProdutoManual] = useState(false);
-  const [nomeManual, setNomeManual] = useState('');
+  const [buscaNome, setBuscaNome] = useState('');
+  const [buscandoNome, setBuscandoNome] = useState(false);
+  const [observacao, setObservacao] = useState('');
+  const [observacoesAbertas, setObservacoesAbertas] = useState(false);
   const [quantidade, setQuantidade] = useState(1);
   const [valorUnitario, setValorUnitario] = useState('');
   const [classificacao, setClassificacao] = useState('ENVIADO_POR_ENGANO');
-  const [codigoBarrasRecebido, setCodigoBarrasRecebido] = useState('');
-  const [nomeProdutoRecebido, setNomeProdutoRecebido] = useState('');
+  const codigoAceitoRef = useRef(false);
 
   useEffect(() => {
     if (!isOpen) {
-      setBusca('');
-      setResultadoBusca(null);
-      setProdutoManual(false);
+      setModo('ESCOLHA');
+      setCodigoBarrasRecebido('');
+      setCodigoDna('');
       setNomeManual('');
+      setNomeProdutoRecebido('');
+      setResultadoBusca(null);
+      setBuscando(false);
+      setBuscaNome('');
+      setBuscandoNome(false);
+      setObservacao('');
+      setObservacoesAbertas(false);
       setQuantidade(1);
       setValorUnitario('');
       setClassificacao('ENVIADO_POR_ENGANO');
-      setCodigoBarrasRecebido('');
-      setNomeProdutoRecebido('');
+      codigoAceitoRef.current = false;
     }
   }, [isOpen]);
 
-  const identificarCodigo = async (codigo) => {
-    const texto = String(codigo || '').trim();
-    if (!texto) return;
-    setCodigoBarrasRecebido(texto);
-    setBusca(texto);
-    try {
-      const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(texto)}`);
-      const nome = res.data?.nome || res.data?.descricao || res.data?.name || '';
-      setNomeProdutoRecebido(nome);
-      setResultadoBusca(res.data);
-      setProdutoManual(!nome);
-    } catch {
-      setNomeProdutoRecebido('');
-      setResultadoBusca({ erro: true });
-      setProdutoManual(true);
-    }
-  };
+  if (!isOpen) return null;
 
-  const buscarProduto = async () => {
-    if (!busca.trim()) return;
+  const consultarCodigo = async (valor, tipo) => {
+    const codigoTexto = String(valor ?? '').trim();
+    if (!codigoTexto) {
+      setResultadoBusca({ erro: true, texto: 'Informe o código para consultar.' });
+      return;
+    }
+
+    if (tipo === 'EAN') {
+      const validacao = validarCodigoLido(codigoTexto);
+      if (!validacao.valido) {
+        setResultadoBusca({ erro: true, texto: validacao.motivo });
+        return;
+      }
+    }
+
     setBuscando(true);
     setResultadoBusca(null);
     try {
-      const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(busca.trim())}`);
-      setResultadoBusca(res.data);
-    } catch {
-      setResultadoBusca({ erro: true });
+      const res = await api.get('/api/produtos/buscar', { params: { q: codigoTexto, tipo } });
+      const produto = res.data || {};
+      const nome = produto.nome || produto.descricao || produto.name || '';
+      if (tipo === 'DNA') {
+        setCodigoDna(codigoTexto);
+        if (produto.codbarras) setCodigoBarrasRecebido(String(produto.codbarras));
+      } else {
+        setCodigoBarrasRecebido(codigoTexto);
+      }
+      if (nome) setNomeProdutoRecebido(nome);
+      setResultadoBusca({ ...produto, nome });
+    } catch (erro) {
+      if (erro.response?.status === 404) {
+        setResultadoBusca({ erro: true, texto: 'Código não encontrado no DNA. Informe o nome do produto manualmente.' });
+      } else {
+        setResultadoBusca({ erro: true, texto: 'Não foi possível consultar o DNA agora. Informe o nome do produto manualmente.' });
+      }
     } finally {
       setBuscando(false);
     }
   };
 
-  const handleConfirm = () => {
-    const nome = resultadoBusca && !resultadoBusca.erro
-      ? (resultadoBusca.nome || resultadoBusca.descricao || resultadoBusca.name || '')
-      : (nomeProdutoRecebido.trim() || (produtoManual ? nomeManual.trim() : busca.trim()));
+  const buscarPorNome = async () => {
+    const termo = buscaNome.trim();
+    if (!termo) return;
+    setBuscandoNome(true);
+    setResultadoBusca(null);
+    try {
+      const res = await api.get('/api/produtos/buscar', { params: { q: termo } });
+      const produto = res.data || {};
+      const nome = produto.nome || produto.descricao || produto.name || '';
+      if (nome) setNomeProdutoRecebido(nome);
+      setResultadoBusca({ ...produto, nome });
+    } catch {
+      setResultadoBusca({ erro: true, texto: 'Produto não encontrado no DNA. Você pode informar o nome manualmente.' });
+    } finally {
+      setBuscandoNome(false);
+    }
+  };
 
+  const handleCodigoLido = (codigoLido) => {
+    codigoAceitoRef.current = true;
+    setCodigoBarrasRecebido(codigoLido);
+    setModo('EAN');
+    consultarCodigo(codigoLido, 'EAN');
+  };
+
+  const fecharCamera = () => {
+    if (codigoAceitoRef.current) {
+      codigoAceitoRef.current = false;
+      return;
+    }
+    setModo('ESCOLHA');
+  };
+
+  const abrirCamera = () => {
+    setModo('CAMERA');
+  };
+
+  const handleConfirm = () => {
+    const nome = (nomeManual.trim() || nomeProdutoRecebido.trim()).trim();
     if (!nome) {
       alert('Informe o nome do produto.');
       return;
@@ -74,103 +175,152 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
       alert('A quantidade deve ser maior que zero.');
       return;
     }
+    const codigoTexto = codigoBarrasRecebido.trim();
+    if (codigoTexto) {
+      const validacao = validarCodigoLido(codigoTexto);
+      if (!validacao.valido) {
+        setModo('EAN');
+        setResultadoBusca({ erro: true, texto: validacao.motivo });
+        alert('O código de barras informado não é válido. Corrija ou use o código interno do DNA.');
+        return;
+      }
+    }
 
     onConfirm({
       nomeProduto: nome,
-      codigoBarrasRecebido,
+      codigoBarrasRecebido: codigoTexto,
+      codigoDnaRecebido: codigoDna.trim(),
       nomeProdutoRecebido: nome,
       quantidade,
       valorUnitario: valorUnitario ? Number(valorUnitario) : 0,
       classificacao,
+      observacao: observacao.trim(),
       origem: 'NAO_SOLICITADO'
     });
     onClose();
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999 }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '500px', maxWidth: '95vw', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
+    <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '10px' }}>
+      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', width: '560px', maxWidth: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Package size={20} color="#f97316" />
             Produto Não Solicitado
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <X size={20} color="#6b7280" />
           </button>
         </div>
 
-        <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px' }}>
+        <p style={{ fontSize: '13px', color: '#6b7280', marginTop: 0, marginBottom: '14px' }}>
           Produto que veio na entrega mas não faz parte do pedido original.
         </p>
 
-        <div style={{ marginBottom: '16px', padding: '10px', background: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-            Código de barras do produto recebido:
-          </label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              inputMode="numeric"
-              value={codigoBarrasRecebido}
-              onChange={e => setCodigoBarrasRecebido(e.target.value)}
-              onBlur={() => codigoBarrasRecebido.trim() && identificarCodigo(codigoBarrasRecebido)}
-              placeholder="Preserva zeros à esquerda"
-              style={{ flex: '1 1 220px', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-            />
-            <LeitorCodigoBarras onDetected={identificarCodigo} />
-          </div>
-          {nomeProdutoRecebido && <div style={{ marginTop: '6px', color: '#166534', fontSize: '12px' }}>Produto identificado: {nomeProdutoRecebido}</div>}
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+          <button type="button" onClick={abrirCamera} style={estiloBotaoModo(modo === 'CAMERA')}>
+            <Camera size={16} /> Ler código de barras
+          </button>
+          <button type="button" onClick={() => { setModo('DNA'); }} style={estiloBotaoModo(modo === 'DNA')}>
+            <PackageSearch size={16} /> Buscar código DNA
+          </button>
+          <button type="button" onClick={() => { setModo('MANUAL'); }} style={estiloBotaoModo(modo === 'MANUAL')}>
+            <PencilLine size={16} /> Inserir manualmente
+          </button>
         </div>
 
-        {!produtoManual && (
-          <div style={{ marginBottom: '16px' }}>
+        {modo === 'CAMERA' && !observacoesAbertas && (
+          <div style={estiloPainel}>
+            <LeitorCodigoBarras autoIniciar onDetected={handleCodigoLido} onClose={fecharCamera} />
+          </div>
+        )}
+
+        {modo === 'CAMERA' && observacoesAbertas && (
+          <div style={{ ...estiloPainel, fontSize: '12px', color: '#92400e' }}>
+            Câmera pausada enquanto você preenche as observações.
+          </div>
+        )}
+
+        {(modo === 'CAMERA' || modo === 'DNA' || modo === 'MANUAL' || modo === 'EAN') && (
+          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
+            <button type="button" onClick={() => { setModo('EAN'); }} style={{ ...estiloLink, marginTop: 0 }}>
+              Digitar código de barras
+            </button>
+            <button type="button" onClick={() => { setModo('DNA'); }} style={{ ...estiloLink, marginTop: 0 }}>
+              Código DNA
+            </button>
+            <button type="button" onClick={() => { setModo('MANUAL'); }} style={{ ...estiloLink, marginTop: 0 }}>
+              Nome manual
+            </button>
+            {modo === 'CAMERA' && (
+              <button type="button" onClick={() => setModo('ESCOLHA')} style={{ ...estiloLink, marginTop: 0 }}>
+                Fechar câmera
+              </button>
+            )}
+          </div>
+        )}
+
+        {modo === 'EAN' && (
+          <div style={estiloPainel}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
-              Buscar por código, barras ou nome:
+              Código de barras (EAN/UPC):
             </label>
-            <div style={{ display: 'flex', gap: '8px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <input
                 type="text"
-                value={busca}
-                onChange={e => setBusca(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && buscarProduto()}
-                placeholder="Ex: 7891234567890"
-                style={{ flex: 1, padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+                inputMode="numeric"
+                autoComplete="off"
+                value={codigoBarrasRecebido}
+                onChange={e => setCodigoBarrasRecebido(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && consultarCodigo(codigoBarrasRecebido, 'EAN')}
+                placeholder="Preserva zeros à esquerda"
+                style={{ ...estiloCampo, flex: '1 1 200px' }}
               />
               <button
                 type="button"
-                onClick={buscarProduto}
-                disabled={buscando || !busca.trim()}
-                style={{ padding: '8px 14px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600' }}
+                onClick={() => consultarCodigo(codigoBarrasRecebido, 'EAN')}
+                disabled={buscando}
+                style={{ padding: '9px 14px', backgroundColor: buscando ? '#94a3b8' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
               >
-                <Search size={14} /> {buscando ? 'Buscando...' : 'Buscar'}
+                <Search size={14} /> {buscando ? 'Consultando...' : 'Consultar'}
               </button>
             </div>
-            {resultadoBusca && !resultadoBusca.erro && (
-              <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '13px', color: '#166534' }}>
-                <strong>Encontrado:</strong> {resultadoBusca.nome || resultadoBusca.descricao || resultadoBusca.name || 'Produto'}
-                {resultadoBusca.codbarras && <span style={{ marginLeft: '8px', color: '#6b7280' }}>(EAN: {resultadoBusca.codbarras})</span>}
-              </div>
-            )}
-            {resultadoBusca && resultadoBusca.erro && (
-              <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '13px', color: '#991b1b' }}>
-                Produto não encontrado no DNA.
-              </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setProdutoManual(true)}
-              style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
-            >
-              Digitar nome manualmente
+            <button type="button" onClick={abrirCamera} style={estiloLink}>
+              <Camera size={13} style={{ verticalAlign: 'middle', marginRight: '4px' }} /> Ler com a câmera
             </button>
           </div>
         )}
 
-        {produtoManual && (
-          <div style={{ marginBottom: '16px' }}>
+        {modo === 'DNA' && (
+          <div style={estiloPainel}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+              Código interno do DNA:
+            </label>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                value={codigoDna}
+                onChange={e => setCodigoDna(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && consultarCodigo(codigoDna, 'DNA')}
+                placeholder="Ex.: 12345"
+                style={{ ...estiloCampo, flex: '1 1 200px' }}
+              />
+              <button
+                type="button"
+                onClick={() => consultarCodigo(codigoDna, 'DNA')}
+                disabled={buscando}
+                style={{ padding: '9px 14px', backgroundColor: buscando ? '#94a3b8' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
+              >
+                <Search size={14} /> {buscando ? 'Consultando...' : 'Consultar'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {modo === 'MANUAL' && (
+          <div style={estiloPainel}>
             <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
               Nome do produto:
             </label>
@@ -179,15 +329,51 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
               value={nomeManual}
               onChange={e => setNomeManual(e.target.value)}
               placeholder="Digite o nome do produto"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+              style={estiloCampo}
             />
-            <button
-              type="button"
-              onClick={() => { setProdutoManual(false); setResultadoBusca(null); }}
-              style={{ marginTop: '8px', background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
-            >
-              Buscar no DNA
-            </button>
+
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <input
+                type="text"
+                value={buscaNome}
+                onChange={e => setBuscaNome(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && buscarPorNome()}
+                placeholder="Buscar nome no DNA (opcional)"
+                style={{ ...estiloCampo, flex: '1 1 200px' }}
+              />
+              <button
+                type="button"
+                onClick={buscarPorNome}
+                disabled={buscandoNome || !buscaNome.trim()}
+                style={{ padding: '9px 12px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: buscandoNome ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '42px' }}
+              >
+                {buscandoNome ? 'Buscando...' : 'Buscar no DNA'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {resultadoBusca && (
+          resultadoBusca.erro ? (
+            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e', lineHeight: 1.4 }}>
+              {resultadoBusca.texto || 'Produto não encontrado no DNA.'}
+            </div>
+          ) : (
+            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '700', marginBottom: '3px' }}>
+                <CheckCircle2 size={14} /> Produto encontrado no DNA
+              </div>
+              <div>{nomeProdutoRecebido || resultadoBusca.nome || resultadoBusca.descricao || 'Produto'}</div>
+              <div style={{ marginTop: '3px' }}>
+                Código DNA: {resultadoBusca.codigo ?? '-'} · EAN: {resultadoBusca.codbarras || '-'}
+              </div>
+            </div>
+          )
+        )}
+
+        {nomeProdutoRecebido && !resultadoBusca && (
+          <div style={{ marginBottom: '14px', fontSize: '12px', color: '#166534' }}>
+            Produto identificado: {nomeProdutoRecebido}
           </div>
         )}
 
@@ -199,26 +385,28 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
               min="1"
               value={quantidade}
               onChange={e => setQuantidade(Number(e.target.value))}
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
+              style={estiloCampo}
             />
           </div>
-          {!ocultarValor && <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Valor unitário (NF):</label>
-            <input
-              type="number"
-              min="0"
-              step="0.01"
-              value={valorUnitario}
-              onChange={e => setValorUnitario(e.target.value)}
-              placeholder="R$ 0,00"
-              style={{ width: '100%', padding: '8px 12px', border: '1px solid #d1d5db', borderRadius: '6px', fontSize: '14px' }}
-            />
-          </div>}
+          {!ocultarValor && (
+            <div>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Valor unitário (NF):</label>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={valorUnitario}
+                onChange={e => setValorUnitario(e.target.value)}
+                placeholder="R$ 0,00"
+                style={estiloCampo}
+              />
+            </div>
+          )}
         </div>
 
-        <div style={{ marginBottom: '20px' }}>
+        <div style={{ marginBottom: '16px' }}>
           <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Situação:</label>
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#374151', cursor: 'pointer', padding: '8px 12px', border: `1px solid ${classificacao === 'ENVIADO_POR_ENGANO' ? '#f97316' : '#d1d5db'}`, borderRadius: '6px', backgroundColor: classificacao === 'ENVIADO_POR_ENGANO' ? '#fff7ed' : 'white' }}>
               <input type="radio" name="classificacao" value="ENVIADO_POR_ENGANO" checked={classificacao === 'ENVIADO_POR_ENGANO'} onChange={e => setClassificacao(e.target.value)} style={{ accentColor: '#f97316' }} />
               Enviado por engano (sem cobrança)
@@ -230,18 +418,39 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
           </div>
         </div>
 
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
+        <div style={{ marginBottom: '16px' }}>
+          <button
+            type="button"
+            onClick={() => setObservacoesAbertas(v => !v)}
+            style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: 0, fontWeight: '600' }}
+          >
+            <MessageSquare size={14} />
+            {observacoesAbertas ? 'Fechar observações' : (observacao.trim() ? 'Observações preenchidas' : 'Adicionar observações')}
+          </button>
+          {observacoesAbertas && (
+            <textarea
+              value={observacao}
+              onChange={e => setObservacao(e.target.value)}
+              maxLength={500}
+              rows={2}
+              placeholder="Detalhes sobre o produto recebido (opcional)"
+              style={{ ...estiloCampo, marginTop: '6px', resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          )}
+        </div>
+
+        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
           <button
             type="button"
             onClick={onClose}
-            style={{ padding: '8px 16px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
+            style={{ padding: '9px 16px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            style={{ padding: '8px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer' }}
+            style={{ padding: '9px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
           >
             Adicionar à Conferência
           </button>
