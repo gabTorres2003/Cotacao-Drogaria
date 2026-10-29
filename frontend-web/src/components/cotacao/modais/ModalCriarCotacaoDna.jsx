@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { X, Search, CheckCircle, Save, Loader2, FileText, Trash2 } from 'lucide-react';
 import api from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
+import PesquisaProdutoDna from '../../PesquisaProdutoDna';
 
 export default function ModalCriarCotacaoDna({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -47,6 +48,28 @@ export default function ModalCriarCotacaoDna({ isOpen, onClose }) {
     }
     
     setIsProcessando(false);
+  };
+
+  // Aplica um resultado da pesquisa por nome/princípio ativo no DNA, sem
+  // duplicar itens já adicionados pelo código.
+  const adicionarProdutoPesquisado = (prod) => {
+    if (!prod) return;
+    const codigo = prod.codigo != null ? String(prod.codigo) : (prod.codbarras || '');
+    const nome = prod.descricao || '';
+
+    setListaProcessada(prev => {
+      const jaExiste = prev.some(item =>
+        String(item.codigo) === codigo && (item.nomeProduto || '') === nome
+      );
+      if (jaExiste) return prev;
+
+      return [...prev, {
+        idTemp: Math.random().toString(36).substr(2, 9),
+        codigo,
+        nomeProduto: nome,
+        quantidade: 1,
+      }];
+    });
   };
 
   const handleRemoverItem = (idTemp) => {
@@ -173,6 +196,13 @@ export default function ModalCriarCotacaoDna({ isOpen, onClose }) {
                     </div>
                 </>
             )}
+
+            <div>
+                <PesquisaProdutoDna
+                    onSelecionar={adicionarProdutoPesquisado}
+                    rotulo="Não sabe o código? Busque por nome"
+                />
+            </div>
         </div>
 
         {listaProcessada.length > 0 && (

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Search, CheckCircle, Save, Loader2, PackagePlus, Trash2 } from 'lucide-react';
 import api from '../../../services/api';
 import { useNavigate } from 'react-router-dom';
+import PesquisaProdutoDna from '../../PesquisaProdutoDna';
 
 export default function ModalPedidoManual({ isOpen, onClose }) {
   const navigate = useNavigate();
@@ -49,6 +50,18 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
     } finally {
         setIsBuscando(false);
     }
+  };
+
+  // Aplica um resultado da pesquisa por nome/princípio ativo no DNA.
+  const selecionarProdutoPorNome = (prod) => {
+    if (!prod) return;
+    const codigo = prod.codigo != null ? String(prod.codigo) : '';
+    setCodigoDna(codigo);
+    setItemAtual((anterior) => ({
+      ...anterior,
+      nomeProduto: prod.descricao || '',
+      codigoDna: codigo,
+    }));
   };
 
   const adicionarALista = () => {
@@ -149,6 +162,13 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
                                     <CheckCircle size={16} /> Selecionado: {itemAtual.nomeProduto}
                                 </div>
                             )}
+
+                            <div style={{ marginTop: '10px' }}>
+                                <PesquisaProdutoDna
+                                    onSelecionar={selecionarProdutoPorNome}
+                                    rotulo="Não sabe o código? Busque por nome"
+                                />
+                            </div>
                         </div>
                     ) : (
                         <div>

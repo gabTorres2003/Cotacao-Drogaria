@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
+import PesquisaProdutoDna from '../components/PesquisaProdutoDna';
 import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck } from 'lucide-react';
 
 export default function PedidoDetalhes() {
@@ -351,6 +352,14 @@ export default function PedidoDetalhes() {
         if (!codigoDna) return;
         try { const res = await api.get(`/api/produtos/buscar?q=${encodeURIComponent(codigoDna.trim())}`); if (res.data) setNovoItem(prev => ({ ...prev, nomeProduto: res.data.descricao })); } 
         catch (error) { alert(`Código DNA ${codigoDna} não encontrado.`); setNovoItem(prev => ({ ...prev, nomeProduto: '' })); }
+    };
+
+    // Aplica um resultado da pesquisa por nome/princípio ativo no DNA.
+    const selecionarProdutoPorNome = (prod) => {
+        if (!prod) return;
+        const codigo = prod.codigo != null ? String(prod.codigo) : '';
+        setCodigoDna(codigo);
+        setNovoItem(prev => ({ ...prev, nomeProduto: prod.descricao || '' }));
     };
 
     const handleSalvarNovoItem = async () => {
@@ -1100,6 +1109,13 @@ export default function PedidoDetalhes() {
                                                 {novoItem.nomeProduto}
                                             </div>
                                         )}
+
+                                        <div style={{ marginTop: '12px' }}>
+                                            <PesquisaProdutoDna
+                                                onSelecionar={selecionarProdutoPorNome}
+                                                rotulo="Não sabe o código? Busque por nome"
+                                            />
+                                        </div>
                                     </div>
                                 )}
 

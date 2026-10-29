@@ -2,8 +2,10 @@
 
 Consulta de leitura de produtos do DNA (Firebird) pelo sistema de
 Atendimento (Balcão), reutilizando a conexão já existente no backend do
-Cotação. Esta é a primeira etapa: **somente leitura de produto por código
-interno ou código de barras**. Não há consulta de clientes nesta versão.
+Cotação. A primeira entrega foi **somente leitura de produto por código
+interno ou código de barras**; depois foi adicionada a **pesquisa por
+descrição ou princípio ativo** (seção abaixo). Não há consulta de clientes
+nesta versão.
 
 ## Arquitetura
 
@@ -59,6 +61,88 @@ Resposta `200`:
 | `404` | Produto não encontrado no DNA |
 | `503` | DNA indisponível (conexão/erro de consulta) |
 
+### Pesquisa por descrição ou princípio ativo
+
+```http
+GET /api/integracao-balcao/produtos/pesquisa?q=dipirona&tipo=descricao
+Authorization: Bearer <JWT do Cotação>
+```
+
+- `q`: termo de 2 a 40 caracteres (normalizado no backend).
+- `tipo`: `descricao` (padrão) ou `principio`.
+- A resposta é sempre `200` com lista curta; ausência de resultados é
+  `resultados: []` (não é `404`).
+- O limite é aplicado no DNA (`SELECT FIRST`), com `truncado: true` quando
+  existem mais itens do que o limite retornado.
+
+Resposta `200`:
+
+```json
+{
+  "resultados": [
+    {
+      "codigo": 100460,
+      "codbarras": "7891234567890",
+      "descricao": "DIPIRONA 500MG 10 COMPRIMIDOS",
+      "principioAtivo": "DIPIRONA",
+      "apresentacao": "COMPRIMIDO",
+      "unidade": "CX",
+      "fabricante": "FABRICANTE X",
+      "inativo": "N",
+      "origem": "DNA"
+    }
+  ],
+  "truncado": false,
+  "limite": 20
+}
+```
+
+Critérios de ordenação (todos executados no DNA):
+
+1. descrição/princípio exato;
+2. início do texto (`STARTING WITH`);
+3. início de palavra;
+4. trecho parcial (`LIKE`);
+5. produto ativo antes do inativo;
+6. descrição como desempate.
+
+O termo é normalizado no backend (maiúsculas, sem acentos e com espaços
+colapsados) e enviado como parâmetro vinculado (`:exato`, `:prefixo`,
+`:palavra`, `:contem`). Curingas `%`, `_` e `\` digitados pelo usuário são
+escapados. Não há SQL concatenado com o texto pesquisado.
+
+| Status | Significado |
+|---|---|
+| `200` | Pesquisa executada (com ou sem resultados) |
+| `400` | Termo/tipo inválido |
+| `401`/`403` | Sem JWT válido ou perfil sem permissão |
+| `503` | DNA indisponível (conexão/erro de consulta) |
+
+O frontend do Cotação consome a mesma lógica em
+`GET /api/produtos/pesquisar` (autenticado). A busca por nome/princípio ativo
+está disponível em **todos** os pontos do Cotação que consultam o DNA:
+
+| Fluxo | Arquivo | Busca por código | Busca por nome/princípio |
+|---|---|---|---|
+| Produto recebido (conferência) | `components/IdentificacaoProdutoRecebido.jsx` | Sim | Sim |
+| Produto não solicitado | `components/ModalProdutoNaoSolicitado.jsx` | Sim | Sim |
+| Pedido avulso | `components/pedidos/modais/ModalPedidoManual.jsx` | Sim | Sim |
+| Cotação manual | `components/cotacao/modais/ModalNovaCotacaoManual.jsx` | Sim | Sim |
+| Cotação por lote de códigos | `components/cotacao/modais/ModalCriarCotacaoDna.jsx` | Sim | Sim |
+| Produto extra na cotação | `components/cotacao/modais/ModalProdutoExtra.jsx` | Sim | Sim |
+| Adicionar/trocar item do pedido | `pages/PedidoDetalhes.jsx` | Sim | Sim |
+
+O componente compartilhado `components/PesquisaProdutoDna.jsx` concentra a
+UI e as regras de consulta (tipo descrição/princípio, estados de carregamento,
+erro, vazio e truncamento, bloqueio de `Enter` repetido e seleção apenas por
+clique). Cada fluxo só implementa `selecionarProdutoPorNome`, que preenche o
+campo de descrição e o identificador (código DNA ou EAN, conforme o fluxo)
+sem alterar quantidades, vínculos ou etapas seguintes.
+
+O `ModalCriarCotacaoDna` está órfão (não é importado por nenhuma página), mas
+foi atualizado por completude; nele a seleção por nome apenas acrescenta o
+item à lista processada, com deduplicação por código + descrição.
+
 ### Campos deliberadamente não expostos
 
 `PRECOCUSTO`, `PRECOMEDIO`, `PRECOVENDA`, `PRECOPROMOCAO` e `QUANTIDADE`
@@ -76,6 +160,13 @@ A consulta lê o DNA ao vivo pelo `dnaNamedJdbcTemplate`. Ela **não** usa
 `codigo`, `codbarras`, `descricao`, `inativo`, `precovenda` e `quantidade`)
 nem faz fallback para o Supabase: se o DNA não responder, a resposta é
 `503`; se o produto não existir no DNA, é `404`.
+
+A pesquisa textual usa somente colunas confirmadas na tabela `PRODUTOS`
+(`DESCRICAO`, `FARPRINCIPIOATIVO`, `FARAPRESENTACAO`, `UNIDADE`,
+`CODFABRICANTE`, `INATIVO`, `CODIGO`, `CODBARRAS`) e o nome do fabricante
+em `FORNECEDORES.RAZAO`. A confirmação foi feita no metadado do Firebird
+2.5.9 da instalação local do DNA (`RDB$RELATION_FIELDS`), sem presumir
+estrutura.
 
 ## Autenticação e autorização
 
@@ -128,8 +219,13 @@ COTACAO_INTEGRACAO_PIN      # PIN desse usuário
 Deploy:
 
 ```bash
-supabase functions deploy consulta-dna --project-ref <ref-do-projeto-balcao>
+npx supabase functions deploy consulta-dna --project-ref uddmenewrluxyewdyfxe
 ```
+
+> Se o navegador acusar falha de CORS no preflight, confirme primeiro se a
+> função está publicada: um `OPTIONS` que retorna `404 NOT_FOUND` significa
+> função ausente nesse projeto (e o navegador reporta como CORS). Procedimento
+> completo em `atendimento-torres-farma/INTEGRACAO_DNA_COTACAO.md`.
 
 ## Execução local
 
@@ -150,15 +246,18 @@ supabase functions deploy consulta-dna --project-ref <ref-do-projeto-balcao>
 3. Teste direto do endpoint (com um JWT válido):
 
    ```powershell
-   curl.exe -H "Authorization: Bearer <token>" "http://localhost:8080/api/integracao-balcao/produtos?q=100460"
+   curl.exe -H "Authorization: Bearer <token>" "http://localhost:8080/api/integracao-balcao/produtos?q=7891317026554"
    ```
 
 ## Testes executados
 
 ```text
 .\mvnw.cmd -B -ntp test
-Tests run: 5, Failures: 0, Errors: 0, Skipped: 0
+Tests run: 15, Failures: 0, Errors: 0, Skipped: 0
 BUILD SUCCESS
+
+npm run build (frontend-web)
+vite v5.4.21 -> OK (1942 módulos)
 ```
 
 Cobertura do teste `ConsultaDnaBalcaoServiceTest`:
@@ -168,9 +267,41 @@ Cobertura do teste `ConsultaDnaBalcaoServiceTest`:
 - termo vazio não consulta o DNA;
 - falha de conexão vira `DnaIndisponivelException` (HTTP 503 no controller).
 
-Não foram executados testes de integração com o Firebird real nem teste de
-autorização HTTP ponta a ponta (exigem banco e JWT de produção). Ver
-"Pendências".
+Cobertura do teste `PesquisaProdutoDnaServiceTest`:
+
+- normalização de maiúsculas, acentos e espaços extras;
+- variações aceitas para `tipo` (`descricao`, `principio`, `principio_ativo`);
+- tipo inválido rejeitado;
+- parâmetros `exato`/`prefixo`/`palavra`/`contem` corretos na busca por descrição;
+- busca por princípio ativo usando `FARPRINCIPIOATIVO`;
+- truncamento em 20 resultados com `truncado = true`;
+- escape de `%`/`_`/`\` nos padrões `LIKE`;
+- termo curto/longo rejeitado sem consultar o DNA;
+- falha de banco vira `DnaIndisponivelException` (HTTP 503 no controller).
+
+O SQL da pesquisa foi validado contra o schema real do Firebird 2.5.9 local
+(`C:\DNA\Pharmacy\COMERCIOEXP.FDB`, tabela `PRODUTOS` vazia) apenas para
+checar sintaxe e colunas; não há dados de produção nessa base.
+
+Não foram executados testes automatizados de integração com o Firebird
+real. A verificação ponta a ponta abaixo foi manual, em produção e sem
+escrita de dados:
+
+```text
+POST .../auth/login (usuário de integração)              -> 200 + token
+GET  .../api/integracao-balcao/produtos?q=7891317026554  -> 200 + produto DNA
+GET  .../api/integracao-balcao/produtos?q=100460         -> 404 (não encontrado)
+GET  .../api/integracao-balcao/produtos (sem token)      -> 401
+POST .../auth/login (sem token, credenciais válidas)     -> 200 (rota pública)
+```
+
+Exemplo de retorno do produto:
+
+```json
+{"codigo":42752,"codbarras":"7891317026554",
+ "descricao":"BEDOZE 5MG ML SOL C 2AMP 1ML 120991",
+ "inativo":"N","origem":"DNA"}
+```
 
 ## Limitações e riscos conhecidos
 
@@ -197,22 +328,35 @@ autorização HTTP ponta a ponta (exigem banco e JWT de produção). Ver
    serviço do Windows com rotina diária. Se o serviço não estiver ativo, a
    consulta retorna 503 e o Balcão mostra indisponibilidade — nenhum dado
    já digitado é apagado.
-5. **URL e HTTPS de produção não confirmados.** O endereço real do backend
-   não está no repositório (vem de `VITE_API_URL` no ambiente do Netlify do
-   Cotação). Sem confirmar se há HTTPS válido e alcance a partir do
-   servidor do Supabase, a integração não funciona em produção.
-6. **Busca por descrição não implementada.** Apenas código/EAN exato. Busca
-   textual em `PRODUTOS.DESCRICAO` pode ser custosa e depende de índice
-   confirmado; fica para uma próxima etapa.
+5. **URL de produção confirmada.** O backend público usado pela integração
+   é `https://api.drogariatorresfarma.com.br` (valor de `VITE_API_URL` no
+   Netlify do Cotação, confirmado no bundle publicado) e responde por
+   HTTPS. A URL fica no secret `COTACAO_API_URL` da Edge Function; nenhum
+   valor secreto é versionado. Se o endereço mudar, atualize o secret.
+6. **Pesquisa textual sem índice dedicado.** `PRODUTOS.DESCRICAO` e
+   `PRODUTOS.FARPRINCIPIOATIVO` não possuem índice no schema DNA 2.5.9
+   verificado localmente, então a busca faz varredura da tabela a cada
+   ação explícita do atendente. Para o volume de uma farmácia e consultas
+   sob demanda isso é aceitável; nenhum índice ou migração foi criado no
+   DNA. Monitorar o tempo de resposta em produção.
+7. **Acentos nos dados do DNA.** O termo digitado é normalizado no backend
+   (maiúsculas, sem acentos e com espaços colapsados), o que cobre o padrão
+   do DNA (descrições em caixa alta e sem acento). Se algum cadastro
+   específico tiver acento, a pesquisa digitada sem acento pode não
+   encontrá-lo; a busca por código/EAN continua sendo o caminho garantido.
+8. **Deploy da Edge Function pendente.** A alteração em
+   `supabase/functions/consulta-dna/index.ts` só passa a valer em produção
+   após `npx supabase functions deploy consulta-dna`. O endpoint novo do
+   Cotação também precisa ser publicado no serviço do backend.
 
 ## Próximos passos sugeridos
 
-1. Confirmar `COTACAO_API_URL` público com HTTPS válido e testar
-   `GET /api/integracao-balcao/produtos` a partir da Edge Function.
-2. Criar o usuário de integração no Cotação com o menor perfil que atenda
-   (`CONFERENTE`) e cadastrar os secrets.
-3. Fortalecer a autenticação do Balcão (Supabase Auth) e então validar o
+Concluído em 28/10/2026: URL pública definida, usuário de integração
+(`balcao.integracao`, perfil `CONFERENTE`), secrets cadastrados na Edge
+Function e verificação ponta a ponta aprovada.
+
+1. Fortalecer a autenticação do Balcão (Supabase Auth) e então validar o
    JWT do usuário final na Edge Function, eliminando o usuário de serviço.
-4. Só depois avaliar preço/estoque e, por último, clientes — com schema do
+2. Só depois avaliar preço/estoque e, por último, clientes — com schema do
    DNA confirmado e finalidade documentada (LGPD).
-5. Remover segredos do `application.properties` e rotacionar os expostos.
+3. Remover segredos do `application.properties` e rotacionar os expostos.

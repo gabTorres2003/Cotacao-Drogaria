@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { X, Search, CheckCircle } from 'lucide-react';
 import api from '../../../services/api';
+import PesquisaProdutoDna from '../../PesquisaProdutoDna';
 
 export default function ModalProdutoExtra({ isOpen, onClose, novoItemManual, setNovoItemManual, handleSalvarItemManual, salvandoItemManual }) {
   const [codigoDna, setCodigoDna] = useState('');
@@ -19,6 +20,16 @@ export default function ModalProdutoExtra({ isOpen, onClose, novoItemManual, set
       alert(`Código DNA ${cod} não encontrado na base de dados.`);
       setNovoItemManual(prev => ({ ...prev, nomeProduto: '' }));
     }
+  };
+
+  // Aplica um resultado da pesquisa por nome/princípio ativo no DNA.
+  const selecionarProdutoPorNome = (prod) => {
+    if (!prod) return;
+    setCodigoDna(prod.codigo != null ? String(prod.codigo) : '');
+    setNovoItemManual((anterior) => ({
+      ...anterior,
+      nomeProduto: prod.descricao || '',
+    }));
   };
 
   return (
@@ -63,6 +74,13 @@ export default function ModalProdutoExtra({ isOpen, onClose, novoItemManual, set
                           {novoItemManual.nomeProduto}
                       </div>
                   )}
+
+                  <div style={{ marginTop: '12px' }}>
+                      <PesquisaProdutoDna
+                          onSelecionar={selecionarProdutoPorNome}
+                          rotulo="Não sabe o código? Busque por nome"
+                      />
+                  </div>
               </div>
           ) : (
               <div>

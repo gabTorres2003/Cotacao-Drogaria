@@ -59,12 +59,16 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
   const [buscando, setBuscando] = useState(false);
   const [buscaNome, setBuscaNome] = useState('');
   const [buscandoNome, setBuscandoNome] = useState(false);
+  const [tipoBuscaNome, setTipoBuscaNome] = useState('descricao');
+  const [resultadosNome, setResultadosNome] = useState([]);
+  const [truncadoNome, setTruncadoNome] = useState(false);
   const [observacao, setObservacao] = useState('');
   const [observacoesAbertas, setObservacoesAbertas] = useState(false);
   const [quantidade, setQuantidade] = useState(1);
   const [valorUnitario, setValorUnitario] = useState('');
   const [classificacao, setClassificacao] = useState('ENVIADO_POR_ENGANO');
   const codigoAceitoRef = useRef(false);
+  const emAndamentoRef = useRef({ codigo: false, texto: false });
 
   useEffect(() => {
     if (!isOpen) {
@@ -77,6 +81,9 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
       setBuscando(false);
       setBuscaNome('');
       setBuscandoNome(false);
+      setTipoBuscaNome('descricao');
+      setResultadosNome([]);
+      setTruncadoNome(false);
       setObservacao('');
       setObservacoesAbertas(false);
       setQuantidade(1);
@@ -103,7 +110,11 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
       }
     }
 
+    // Enter repetido não dispara outra consulta enquanto a anterior roda.
+    if (emAndamentoRef.current.codigo) return;
+
     setBuscando(true);
+    emAndamentoRef.current.codigo = true;
     setResultadoBusca(null);
     try {
       const res = await api.get('/api/produtos/buscar', { params: { q: codigoTexto, tipo } });
@@ -124,26 +135,60 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
         setResultadoBusca({ erro: true, texto: 'Não foi possível consultar o DNA agora. Informe o nome do produto manualmente.' });
       }
     } finally {
+      emAndamentoRef.current.codigo = false;
       setBuscando(false);
     }
   };
 
   const buscarPorNome = async () => {
     const termo = buscaNome.trim();
-    if (!termo) return;
+    if (termo.length < 2) {
+      setResultadoBusca({ erro: true, texto: 'Informe pelo menos 2 caracteres para pesquisar.' });
+      return;
+    }
+
+    // Enter repetido não dispara outra pesquisa enquanto a anterior roda.
+    if (emAndamentoRef.current.texto) return;
+
     setBuscandoNome(true);
+    emAndamentoRef.current.texto = true;
     setResultadoBusca(null);
+    setResultadosNome([]);
+    setTruncadoNome(false);
     try {
-      const res = await api.get('/api/produtos/buscar', { params: { q: termo } });
-      const produto = res.data || {};
-      const nome = produto.nome || produto.descricao || produto.name || '';
-      if (nome) setNomeProdutoRecebido(nome);
-      setResultadoBusca({ ...produto, nome });
-    } catch {
-      setResultadoBusca({ erro: true, texto: 'Produto não encontrado no DNA. Você pode informar o nome manualmente.' });
+      const res = await api.get('/api/produtos/pesquisar', {
+        params: { q: termo, tipo: tipoBuscaNome }
+      });
+      const resultados = Array.isArray(res.data?.resultados) ? res.data.resultados : [];
+      setResultadosNome(resultados);
+      setTruncadoNome(Boolean(res.data?.truncado));
+      if (resultados.length === 0) {
+        setResultadoBusca({ erro: true, texto: 'Nenhum produto encontrado no DNA. Você pode informar o nome manualmente.' });
+      }
+    } catch (erro) {
+      setResultadoBusca({
+        erro: true,
+        texto: erro.response?.status === 503
+          ? 'Consulta ao DNA indisponível. Tente novamente em instantes.'
+          : 'Não foi possível pesquisar no DNA agora. Você pode informar o nome manualmente.'
+      });
     } finally {
+      emAndamentoRef.current.texto = false;
       setBuscandoNome(false);
     }
+  };
+
+  /** Aplica o item escolhido na lista; nunca seleciona automaticamente. */
+  const aplicarResultadoNome = (item) => {
+    if (!item) return;
+    const nome = item.descricao || '';
+    setNomeProdutoRecebido(nome);
+    setNomeManual(nome);
+    setCodigoDna(item.codigo != null ? String(item.codigo) : '');
+    setCodigoBarrasRecebido(item.codbarras ? String(item.codbarras) : '');
+    setResultadoBusca({ ...item, nome });
+    setResultadosNome([]);
+    setTruncadoNome(false);
   };
 
   const handleCodigoLido = (codigoLido) => {
@@ -272,7 +317,12 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 autoComplete="off"
                 value={codigoBarrasRecebido}
                 onChange={e => setCodigoBarrasRecebido(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && consultarCodigo(codigoBarrasRecebido, 'EAN')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    consultarCodigo(codigoBarrasRecebido, 'EAN');
+                  }
+                }}
                 placeholder="Preserva zeros à esquerda"
                 style={{ ...estiloCampo, flex: '1 1 200px' }}
               />
@@ -303,7 +353,12 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 autoComplete="off"
                 value={codigoDna}
                 onChange={e => setCodigoDna(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && consultarCodigo(codigoDna, 'DNA')}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    consultarCodigo(codigoDna, 'DNA');
+                  }
+                }}
                 placeholder="Ex.: 12345"
                 style={{ ...estiloCampo, flex: '1 1 200px' }}
               />
@@ -333,23 +388,73 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
             />
 
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
+              <select
+                aria-label="Tipo de pesquisa no DNA"
+                value={tipoBuscaNome}
+                onChange={e => { setTipoBuscaNome(e.target.value); setResultadosNome([]); setResultadoBusca(null); }}
+                style={{ ...estiloCampo, flex: '1 1 150px' }}
+              >
+                <option value="descricao">Descrição</option>
+                <option value="principio">Princípio ativo</option>
+              </select>
               <input
                 type="text"
                 value={buscaNome}
                 onChange={e => setBuscaNome(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && buscarPorNome()}
-                placeholder="Buscar nome no DNA (opcional)"
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    buscarPorNome();
+                  }
+                }}
+                placeholder={tipoBuscaNome === 'descricao' ? 'Descrição no DNA (opcional)' : 'Princípio ativo no DNA (opcional)'}
+                maxLength={40}
                 style={{ ...estiloCampo, flex: '1 1 200px' }}
               />
               <button
                 type="button"
                 onClick={buscarPorNome}
-                disabled={buscandoNome || !buscaNome.trim()}
+                disabled={buscandoNome || buscaNome.trim().length < 2}
                 style={{ padding: '9px 12px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: buscandoNome ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '42px' }}
               >
                 {buscandoNome ? 'Buscando...' : 'Buscar no DNA'}
               </button>
             </div>
+
+            {buscandoNome && (
+              <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+                Buscando produtos no DNA...
+              </div>
+            )}
+
+            {resultadosNome.length > 0 && (
+              <ul style={{ listStyle: 'none', margin: '10px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '260px', overflowY: 'auto' }}>
+                {resultadosNome.map(item => (
+                  <li key={`${item.codigo}-${item.codbarras || ''}`}>
+                    <button
+                      type="button"
+                      onClick={() => aplicarResultadoNome(item)}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
+                    >
+                      <strong style={{ fontSize: '12px', color: '#1f2937' }}>{item.descricao || 'Produto sem descrição'}</strong>
+                      <span style={{ fontSize: '11px', color: '#4b5563' }}>
+                        {[item.principioAtivo, item.apresentacao, item.fabricante].filter(Boolean).join(' · ') || 'Sem informações complementares'}
+                      </span>
+                      <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                        Código DNA: {item.codigo ?? '-'} · EAN: {item.codbarras || '-'}
+                        {item.inativo === 'S' ? ' · Inativo no DNA' : ''}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {truncadoNome && (
+              <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '11px', color: '#92400e' }}>
+                Existem mais resultados do que os exibidos. Refine a pesquisa.
+              </div>
+            )}
           </div>
         )}
 

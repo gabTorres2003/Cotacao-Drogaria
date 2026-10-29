@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
 import LeitorCodigoBarras from './LeitorCodigoBarras';
 import { validarCodigoLido } from '../utils/codigoBarras';
-import { Barcode, Camera, CheckCircle2, Keyboard, MessageSquare, PackageSearch, PencilLine, Search, X } from 'lucide-react';
+import { Barcode, Camera, CheckCircle2, Keyboard, MessageSquare, PackageSearch, PencilLine, Pill, Search, X } from 'lucide-react';
 
 const estiloOpcao = {
   display: 'flex',
@@ -87,7 +87,12 @@ export default function IdentificacaoProdutoRecebido({
   const [observacoesAbertas, setObservacoesAbertas] = useState(Boolean(String(observacao).trim()));
   const [consultando, setConsultando] = useState(false);
   const [resultado, setResultado] = useState(null);
+  const [termoTexto, setTermoTexto] = useState('');
+  const [buscandoTexto, setBuscandoTexto] = useState(false);
+  const [resultadosTexto, setResultadosTexto] = useState([]);
+  const [truncadoTexto, setTruncadoTexto] = useState(false);
   const codigoAceitoRef = useRef(false);
+  const emAndamentoRef = useRef({ codigo: false, texto: false });
   const onFecharCameraRef = useRef(onFecharCamera);
 
   useEffect(() => {
@@ -144,7 +149,11 @@ export default function IdentificacaoProdutoRecebido({
       }
     }
 
+    // Enter repetido não dispara outra consulta enquanto a anterior roda.
+    if (emAndamentoRef.current.codigo) return;
+
     setConsultando(true);
+    emAndamentoRef.current.codigo = true;
     setResultado(null);
     try {
       const resposta = await api.get('/api/produtos/buscar', {
@@ -178,8 +187,67 @@ export default function IdentificacaoProdutoRecebido({
         });
       }
     } finally {
+      emAndamentoRef.current.codigo = false;
       setConsultando(false);
     }
+  };
+
+  const buscarPorTexto = async () => {
+    const termo = termoTexto.trim();
+    if (termo.length < 2) {
+      setResultado({ tipo: 'erro', texto: 'Informe pelo menos 2 caracteres para pesquisar.' });
+      return;
+    }
+
+    // Enter repetido não dispara outra consulta enquanto a anterior roda.
+    if (emAndamentoRef.current.texto) return;
+
+    setBuscandoTexto(true);
+    emAndamentoRef.current.texto = true;
+    setResultado(null);
+    setResultadosTexto([]);
+    setTruncadoTexto(false);
+    try {
+      const resposta = await api.get('/api/produtos/pesquisar', {
+        params: { q: termo, tipo: tipoCodigo === 'PRINCIPIO' ? 'principio' : 'descricao' }
+      });
+      const resultados = Array.isArray(resposta.data?.resultados) ? resposta.data.resultados : [];
+      setResultadosTexto(resultados);
+      setTruncadoTexto(Boolean(resposta.data?.truncado));
+      if (resultados.length === 0) {
+        setResultado({
+          tipo: 'nao_encontrado',
+          texto: 'Nenhum produto encontrado no DNA para esta pesquisa. Tente outro termo ou informe o nome manualmente.'
+        });
+      }
+    } catch (erro) {
+      setResultado({
+        tipo: 'erro',
+        texto: erro.response?.status === 503
+          ? 'Consulta ao DNA indisponível. Tente novamente em instantes.'
+          : 'Não foi possível pesquisar no DNA agora. Informe o nome do produto recebido manualmente.'
+      });
+    } finally {
+      emAndamentoRef.current.texto = false;
+      setBuscandoTexto(false);
+    }
+  };
+
+  /** Aplica o item escolhido na lista; nunca seleciona automaticamente. */
+  const aplicarResultadoTexto = (produto) => {
+    if (!produto) return;
+    onCampo('codigoDnaRecebido', produto.codigo != null ? String(produto.codigo) : '');
+    onCampo('codigoBarrasRecebido', produto.codbarras ? String(produto.codbarras) : '');
+    onCampo('produtoRecebido', produto.descricao || '');
+    setResultado({
+      tipo: 'sucesso',
+      produto,
+      nome: produto.descricao || '',
+      consultadoComo: tipoCodigo
+    });
+    setResultadosTexto([]);
+    setTruncadoTexto(false);
+    setModo('RESUMO');
   };
 
   const handleCodigoLido = (codigoLido) => {
@@ -217,6 +285,13 @@ export default function IdentificacaoProdutoRecebido({
           </button>
           <button type="button" onClick={() => setModo('MANUAL')} style={estiloOpcao}>
             <PencilLine size={18} /> Inserir nome manualmente
+          </button>
+          <button
+            type="button"
+            onClick={() => { setTipoCodigo('DESCRICAO'); setModo('CODIGO'); }}
+            style={estiloOpcao}
+          >
+            <Search size={18} /> Buscar por descrição ou princípio ativo
           </button>
         </div>
       )}
@@ -256,56 +331,145 @@ export default function IdentificacaoProdutoRecebido({
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '10px' }}>
             <button
               type="button"
-              onClick={() => { setTipoCodigo('EAN'); setResultado(null); }}
+              onClick={() => { setTipoCodigo('EAN'); setResultado(null); setResultadosTexto([]); }}
               style={estiloAba(tipoCodigo === 'EAN')}
             >
               <Barcode size={14} /> Código de barras (EAN/UPC)
             </button>
             <button
               type="button"
-              onClick={() => { setTipoCodigo('DNA'); setResultado(null); }}
+              onClick={() => { setTipoCodigo('DNA'); setResultado(null); setResultadosTexto([]); }}
               style={estiloAba(tipoCodigo === 'DNA')}
             >
               <PackageSearch size={14} /> Código interno DNA
             </button>
-          </div>
-
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
-            {tipoCodigo === 'EAN' ? 'Código de barras do produto recebido:' : 'Código interno do DNA:'}
-          </label>
-          <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-            <input
-              type="text"
-              inputMode="numeric"
-              autoComplete="off"
-              value={tipoCodigo === 'EAN' ? valorEan : valorDna}
-              onChange={e => onCampo(tipoCodigo === 'EAN' ? 'codigoBarrasRecebido' : 'codigoDnaRecebido', e.target.value)}
-              onKeyDown={e => {
-                if (e.key === 'Enter') {
-                  e.preventDefault();
-                  consultarCodigo(tipoCodigo === 'EAN' ? valorEan : valorDna, tipoCodigo);
-                }
-              }}
-              placeholder={tipoCodigo === 'EAN' ? 'Ex.: 7891234567890' : 'Ex.: 12345'}
-              style={{ ...estiloCampo, flex: '1 1 200px' }}
-            />
             <button
               type="button"
-              onClick={() => consultarCodigo(tipoCodigo === 'EAN' ? valorEan : valorDna, tipoCodigo)}
-              disabled={consultando}
-              style={{ padding: '9px 14px', backgroundColor: consultando ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: consultando ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+              onClick={() => { setTipoCodigo('DESCRICAO'); setResultado(null); setResultadosTexto([]); }}
+              style={estiloAba(tipoCodigo === 'DESCRICAO')}
             >
-              <Search size={15} /> {consultando ? 'Consultando...' : 'Consultar DNA'}
+              <Search size={14} /> Descrição
+            </button>
+            <button
+              type="button"
+              onClick={() => { setTipoCodigo('PRINCIPIO'); setResultado(null); setResultadosTexto([]); }}
+              style={estiloAba(tipoCodigo === 'PRINCIPIO')}
+            >
+              <Pill size={14} /> Princípio ativo
             </button>
           </div>
 
-          <button
-            type="button"
-            onClick={abrirCamera}
-            style={{ marginTop: '8px', background: 'none', border: 'none', color: '#b45309', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
-          >
-            Ler com a câmera
-          </button>
+          {(tipoCodigo === 'EAN' || tipoCodigo === 'DNA') ? (
+            <>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                {tipoCodigo === 'EAN' ? 'Código de barras do produto recebido:' : 'Código interno do DNA:'}
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="off"
+                  value={tipoCodigo === 'EAN' ? valorEan : valorDna}
+                  onChange={e => onCampo(tipoCodigo === 'EAN' ? 'codigoBarrasRecebido' : 'codigoDnaRecebido', e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      consultarCodigo(tipoCodigo === 'EAN' ? valorEan : valorDna, tipoCodigo);
+                    }
+                  }}
+                  placeholder={tipoCodigo === 'EAN' ? 'Ex.: 7891234567890' : 'Ex.: 12345'}
+                  style={{ ...estiloCampo, flex: '1 1 200px' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => consultarCodigo(tipoCodigo === 'EAN' ? valorEan : valorDna, tipoCodigo)}
+                  disabled={consultando}
+                  style={{ padding: '9px 14px', backgroundColor: consultando ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: consultando ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+                >
+                  <Search size={15} /> {consultando ? 'Consultando...' : 'Consultar DNA'}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                onClick={abrirCamera}
+                style={{ marginTop: '8px', background: 'none', border: 'none', color: '#b45309', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
+              >
+                Ler com a câmera
+              </button>
+            </>
+          ) : (
+            <>
+              <label htmlFor="identificacao_texto_dna" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+                {tipoCodigo === 'DESCRICAO' ? 'Descrição do produto:' : 'Princípio ativo:'}
+              </label>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <input
+                  id="identificacao_texto_dna"
+                  type="text"
+                  autoComplete="off"
+                  value={termoTexto}
+                  onChange={e => setTermoTexto(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      buscarPorTexto();
+                    }
+                  }}
+                  placeholder={tipoCodigo === 'DESCRICAO' ? 'Ex.: dipirona 500mg' : 'Ex.: dipirona sódica'}
+                  maxLength={40}
+                  style={{ ...estiloCampo, flex: '1 1 200px' }}
+                />
+                <button
+                  type="button"
+                  onClick={buscarPorTexto}
+                  disabled={buscandoTexto || termoTexto.trim().length < 2}
+                  style={{ padding: '9px 14px', backgroundColor: buscandoTexto ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: buscandoTexto ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+                >
+                  <Search size={15} /> {buscandoTexto ? 'Buscando...' : 'Buscar no DNA'}
+                </button>
+              </div>
+
+              <span style={{ display: 'block', marginTop: '6px', fontSize: '11px', color: '#92400e' }}>
+                Pesquisa feita no DNA. Se houver muitos resultados, refine o termo.
+              </span>
+
+              {buscandoTexto && (
+                <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: '#92400e' }}>
+                  Buscando produtos no DNA...
+                </div>
+              )}
+
+              {resultadosTexto.length > 0 && (
+                <ul style={{ listStyle: 'none', margin: '8px 0 0', padding: 0, display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '320px', overflowY: 'auto' }}>
+                  {resultadosTexto.map(item => (
+                    <li key={`${item.codigo}-${item.codbarras || ''}`}>
+                      <button
+                        type="button"
+                        onClick={() => aplicarResultadoTexto(item)}
+                        style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
+                      >
+                        <strong style={{ fontSize: '12px', color: '#1f2937' }}>{item.descricao || 'Produto sem descrição'}</strong>
+                        <span style={{ fontSize: '11px', color: '#4b5563' }}>
+                          {[item.principioAtivo, item.apresentacao, item.fabricante].filter(Boolean).join(' · ') || 'Sem informações complementares'}
+                        </span>
+                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                          Código DNA: {item.codigo ?? '-'} · EAN: {item.codbarras || '-'}
+                          {item.inativo === 'S' ? ' · Inativo no DNA' : ''}
+                        </span>
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {truncadoTexto && (
+                <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '11px', color: '#92400e' }}>
+                  Existem mais resultados do que os exibidos. Refine a pesquisa para encontrar o produto certo.
+                </div>
+              )}
+            </>
+          )}
 
           {resultado && <FeedbackConsulta resultado={resultado} onManual={() => setModo('MANUAL')} onCamera={abrirCamera} />}
         </div>
