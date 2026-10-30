@@ -488,6 +488,8 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
             <input
               type="number"
               min="1"
+              inputMode="numeric"
+              enterkeyHint="next"
               value={quantidade}
               onChange={e => setQuantidade(Number(e.target.value))}
               style={estiloCampo}
@@ -500,6 +502,8 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 type="number"
                 min="0"
                 step="0.01"
+                inputMode="decimal"
+                enterkeyHint="next"
                 value={valorUnitario}
                 onChange={e => setValorUnitario(e.target.value)}
                 placeholder="R$ 0,00"

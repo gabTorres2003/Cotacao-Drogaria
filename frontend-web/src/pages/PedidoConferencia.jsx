@@ -586,6 +586,28 @@ export default function PedidoConferencia() {
     enviarRecebimento(acao);
   };
 
+  // Enter age como Tab: avança para o próximo campo de preenchimento em vez de
+  // disparar o envio do formulário (que finalizaria/salvaria a conferência).
+  const handleEnterComoTab = (e) => {
+    if (e.key !== 'Enter' || e.defaultPrevented) return;
+    const alvo = e.target;
+    if (!alvo) return;
+    // Enter em um botão aciona o próprio botão normalmente.
+    if (alvo.tagName === 'BUTTON') return;
+    if (alvo.tagName !== 'INPUT' && alvo.tagName !== 'SELECT' && alvo.tagName !== 'TEXTAREA') return;
+    // Impede a submissão implícita do formulário (Enter nunca finaliza a conferência).
+    e.preventDefault();
+    if (alvo.type === 'checkbox' || alvo.type === 'radio' || alvo.type === 'file' || alvo.type === 'submit' || alvo.type === 'image') return;
+
+    const campos = Array.from(e.currentTarget.querySelectorAll('input, select, textarea'))
+      .filter(c => !c.disabled && c.type !== 'hidden' && c.getClientRects().length > 0);
+    const indice = campos.indexOf(alvo);
+    if (indice === -1 || !campos[indice + 1]) return;
+    const proximo = campos[indice + 1];
+    proximo.focus();
+    if (typeof proximo.select === 'function') proximo.select();
+  };
+
   const fMoney = (valor) => {
     if (valor == null) return '-';
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
@@ -612,6 +634,7 @@ export default function PedidoConferencia() {
           overflow-x: auto;
           -webkit-overflow-scrolling: touch;
         }
+        /* Computador (>768px): apenas os botões dentro da página (Voltar, Cancelar e Salvar). */
         .conferencia-page .conferencia-acoes-mobile {
           display: none;
         }
@@ -637,9 +660,9 @@ export default function PedidoConferencia() {
           .conferencia-page .conferencia-header p {
             font-size: 13px;
           }
+          /* Celular: os botões fixos do rodapé substituem os botões dentro da página. */
           .conferencia-page .conferencia-header button {
-            width: 100%;
-            justify-content: center;
+            display: none !important;
           }
           .conferencia-page .conferencia-card {
             padding: 12px !important;
@@ -718,6 +741,9 @@ export default function PedidoConferencia() {
             width: 100%;
             justify-content: center;
           }
+          .conferencia-page .conferencia-botoes-internos {
+            display: none !important;
+          }
           .conferencia-page .conferencia-acoes-mobile {
             display: flex;
           }
@@ -766,7 +792,7 @@ export default function PedidoConferencia() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={handleSubmit} onKeyDown={handleEnterComoTab}>
             <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
               <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <FileText size={18} color="#3b82f6"/> Dados da Nota Fiscal Recebida
@@ -777,6 +803,8 @@ export default function PedidoConferencia() {
                   <input
                     type="text"
                     required
+                    inputMode="numeric"
+                    enterkeyHint="next"
                     placeholder="Ex: 895886"
                     value={numeroNota}
                     onChange={e => setNumeroNota(e.target.value)}
@@ -884,6 +912,8 @@ export default function PedidoConferencia() {
                             <input
                               type="number"
                               min="0"
+                              inputMode="numeric"
+                              enterkeyHint="next"
                               disabled={totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida}
                               style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#cbd5e1' }}
                               placeholder="0"
@@ -897,6 +927,8 @@ export default function PedidoConferencia() {
                               type="number"
                               step="0.01"
                               min="0"
+                              inputMode="decimal"
+                              enterkeyHint="next"
                               disabled={isConferente || isConferido}
                               placeholder="0,00"
                               style={{ ...styles.inputField, backgroundColor: (isConferente || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (isConferente || isConferido) ? 'transparent' : '#cbd5e1' }}
@@ -956,6 +988,8 @@ export default function PedidoConferencia() {
                                 <input
                                   type="number"
                                   min="1"
+                                  inputMode="numeric"
+                                  enterkeyHint="next"
                                   max={Number(confState.quantidadeRecebidaAgora || confState.quantidadeJaRecebida) || 0}
                                   value={confState.quantidadeAvariadaAgora ?? ''}
                                   onChange={(e) => handleInputChange(item.id, 'quantidadeAvariadaAgora', e.target.value)}
@@ -1088,22 +1122,24 @@ export default function PedidoConferencia() {
                     <Check size={15} /> Conferir todos os produtos
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => navigate(`/pedidos/${id}`)}
-                  style={styles.btnCancelar}
-                  disabled={salvando}
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  style={{...styles.btnSalvar, opacity: salvando ? 0.7 : 1}}
-                  disabled={salvando}
-                >
-                  <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                  {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência física' : 'Finalizar e Gravar Conferência')}
-                </button>
+                <div className="conferencia-botoes-internos" style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/pedidos/${id}`)}
+                    style={styles.btnCancelar}
+                    disabled={salvando}
+                  >
+                    Cancelar
+                  </button>
+                  <button
+                    type="submit"
+                    style={{...styles.btnSalvar, opacity: salvando ? 0.7 : 1}}
+                    disabled={salvando}
+                  >
+                    <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                    {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência física' : 'Finalizar e Gravar Conferência')}
+                  </button>
+                </div>
               </div>
             </div>
           </form>
