@@ -57,6 +57,11 @@ public class ItemPedido {
     @Enumerated(EnumType.STRING)
     @Column(name = "status_recebimento")
     private StatusItemRecebimento statusRecebimento;
+
+    // Item não recebido ("Não Veio") que retornou para a cotação de origem.
+    // Mantido no pedido para preservar o histórico, com destaque de "Não entregue".
+    @Column(name = "retornado_cotacao")
+    private Boolean retornadoCotacao = false;
     
     @Column(name = "valor_alterado_apos_pedido")
     private Boolean valorAlteradoAposPedido = false;

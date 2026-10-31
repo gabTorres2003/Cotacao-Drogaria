@@ -7,6 +7,14 @@ import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
 import IdentificacaoProdutoRecebido from '../components/IdentificacaoProdutoRecebido';
 import FotosConferencia from '../components/FotosConferencia';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Search } from 'lucide-react';
+import {
+  nomeExibicaoProduto,
+  separarItensConferencia,
+  baseFracionamento,
+  calcularFracionamento,
+  montarItemRecebido,
+  mesclarCacheNaConferencia
+} from '../utils/conferenciaUtils';
 
 const CHAVE_CACHE_CONFERENCIA = (pedidoId) => `conferencia_pedido_${pedidoId}`;
 
@@ -45,6 +53,10 @@ const extrairObservacaoIncorreto = (item) => {
   return observacao.trim();
 };
 
+// Produtos aceitos por sugestão de troca são identificados pela diferença entre
+// o nome gravado no pedido e o nome do ItemCotacao original: "Substituto (Original)".
+// A implementação está em ../utils/conferenciaUtils (compartilhada e testada).
+
 export default function PedidoConferencia() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -82,7 +94,9 @@ export default function PedidoConferencia() {
       if (response.data.itens) {
         const continuidadeAdministrativa = !isConferente
           && response.data.status === 'CONFERENCIA_INICIADA';
-        const base = response.data.itens.map(item => {
+        // Itens "Não Veio" que retornaram à cotação não participam mais da conferência;
+        // eles aparecem na tabela apenas em modo de leitura, destacados.
+        const base = separarItensConferencia(response.data.itens).editaveis.map(item => {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
             const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
             const valorInformado = item.valorUnitarioReal != null && Number(item.valorUnitarioReal) > 0;
@@ -92,6 +106,8 @@ export default function PedidoConferencia() {
             const avariadaJaPersistida = continuidadeAdministrativa && (item.quantidadeAvariada || 0) > 0;
             return {
               id: item.id,
+              quantidadePedida: item.quantidadePedida,
+              valorUnitarioPedido: item.valorUnitarioPedido,
               quantidadeJaRecebida: qtdJaRecebida,
               quantidadeRecebidaAgora: quantidadeJaPersistida ? qtdJaRecebida : '',
               quantidadeRecebidaPersistida: quantidadeJaPersistida,
@@ -111,7 +127,11 @@ export default function PedidoConferencia() {
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
               observacaoIncorreto: extrairObservacaoIncorreto(item),
-              foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota')
+              foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota'),
+              fracionado: false,
+              fracaoPartes: '',
+              fracaoFator: '',
+              fracionarAberto: false
             };
           });
 
@@ -125,39 +145,8 @@ export default function PedidoConferencia() {
           && cache.pedidoStatus === response.data.status;
         if (cacheValido) {
           setNumeroNota(cache.numeroNota || response.data.numeroNota || '');
-          const porId = {};
-          cache.conferencia.forEach(c => { porId[String(c.id)] = c; });
-          const mesclada = base.map(item => {
-            const c = porId[String(item.id)];
-            if (!c) return item;
-            const valorMesclado = c.valorUnitarioReal !== undefined
-              ? c.valorUnitarioReal
-              : item.valorUnitarioReal;
-            return {
-              ...item,
-              quantidadeRecebidaAgora: c.quantidadeRecebidaAgora !== undefined ? c.quantidadeRecebidaAgora : item.quantidadeRecebidaAgora,
-              quantidadeRecebidaPersistida: item.quantidadeRecebidaPersistida,
-              quantidadeAvariada: c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariada,
-              quantidadeAvariadaAgora: c.quantidadeAvariadaAgora !== undefined
-                ? c.quantidadeAvariadaAgora
-                : (c.quantidadeAvariada !== undefined ? c.quantidadeAvariada : item.quantidadeAvariadaAgora),
-              quantidadeAvariadaPersistida: item.quantidadeAvariadaPersistida,
-              valorUnitarioReal: c.valorUnitarioReal !== undefined ? c.valorUnitarioReal : item.valorUnitarioReal,
-              statusRecebimento: c.statusRecebimento || item.statusRecebimento,
-              conferido: isConferente
-                ? !!c.conferido
-                : !!c.conferido
-                  && (valorMesclado != null && Number(valorMesclado) > 0),
-              produtoRecebido: c.produtoRecebido || '',
-              codigoBarrasRecebido: c.codigoBarrasRecebido || '',
-              codigoDnaRecebido: c.codigoDnaRecebido || '',
-              observacaoIncorreto: c.observacaoIncorreto || '',
-              foiCobrado: !!c.foiCobrado,
-              classificacaoNaoSolicitado: c.classificacaoNaoSolicitado
-            };
-          });
-          const extrasCache = cache.conferencia.filter(c => c.isNaoSolicitado);
-          setConferencia([...mesclada, ...extrasCache]);
+          // Restaura o preenchimento salvo (inclusive marcações de fracionamento).
+          setConferencia(mesclarCacheNaConferencia(base, cache, isConferente));
         } else {
           if (cache) limparCacheConferencia(id);
           setNumeroNota(response.data.numeroNota || '');
@@ -254,6 +243,51 @@ export default function PedidoConferencia() {
     }));
   };
 
+  // --- Fracionamento de produtos na conferência ---------------------------------
+  // Permite dividir o valor unitário em N partes e multiplicar a quantidade pelo
+  // fator informado, mantendo o valor total do item equivalente ao original.
+  // A validação e o cálculo puro ficam em ../utils/conferenciaUtils (testados).
+  const abrirFracionamento = (idItem) => {
+    setConferencia(prev => prev.map(item => item.id === idItem
+      ? { ...item, fracionarAberto: !item.fracionarAberto }
+      : item));
+  };
+
+  const aplicarFracionamento = (idItem) => {
+    const item = conferencia.find(c => c.id === idItem);
+    if (!item) return;
+
+    const { qtdBase, vlrBase } = baseFracionamento(item);
+    const calc = calcularFracionamento(qtdBase, vlrBase, item.fracaoPartes, item.fracaoFator);
+    if (!calc.valido) {
+      alert(calc.erro);
+      return;
+    }
+
+    const confirmar = window.confirm(
+      'Confirmar fracionamento deste produto?\n\n' +
+      `Quantidade: ${qtdBase} un → ${calc.novaQuantidade} un (× ${calc.fator})\n` +
+      `Valor unitário: ${fMoney(vlrBase)} → ${fMoney(calc.novoVlrUnitario)} (÷ ${calc.partes} partes)\n` +
+      `Valor total: ${fMoney(calc.totalOriginal)} → ${fMoney(calc.totalFracionado)}\n\n` +
+      (calc.diferenca > 0.005
+        ? `Atenção: o novo total apresenta diferença de arredondamento de ${fMoney(calc.diferenca)} em relação ao original.`
+        : 'O valor total permanece equivalente ao original.')
+    );
+    if (!confirmar) return;
+
+    setConferencia(prev => prev.map(c => c.id === idItem
+      ? {
+          ...c,
+          quantidadeRecebidaAgora: calc.novaQuantidade,
+          valorUnitarioReal: calc.novoVlrUnitario,
+          fracionado: true,
+          fracaoPartes: calc.partes,
+          fracaoFator: calc.fator,
+          fracionarAberto: false
+        }
+      : c));
+  };
+
   const adicionarProdutoNaoSolicitado = (dados) => {
     const novoItem = {
       id: `extra_${Date.now()}`,
@@ -297,7 +331,7 @@ export default function PedidoConferencia() {
       isNaoSolicitado: true
     }));
     let ordenavel = [...itensNormais, ...itensExtras].filter(item =>
-      (item.nomeProduto || item.itemCotacao?.nomeProduto || '')
+      nomeExibicaoProduto(item)
         .toLowerCase()
         .includes(buscaProduto.toLowerCase())
     );
@@ -306,8 +340,8 @@ export default function PedidoConferencia() {
       let valB = b[sortConfig.key];
 
       if (sortConfig.key === 'nomeProduto') {
-        valA = a.nomeProduto || a.itemCotacao?.nomeProduto || '';
-        valB = b.nomeProduto || b.itemCotacao?.nomeProduto || '';
+        valA = nomeExibicaoProduto(a);
+        valB = nomeExibicaoProduto(b);
       }
 
       if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -386,7 +420,8 @@ export default function PedidoConferencia() {
 
   const getNomeItemConferencia = (c) => {
     const itemPedido = pedido?.itens?.find(i => i.id === c.id);
-    return c.nomeProduto || itemPedido?.nomeProduto || itemPedido?.itemCotacao?.nomeProduto || 'Produto Desconhecido';
+    if (itemPedido) return nomeExibicaoProduto(itemPedido);
+    return c.nomeProduto || 'Produto Desconhecido';
   };
 
   const salvarConferenciaParcial = async () => {
@@ -404,21 +439,16 @@ export default function PedidoConferencia() {
     try {
       await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
         numeroNota: numeroNota.trim(),
-        itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item => ({
-          id: item.id,
-          quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
-            ? 0 : Number(item.quantidadeRecebidaAgora),
-          quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
-            ? Number(item.quantidadeAvariadaAgora || 0) : 0,
-          statusRecebimento: item.statusRecebimento,
-          codigoBarrasRecebido: item.codigoBarrasRecebido || '',
-          nomeProdutoRecebido: item.produtoRecebido || '',
-          observacaoDevolucao: item.statusRecebimento === 'INCORRETO'
-            ? montarObservacaoIncorreto(item)
-            : (item.statusRecebimento !== 'OK'
-                ? (item.observacaoIncorreto || item.statusRecebimento)
-                : '')
-        }))
+        itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item =>
+          // Persiste o valor unitário informado (ex.: fracionamento) para que
+          // a conferência física não perca essa informação.
+          montarItemRecebido(item,
+            item.statusRecebimento === 'INCORRETO'
+              ? montarObservacaoIncorreto(item)
+              : (item.statusRecebimento !== 'OK'
+                  ? (item.observacaoIncorreto || item.statusRecebimento)
+                  : ''))
+        )
       });
 
       const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
@@ -867,12 +897,39 @@ export default function PedidoConferencia() {
                           && !item.itemCotacao
                           && Boolean(confState.produtoRecebido || confState.observacaoIncorreto || confState.codigoBarrasRecebido));
 
+                      // Item "Não Veio" que retornou à cotação: permanece visível,
+                      // destacado e sem campos de preenchimento.
+                      if (item.retornadoCotacao) {
+                        return (
+                          <tr key={item.id} style={{ borderBottom: '1px solid #fecaca', backgroundColor: '#fef2f2' }}>
+                            <td data-label="Produto" style={styles.td}>
+                              <strong style={{ color: '#991b1b', display: 'block' }}>{nomeExibicaoProduto(item)}</strong>
+                              <div style={{ fontSize: '10px', color: '#b91c1c', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fca5a5' }}>
+                                <AlertTriangle size={10} /> Não entregue — retornou à cotação de origem
+                              </div>
+                            </td>
+                            <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#991b1b', fontWeight: '600' }}>
+                              {item.quantidadePedida} un
+                            </td>
+                            <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#991b1b' }}>-</td>
+                            <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>
+                            {!isConferente && <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>}
+                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#b91c1c', fontWeight: 'bold' }}>Não Veio</td>
+                            <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
+                              <span style={{ padding: '6px 10px', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+                                Não entregue
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      }
+
                       return (
                         <Fragment key={item.id}>
                         <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
                           <td data-label="Produto" style={styles.td}>
                             <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
-                              {item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}
+                              {nomeExibicaoProduto(item)}
                             </strong>
                             {isExtra && (
                               <div style={{ marginTop: '4px' }}>
@@ -896,6 +953,24 @@ export default function PedidoConferencia() {
                             {totalmenteRecebido && (
                               <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#bbf7d0', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                 <Package size={10} /> Totalmente recebido
+                              </div>
+                            )}
+                            {confState.fracionado && (
+                              <div style={{ fontSize: '10px', color: '#6d28d9', backgroundColor: '#ede9fe', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #c4b5fd' }}>
+                                <Package size={10} /> Fracionado: {confState.quantidadeRecebidaAgora || '-'} un × {fMoney(confState.valorUnitarioReal)}
+                              </div>
+                            )}
+                            {!isExtra && !totalmenteRecebido && !isConferido && !confState.quantidadeRecebidaPersistida
+                              && (Number(item.valorUnitarioPedido) > 0 || Number(confState.valorUnitarioReal) > 0) && (
+                              <div>
+                                <button
+                                  type="button"
+                                  onClick={() => abrirFracionamento(item.id)}
+                                  style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', color: '#6d28d9', backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  title="Dividir o valor unitário em partes e multiplicar a quantidade recebida"
+                                >
+                                  <ArrowUpDown size={10} /> Fracionar
+                                </button>
                               </div>
                             )}
                           </td>
@@ -980,6 +1055,81 @@ export default function PedidoConferencia() {
                             )}
                           </td>
                         </tr>
+                        {confState.fracionarAberto && (
+                          <tr key={`${item.id}-fracionar`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#f5f3ff' }}>
+                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '12px 14px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: '#5b21b6', fontSize: '13px' }}>
+                                <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                  <Package size={14} /> Fracionar — dividir o valor unitário em partes e multiplicar a quantidade
+                                </strong>
+                                <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
+                                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
+                                    Dividir o valor unitário em (partes)
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      step="1"
+                                      inputMode="numeric"
+                                      enterkeyHint="next"
+                                      value={confState.fracaoPartes ?? ''}
+                                      onChange={(e) => handleInputChange(item.id, 'fracaoPartes', e.target.value)}
+                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'white', borderColor: '#c4b5fd', color: '#5b21b6' }}
+                                    />
+                                  </label>
+                                  <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
+                                    Multiplicar a quantidade por (fator)
+                                    <input
+                                      type="number"
+                                      min="1"
+                                      step="1"
+                                      inputMode="numeric"
+                                      enterkeyHint="next"
+                                      value={confState.fracaoFator ?? ''}
+                                      onChange={(e) => handleInputChange(item.id, 'fracaoFator', e.target.value)}
+                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'white', borderColor: '#c4b5fd', color: '#5b21b6' }}
+                                    />
+                                  </label>
+                                </div>
+                                {(() => {
+                                  const { qtdBase, vlrBase } = baseFracionamento(confState);
+                                  const calc = calcularFracionamento(qtdBase, vlrBase, confState.fracaoPartes, confState.fracaoFator);
+                                  if (!calc.valido) return null;
+                                  return (
+                                    <div style={{ backgroundColor: 'white', border: '1px solid #c4b5fd', borderRadius: '8px', padding: '10px 12px', lineHeight: 1.7 }}>
+                                      <div><strong>Quantidade:</strong> {qtdBase} un → <strong>{calc.novaQuantidade} un</strong> (× {calc.fator})</div>
+                                      <div><strong>Valor unitário:</strong> {fMoney(vlrBase)} → <strong>{fMoney(calc.novoVlrUnitario)}</strong> (÷ {calc.partes})</div>
+                                      <div>
+                                        <strong>Valor total:</strong> {fMoney(calc.totalOriginal)} → <strong>{fMoney(calc.totalFracionado)}</strong>
+                                        {calc.diferenca > 0.005
+                                          ? <span style={{ color: '#b45309' }}> (diferença de arredondamento: {fMoney(calc.diferenca)})</span>
+                                          : <span style={{ color: '#166534' }}> (total preservado)</span>}
+                                      </div>
+                                    </div>
+                                  );
+                                })()}
+                                <p style={{ margin: 0, fontSize: '11px', color: '#6d28d9' }}>
+                                  A operação altera a quantidade recebida e o valor unitário deste item. Confira os valores acima antes de aplicar.
+                                </p>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                  <button
+                                    type="button"
+                                    onClick={() => aplicarFracionamento(item.id)}
+                                    style={{ padding: '8px 14px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  >
+                                    <Check size={14} /> Aplicar fracionamento
+                                  </button>
+                                  <button
+                                    type="button"
+                                    onClick={() => abrirFracionamento(item.id)}
+                                    style={{ padding: '8px 14px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                                  >
+                                    Cancelar
+                                  </button>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+                        )}
                         {confState.statusRecebimento === 'AVARIADO' && (
                           <tr key={`${item.id}-qtd-avariada`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>

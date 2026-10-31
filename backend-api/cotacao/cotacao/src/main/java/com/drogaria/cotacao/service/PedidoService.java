@@ -128,6 +128,11 @@ public class PedidoService {
             ItemPedido itemBanco = itemPedidoRepository.findById(itemConferido.getId())
                     .orElseThrow(() -> new RuntimeException("Item do pedido não encontrado"));
 
+            // Item já devolvido à cotação ("Não entregue") não participa mais da conferência.
+            if (Boolean.TRUE.equals(itemBanco.getRetornadoCotacao())) {
+                continue;
+            }
+
             Integer jaRecebido = itemBanco.getQuantidadeReal() != null ? itemBanco.getQuantidadeReal() : 0;
             Integer incremento = itemConferido.getQuantidadeRecebidaAgora() != null
                     ? itemConferido.getQuantidadeRecebidaAgora()
@@ -178,9 +183,7 @@ public class PedidoService {
             itemBanco.setCodigoBarrasRecebido(itemConferido.getCodigoBarrasRecebido());
             itemBanco.setNomeProdutoRecebido(itemConferido.getNomeProdutoRecebido());
 
-            if (itemBanco.getValorUnitarioReal() != null
-                    && itemBanco.getValorUnitarioPedido() != null
-                    && !itemBanco.getValorUnitarioReal().equals(itemBanco.getValorUnitarioPedido())) {
+            if (!valoresEquivalentes(itemBanco)) {
                 temIncompatibilidadeValor = true;
             }
 
@@ -193,17 +196,22 @@ public class PedidoService {
 
         pedido.setValorTotalReal(valorTotalReal);
 
-        // Pendência calculada somente sobre os itens que permaneceram no pedido,
-        // para que itens devolvidos à cotação não gerem entrega parcial indevida.
-        boolean temItemPendente = pedido.getItens().stream().anyMatch(i ->
-                i.getQuantidadeReal() == null || i.getQuantidadePedida() == null
-                        || i.getQuantidadeReal() < i.getQuantidadePedida());
+        // Pendência calculada somente sobre os itens que permaneceram no pedido e que
+        // não retornaram à cotação, para que itens devolvidos não gerem entrega parcial
+        // indevida.
+        boolean temItemPendente = pedido.getItens().stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getRetornadoCotacao()))
+                .anyMatch(i ->
+                        i.getQuantidadeReal() == null || i.getQuantidadePedida() == null
+                                || i.getQuantidadeReal() < i.getQuantidadePedida());
+        boolean todosItensRetornados = !pedido.getItens().isEmpty()
+                && pedido.getItens().stream().allMatch(i -> Boolean.TRUE.equals(i.getRetornadoCotacao()));
 
         if (temDevolucao) {
             pedido.setStatus(StatusPedido.DIVERGENCIA);
         } else if (temItemPendente) {
             pedido.setStatus(StatusPedido.ENTREGA_PARCIAL);
-        } else if (pedido.getItens().isEmpty()) {
+        } else if (todosItensRetornados || pedido.getItens().isEmpty()) {
             // Todos os itens foram devolvidos à cotação de origem: encerra com falta confirmada.
             pedido.setStatus(StatusPedido.ENTREGUE_COM_FALTA);
         } else if (temIncompatibilidadeValor) {
@@ -252,6 +260,10 @@ public class PedidoService {
                 if (!item.getPedido().getId().equals(pedidoId)) {
                     throw new RuntimeException("Item não pertence ao pedido informado.");
                 }
+                // Item já devolvido à cotação ("Não entregue") não participa mais da conferência.
+                if (Boolean.TRUE.equals(item.getRetornadoCotacao())) {
+                    continue;
+                }
                 int atual = item.getQuantidadeReal() == null ? 0 : item.getQuantidadeReal();
                 int incremento = itemDTO.getQuantidadeRecebidaAgora() == null
                         ? 0 : itemDTO.getQuantidadeRecebidaAgora();
@@ -276,6 +288,10 @@ public class PedidoService {
                 item.setObservacaoDevolucao(itemDTO.getObservacaoDevolucao());
                 item.setCodigoBarrasRecebido(itemDTO.getCodigoBarrasRecebido());
                 item.setNomeProdutoRecebido(itemDTO.getNomeProdutoRecebido());
+                if (itemDTO.getValorUnitarioReal() != null && itemDTO.getValorUnitarioReal() > 0) {
+                    // Persiste o valor unitário informado (ex.: fracionamento) já na etapa física.
+                    item.setValorUnitarioReal(itemDTO.getValorUnitarioReal());
+                }
                 itemPedidoRepository.save(item);
             }
         }
@@ -299,10 +315,32 @@ public class PedidoService {
     }
 
     /**
+     * Considera os valores do item compatíveis quando o valor unitário confere com o
+     * previsto ou quando o total do item se mantém equivalente ao previsto (tolerância
+     * de R$ 0,01 para arredondamento). A segunda condição permite o fracionamento
+     * (valor unitário dividido e quantidade multiplicada) sem gerar divergência artificial.
+     */
+    private boolean valoresEquivalentes(ItemPedido item) {
+        Double vlrReal = item.getValorUnitarioReal();
+        Double vlrPrevisto = item.getValorUnitarioPedido();
+        if (vlrReal == null || vlrPrevisto == null) return true;
+        if (vlrReal.equals(vlrPrevisto)) return true;
+
+        Integer qtdReal = item.getQuantidadeReal();
+        Integer qtdPedida = item.getQuantidadePedida();
+        if (qtdReal == null || qtdPedida == null || qtdPedida <= 0) return false;
+
+        double totalReal = qtdReal * vlrReal;
+        double totalPrevisto = qtdPedida * vlrPrevisto;
+        return Math.abs(totalReal - totalPrevisto) <= 0.01;
+    }
+
+    /**
      * Devolve um item não recebido para a cotação de origem.
-     * Reativa o ItemCotacao (mesmo que a cotação esteja encerrada), libera o vínculo com
-     * o pedido e ajusta o pedido: itens sem nenhuma entrega são removidos; itens parciais
-     * passam a considerar somente o que já foi recebido.
+     * Reativa o ItemCotacao (mesmo que a cotação esteja encerrada) e ajusta o pedido:
+     * itens sem nenhuma entrega permanecem no pedido marcados como "Não entregue"
+     * (retornadoCotacao), preservando histórico e vínculo com a cotação; itens com
+     * entrega parcial passam a considerar somente o que já foi recebido.
      */
     private void retornarItemParaCotacaoOrigem(ItemPedido item, Pedido pedido) {
         int pedida = item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
@@ -330,13 +368,17 @@ public class PedidoService {
             itemCotacaoRepository.save(ic);
         }
 
-        item.setItemCotacao(null);
-
         if (recebida <= 0) {
+            // Nada foi recebido: o item permanece no pedido como "Não entregue",
+            // com o vínculo com a cotação de origem preservado.
             pedido.setValorTotalPedido(valorTotalPedido - (pedida * valorUnitario));
-            pedido.getItens().remove(item);
-            itemPedidoRepository.delete(item);
+            item.setRetornadoCotacao(true);
+            item.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+            item.setObservacaoDevolucao("Não entregue - item retornou para a cotação de origem");
+            itemPedidoRepository.save(item);
         } else {
+            // Entrega parcial: somente o que já chegou permanece vinculado ao pedido.
+            item.setItemCotacao(null);
             pedido.setValorTotalPedido(valorTotalPedido - (pendente * valorUnitario));
             item.setQuantidadePedida(recebida);
             item.setStatusRecebimento(StatusItemRecebimento.OK);
@@ -438,6 +480,7 @@ public class PedidoService {
             item.setValorUnitarioReal(null);
             item.setStatusRecebimento(null);
             item.setObservacaoDevolucao(null);
+            item.setRetornadoCotacao(false);
         }
 
         return pedidoRepository.save(pedido);
@@ -691,6 +734,7 @@ public class PedidoService {
         pedido.getItens().add(novoItem);
 
         double total = pedido.getItens().stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getRetornadoCotacao()))
                 .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0) * 
                                   (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
                 .sum();
@@ -742,6 +786,7 @@ public class PedidoService {
         }
 
         pedido.setValorTotalPedido(pedido.getItens().stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getRetornadoCotacao()))
                 .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0)
                         * (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
                 .sum());
@@ -783,8 +828,11 @@ public class PedidoService {
         
         Pedido pedido = item.getPedido();
         
-        double valorSubtrair = item.getQuantidadePedida() * item.getValorUnitarioPedido();
-        pedido.setValorTotalPedido(pedido.getValorTotalPedido() - valorSubtrair);
+        // Item já devolvido à cotação já teve seu valor abatido do total do pedido.
+        if (!Boolean.TRUE.equals(item.getRetornadoCotacao())) {
+            double valorSubtrair = item.getQuantidadePedida() * item.getValorUnitarioPedido();
+            pedido.setValorTotalPedido(pedido.getValorTotalPedido() - valorSubtrair);
+        }
         item.setItemCotacao(null);
         itemPedidoRepository.saveAndFlush(item);
         
@@ -1054,7 +1102,7 @@ public class PedidoService {
                         item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.OK);
                     }
                     
-                    if (!item.getValorUnitarioReal().equals(item.getValorUnitarioPedido())) {
+                    if (!valoresEquivalentes(item)) {
                         temDivergencia = true;
                     }
                 }

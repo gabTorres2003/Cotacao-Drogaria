@@ -75,7 +75,7 @@ export default function Pedidos() {
     if (camposDoPedido.some(combina)) return true;
 
     return pedido.itens?.some(item =>
-      [item.nomeProduto, item.codigoBarrasRecebido, item.itemCotacao?.codBarras].some(combina)
+      [item.nomeProduto, item.itemCotacao?.nomeProduto, item.codigoBarrasRecebido, item.itemCotacao?.codBarras].some(combina)
     ) || false;
   };
 
@@ -413,27 +413,56 @@ export default function Pedidos() {
     return (
       <div className="layout pedidos-conferente-mobile">
         <style>{`
+          /* ===== Computador: layout amplo, igual às demais telas do sistema ===== */
           .pedidos-conferente-mobile .main-content {
-            padding: 16px;
-            max-width: 900px;
-            margin: 0 auto;
+            padding: 30px;
             width: 100%;
             box-sizing: border-box;
-            padding-bottom: calc(220px + env(safe-area-inset-bottom));
+            overflow-x: hidden;
+          }
+          .conferente-filtros {
+            grid-template-columns: repeat(auto-fit, minmax(170px, 250px));
+            justify-content: start;
+          }
+          .conferente-lista {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 16px;
+            align-items: start;
           }
           .conferente-pedido-card {
             background: white;
             border: 1px solid #e2e8f0;
             border-radius: 12px;
-            padding: 14px;
-            margin-bottom: 12px;
+            padding: 16px 18px;
+            margin: 0;
             box-shadow: 0 1px 3px rgba(15, 23, 42, .06);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
           }
-          .conferente-pedido-card button {
-            min-height: 42px;
-            width: 100%;
-            scroll-margin-bottom: 220px;
+          .conferente-btn-abrir {
+            align-self: flex-start;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            width: fit-content;
+            min-height: 36px;
+            padding: 7px 14px;
+            background: #2563eb;
+            border: 0;
+            border-radius: 7px;
+            color: white;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            box-shadow: 0 1px 2px rgba(37, 99, 235, .25);
+            transition: background .15s;
           }
+          .conferente-btn-abrir:hover { background: #1d4ed8; }
+
+          /* ===== Celular ===== */
           @media (max-width: 768px) {
             .pedidos-conferente-mobile .main-content {
               padding: 12px 10px calc(220px + env(safe-area-inset-bottom));
@@ -443,12 +472,26 @@ export default function Pedidos() {
             .pedidos-conferente-mobile h1 {
               font-size: 21px !important;
             }
+            .conferente-filtros {
+              grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            .conferente-lista {
+              grid-template-columns: 1fr;
+              gap: 12px;
+            }
             .conferente-pedido-card {
               border-radius: 10px;
               padding: 12px;
             }
             .conferente-pedido-card:last-child {
               margin-bottom: 160px;
+            }
+            .conferente-btn-abrir {
+              align-self: stretch;
+              width: 100%;
+              min-height: 48px;
+              padding: 12px 16px;
+              font-size: 15px;
             }
           }
         `}</style>
@@ -472,7 +515,7 @@ export default function Pedidos() {
             />
           </div>
 
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '16px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: '8px' }}>
+          <div className="conferente-filtros" style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '16px', display: 'grid', gap: '8px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
               <Filter size={16} />
               <select value={setorAtivo} onChange={(e) => setSetorAtivo(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
@@ -517,31 +560,33 @@ export default function Pedidos() {
               Nenhum pedido disponível para conferência.
             </div>
           ) : (
-            pedidosProcessados.map((p) => {
-              const empresa = p.fornecedor?.empresa || p.fornecedor?.nome || 'Empresa não informada';
-              const statusInfo = getStatusFormatado(p);
-              return (
-                <article className="conferente-pedido-card" key={p.id}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start', marginBottom: '8px' }}>
-                    <div>
-                      <strong style={{ color: '#1e293b', fontSize: '16px' }}>Pedido #{p.id}</strong>
-                      <div style={{ color: '#475569', fontSize: '14px', marginTop: '4px' }}>{empresa}</div>
+            <div className="conferente-lista">
+              {pedidosProcessados.map((p) => {
+                const empresa = p.fornecedor?.empresa || p.fornecedor?.nome || 'Empresa não informada';
+                const statusInfo = getStatusFormatado(p);
+                return (
+                  <article className="conferente-pedido-card" key={p.id}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
+                      <div>
+                        <strong style={{ color: '#1e293b', fontSize: '16px' }}>Pedido #{p.id}</strong>
+                        <div style={{ color: '#475569', fontSize: '14px', marginTop: '4px' }}>{empresa}</div>
+                      </div>
+                      <span style={statusInfo.style}>{statusInfo.texto}</span>
                     </div>
-                    <span style={statusInfo.style}>{statusInfo.texto}</span>
-                  </div>
-                  <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px', marginBottom: '12px' }}>
-                    <span>{p.itens?.length || 0} produto(s)</span>
-                    <span>NF: {p.numeroNota || 'Não informada'}</span>
-                  </div>
-                  <button
-                    onClick={() => navigate(`/pedidos/${p.id}`)}
-                    style={{ background: '#2563eb', border: 0, borderRadius: '8px', color: 'white', fontWeight: '700', cursor: 'pointer', minHeight: '50px', padding: '12px 16px', marginBottom: '8px', boxShadow: '0 2px 4px rgba(37, 99, 235, .25)' }}
-                  >
-                    Ver produtos e conferir
-                  </button>
-                </article>
-              );
-            })
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px' }}>
+                      <span>{p.itens?.length || 0} produto(s)</span>
+                      <span>NF: {p.numeroNota || 'Não informada'}</span>
+                    </div>
+                    <button
+                      className="conferente-btn-abrir"
+                      onClick={() => navigate(`/pedidos/${p.id}`)}
+                    >
+                      Ver produtos e conferir
+                    </button>
+                  </article>
+                );
+              })}
+            </div>
           )}
         </main>
       </div>

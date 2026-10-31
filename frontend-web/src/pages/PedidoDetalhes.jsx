@@ -4,7 +4,12 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import PesquisaProdutoDna from '../components/PesquisaProdutoDna';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck } from 'lucide-react';
+import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck, FileText } from 'lucide-react';
+import { nomeExibicaoProduto, calcularResumoDivergencias } from '../utils/conferenciaUtils';
+
+// Produtos aceitos por sugestão de troca são identificados pela diferença entre
+// o nome gravado no pedido e o nome do ItemCotacao original: "Substituto (Original)".
+// A implementação está em ../utils/conferenciaUtils (compartilhada e testada).
 
 export default function PedidoDetalhes() {
     const { id } = useParams();
@@ -436,6 +441,13 @@ export default function PedidoDetalhes() {
     const podeRefazerConferencia = isAdmin
        && (temDivergencia || pedido.status === 'ENTREGUE_SUCESSO' || conferenciaIniciada);
 
+    // Divergências já registradas durante a conferência, mesmo antes da finalização.
+    const resumoDivergenciasConferencia = conferenciaIniciada
+        ? calcularResumoDivergencias(pedido.itens)
+        : null;
+    const listaDivergenciasConferencia = resumoDivergenciasConferencia?.lista || '';
+    const totalDivergenciasConferencia = resumoDivergenciasConferencia?.total || 0;
+
     const valorMinimoSalvo = pedido.valorMinimoFaturamento || 0;
     const totalConsiderado = pedido.valorTotalPedido || 0;
     const faltaParaMinimo = valorMinimoSalvo > 0 ? valorMinimoSalvo - totalConsiderado : 0;
@@ -455,6 +467,7 @@ export default function PedidoDetalhes() {
         );
 
         const statusItem = (item) => {
+            if (item.retornadoCotacao) return 'Não entregue';
             if (item.statusRecebimento === 'AVARIADO') return 'Avariado';
             if (item.statusRecebimento === 'INCORRETO') return 'Produto incorreto';
             if (item.statusRecebimento === 'PROXIMO_VENCIMENTO') return 'Próximo do vencimento';
@@ -466,38 +479,84 @@ export default function PedidoDetalhes() {
         return (
             <div className="layout pedido-detalhes-conferente">
                 <style>{`
+                  /* ===== Computador: layout amplo, igual às demais telas do sistema ===== */
                   .pedido-detalhes-conferente .main-content {
-                    padding: 16px 16px 28px;
-                    max-width: 900px;
-                    margin: 0 auto;
+                    padding: 30px;
                     width: 100%;
                     box-sizing: border-box;
+                  }
+                  .pedido-detalhes-conferente .produto-card {
+                    padding: 20px 22px;
+                  }
+                  .pedido-detalhes-conferente .produto-cabecalho,
+                  .pedido-detalhes-conferente .produto-linha {
+                    display: grid;
+                    grid-template-columns: minmax(0, 1fr) 130px 250px;
+                    gap: 16px;
+                    align-items: center;
+                  }
+                  .pedido-detalhes-conferente .produto-cabecalho {
+                    padding: 4px 4px 10px;
+                    border-bottom: 2px solid #e5e7eb;
+                    font-size: 11px;
+                    font-weight: 700;
+                    text-transform: uppercase;
+                    letter-spacing: 0.04em;
+                    color: #64748b;
+                  }
+                  .pedido-detalhes-conferente .produto-linha {
+                    padding: 11px 4px;
+                    border-bottom: 1px solid #e2e8f0;
+                  }
+                  .pedido-detalhes-conferente .produto-linha:last-child {
+                    border-bottom: 0;
+                    padding-bottom: 2px;
+                  }
+                  .pedido-detalhes-conferente .produto-qtd {
+                    text-align: right;
+                  }
+                  .pedido-detalhes-conferente .produto-status {
+                    justify-self: start;
+                  }
+                  .pedido-detalhes-conferente .btn-abrir-conferencia {
+                    margin-top: 16px;
+                    width: fit-content;
                   }
                   .pedido-detalhes-conferente .acoes-mobile {
                     display: none;
                   }
-                  .pedido-detalhes-conferente .produto-linha {
-                    display: grid;
-                    grid-template-columns: 1fr auto auto;
-                    gap: 12px;
-                    align-items: center;
-                    padding: 12px 0;
-                    border-bottom: 1px solid #e2e8f0;
-                  }
+
+                  /* ===== Celular ===== */
                   @media (max-width: 600px) {
                     .pedido-detalhes-conferente .main-content {
                       padding: 12px 10px calc(86px + env(safe-area-inset-bottom));
                     }
-                    .pedido-detalhes-conferente .voltar-topo {
+                    .pedido-detalhes-conferente .produto-card {
+                      padding: 14px;
+                    }
+                    .pedido-detalhes-conferente .produto-cabecalho {
                       display: none;
+                    }
+                    .pedido-detalhes-conferente .voltar-topo {
+                      /* styles.btnVoltar aplica display:flex inline; !important é obrigatório */
+                      display: none !important;
                     }
                     .pedido-detalhes-conferente .produto-linha {
                       grid-template-columns: 1fr auto;
                       gap: 8px;
+                      padding: 12px 0;
+                    }
+                    .pedido-detalhes-conferente .produto-qtd {
+                      text-align: left;
                     }
                     .pedido-detalhes-conferente .produto-status {
                       grid-column: 1 / -1;
                       justify-self: start;
+                    }
+                    .pedido-detalhes-conferente .btn-abrir-conferencia {
+                      /* No celular o acesso é pelo botão fixo "Conferir pedido" do rodapé.
+                         styles.btnConferir aplica display:flex inline; !important é obrigatório. */
+                      display: none !important;
                     }
                     .pedido-detalhes-conferente .acoes-mobile {
                       position: fixed;
@@ -527,29 +586,69 @@ export default function PedidoDetalhes() {
                         <div>
                             <h1 style={{ fontSize: '22px', margin: '0 0 5px' }}>Produtos do Pedido #{pedido.id}</h1>
                             <p style={{ margin: 0, color: '#64748b', fontSize: '14px' }}>{empresa}</p>
+                            {pedido.numeroNota && (
+                                <p style={{ margin: '4px 0 0', color: '#0369a1', fontSize: '14px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                                    <FileText size={14} /><strong>Número da NF:</strong> {pedido.numeroNota}
+                                </p>
+                            )}
                         </div>
                         <button className="voltar-topo" onClick={() => navigate('/pedidos')} style={{ ...styles.btnVoltar, whiteSpace: 'nowrap' }}>
                             <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
                         </button>
                     </header>
-                    <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                    <div className="produto-card" style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
                             <strong style={{ color: '#1e293b' }}>Produtos solicitados</strong>
                             <span style={styles.statusBadge(pedido.status, getStatusExibicao(pedido))}>{getStatusExibicao(pedido)}</span>
                         </div>
                         {itensOrdenados.length === 0 ? (
                             <p style={{ color: '#64748b' }}>Nenhum produto encontrado.</p>
-                        ) : itensOrdenados.map(item => (
-                            <div className="produto-linha" key={item.id}>
-                                <strong style={{ color: '#1e293b' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto sem nome'}</strong>
-                                <span style={{ color: '#475569', whiteSpace: 'nowrap' }}>Qtd.: {item.quantidadePedida ?? 0}</span>
-                                <span className="produto-status" style={{ background: '#f1f5f9', color: '#334155', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }}>{statusItem(item)}</span>
-                            </div>
-                        ))}
+                        ) : (
+                            <>
+                                <div className="produto-cabecalho">
+                                    <span>Produto</span>
+                                    <span style={{ textAlign: 'right' }}>Qtd.</span>
+                                    <span>Status</span>
+                                </div>
+                                {itensOrdenados.map(item => {
+                                    const naoEntregue = !!item.retornadoCotacao;
+                                    const trocaAceita = !!(item.itemCotacao?.nomeProduto && item.nomeProduto
+                                        && item.nomeProduto.trim().toLowerCase() !== item.itemCotacao.nomeProduto.trim().toLowerCase());
+                                    return (
+                                    <div className="produto-linha" key={item.id} style={naoEntregue ? { backgroundColor: '#fef2f2', border: '1px solid #fecaca', borderRadius: '8px', padding: '8px 10px' } : undefined}>
+                                        <div>
+                                            <strong style={{ color: naoEntregue ? '#991b1b' : '#1e293b' }}>{nomeExibicaoProduto(item, 'Produto sem nome')}</strong>
+                                            {trocaAceita && (
+                                                <div style={{ fontSize: '10px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #c4b5fd' }}>
+                                                    <Tag size={10} /> Aceito por sugestão de troca
+                                                </div>
+                                            )}
+                                            {naoEntregue && (
+                                                <div style={{ fontSize: '10px', color: '#b91c1c', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fca5a5' }}>
+                                                    <AlertTriangle size={10} /> Não entregue — retornou à cotação
+                                                </div>
+                                            )}
+                                            {!naoEntregue && item.statusRecebimento && item.statusRecebimento !== 'OK' && item.observacaoDevolucao && (
+                                                <div style={{ fontSize: '11px', color: '#b45309', marginTop: '4px', lineHeight: 1.4 }}>Obs.: {item.observacaoDevolucao}</div>
+                                            )}
+                                            {!naoEntregue && item.statusRecebimento && item.quantidadeReal != null && item.quantidadePedida != null && item.quantidadeReal < item.quantidadePedida && (
+                                                <div style={{ fontSize: '11px', color: '#b91c1c', marginTop: '4px', fontWeight: 600 }}>Recebido: {item.quantidadeReal} de {item.quantidadePedida} un</div>
+                                            )}
+                                        </div>
+                                        <span className="produto-qtd" style={{ color: '#475569', whiteSpace: 'nowrap' }}>Qtd.: {item.quantidadePedida ?? 0}</span>
+                                        <span className="produto-status" style={naoEntregue
+                                            ? { background: '#fee2e2', color: '#b91c1c', border: '1px solid #fca5a5', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }
+                                            : { background: '#f1f5f9', color: '#334155', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }}>{statusItem(item)}</span>
+                                    </div>
+                                    );
+                                })}
+                            </>
+                        )}
                     </div>
                     <button
+                        className="btn-abrir-conferencia"
                         onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)}
-                        style={{ ...styles.btnConferir, width: '100%', justifyContent: 'center', marginTop: '14px' }}
+                        style={styles.btnConferir}
                     >
                         <CheckCircle size={18} style={{ marginRight: '6px' }} /> Abrir conferência item a item
                     </button>
@@ -644,6 +743,22 @@ export default function PedidoDetalhes() {
                     </div>
                 )}
 
+                {conferenciaIniciada && (
+                    <div style={{ backgroundColor: '#eff6ff', border: '1px solid #bfdbfe', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' }}>
+                        <h4 style={{ margin: '0 0 6px 0', color: '#1e40af', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
+                            <FileText size={18} /> Conferência realizada — ainda não finalizada
+                        </h4>
+                        <p style={{ margin: 0, color: '#1e3a8a', fontSize: '14px', lineHeight: 1.6 }}>
+                            {pedido.numeroNota ? (<><strong>Número da NF:</strong> {pedido.numeroNota}<br /></>) : null}
+                            {totalDivergenciasConferencia > 0
+                                ? (<><strong>Divergências registradas até o momento:</strong> {listaDivergenciasConferencia}.</>)
+                                : 'Nenhuma divergência registrada até o momento.'}
+                            <br />
+                            Os detalhes por produto estão na tabela abaixo. Use "Continuar Conferência" para concluir os lançamentos e finalizar o recebimento.
+                        </p>
+                    </div>
+                )}
+
                 <div style={styles.infoCard}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '20px' }}>
                         <div>
@@ -661,6 +776,11 @@ export default function PedidoDetalhes() {
 
                             <p style={{ fontSize: '14px', marginBottom: '8px', color: '#4b5563' }}><strong>Enviado em:</strong> {fDataHora(pedido.dataCriacao)}</p>
                             {pedido.dataConfirmacao && <p style={{ fontSize: '14px', marginBottom: '8px', color: '#166534' }}><strong>Confirmado em:</strong> {fDataHora(pedido.dataConfirmacao)}</p>}
+                            {pedido.numeroNota && pedido.status !== 'CANCELADO' && (
+                                <p style={{ fontSize: '14px', marginBottom: '8px', color: '#0369a1', display: 'flex', alignItems: 'center', gap: '5px', flexWrap: 'wrap' }}>
+                                    <FileText size={14} /><strong>Número da NF:</strong> {pedido.numeroNota}
+                                </p>
+                            )}
                             
                             <div style={{ marginTop: '15px', padding: '10px', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px solid #e2e8f0', display: 'inline-block' }}>
                                 <p style={{ fontSize: '15px', margin: '0 0 5px 0' }}><strong>Valor Estimado:</strong> {fMoney(pedido.valorTotalPedido)}</p>
@@ -806,9 +926,28 @@ export default function PedidoDetalhes() {
                                     }
 
                                     return (
-                                        <tr key={item.id}>
+                                        <tr key={item.id} style={item.retornadoCotacao ? { backgroundColor: '#fef2f2' } : undefined}>
                                             <td style={styles.td}>
-                                                <strong style={{ display: 'block', textDecoration: pedido.status === 'CANCELADO' ? 'line-through' : 'none' }}>{item.nomeProduto || item.itemCotacao?.nomeProduto || 'Produto Desconhecido'}</strong>
+                                                <strong style={{ display: 'block', textDecoration: pedido.status === 'CANCELADO' ? 'line-through' : 'none', color: item.retornadoCotacao ? '#991b1b' : undefined }}>{nomeExibicaoProduto(item, 'Produto Desconhecido')}</strong>
+                                                {item.itemCotacao?.nomeProduto && item.nomeProduto
+                                                    && item.nomeProduto.trim().toLowerCase() !== item.itemCotacao.nomeProduto.trim().toLowerCase() && (
+                                                  <div style={{ fontSize: '11px', color: '#7c3aed', backgroundColor: '#f5f3ff', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #c4b5fd' }}>
+                                                    <Tag size={12} /> Aceito por sugestão de troca
+                                                  </div>
+                                                )}
+                                                {mostrarReais && item.quantidadeReal != null && item.valorUnitarioReal != null
+                                                    && item.quantidadePedida > 0 && item.valorUnitarioPedido > 0
+                                                    && item.quantidadeReal !== item.quantidadePedida
+                                                    && Math.abs(item.quantidadeReal * item.valorUnitarioReal - item.quantidadePedida * item.valorUnitarioPedido) <= 0.01 && (
+                                                  <div style={{ fontSize: '11px', color: '#6d28d9', backgroundColor: '#ede9fe', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #c4b5fd' }}>
+                                                    <Tag size={12} /> Fracionado na conferência ({item.quantidadeReal} un × {fMoney(item.valorUnitarioReal)})
+                                                  </div>
+                                                )}
+                                                {item.retornadoCotacao && (
+                                                  <div style={{ fontSize: '11px', color: '#b91c1c', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fca5a5' }}>
+                                                    <AlertTriangle size={12} /> Não entregue — retornou à cotação
+                                                  </div>
+                                                )}
                                                 {item.condicaoAplicada && (
                                                   <div style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
                                                     <Tags size={12} /> Escalonamento Aplicado ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
@@ -850,6 +989,12 @@ export default function PedidoDetalhes() {
                                                     {(() => {
                                                         const currentVlrReal = isEditandoReais ? Number(valoresReaisEditados[item.id]?.valorUnitarioReal || 0) : vlrReal;
                                                         if (currentVlrReal !== null && vlrPrevisto > 0 && currentVlrReal > 0) {
+                                                            const qtdRealAtual = isEditandoReais ? Number(valoresReaisEditados[item.id]?.quantidadeReal || 0) : qtdReal;
+                                                            // Total equivalente ao previsto (ex.: produto fracionado): não é divergência.
+                                                            if (qtdRealAtual != null && qtdPedida > 0
+                                                                && Math.abs(qtdRealAtual * currentVlrReal - qtdPedida * vlrPrevisto) <= 0.01) {
+                                                                return <span style={{ color: '#6d28d9', fontWeight: 'bold' }} title="Total do item equivalente ao previsto (produto fracionado)">0,0%</span>;
+                                                            }
                                                             if (currentVlrReal > vlrPrevisto) {
                                                                 const diff = ((currentVlrReal - vlrPrevisto) / vlrPrevisto) * 100;
                                                                 return <span style={{ color: diff > 5 ? '#dc2626' : '#d97706', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}>{diff > 5 && <AlertTriangle size={14} />} +{diff.toFixed(1)}%</span>;
@@ -876,12 +1021,16 @@ export default function PedidoDetalhes() {
                                             )}
 
                                             <td style={{ ...styles.td, textAlign: 'center' }}>
+                                                {item.retornadoCotacao ? (
+                                                    <span style={{ backgroundColor: '#fee2e2', color: '#b91c1c', padding: '4px 9px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, border: '1px solid #fca5a5' }}>NÃO ENTREGUE</span>
+                                                ) : (
                                                 <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
                                                     {pedido.status === 'CANCELADO' ? 'CANCELADO' : (
                                                     mostrarReais && qtdReal !== null && qtdReal < qtdPedida && item.statusRecebimento === 'OK'
                                                         ? 'FALTA PARCIAL' : (item.statusRecebimento || (mostrarReais ? 'PENDENTE' : 'AGUARDANDO'))
                                                     )}
                                                 </span>
+                                                )}
                                             </td>
 
                                             {podeAdicionarProduto && !isEditandoValores && (
