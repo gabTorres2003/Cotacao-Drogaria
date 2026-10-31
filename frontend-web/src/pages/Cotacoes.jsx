@@ -35,7 +35,7 @@ export default function Cotacoes() {
   const carregarCotacoes = async () => {
     setLoading(true)
     try {
-      const response = await api.get('/api/cotacao')
+      const response = await api.get('/api/cotacao?resumo=true')
       const data = response.data || []
       setCotacoes(data)
 

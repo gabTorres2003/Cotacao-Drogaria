@@ -54,7 +54,10 @@ public class CotacaoController {
     private ComparativoService comparativoService;
 
     @GetMapping
-    public ResponseEntity<List<Cotacao>> listarTodas() {
+    public ResponseEntity<?> listarTodas(@RequestParam(value = "resumo", defaultValue = "false") boolean resumo) {
+        if (resumo) {
+            return ResponseEntity.ok(cotacaoRepository.listarResumos());
+        }
         return ResponseEntity.ok(cotacaoRepository.findAll());
     }
 

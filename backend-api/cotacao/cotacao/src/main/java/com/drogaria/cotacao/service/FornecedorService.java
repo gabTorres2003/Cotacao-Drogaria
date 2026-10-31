@@ -105,10 +105,14 @@ public class FornecedorService {
         List<ItemCotacao> itens = itemRepository.findByCotacao(cotacao);
         if (itens.isEmpty()) return new ArrayList<>();
 
-        List<PrecoCotacao> precos = precoRepository.findByItemIn(itens);
+        Fornecedor fornecedor = fornecedorRepository.findById(idFornecedor).orElse(null);
+        if (fornecedor == null) return new ArrayList<>();
+
+        // Busca somente as respostas do fornecedor logado. Antes eram carregadas
+        // as respostas de todos os fornecedores da cotação e filtradas em memória.
+        List<PrecoCotacao> precos = precoRepository.findByFornecedorAndItemIn(fornecedor, itens);
 
         return precos.stream()
-                .filter(p -> p.getFornecedor() != null && p.getFornecedor().getId().equals(idFornecedor))
                 .map(p -> {
                     SalvarPrecoDTO dto = new SalvarPrecoDTO();
                     dto.setIdItem(p.getItem().getId());

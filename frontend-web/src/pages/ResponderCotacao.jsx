@@ -97,7 +97,7 @@ export default function ResponderCotacao() {
 
   const carregarDicionario = async () => {
     try {
-      const divRes = await api.get('/api/diversos')
+      const divRes = await api.get('/api/diversos?resumo=true')
       if (Array.isArray(divRes.data)) {
         const dict = {}
         divRes.data.forEach(d => { dict[d.codigoDiversos] = d.produto })

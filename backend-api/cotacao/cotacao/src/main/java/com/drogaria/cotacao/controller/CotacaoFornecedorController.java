@@ -8,7 +8,6 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/cotacao-fornecedor")
@@ -25,13 +24,13 @@ public class CotacaoFornecedorController {
     }
 
     @GetMapping("/fornecedor/{idFornecedor}")
-    public ResponseEntity<List<CotacaoFornecedor>> buscarPorFornecedorId(@PathVariable Long idFornecedor) {
-        List<CotacaoFornecedor> todas = repository.findAll();
-        List<CotacaoFornecedor> filtradas = todas.stream()
-                .filter(c -> c.getFornecedor() != null && c.getFornecedor().getId().equals(idFornecedor))
-                .collect(Collectors.toList());
-                
-        return ResponseEntity.ok(filtradas);
+    public ResponseEntity<?> buscarPorFornecedorId(
+            @PathVariable Long idFornecedor,
+            @RequestParam(value = "resumo", defaultValue = "false") boolean resumo) {
+        if (resumo) {
+            return ResponseEntity.ok(repository.listarResumosPorFornecedorId(idFornecedor));
+        }
+        return ResponseEntity.ok(repository.findByFornecedorId(idFornecedor));
     }
 
     @GetMapping("/minhas-cotacoes")

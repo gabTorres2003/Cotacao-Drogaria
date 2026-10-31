@@ -1,5 +1,6 @@
 package com.drogaria.cotacao.model;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.*;
 
 @Entity
@@ -21,6 +22,8 @@ public class Fornecedor {
     private String email;
     private String telefone;
     private String login;
+
+    @JsonProperty(access = JsonProperty.Access.WRITE_ONLY)
     private String senha;
 
     @Column(name = "primeiro_acesso")

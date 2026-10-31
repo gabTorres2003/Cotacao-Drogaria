@@ -165,7 +165,7 @@ export default function PedidoDetalhes() {
         setCotacaoDestinoId('');
         
         try {
-            const res = await api.get('/api/cotacao');
+            const res = await api.get('/api/cotacao?resumo=true');
             const ativas = res.data.filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
             setCotacoesAtivas(ativas);
         } catch (error) {

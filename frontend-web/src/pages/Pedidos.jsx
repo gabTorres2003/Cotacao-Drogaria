@@ -131,7 +131,7 @@ export default function Pedidos() {
     try {
       const statuses = getStatusParaAba(aba);
       const queryString = statuses.map(s => `statuses=${encodeURIComponent(s)}`).join('&');
-      const response = await api.get(`/api/pedidos/filtrar?${queryString}`);
+      const response = await api.get(`/api/pedidos/filtrar?${queryString}&resumo=true`);
       const data = response.data || [];
       setPedidos(data);
       setPedidosCache(prev => ({ ...prev, [aba]: data }));
@@ -157,7 +157,7 @@ export default function Pedidos() {
     setCarregandoBusca(true);
     try {
       const queryString = STATUS_ATIVOS.map(s => `statuses=${encodeURIComponent(s)}`).join('&');
-      const response = await api.get(`/api/pedidos/filtrar?${queryString}`);
+      const response = await api.get(`/api/pedidos/filtrar?${queryString}&resumo=true`);
       setPedidosAtivos(response.data || []);
     } catch (error) {
       console.error('Erro ao carregar pedidos ativos:', error);
@@ -215,7 +215,7 @@ export default function Pedidos() {
       setCotacaoDestinoId('');
       
       try {
-          const res = await api.get('/api/cotacao');
+          const res = await api.get('/api/cotacao?resumo=true');
           const ativas = res.data.filter(c => ['ABERTA', 'PENDENTE', 'RESPONDIDA_PARCIALMENTE', 'RESPONDIDA'].includes(c.status));
           setCotacoesAtivas(ativas);
       } catch (error) {
@@ -1003,7 +1003,7 @@ export default function Pedidos() {
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                           <span style={statusInfo.style}>{statusInfo.texto}</span>
                           
-                          {p.sugestoes?.length > 0 && p.status !== 'CANCELADO' && (
+                          {(p.qtdSugestoes > 0 || p.sugestoes?.length > 0) && p.status !== 'CANCELADO' && (
                               <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }} title="Há sugestões extras do fornecedor pendentes de análise">
                                   <Tag size={10} /> Sugestão Pendente
                               </span>

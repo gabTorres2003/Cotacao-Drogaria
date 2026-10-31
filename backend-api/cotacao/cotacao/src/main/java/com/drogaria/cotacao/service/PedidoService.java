@@ -5,6 +5,7 @@ import com.drogaria.cotacao.dto.request.ItemGerarPedidoDTO;
 import com.drogaria.cotacao.dto.request.ItemNaoSolicitadoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
+import com.drogaria.cotacao.dto.response.PedidoResumoDTO;
 import com.drogaria.cotacao.model.Cotacao;
 import com.drogaria.cotacao.model.Devolucao;
 import com.drogaria.cotacao.model.Fornecedor;
@@ -35,6 +36,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -69,6 +71,103 @@ public class PedidoService {
         List<Pedido> pedidos = pedidoRepository.findByStatusInOrderByDataCriacaoDesc(enumStatuses);
         pedidos.forEach(pedido -> pedido.getSugestoes().size());
         return pedidos;
+    }
+
+    /**
+     * Listagem resumida: carrega apenas as colunas necessárias de pedido,
+     * fornecedor, cotação e itens. Evita trazer todas as colunas de
+     * ItemPedido/ItemCotacao em históricos extensos.
+     */
+    @Transactional(readOnly = true)
+    public List<PedidoResumoDTO> listarResumoPorStatuses(List<String> statuses) {
+        List<StatusPedido> enumStatuses = statuses.stream()
+                .map(StatusPedido::valueOf)
+                .toList();
+        return montarResumos(pedidoRepository.buscarResumoPorStatuses(enumStatuses));
+    }
+
+    @Transactional(readOnly = true)
+    public List<PedidoResumoDTO> resumoPorCotacao(Long cotacaoId) {
+        return montarResumos(pedidoRepository.buscarResumoPorCotacaoId(cotacaoId));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<PedidoResumoDTO> montarResumos(List<Pedido> pedidos) {
+        if (pedidos == null || pedidos.isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        List<Long> pedidoIds = pedidos.stream().map(Pedido::getId).toList();
+
+        Map<Long, List<PedidoResumoDTO.ItemResumo>> itensPorPedido = new HashMap<>();
+        for (Object[] row : itemPedidoRepository.buscarResumoItensPorPedidos(pedidoIds)) {
+            Long pedidoId = ((Number) row[0]).longValue();
+            PedidoResumoDTO.ItemResumo item = new PedidoResumoDTO.ItemResumo();
+            item.setId(row[1] != null ? ((Number) row[1]).longValue() : null);
+            item.setNomeProduto((String) row[2]);
+            item.setQuantidadePedida(row[3] != null ? ((Number) row[3]).intValue() : null);
+            item.setValorUnitarioPedido(row[4] != null ? ((Number) row[4]).doubleValue() : null);
+            item.setCodigoBarrasRecebido((String) row[5]);
+
+            if (row[6] != null) {
+                PedidoResumoDTO.ItemCotacaoResumo itemCotacao = new PedidoResumoDTO.ItemCotacaoResumo();
+                itemCotacao.setId(((Number) row[6]).longValue());
+                itemCotacao.setNomeProduto((String) row[7]);
+                itemCotacao.setGrupo((String) row[8]);
+                itemCotacao.setCodBarras((String) row[9]);
+                item.setItemCotacao(itemCotacao);
+            }
+
+            itensPorPedido.computeIfAbsent(pedidoId, ignorado -> new ArrayList<>()).add(item);
+        }
+
+        Map<Long, Long> sugestoesPorPedido = new HashMap<>();
+        List<Object[]> contagens = entityManager.createQuery(
+                        "SELECT s.pedido.id, COUNT(s.id) FROM SugestaoPedido s " +
+                        "WHERE s.pedido.id IN :pedidoIds GROUP BY s.pedido.id")
+                .setParameter("pedidoIds", pedidoIds)
+                .getResultList();
+        for (Object[] row : contagens) {
+            sugestoesPorPedido.put(((Number) row[0]).longValue(), ((Number) row[1]).longValue());
+        }
+
+        List<PedidoResumoDTO> resultado = new ArrayList<>(pedidos.size());
+        for (Pedido pedido : pedidos) {
+            PedidoResumoDTO dto = new PedidoResumoDTO();
+            dto.setId(pedido.getId());
+            dto.setStatus(pedido.getStatus());
+            dto.setNumeroNota(pedido.getNumeroNota());
+            dto.setMotivoCancelamento(pedido.getMotivoCancelamento());
+            dto.setDataCriacao(pedido.getDataCriacao());
+            dto.setDataConfirmacao(pedido.getDataConfirmacao());
+            dto.setValorTotalPedido(pedido.getValorTotalPedido());
+            dto.setValorTotalReal(pedido.getValorTotalReal());
+            dto.setValorMinimoFaturamento(pedido.getValorMinimoFaturamento());
+
+            if (pedido.getCotacao() != null) {
+                dto.setCotacaoId(pedido.getCotacao().getId());
+                PedidoResumoDTO.CotacaoResumo cotacao = new PedidoResumoDTO.CotacaoResumo();
+                cotacao.setId(pedido.getCotacao().getId());
+                cotacao.setSetor(pedido.getCotacao().getSetor());
+                dto.setCotacao(cotacao);
+            }
+
+            if (pedido.getFornecedor() != null) {
+                PedidoResumoDTO.FornecedorResumo fornecedor = new PedidoResumoDTO.FornecedorResumo();
+                fornecedor.setId(pedido.getFornecedor().getId());
+                fornecedor.setNome(pedido.getFornecedor().getNome());
+                fornecedor.setEmpresa(pedido.getFornecedor().getEmpresa());
+                fornecedor.setEntreguePor(pedido.getFornecedor().getEntreguePor());
+                fornecedor.setSetorCompra(pedido.getFornecedor().getSetorCompra());
+                fornecedor.setTelefone(pedido.getFornecedor().getTelefone());
+                dto.setFornecedor(fornecedor);
+            }
+
+            dto.setItens(itensPorPedido.getOrDefault(pedido.getId(), new ArrayList<>()));
+            dto.setQtdSugestoes(sugestoesPorPedido.getOrDefault(pedido.getId(), 0L));
+            resultado.add(dto);
+        }
+        return resultado;
     }
 
     @Transactional(readOnly = true)

@@ -33,6 +33,14 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
     @EntityGraph(attributePaths = {"fornecedor", "cotacao", "itens", "itens.itemCotacao"})
     List<Pedido> findByStatusInOrderByDataCriacaoDesc(@Param("status") List<StatusPedido> status);
 
+    @EntityGraph(attributePaths = {"fornecedor", "cotacao"})
+    @Query("SELECT p FROM Pedido p WHERE p.status IN :status ORDER BY p.dataCriacao DESC")
+    List<Pedido> buscarResumoPorStatuses(@Param("status") List<StatusPedido> status);
+
+    @EntityGraph(attributePaths = {"fornecedor", "cotacao"})
+    @Query("SELECT p FROM Pedido p WHERE p.cotacao.id = :cotacaoId ORDER BY p.id ASC")
+    List<Pedido> buscarResumoPorCotacaoId(@Param("cotacaoId") Long cotacaoId);
+
     @Query("SELECT p.status, COUNT(p) FROM Pedido p GROUP BY p.status")
     List<Object[]> contarPorStatus();
 }

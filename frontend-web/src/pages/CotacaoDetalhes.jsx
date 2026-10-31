@@ -198,14 +198,14 @@ export default function CotacaoDetalhes() {
   useEffect(() => {
      const fetchAbertos = async () => {
        try {
-         const res = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+         const res = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&resumo=true');
          // NOVA REGRA: Busca todos os pedidos do sistema que estejam aguardando
          const abertosSistema = Array.isArray(res.data) ? res.data.filter(p => p.status === 'PENDENTE_ENTREGA') : [];
          setPedidosAbertosList(abertosSistema);
        } catch(e) {}
      };
      fetchAbertos();
-  }, [showModal, modalAddPedidoAberto, id]);
+  }, [id]);
 
   useEffect(() => {
     if (isEncerrada && modoVisualizacao === 'manual') setModoVisualizacao('itens');
@@ -560,7 +560,7 @@ export default function CotacaoDetalhes() {
 
   const mapearDuplicatas = async () => {
     try {
-      const response = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+      const response = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&resumo=true');
       const pendentes = (Array.isArray(response.data) ? response.data : []).filter(p => p.status === 'PENDENTE_ENTREGA' && (p.cotacao?.id !== Number(id) && p.cotacaoId !== Number(id)));
       const mapa = {};
       pendentes.forEach(p => {
@@ -1012,7 +1012,7 @@ export default function CotacaoDetalhes() {
       setShowModal(false);
       await carregarRelatorio();
       await carregarPedidosDaCotacao();
-      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&resumo=true');
       setPedidosAbertosList(Array.isArray(pedidosAtualizados.data) ? pedidosAtualizados.data : []);
     } catch (error) { 
       alert(`Falha ao salvar. Motivo: ${error.response?.data?.message || error.message || 'Erro de conexão com servidor'}`); 
@@ -1059,7 +1059,7 @@ export default function CotacaoDetalhes() {
 
     if (acao === 'ORIGINAL') {
       try {
-        const res = await api.get(`/api/pedidos/cotacao/${id}`);
+        const res = await api.get(`/api/pedidos/cotacao/${id}?resumo=true`);
         const pedidosCot = Array.isArray(res.data) ? res.data : [];
         for (const [pid, g] of grupos) {
           const ped = pedidosCot.find(p => String(p.id) === pid);
@@ -1149,7 +1149,7 @@ export default function CotacaoDetalhes() {
       const idFornecedor = fornecedorTarget ? resolverFornecedorId(fornecedorTarget) : null;
       const url = idFornecedor
         ? `/api/pedidos/pendentes/fornecedor/${idFornecedor}`
-        : '/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA';
+        : '/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&resumo=true';
       const res = await api.get(url);
       const todosAbertos = Array.isArray(res.data) ? res.data : [];
       setPedidosAbertosList(prev => {
@@ -1277,7 +1277,7 @@ export default function CotacaoDetalhes() {
       setModalAddPedidoAberto(false);
       await carregarRelatorio();
       await carregarPedidosDaCotacao();
-      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA');
+      const pedidosAtualizados = await api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&resumo=true');
       setPedidosAbertosList(Array.isArray(pedidosAtualizados.data) ? pedidosAtualizados.data : []);
     } catch(e) {
       alert('Erro ao adicionar produto: ' + (e.response?.data?.message || e.message));

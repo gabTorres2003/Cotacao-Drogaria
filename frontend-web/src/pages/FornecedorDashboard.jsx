@@ -50,7 +50,7 @@ export default function FornecedorDashboard() {
     try {
       if (usuarioId) {
         if (activeTab === 'cotacoes') {
-          const response = await api.get(`/api/cotacao-fornecedor/fornecedor/${usuarioId}`)
+          const response = await api.get(`/api/cotacao-fornecedor/fornecedor/${usuarioId}?resumo=true`)
           setCotacoes(response.data)
         } else {
           const response = await api.get(`/api/pedidos/fornecedor/${usuarioId}`)

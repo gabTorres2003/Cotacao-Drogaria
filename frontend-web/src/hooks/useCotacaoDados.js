@@ -66,7 +66,7 @@ export function useCotacaoDados(id) {
 
   const carregarPedidosDaCotacao = async () => {
     try {
-      const response = await api.get(`/api/pedidos/cotacao/${id}`);
+      const response = await api.get(`/api/pedidos/cotacao/${id}?resumo=true`);
       const pedidos = Array.isArray(response.data) ? response.data : [];
       const mapComprados = {};
       
@@ -101,7 +101,7 @@ export function useCotacaoDados(id) {
 
   const carregarDicionarioDiversos = async () => {
     try {
-      const response = await api.get('/api/diversos');
+      const response = await api.get('/api/diversos?resumo=true');
       const mapDiversos = {};
       (Array.isArray(response.data) ? response.data : []).forEach(item => {
         if (item.codigoDiversos) {

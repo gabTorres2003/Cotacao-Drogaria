@@ -16,7 +16,10 @@ public class MedicamentoDiversoController {
     private MedicamentoDiversoRepository repository;
 
     @GetMapping
-    public ResponseEntity<List<MedicamentoDiverso>> listarTodos() {
+    public ResponseEntity<?> listarTodos(@RequestParam(value = "resumo", defaultValue = "false") boolean resumo) {
+        if (resumo) {
+            return ResponseEntity.ok(repository.listarResumos());
+        }
         return ResponseEntity.ok(repository.findAll());
     }
 

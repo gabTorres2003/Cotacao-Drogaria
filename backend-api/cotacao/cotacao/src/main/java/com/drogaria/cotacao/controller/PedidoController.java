@@ -68,7 +68,12 @@ public class PedidoController {
     }
 
     @GetMapping("/filtrar")
-    public ResponseEntity<List<Pedido>> listarPorStatuses(@RequestParam("statuses") List<String> statuses) {
+    public ResponseEntity<?> listarPorStatuses(
+            @RequestParam("statuses") List<String> statuses,
+            @RequestParam(value = "resumo", defaultValue = "false") boolean resumo) {
+        if (resumo) {
+            return ResponseEntity.ok(pedidoService.listarResumoPorStatuses(statuses));
+        }
         return ResponseEntity.ok(pedidoService.listarPorStatuses(statuses));
     }
 
@@ -83,7 +88,12 @@ public class PedidoController {
     }
 
     @GetMapping("/cotacao/{cotacaoId}")
-    public ResponseEntity<List<Pedido>> buscarPorCotacao(@PathVariable Long cotacaoId) {
+    public ResponseEntity<?> buscarPorCotacao(
+            @PathVariable Long cotacaoId,
+            @RequestParam(value = "resumo", defaultValue = "false") boolean resumo) {
+        if (resumo) {
+            return ResponseEntity.ok(pedidoService.resumoPorCotacao(cotacaoId));
+        }
         return ResponseEntity.ok(pedidoService.buscarPorCotacao(cotacaoId));
     }
 
