@@ -14,6 +14,7 @@ import PedidoConferencia from './pages/PedidoConferencia'
 import Auditoria from './pages/Auditoria'
 import Devolucoes from './pages/Devolucoes'
 import InteligenciaCompras from './pages/InteligenciaCompras'
+import MensagensMenu from './pages/MensagensMenu'
 import Inicio from './pages/Inicio'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
@@ -51,6 +52,7 @@ function App() {
         <Route path="/auditoria" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Auditoria /></RotaPerfil></RotaPrivada>} />
         <Route path="/devolucoes" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Devolucoes /></RotaPerfil></RotaPrivada>} />
         <Route path="/inteligencia" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><InteligenciaCompras /></RotaPerfil></RotaPrivada>} />
+        <Route path="/mensagens" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><MensagensMenu /></RotaPerfil></RotaPrivada>} />
         
         <Route
           path="/responder-cotacao/:idCotacao"

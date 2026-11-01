@@ -71,6 +71,11 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/**").permitAll()
 
+                        // MENSAGENS DE MENU: leitura por perfil e administração restrita ao ADMIN
+                        .requestMatchers("/api/mensagens-menu/admin").hasRole("ADMIN")
+                        .requestMatchers(HttpMethod.GET, "/api/mensagens-menu").authenticated()
+                        .requestMatchers("/api/mensagens-menu", "/api/mensagens-menu/**").hasRole("ADMIN")
+
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))
                 .build();

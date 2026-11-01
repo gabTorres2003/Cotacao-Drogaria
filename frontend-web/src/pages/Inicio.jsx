@@ -18,6 +18,7 @@ import {
 } from 'lucide-react'
 import Sidebar from '../components/layout/Sidebar'
 import ThemeToggle from '../components/layout/ThemeToggle'
+import MensagensInicio from '../components/mensagens/MensagensInicio'
 
 const ACOES_ADMIN = [
   {
@@ -221,6 +222,8 @@ export default function Inicio() {
             ))}
           </div>
 
+          <MensagensInicio />
+
           <div className="home-note">
             <Info size={16} />
             <span>
@@ -266,6 +269,8 @@ export default function Inicio() {
               <CartaoAcao key={acao.to} acao={acao} />
             ))}
           </div>
+
+          <MensagensInicio />
 
           <div className="home-note">
             <Info size={16} />

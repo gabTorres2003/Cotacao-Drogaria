@@ -179,10 +179,12 @@ export default function Usuarios() {
           <div style={{
             position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
             backgroundColor: 'rgba(0, 0, 0, 0.5)', display: 'flex',
-            alignItems: 'center', justifyContent: 'center', zIndex: 50
+            alignItems: 'center', justifyContent: 'center', zIndex: 1000,
+            padding: '16px', overflowY: 'auto'
           }}>
             <div style={{
               backgroundColor: 'var(--surface)', borderRadius: '12px', width: '100%', maxWidth: '400px',
+              maxHeight: 'calc(100dvh - 32px)', overflowY: 'auto',
               boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)'
             }}>
               

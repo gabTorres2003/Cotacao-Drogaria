@@ -4,17 +4,23 @@
    ========================================================= */
 
 :root {
-  --primary: #2563eb;
-  --primary-hover: #1d4ed8;
-  --primary-soft: #eff6ff;
-  --primary-text: #1e40af;
-  --primary-disabled: #93c5fd;
+  /* Identidade Torres Farma: azul-marinho institucional + azul royal de destaque */
+  --navy: #0b2a6f;
+  --navy-deep: #071a45;
+  --navy-soft: #eef3ff;
+  --navy-text: #0b2a6f;
+
+  --primary: #1e4fd8;
+  --primary-hover: #173caa;
+  --primary-soft: #eaf1ff;
+  --primary-text: #12327f;
+  --primary-disabled: #a9c1f2;
   --on-primary: #ffffff;
 
-  --info: #3b82f6;
-  --info-soft: #dbeafe;
-  --info-text: #1e40af;
-  --info-border: #bfdbfe;
+  --info: #2f6fe4;
+  --info-soft: #e8f1ff;
+  --info-text: #17408f;
+  --info-border: #c3d8ff;
 
   --success: #16a34a;
   --success-soft: #dcfce7;
@@ -26,10 +32,10 @@
   --warning-text: #92400e;
   --warning-border: #fde68a;
 
-  --danger: #dc2626;
-  --danger-soft: #fee2e2;
-  --danger-text: #991b1b;
-  --danger-border: #fecaca;
+  --danger: #d81f2a;
+  --danger-soft: #fdecec;
+  --danger-text: #8f1420;
+  --danger-border: #f6c6c9;
 
   --purple: #7c3aed;
   --purple-soft: #f3e8ff;
@@ -48,12 +54,12 @@
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
 
-  --glow-1: rgba(37, 99, 235, 0.09);
+  --glow-1: rgba(30, 79, 216, 0.10);
   --glow-2: rgba(124, 58, 237, 0.07);
   --shadow-sm: 0 1px 2px rgba(15, 23, 42, 0.05), 0 2px 8px -4px rgba(15, 23, 42, 0.12);
   --shadow-md: 0 10px 30px -18px rgba(15, 23, 42, 0.35);
   --shadow-lg: 0 24px 70px -30px rgba(15, 23, 42, 0.45);
-  --ring: 0 0 0 3px rgba(37, 99, 235, 0.25);
+  --ring: 0 0 0 3px rgba(30, 79, 216, 0.25);
 
   --radius-sm: 8px;
   --radius-md: 12px;
@@ -66,17 +72,22 @@
 }
 
 [data-theme='dark'] {
-  --primary: #3b82f6;
-  --primary-hover: #60a5fa;
-  --primary-soft: #152747;
-  --primary-text: #bfdbfe;
-  --primary-disabled: #334155;
+  --navy: #0a1a3a;
+  --navy-deep: #050f24;
+  --navy-soft: #101f3c;
+  --navy-text: #dbe6ff;
+
+  --primary: #5b8def;
+  --primary-hover: #7aa5f5;
+  --primary-soft: #13284d;
+  --primary-text: #c7d9ff;
+  --primary-disabled: #2c4166;
   --on-primary: #ffffff;
 
-  --info: #60a5fa;
-  --info-soft: #142744;
-  --info-text: #bfdbfe;
-  --info-border: #1e3a8a;
+  --info: #6fa2f5;
+  --info-soft: #132544;
+  --info-text: #c7d9ff;
+  --info-border: #1f3d73;
 
   --success: #22c55e;
   --success-soft: #0f2e1d;
@@ -88,7 +99,7 @@
   --warning-text: #fcd34d;
   --warning-border: #92400e;
 
-  --danger: #ef4444;
+  --danger: #f0525c;
   --danger-soft: #3a1418;
   --danger-text: #fca5a5;
   --danger-border: #7f1d1d;
@@ -223,6 +234,64 @@ textarea {
   max-width: 100%;
 }
 
+/*
+ * Fundo e contraste padrão dos campos. O seletor :where() mantém
+ * especificidade zero para que classes e estilos específicos continuem
+ * prevalecendo. Resolve campos que ficavam com o branco padrão do navegador
+ * no tema escuro.
+ */
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not([type='image']),
+  select,
+  textarea
+) {
+  background-color: var(--surface);
+  color: var(--text);
+  border-color: var(--border-strong);
+  caret-color: var(--primary);
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not([type='image']),
+  select,
+  textarea
+):focus {
+  border-color: var(--primary);
+}
+
+:where(
+  input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']):not([type='color']):not([type='submit']):not([type='button']):not([type='reset']):not([type='image']),
+  select,
+  textarea
+):disabled {
+  background-color: var(--surface-muted);
+  color: var(--text-muted);
+  -webkit-text-fill-color: var(--text-muted);
+  opacity: 1;
+  cursor: not-allowed;
+}
+
+input[type='checkbox'],
+input[type='radio'] {
+  accent-color: var(--primary);
+}
+
+input[type='date'],
+input[type='datetime-local'],
+input[type='month'],
+input[type='week'],
+input[type='time'] {
+  color-scheme: inherit;
+}
+
+[data-theme='dark'] input[type='date']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='datetime-local']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='month']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='week']::-webkit-calendar-picker-indicator,
+[data-theme='dark'] input[type='time']::-webkit-calendar-picker-indicator {
+  filter: invert(0.82);
+}
+
 /* ---------- Layout ---------- */
 
 .layout {
@@ -236,7 +305,12 @@ textarea {
   min-width: 0;
   padding: clamp(16px, 2.4vw, 32px);
   overflow-y: auto;
-  animation: pageIn 0.35s ease both;
+  /*
+   * Sem "both": o fill-mode mantinha o transform aplicado após a animação,
+   * criando um containing block e fazendo modais position: fixed abrirem
+   * deslocados/fora da viewport.
+   */
+  animation: pageIn 0.35s ease;
 }
 
 @keyframes pageIn {
@@ -320,7 +394,7 @@ textarea {
   margin: 0;
   font-size: 1.02rem;
   font-weight: 800;
-  color: var(--text);
+  color: var(--navy-text);
   white-space: nowrap;
   letter-spacing: -0.02em;
 }
@@ -1015,7 +1089,7 @@ tbody tr:last-child td {
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   box-shadow: var(--shadow-lg);
-  animation: fadeIn 0.22s ease both;
+  animation: fadeIn 0.22s ease;
 }
 
 .modal-header {
@@ -1090,7 +1164,7 @@ tbody tr:last-child td {
   margin: 0 0 6px;
   font-size: clamp(1.35rem, 2.6vw, 1.75rem);
   font-weight: 800;
-  color: var(--text);
+  color: var(--navy-text);
 }
 
 .page-subtitle {
@@ -1610,6 +1684,318 @@ tbody tr:last-child td {
   color: var(--primary);
 }
 
+/* ---------- Mensagens de menu (início e administração) ---------- */
+
+.mensagens-section {
+  margin-top: 30px;
+}
+
+.mensagens-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+
+.mensagem-card {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.mensagem-card.destaque {
+  border-left-color: var(--warning);
+  background:
+    linear-gradient(
+      180deg,
+      color-mix(in srgb, var(--warning) 7%, transparent),
+      transparent 60%
+    ),
+    var(--surface);
+}
+
+.mensagem-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.mensagem-categoria {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 3px 9px;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.mensagem-categoria.cat-comunicado {
+  border-color: color-mix(in srgb, var(--primary) 32%, transparent);
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary-text);
+}
+
+.mensagem-categoria.cat-aviso {
+  border-color: color-mix(in srgb, var(--warning) 38%, transparent);
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
+  color: var(--warning-text);
+}
+
+.mensagem-categoria.cat-atualizacao {
+  border-color: color-mix(in srgb, var(--success) 34%, transparent);
+  background: color-mix(in srgb, var(--success) 13%, transparent);
+  color: var(--success-text);
+}
+
+.mensagem-categoria.cat-orientacao {
+  border-color: color-mix(in srgb, var(--info) 34%, transparent);
+  background: color-mix(in srgb, var(--info) 13%, transparent);
+  color: var(--info-text);
+}
+
+.mensagem-categoria.cat-informativo {
+  border-color: color-mix(in srgb, var(--purple) 32%, transparent);
+  background: color-mix(in srgb, var(--purple) 12%, transparent);
+  color: var(--purple-text);
+}
+
+.mensagem-destaque-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--warning) 16%, transparent);
+  color: var(--warning-text);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mensagem-card h3 {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.mensagem-conteudo {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: 0.88rem;
+  line-height: 1.55;
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+
+.mensagem-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  margin-top: auto;
+  padding-top: 4px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.mensagem-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mensagens-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 22px 18px;
+  border: 1px dashed var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-muted);
+  color: var(--text-muted);
+  font-size: 0.84rem;
+  text-align: center;
+}
+
+.mensagens-admin-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.mensagem-admin-card {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--primary);
+  border-radius: var(--radius-md);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+
+.mensagem-admin-card.destaque {
+  border-left-color: var(--warning);
+}
+
+.mensagem-admin-card.inativa {
+  opacity: 0.72;
+}
+
+.mensagem-admin-conteudo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+
+.mensagem-admin-conteudo h2 {
+  margin: 0;
+  font-size: 1.02rem;
+  font-weight: 800;
+  line-height: 1.35;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.mensagem-admin-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.mensagem-status {
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.mensagem-status.ativa {
+  background: color-mix(in srgb, var(--success) 14%, transparent);
+  color: var(--success-text);
+}
+
+.mensagem-status.inativa {
+  background: var(--surface-hover);
+  color: var(--text-muted);
+}
+
+.mensagem-admin-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 16px;
+  color: var(--text-muted);
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+
+.mensagem-admin-meta span {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.mensagem-admin-acoes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.mensagem-admin-acoes .btn-secondary,
+.mensagem-admin-acoes .btn-ghost,
+.mensagem-admin-acoes .btn-danger {
+  justify-content: flex-start;
+  min-width: 124px;
+}
+
+/* Formulários do módulo de mensagens */
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.form-field > label {
+  color: var(--text-secondary);
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.form-hint {
+  color: var(--text-muted);
+  font-size: 0.74rem;
+  line-height: 1.4;
+}
+
+.form-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--text-secondary);
+  font-size: 0.86rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.form-check input[type='checkbox'] {
+  width: 17px;
+  height: 17px;
+  margin: 0;
+  flex-shrink: 0;
+}
+
+.form-check-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 20px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface-muted);
+}
+
+.mensagem-textarea {
+  min-height: 118px;
+  resize: vertical;
+  line-height: 1.5;
+}
+
+.mensagem-form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 16px;
+}
+
+.mensagem-modal {
+  width: min(94vw, 640px);
+}
+
 .supplier-home {
   min-height: 100dvh;
   background:
@@ -1794,6 +2180,9 @@ input.fracao-input[type='number'] {
     position: fixed;
     left: 0;
     top: 0;
+    /* Acima do overlay (90) e da topbar (95); caso contrário o backdrop
+       cobre o menu, aplicando blur e bloqueando os toques. */
+    z-index: 100;
     width: min(86vw, 320px);
     max-width: 320px;
     height: 100dvh;
@@ -1901,6 +2290,24 @@ input.fracao-input[type='number'] {
     justify-content: space-between;
   }
 
+  .mensagem-admin-card {
+    flex-direction: column;
+  }
+
+  .mensagem-admin-acoes {
+    flex-direction: row;
+    flex-wrap: wrap;
+    width: 100%;
+  }
+
+  .mensagem-admin-acoes .btn-secondary,
+  .mensagem-admin-acoes .btn-ghost,
+  .mensagem-admin-acoes .btn-danger {
+    min-width: 0;
+    flex: 1 1 130px;
+    justify-content: center;
+  }
+
   .search-input-container {
     width: 100%;
   }
@@ -1987,6 +2394,15 @@ input.fracao-input[type='number'] {
 
   .stats-grid {
     grid-template-columns: 1fr;
+  }
+
+  .mensagens-grid,
+  .mensagem-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mensagens-section {
+    margin-top: 24px;
   }
 }
 

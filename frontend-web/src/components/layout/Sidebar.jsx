@@ -16,6 +16,7 @@ import {
   RotateCcw,
   Brain,
   Home,
+  Megaphone,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -31,6 +32,7 @@ const MENU_ADMIN = [
   { to: '/devolucoes', label: 'Devoluções', icon: RotateCcw },
   { to: '/inteligencia', label: 'Inteligência', icon: Brain },
   { to: '/auditoria', label: 'Auditoria', icon: ShieldAlert },
+  { to: '/mensagens', label: 'Mensagens de Menu', icon: Megaphone },
 ]
 
 const MENU_CONFERENTE = [
