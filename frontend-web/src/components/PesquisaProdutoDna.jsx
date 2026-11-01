@@ -24,18 +24,18 @@ const estiloCampo = {
   minWidth: 0,
   padding: '9px 12px',
   borderRadius: '6px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-strong)',
   fontSize: '13px',
   boxSizing: 'border-box',
   outline: 'none',
-  backgroundColor: 'white',
+  backgroundColor: 'var(--surface)',
 };
 
 const estiloBotao = (desabilitado) => ({
   padding: '9px 14px',
   borderRadius: '6px',
   border: 'none',
-  backgroundColor: desabilitado ? '#94a3b8' : '#3b82f6',
+  backgroundColor: desabilitado ? 'var(--text-subtle)' : 'var(--info)',
   color: 'white',
   fontWeight: 'bold',
   fontSize: '13px',
@@ -49,9 +49,9 @@ const estiloBotao = (desabilitado) => ({
 const estiloAba = (ativa) => ({
   padding: '6px 10px',
   borderRadius: '999px',
-  border: `1px solid ${ativa ? '#3b82f6' : '#cbd5e1'}`,
-  backgroundColor: ativa ? '#eff6ff' : 'white',
-  color: ativa ? '#1d4ed8' : '#64748b',
+  border: `1px solid ${ativa ? 'var(--info)' : 'var(--border-strong)'}`,
+  backgroundColor: ativa ? 'var(--primary-soft)' : 'var(--surface)',
+  color: ativa ? 'var(--primary-hover)' : 'var(--text-muted)',
   cursor: 'pointer',
   fontSize: '11px',
   fontWeight: '700',
@@ -141,10 +141,10 @@ export default function PesquisaProdutoDna({
   return (
     <div
       style={{
-        border: '1px solid #e2e8f0',
+        border: '1px solid var(--border)',
         borderRadius: '8px',
         padding: '12px',
-        backgroundColor: '#f8fafc',
+        backgroundColor: 'var(--surface-muted)',
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
@@ -152,8 +152,8 @@ export default function PesquisaProdutoDna({
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <Search size={14} color="#3b82f6" />
-        <strong style={{ fontSize: '12px', color: '#1e293b' }}>{rotulo}</strong>
+        <Search size={14} color="var(--info)" />
+        <strong style={{ fontSize: '12px', color: 'var(--text)' }}>{rotulo}</strong>
       </div>
 
       <div role="group" aria-label="Tipo de pesquisa no DNA" style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
@@ -208,24 +208,24 @@ export default function PesquisaProdutoDna({
         </button>
       </div>
 
-      <span style={{ fontSize: '11px', color: '#64748b', lineHeight: 1.4 }}>
+      <span style={{ fontSize: '11px', color: 'var(--text-muted)', lineHeight: 1.4 }}>
         Pesquisa no DNA, com poucos resultados ordenados por relevância. Pressione Enter para buscar.
       </span>
 
       {erro && (
-        <div role="alert" style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #fecaca', backgroundColor: '#fef2f2', color: '#991b1b', fontSize: '12px' }}>
+        <div role="alert" style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--danger-border)', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', fontSize: '12px' }}>
           {erro}
         </div>
       )}
 
       {carregando && (
-        <div role="status" aria-live="polite" style={{ fontSize: '12px', color: '#64748b' }}>
+        <div role="status" aria-live="polite" style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
           Pesquisando produtos no DNA...
         </div>
       )}
 
       {!carregando && !erro && pesquisou && resultados.length === 0 && (
-        <div style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a', backgroundColor: '#fffbeb', color: '#92400e', fontSize: '12px' }}>
+        <div style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--warning-border)', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', fontSize: '12px' }}>
           Nenhum produto encontrado no DNA. Tente outro termo ou use a busca por código.
         </div>
       )}
@@ -254,21 +254,21 @@ export default function PesquisaProdutoDna({
                   minWidth: 0,
                   textAlign: 'left',
                   padding: '8px 10px',
-                  border: '1px solid #e2e8f0',
+                  border: '1px solid var(--border)',
                   borderRadius: '6px',
-                  backgroundColor: 'white',
+                  backgroundColor: 'var(--surface)',
                   cursor: 'pointer',
                   display: 'flex',
                   flexDirection: 'column',
                   gap: '2px',
                 }}
               >
-                <strong style={{ fontSize: '12px', color: '#1e293b', lineHeight: 1.35 }}>
+                <strong style={{ fontSize: '12px', color: 'var(--text)', lineHeight: 1.35 }}>
                   {item.descricao || 'Produto sem descrição'}
                   {item.inativo === 'S' ? ' (inativo no DNA)' : ''}
                 </strong>
-                <span style={{ fontSize: '11px', color: '#64748b' }}>{textoSecundario(item)}</span>
-                <span style={{ fontSize: '11px', color: '#94a3b8' }}>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>{textoSecundario(item)}</span>
+                <span style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>
                   Código DNA: {item.codigo ?? '-'} · EAN: {item.codbarras || '-'}
                 </span>
               </button>
@@ -278,7 +278,7 @@ export default function PesquisaProdutoDna({
       )}
 
       {truncado && (
-        <div style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid #fde68a', backgroundColor: '#fffbeb', color: '#92400e', fontSize: '12px' }}>
+        <div style={{ padding: '8px 10px', borderRadius: '6px', border: '1px solid var(--warning-border)', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', fontSize: '12px' }}>
           Existem mais resultados do que os exibidos. Refine a pesquisa para encontrar o produto certo.
         </div>
       )}

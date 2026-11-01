@@ -719,8 +719,8 @@ export default function PedidoConferencia() {
             width: auto !important;
           }
           .conferencia-page .conferencia-tabela tr {
-            background: #fff;
-            border: 1px solid #e2e8f0;
+            background: var(--surface);
+            border: 1px solid var(--border);
             border-radius: 10px;
             margin-bottom: 12px;
             padding: 8px;
@@ -731,7 +731,7 @@ export default function PedidoConferencia() {
             align-items: center;
             gap: 8px;
             padding: 8px 4px !important;
-            border-bottom: 1px solid #f1f5f9;
+            border-bottom: 1px solid var(--surface-muted);
             text-align: left !important;
           }
           .conferencia-page .conferencia-tabela td:last-child {
@@ -739,7 +739,7 @@ export default function PedidoConferencia() {
           }
           .conferencia-page .conferencia-tabela td::before {
             content: attr(data-label);
-            color: #64748b;
+            color: var(--text-muted);
             font-size: 11px;
             font-weight: 700;
             text-transform: uppercase;
@@ -784,7 +784,7 @@ export default function PedidoConferencia() {
         <header className="conferencia-header">
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Conferência de Entrega (Cega)</h1>
-            <p style={{ color: '#6b7280' }}>Pedido #{pedido.id} - {fornecedorNome}</p>
+            <p style={{ color: 'var(--text-muted)' }}>Pedido #{pedido.id} - {fornecedorNome}</p>
           </div>
           <button
             style={styles.btnVoltar}
@@ -796,7 +796,7 @@ export default function PedidoConferencia() {
         </header>
 
         {pedido.conferenciaIniciadaPor && (
-          <div style={{ backgroundColor: '#eef2ff', border: '1px solid #c7d2fe', color: '#3730a3', padding: '14px 18px', borderRadius: '8px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
+          <div style={{ backgroundColor: 'var(--purple-soft)', border: '1px solid var(--purple-border)', color: 'var(--purple-text)', padding: '14px 18px', borderRadius: '8px', marginBottom: '18px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px' }}>
             <strong>Iniciada por {pedido.conferenciaIniciadaPor}</strong>
             {!isConferente && <span style={{ fontSize: '13px' }}>Continuar conferência da nota</span>}
           </div>
@@ -804,9 +804,9 @@ export default function PedidoConferencia() {
 
         <div className="conferencia-card" style={styles.card}>
           {isEntregaParcial && (
-            <div style={{ backgroundColor: '#fff7ed', borderLeft: '4px solid #f97316', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-              <Truck size={20} color="#c2410c" />
-              <div style={{ flex: 1, fontSize: '14px', color: '#7c2d12' }}>
+            <div style={{ backgroundColor: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+              <Truck size={20} color="var(--warning-text)" />
+              <div style={{ flex: 1, fontSize: '14px', color: 'var(--warning-text)' }}>
                 <strong>Entrega Parcial em andamento.</strong>
                 {nfAnterior && (<span> NF(ns) já registrada(s): <strong>{nfAnterior}</strong>. </span>)}
                 <span>Continue lançando o próximo volume abaixo — os itens já totalmente recebidos ficam desabilitados.</span>
@@ -814,8 +814,8 @@ export default function PedidoConferencia() {
             </div>
           )}
 
-          <div className="conferencia-alerta" style={{ backgroundColor: '#fffbeb', borderLeft: '4px solid #f59e0b', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
-            <p style={{ margin: 0, fontSize: '14px', color: '#b45309', fontWeight: '500' }}>
+          <div className="conferencia-alerta" style={{ backgroundColor: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <p style={{ margin: 0, fontSize: '14px', color: 'var(--warning-text)', fontWeight: '500' }}>
               <strong>Atenção:</strong> {isConferente
                 ? 'Informe somente as quantidades recebidas e selecione a condição encontrada no recebimento.'
                 : 'Digite a quantidade deste volume e o valor unitário exatamente como constam na NF. Caso haja algum problema com o produto (Falta, Avariado), selecione o Status correto ao lado.'}
@@ -823,13 +823,13 @@ export default function PedidoConferencia() {
           </div>
 
           <form onSubmit={handleSubmit} onKeyDown={handleEnterComoTab}>
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
-              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <FileText size={18} color="#3b82f6"/> Dados da Nota Fiscal Recebida
+            <div style={{ backgroundColor: 'var(--surface-muted)', border: '1px solid var(--border)', padding: '20px', borderRadius: '8px', marginBottom: '24px' }}>
+              <h3 style={{ margin: '0 0 16px 0', fontSize: '16px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <FileText size={18} color="var(--info)"/> Dados da Nota Fiscal Recebida
               </h3>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '16px' }}>
                 <div>
-                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: '#475569' }}>Número da NF *</label>
+                  <label style={{ display: 'block', marginBottom: '6px', fontWeight: '600', fontSize: '13px', color: 'var(--text-secondary)' }}>Número da NF *</label>
                   <input
                     type="text"
                     required
@@ -847,8 +847,8 @@ export default function PedidoConferencia() {
             <div className="conferencia-tabela-wrap" style={{ overflowX: 'auto' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px', padding: '0 4px' }}>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flex: 1, flexWrap: 'wrap' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '6px 9px', background: 'white', flex: '1 1 220px' }}>
-                      <Search size={16} color="#64748b" />
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', borderRadius: '7px', padding: '6px 9px', background: 'var(--surface)', flex: '1 1 220px' }}>
+                      <Search size={16} color="var(--text-muted)" />
                       <input
                         type="text"
                         value={buscaProduto}
@@ -860,13 +860,13 @@ export default function PedidoConferencia() {
                     <button
                       type="button"
                       onClick={() => requestSort('nomeProduto')}
-                      style={{ padding: '8px 10px', background: 'white', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '7px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                      style={{ padding: '8px 10px', background: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '7px', fontWeight: '600', fontSize: '12px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                     >
                       <ArrowUpDown size={14} /> {sortConfig.direction === 'asc' ? 'A-Z' : 'Z-A'}
                     </button>
                   </div>
                   <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                    <span style={{ fontSize: '13px', color: '#64748b', fontWeight: '500', whiteSpace: 'nowrap' }}>
+                    <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '500', whiteSpace: 'nowrap' }}>
                       {itensNaoConferidos.length > 0 ? `${itensNaoConferidos.length} pendente(s)` : 'Todos conferidos'}
                     </span>
                   </div>
@@ -875,12 +875,12 @@ export default function PedidoConferencia() {
                   <thead>
                     <tr>
                       <th style={{ ...styles.th, cursor: 'pointer', userSelect: 'none', minWidth: '200px' }} onClick={() => requestSort('nomeProduto')}>
-                        Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: '#9ca3af' }} />
+                        Produto <ArrowUpDown size={14} style={{ verticalAlign: 'middle', marginLeft: '4px', color: 'var(--text-subtle)' }} />
                       </th>
-                      <th style={{ ...styles.th, width: '100px', textAlign: 'center', backgroundColor: '#f9fafb', color: '#1e293b' }}>Qtd (Pedida)</th>
-                      <th style={{ ...styles.th, width: '140px', textAlign: 'center', backgroundColor: '#ecfeff', color: '#155e75' }}>Já Recebido</th>
-                      <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Qtd nesta NF</th>
-                      {!isConferente && <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: '#f0fdf4', color: '#166534' }}>Unitário (NF)</th>}
+                      <th style={{ ...styles.th, width: '100px', textAlign: 'center', backgroundColor: 'var(--surface-muted)', color: 'var(--text)' }}>Qtd (Pedida)</th>
+                      <th style={{ ...styles.th, width: '140px', textAlign: 'center', backgroundColor: 'var(--info-soft)', color: 'var(--info-text)' }}>Já Recebido</th>
+                      <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)' }}>Qtd nesta NF</th>
+                      {!isConferente && <th style={{ ...styles.th, width: '130px', textAlign: 'center', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)' }}>Unitário (NF)</th>}
                       <th style={{ ...styles.th, width: '220px', textAlign: 'center' }}>Condição / Problema</th>
                       <th style={{ ...styles.th, width: '120px', textAlign: 'center' }}>Ação</th>
                     </tr>
@@ -901,22 +901,22 @@ export default function PedidoConferencia() {
                       // destacado e sem campos de preenchimento.
                       if (item.retornadoCotacao) {
                         return (
-                          <tr key={item.id} style={{ borderBottom: '1px solid #fecaca', backgroundColor: '#fef2f2' }}>
+                          <tr key={item.id} style={{ borderBottom: '1px solid var(--danger-border)', backgroundColor: 'var(--danger-soft)' }}>
                             <td data-label="Produto" style={styles.td}>
-                              <strong style={{ color: '#991b1b', display: 'block' }}>{nomeExibicaoProduto(item)}</strong>
-                              <div style={{ fontSize: '10px', color: '#b91c1c', backgroundColor: '#fee2e2', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fca5a5' }}>
+                              <strong style={{ color: 'var(--danger-text)', display: 'block' }}>{nomeExibicaoProduto(item)}</strong>
+                              <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
                                 <AlertTriangle size={10} /> Não entregue — retornou à cotação de origem
                               </div>
                             </td>
-                            <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#991b1b', fontWeight: '600' }}>
+                            <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: '600' }}>
                               {item.quantidadePedida} un
                             </td>
-                            <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#991b1b' }}>-</td>
+                            <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)' }}>-</td>
                             <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>
                             {!isConferente && <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>}
-                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#b91c1c', fontWeight: 'bold' }}>Não Veio</td>
+                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: 'bold' }}>Não Veio</td>
                             <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
-                              <span style={{ padding: '6px 10px', backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+                              <span style={{ padding: '6px 10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
                                 Não entregue
                               </span>
                             </td>
@@ -926,18 +926,18 @@ export default function PedidoConferencia() {
 
                       return (
                         <Fragment key={item.id}>
-                        <tr style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: totalmenteRecebido ? '#f0fdf4' : (isConferido ? '#ecfdf5' : 'white'), transition: 'background-color 0.3s' }}>
+                        <tr style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: totalmenteRecebido ? 'var(--success-soft)' : (isConferido ? 'var(--success-soft)' : 'var(--surface)'), transition: 'background-color 0.3s' }}>
                           <td data-label="Produto" style={styles.td}>
-                            <strong style={{ color: totalmenteRecebido ? '#166534' : '#111827', display: 'block' }}>
+                            <strong style={{ color: totalmenteRecebido ? 'var(--success-text)' : 'var(--text)', display: 'block' }}>
                               {nomeExibicaoProduto(item)}
                             </strong>
                             {isExtra && (
                               <div style={{ marginTop: '4px' }}>
-                                <div style={{ fontSize: '10px', color: '#6b21a8', backgroundColor: '#f3e8ff', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #d8b4fe' }}>
+                                <div style={{ fontSize: '10px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)' }}>
                                   <Tag size={10} /> Não Solicitado
                                 </div>
                                 {(confState.codigoBarrasRecebido || confState.codigoDnaRecebido || confState.observacaoIncorreto) && (
-                                  <div style={{ fontSize: '11px', color: '#6b21a8', marginTop: '4px', lineHeight: 1.4, wordBreak: 'break-word' }}>
+                                  <div style={{ fontSize: '11px', color: 'var(--purple-text)', marginTop: '4px', lineHeight: 1.4, wordBreak: 'break-word' }}>
                                     {confState.codigoBarrasRecebido && <div>Código: {confState.codigoBarrasRecebido}</div>}
                                     {confState.codigoDnaRecebido && <div>Código DNA: {confState.codigoDnaRecebido}</div>}
                                     {confState.observacaoIncorreto && <div>Obs.: {confState.observacaoIncorreto}</div>}
@@ -946,17 +946,17 @@ export default function PedidoConferencia() {
                               </div>
                             )}
                             {item.condicaoAplicada && (
-                              <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--success-text)', backgroundColor: 'var(--success-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--success-border)' }}>
                                 <Tag size={10} /> Condição: {item.qtdCondicao} un por {fMoney(item.precoCondicao)}
                               </div>
                             )}
                             {totalmenteRecebido && (
-                              <div style={{ fontSize: '10px', color: '#166534', backgroundColor: '#bbf7d0', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--success-text)', backgroundColor: 'var(--success-border)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                                 <Package size={10} /> Totalmente recebido
                               </div>
                             )}
                             {confState.fracionado && (
-                              <div style={{ fontSize: '10px', color: '#6d28d9', backgroundColor: '#ede9fe', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #c4b5fd' }}>
+                              <div style={{ fontSize: '10px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)' }}>
                                 <Package size={10} /> Fracionado: {confState.quantidadeRecebidaAgora || '-'} un × {fMoney(confState.valorUnitarioReal)}
                               </div>
                             )}
@@ -966,7 +966,7 @@ export default function PedidoConferencia() {
                                 <button
                                   type="button"
                                   onClick={() => abrirFracionamento(item.id)}
-                                  style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', color: '#6d28d9', backgroundColor: '#f5f3ff', border: '1px solid #c4b5fd', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                  style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', border: '1px solid var(--purple-border)', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                   title="Dividir o valor unitário em partes e multiplicar a quantidade recebida"
                                 >
                                   <ArrowUpDown size={10} /> Fracionar
@@ -975,11 +975,11 @@ export default function PedidoConferencia() {
                             )}
                           </td>
 
-                          <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: '#475569', fontWeight: '600' }}>
+                          <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--text-secondary)', fontWeight: '600' }}>
                             {item.quantidadePedida} un
                           </td>
 
-                          <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', backgroundColor: '#ecfeff', color: '#155e75', fontWeight: 'bold' }}>
+                          <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', backgroundColor: 'var(--info-soft)', color: 'var(--info-text)', fontWeight: 'bold' }}>
                             {qtdJaRecebida > 0 ? `${qtdJaRecebida} de ${item.quantidadePedida}` : '-'}
                           </td>
 
@@ -990,7 +990,7 @@ export default function PedidoConferencia() {
                               inputMode="numeric"
                               enterkeyHint="next"
                               disabled={totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida}
-                              style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#f0fdf4', borderColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : '#cbd5e1' }}
+                              style={{ ...styles.inputField, backgroundColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : 'var(--success-soft)', borderColor: (totalmenteRecebido || isConferido || confState.quantidadeRecebidaPersistida) ? 'transparent' : 'var(--border-strong)' }}
                               placeholder="0"
                               value={confState.quantidadeRecebidaAgora ?? ''}
                               onChange={(e) => handleInputChange(item.id, 'quantidadeRecebidaAgora', e.target.value)}
@@ -1006,18 +1006,18 @@ export default function PedidoConferencia() {
                               enterkeyHint="next"
                               disabled={isConferente || isConferido}
                               placeholder="0,00"
-                              style={{ ...styles.inputField, backgroundColor: (isConferente || isConferido) ? 'transparent' : '#f0fdf4', borderColor: (isConferente || isConferido) ? 'transparent' : '#cbd5e1' }}
+                              style={{ ...styles.inputField, backgroundColor: (isConferente || isConferido) ? 'transparent' : 'var(--success-soft)', borderColor: (isConferente || isConferido) ? 'transparent' : 'var(--border-strong)' }}
                               value={confState.valorUnitarioReal ?? ''}
                               onChange={(e) => handleInputChange(item.id, 'valorUnitarioReal', e.target.value)}
                             />
                           </td>}
 
                           <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${hasProblema ? '#fca5a5' : '#cbd5e1'}`, borderRadius: '6px', padding: '2px', backgroundColor: hasProblema ? '#fef2f2' : 'white' }}>
-                                {hasProblema && <AlertTriangle size={16} color="#ef4444" style={{ marginLeft: '6px' }} />}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: `1px solid ${hasProblema ? 'var(--danger-border)' : 'var(--border-strong)'}`, borderRadius: '6px', padding: '2px', backgroundColor: hasProblema ? 'var(--danger-soft)' : 'var(--surface)' }}>
+                                {hasProblema && <AlertTriangle size={16} color="var(--danger)" style={{ marginLeft: '6px' }} />}
                                 <select
                                     disabled={totalmenteRecebido || isConferido}
-                                    style={{ width: '100%', padding: '8px', border: 'none', background: 'transparent', outline: 'none', color: hasProblema ? '#b91c1c' : '#374151', fontWeight: hasProblema ? 'bold' : 'normal', cursor: (totalmenteRecebido || isConferido) ? 'not-allowed' : 'pointer' }}
+                                    style={{ width: '100%', padding: '8px', border: 'none', background: 'transparent', outline: 'none', color: hasProblema ? 'var(--danger-text)' : 'var(--text-secondary)', fontWeight: hasProblema ? 'bold' : 'normal', cursor: (totalmenteRecebido || isConferido) ? 'not-allowed' : 'pointer' }}
                                     value={confState.statusRecebimento || 'OK'}
                                     onChange={(e) => handleInputChange(item.id, 'statusRecebimento', e.target.value)}
                                 >
@@ -1033,14 +1033,14 @@ export default function PedidoConferencia() {
                           <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
                             {totalmenteRecebido && confState.statusRecebimento === 'OK'
                               && (isConferente || confState.valorUnitarioReal !== '' && confState.valorUnitarioReal != null) ? (
-                              <span style={{ padding: '6px 10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                              <span style={{ padding: '6px 10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-border)', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <Check size={14} /> OK
                               </span>
                             ) : isConferido ? (
                               <button
                                 type="button"
                                 onClick={() => toggleConferido(item.id)}
-                                style={{ backgroundColor: '#fee2e2', color: '#b91c1c', border: '1px solid #fecaca', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center' }}
+                                style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center' }}
                               >
                                 <Edit2 size={14} /> Editar
                               </button>
@@ -1048,7 +1048,7 @@ export default function PedidoConferencia() {
                               <button
                                 type="button"
                                 onClick={() => toggleConferido(item.id)}
-                                style={{ backgroundColor: '#10b981', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                                style={{ backgroundColor: 'var(--success)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold', width: '100%', justifyContent: 'center', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
                               >
                                 <Check size={14} /> Conferir
                               </button>
@@ -1056,9 +1056,9 @@ export default function PedidoConferencia() {
                           </td>
                         </tr>
                         {confState.fracionarAberto && (
-                          <tr key={`${item.id}-fracionar`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#f5f3ff' }}>
+                          <tr key={`${item.id}-fracionar`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--purple-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '12px 14px' }}>
-                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: '#5b21b6', fontSize: '13px' }}>
+                              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: 'var(--purple-text)', fontSize: '13px' }}>
                                 <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                   <Package size={14} /> Fracionar — dividir o valor unitário em partes e multiplicar a quantidade
                                 </strong>
@@ -1073,7 +1073,7 @@ export default function PedidoConferencia() {
                                       enterkeyHint="next"
                                       value={confState.fracaoPartes ?? ''}
                                       onChange={(e) => handleInputChange(item.id, 'fracaoPartes', e.target.value)}
-                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'white', borderColor: '#c4b5fd', color: '#5b21b6' }}
+                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'var(--surface)', borderColor: 'var(--purple-border)', color: 'var(--purple-text)' }}
                                     />
                                   </label>
                                   <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
@@ -1086,7 +1086,7 @@ export default function PedidoConferencia() {
                                       enterkeyHint="next"
                                       value={confState.fracaoFator ?? ''}
                                       onChange={(e) => handleInputChange(item.id, 'fracaoFator', e.target.value)}
-                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'white', borderColor: '#c4b5fd', color: '#5b21b6' }}
+                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'var(--surface)', borderColor: 'var(--purple-border)', color: 'var(--purple-text)' }}
                                     />
                                   </label>
                                 </div>
@@ -1095,33 +1095,33 @@ export default function PedidoConferencia() {
                                   const calc = calcularFracionamento(qtdBase, vlrBase, confState.fracaoPartes, confState.fracaoFator);
                                   if (!calc.valido) return null;
                                   return (
-                                    <div style={{ backgroundColor: 'white', border: '1px solid #c4b5fd', borderRadius: '8px', padding: '10px 12px', lineHeight: 1.7 }}>
+                                    <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--purple-border)', borderRadius: '8px', padding: '10px 12px', lineHeight: 1.7 }}>
                                       <div><strong>Quantidade:</strong> {qtdBase} un → <strong>{calc.novaQuantidade} un</strong> (× {calc.fator})</div>
                                       <div><strong>Valor unitário:</strong> {fMoney(vlrBase)} → <strong>{fMoney(calc.novoVlrUnitario)}</strong> (÷ {calc.partes})</div>
                                       <div>
                                         <strong>Valor total:</strong> {fMoney(calc.totalOriginal)} → <strong>{fMoney(calc.totalFracionado)}</strong>
                                         {calc.diferenca > 0.005
-                                          ? <span style={{ color: '#b45309' }}> (diferença de arredondamento: {fMoney(calc.diferenca)})</span>
-                                          : <span style={{ color: '#166534' }}> (total preservado)</span>}
+                                          ? <span style={{ color: 'var(--warning-text)' }}> (diferença de arredondamento: {fMoney(calc.diferenca)})</span>
+                                          : <span style={{ color: 'var(--success-text)' }}> (total preservado)</span>}
                                       </div>
                                     </div>
                                   );
                                 })()}
-                                <p style={{ margin: 0, fontSize: '11px', color: '#6d28d9' }}>
+                                <p style={{ margin: 0, fontSize: '11px', color: 'var(--purple-text)' }}>
                                   A operação altera a quantidade recebida e o valor unitário deste item. Confira os valores acima antes de aplicar.
                                 </p>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                   <button
                                     type="button"
                                     onClick={() => aplicarFracionamento(item.id)}
-                                    style={{ padding: '8px 14px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                                    style={{ padding: '8px 14px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                   >
                                     <Check size={14} /> Aplicar fracionamento
                                   </button>
                                   <button
                                     type="button"
                                     onClick={() => abrirFracionamento(item.id)}
-                                    style={{ padding: '8px 14px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                                    style={{ padding: '8px 14px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
                                   >
                                     Cancelar
                                   </button>
@@ -1131,9 +1131,9 @@ export default function PedidoConferencia() {
                           </tr>
                         )}
                         {confState.statusRecebimento === 'AVARIADO' && (
-                          <tr key={`${item.id}-qtd-avariada`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                          <tr key={`${item.id}-qtd-avariada`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: '#9a3412', fontWeight: '600' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '12px', color: 'var(--warning-text)', fontWeight: '600' }}>
                                 Quantidade avariada nesta NF:
                                 <input
                                   type="number"
@@ -1144,7 +1144,7 @@ export default function PedidoConferencia() {
                                   value={confState.quantidadeAvariadaAgora ?? ''}
                                   onChange={(e) => handleInputChange(item.id, 'quantidadeAvariadaAgora', e.target.value)}
                                   disabled={isConferido || confState.quantidadeAvariadaPersistida}
-                                  style={{ ...styles.inputField, width: '90px', backgroundColor: (isConferido || confState.quantidadeAvariadaPersistida) ? 'transparent' : 'white', borderColor: '#fbbf24' }}
+                                  style={{ ...styles.inputField, width: '90px', backgroundColor: (isConferido || confState.quantidadeAvariadaPersistida) ? 'transparent' : 'var(--surface)', borderColor: 'var(--warning)' }}
                                 />
                                 <span style={{ fontWeight: 'normal' }}>de {confState.quantidadeRecebidaAgora || confState.quantidadeJaRecebida || 0} recebida(s)</span>
                               </label>
@@ -1152,7 +1152,7 @@ export default function PedidoConferencia() {
                           </tr>
                         )}
                         {confState.statusRecebimento === 'PROXIMO_VENCIMENTO' && (
-                          <tr key={`${item.id}-proximo-vencimento`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fefce8' }}>
+                          <tr key={`${item.id}-proximo-vencimento`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <FotosConferencia
                                 pedidoId={id}
@@ -1166,7 +1166,7 @@ export default function PedidoConferencia() {
                           </tr>
                         )}
                         {confState.statusRecebimento === 'INCORRETO' && (
-                          <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fffbeb' }}>
+                          <tr key={`${item.id}-incorreto`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 <IdentificacaoProdutoRecebido
@@ -1186,7 +1186,7 @@ export default function PedidoConferencia() {
                           </tr>
                         )}
                         {confState.statusRecebimento === 'AVARIADO' && (
-                          <tr key={`${item.id}-avariado`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                          <tr key={`${item.id}-avariado`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <FotosConferencia
                                 pedidoId={id}
@@ -1200,22 +1200,22 @@ export default function PedidoConferencia() {
                           </tr>
                         )}
                         {confState.isNaoSolicitado && (
-                          <tr key={`${item.id}-fotos`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#f5f3ff' }}>
+                          <tr key={`${item.id}-fotos`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--purple-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
                               <FotosConferencia pedidoId={id} ocorrencia="PRODUTO_NAO_SOLICITADO" fotos={fotos} onUploaded={adicionarFoto} />
                             </td>
                           </tr>
                         )}
                         {confState.statusRecebimento === 'FALTANTE' && !totalmenteRecebido && (
-                          <tr key={`${item.id}-faltante`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: '#fff7ed' }}>
+                          <tr key={`${item.id}-faltante`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
                             <td colSpan={7} style={{ padding: '8px 14px' }}>
-                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#9a3412', fontWeight: '500' }}>
+                              <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--warning-text)', fontWeight: '500' }}>
                                 <input
                                   type="checkbox"
                                   checked={confState.foiCobrado || false}
                                   disabled={totalmenteRecebido || isConferido}
                                   onChange={(e) => handleInputChange(item.id, 'foiCobrado', e.target.checked)}
-                                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: '#f97316' }}
+                                  style={{ width: '16px', height: '16px', cursor: 'pointer', accentColor: 'var(--warning)' }}
                                 />
                                 Foi cobrado na nota fiscal (sem entrega)
                               </label>
@@ -1235,7 +1235,7 @@ export default function PedidoConferencia() {
                 onClick={() => { setItemCameraAberta(null); setShowProdutoNaoSolicitadoModal(true); }}
                 style={{
                   padding: '10px 16px',
-                  backgroundColor: '#6366f1',
+                  backgroundColor: 'var(--purple)',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -1258,8 +1258,8 @@ export default function PedidoConferencia() {
               ocultarValor={isConferente}
             />
 
-            <div className="conferencia-botoes" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid #e5e7eb', flexWrap: 'wrap' }}>
-              <div style={{ fontSize: '13px', color: '#64748b' }}>
+            <div className="conferencia-botoes" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                 {itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.
               </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
@@ -1267,7 +1267,7 @@ export default function PedidoConferencia() {
                   <button
                     type="button"
                     onClick={conferirTodos}
-                    style={{ width: '100%', padding: '10px 14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
+                    style={{ width: '100%', padding: '10px 14px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '7px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '5px', boxShadow: '0 1px 2px rgba(16, 185, 129, 0.3)' }}
                   >
                     <Check size={15} /> Conferir todos os produtos
                   </button>
@@ -1303,7 +1303,7 @@ export default function PedidoConferencia() {
         zIndex: 80,
         padding: '10px 12px calc(10px + env(safe-area-inset-bottom))',
         backgroundColor: 'rgba(255, 255, 255, 0.97)',
-        borderTop: '1px solid #cbd5e1',
+        borderTop: '1px solid var(--border-strong)',
         boxShadow: '0 -3px 12px rgba(15, 23, 42, 0.14)',
         gap: '8px'
       }}>
@@ -1327,23 +1327,23 @@ export default function PedidoConferencia() {
       </div>
       {showModalDestinoFaltantes && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+          <div style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '560px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#9a3412', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--warning-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <AlertTriangle size={20} /> Produtos faltantes — defina o destino
               </h3>
-              <button onClick={() => !salvando && setShowModalDestinoFaltantes(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280', fontSize: '18px', fontWeight: 'bold' }}>
+              <button onClick={() => !salvando && setShowModalDestinoFaltantes(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '18px', fontWeight: 'bold' }}>
                 ✕
               </button>
             </div>
 
-            <p style={{ fontSize: '14px', color: '#475569', marginBottom: '10px' }}>
+            <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '10px' }}>
               Os produtos abaixo <strong>não foram recebidos integralmente</strong> e ainda não foram cobrados. Antes de finalizar, escolha uma das opções:
             </p>
 
-            <ul style={{ backgroundColor: '#fff7ed', border: '1px solid #fed7aa', borderRadius: '8px', padding: '12px 12px 12px 32px', margin: '0 0 16px 0', maxHeight: '200px', overflowY: 'auto' }}>
+            <ul style={{ backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '8px', padding: '12px 12px 12px 32px', margin: '0 0 16px 0', maxHeight: '200px', overflowY: 'auto' }}>
               {getItensSemDestino().map(c => (
-                <li key={c.id} style={{ fontSize: '13px', color: '#9a3412', padding: '3px 0' }}>{getNomeItemConferencia(c)}</li>
+                <li key={c.id} style={{ fontSize: '13px', color: 'var(--warning-text)', padding: '3px 0' }}>{getNomeItemConferencia(c)}</li>
               ))}
             </ul>
 
@@ -1352,7 +1352,7 @@ export default function PedidoConferencia() {
                 type="button"
                 onClick={() => confirmarDestinoFaltantes('RETORNAR_COTACAO')}
                 disabled={salvando}
-                style={{ padding: '12px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
+                style={{ padding: '12px 16px', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
               >
                 Retornar para a Cotação de Origem
                 <div style={{ fontSize: '11px', fontWeight: '400', marginTop: '2px' }}>
@@ -1363,7 +1363,7 @@ export default function PedidoConferencia() {
                 type="button"
                 onClick={() => confirmarDestinoFaltantes('AGUARDAR')}
                 disabled={salvando}
-                style={{ padding: '12px 16px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
+                style={{ padding: '12px 16px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '14px', cursor: salvando ? 'wait' : 'pointer', textAlign: 'left', opacity: salvando ? 0.7 : 1 }}
               >
                 Aguardar Produto(s) — Gerar Entrega Parcial
                 <div style={{ fontSize: '11px', fontWeight: '400', marginTop: '2px' }}>
@@ -1374,7 +1374,7 @@ export default function PedidoConferencia() {
                 type="button"
                 onClick={() => !salvando && setShowModalDestinoFaltantes(false)}
                 disabled={salvando}
-                style={{ padding: '10px 16px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: salvando ? 'wait' : 'pointer', alignSelf: 'flex-end' }}
+                style={{ padding: '10px 16px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '8px', fontWeight: '600', fontSize: '13px', cursor: salvando ? 'wait' : 'pointer', alignSelf: 'flex-end' }}
               >
                 Cancelar
               </button>
@@ -1399,13 +1399,13 @@ export default function PedidoConferencia() {
 }
 
 const styles = {
-  card: { backgroundColor: 'white', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
+  card: { backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', boxShadow: '0 4px 6px rgba(0,0,0,0.05)', overflowX: 'auto' },
   table: { width: '100%', borderCollapse: 'collapse', marginTop: '10px' },
-  th: { textAlign: 'left', padding: '14px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px' },
-  td: { padding: '14px', color: '#374151', fontSize: '14px' },
-  inputTexto: { padding: '10px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', width: '100%', outline: 'none', color: '#1e293b', boxSizing: 'border-box' },
-  inputField: { padding: '8px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '14px', width: '100%', textAlign: 'center', outline: 'none', fontWeight: 'bold', color: '#166534', transition: 'all 0.2s' },
-  btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
-  btnCancelar: { padding: '12px 24px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
-  btnSalvar: { padding: '12px 24px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' }
+  th: { textAlign: 'left', padding: '14px', borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px' },
+  td: { padding: '14px', color: 'var(--text-secondary)', fontSize: '14px' },
+  inputTexto: { padding: '10px 12px', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '14px', width: '100%', outline: 'none', color: 'var(--text)', boxSizing: 'border-box' },
+  inputField: { padding: '8px', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '14px', width: '100%', textAlign: 'center', outline: 'none', fontWeight: 'bold', color: 'var(--success-text)', transition: 'all 0.2s' },
+  btnVoltar: { padding: '10px 20px', backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center' },
+  btnCancelar: { padding: '12px 24px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' },
+  btnSalvar: { padding: '12px 24px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', boxShadow: '0 2px 4px rgba(37, 99, 235, 0.2)' }
 };

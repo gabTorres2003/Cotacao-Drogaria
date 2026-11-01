@@ -68,7 +68,7 @@ export default function SessionTimeout() {
       <div className="timeout-modal">
         <h3>Aviso de Inatividade</h3>
         <p>Sua sessão irá expirar em breve devido à falta de atividade. Deseja continuar no sistema?</p>
-        <button onClick={continuarLogado} className="login-btn" style={{ marginTop: '20px' }}>
+        <button onClick={continuarLogado} className="btn-primary" style={{ marginTop: '20px', width: '100%' }}>
           Continuar Logado
         </button>
       </div>

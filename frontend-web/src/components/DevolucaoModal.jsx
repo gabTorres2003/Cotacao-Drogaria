@@ -342,30 +342,30 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', width: '100%', maxWidth: '900px', maxHeight: '95vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1)' }}>
         
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: '#f8fafc', borderRadius: '12px 12px 0 0' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', backgroundColor: 'var(--surface-muted)', borderRadius: '12px 12px 0 0' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '22px', color: '#1e293b' }}>
+            <h2 style={{ margin: 0, fontSize: '22px', color: 'var(--text)' }}>
               {readOnly ? `Detalhes da Devolução #${internalDevId}` : (internalDevId ? `Editar Devolução #${internalDevId}` : 'Registrar Nova Devolução/Falta')}
             </h2>
             
             {idPedVinculado ? (
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3', padding: '4px 8px', borderRadius: '4px' }}>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', padding: '4px 8px', borderRadius: '4px' }}>
                         Vinculado ao Pedido #{idPedVinculado}
                     </span>
-                    <button type="button" onClick={(e) => { e.preventDefault(); onClose(); navigate(`/pedidos/${idPedVinculado}`); }} style={{ fontSize: '11px', background: 'white', border: '1px solid #c7d2fe', color: '#4f46e5', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
+                    <button type="button" onClick={(e) => { e.preventDefault(); onClose(); navigate(`/pedidos/${idPedVinculado}`); }} style={{ fontSize: '11px', background: 'var(--surface)', border: '1px solid var(--purple-border)', color: 'var(--purple)', cursor: 'pointer', padding: '4px 8px', borderRadius: '4px', fontWeight: 'bold' }}>
                         Ir para Pedido
                     </button>
                 </div>
             ) : (
-                <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563', padding: '4px 8px', borderRadius: '4px', marginTop: '8px', display: 'inline-block' }}>
+                <span style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', marginTop: '8px', display: 'inline-block' }}>
                     Registro Manual Avulso
                 </span>
             )}
           </div>
-          <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' }}>
+          <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}>
             <X size={26} />
           </button>
         </div>
@@ -441,23 +441,23 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
             </div>
           </div>
 
-          <hr style={{ borderTop: '1px dashed #cbd5e1', margin: '24px 0' }} />
+          <hr style={{ borderTop: '1px dashed var(--border-strong)', margin: '24px 0' }} />
 
           {pedidoOriginal && !internalDevId ? (
             <div>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                <h3 style={{ fontSize: '16px', color: '#1e293b', margin: 0 }}>Selecione os Produtos e Motivos</h3>
+                <h3 style={{ fontSize: '16px', color: 'var(--text)', margin: 0 }}>Selecione os Produtos e Motivos</h3>
                 
                 <div style={{ display: 'flex', gap: '8px' }}>
-                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'TOTAL'); }} style={{...styles.btnFiltro, color: '#166534', backgroundColor: '#dcfce7'}}><CheckSquare size={14}/> Devolução Total</button>
-                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'DIVERGENCIAS'); }} style={{...styles.btnFiltro, color: '#9a3412', backgroundColor: '#ffedd5'}}><ListX size={14}/> Apenas Divergências</button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'TOTAL'); }} style={{...styles.btnFiltro, color: 'var(--success-text)', backgroundColor: 'var(--success-soft)'}}><CheckSquare size={14}/> Devolução Total</button>
+                  <button type="button" onClick={(e) => { e.preventDefault(); aplicarFiltroSelecao(pedidoOriginal, 'DIVERGENCIAS'); }} style={{...styles.btnFiltro, color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)'}}><ListX size={14}/> Apenas Divergências</button>
                 </div>
               </div>
 
-              <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: '8px' }}>
+              <div style={{ overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px' }}>
                 <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                  <thead style={{ backgroundColor: '#f8fafc' }}>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569' }}>
+                  <thead style={{ backgroundColor: 'var(--surface-muted)' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)' }}>
                       <th style={{ padding: '12px', fontSize: '13px', width: '40px', textAlign: 'center' }}></th>
                       <th style={{ padding: '12px', fontSize: '13px' }}>Produto</th>
                       <th style={{ padding: '12px', fontSize: '13px', width: '100px', textAlign: 'center' }}>Qtd Abater</th>
@@ -471,7 +471,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                       if(!sel) return null;
 
                       return (
-                        <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? (sel.isApenasFinanceiro ? '#fef3c7' : '#f0fdf4') : 'white', opacity: sel.selected ? 1 : 0.6 }}>
+                        <tr key={item.id} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: sel.selected ? (sel.isApenasFinanceiro ? 'var(--warning-soft)' : 'var(--success-soft)') : 'var(--surface)', opacity: sel.selected ? 1 : 0.6 }}>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <input 
                               type="checkbox" 
@@ -480,11 +480,11 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                             />
                           </td>
-                          <td style={{ padding: '12px', color: '#1e293b', fontWeight: '500', fontSize: '14px' }}>
+                          <td style={{ padding: '12px', color: 'var(--text)', fontWeight: '500', fontSize: '14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {sel.nomeProduto}
                                 {sel.selected && sel.isApenasFinanceiro && (
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: '#f59e0b', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }} title="Não há produto físico para devolver. Gera apenas crédito.">
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: 'var(--warning)', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }} title="Não há produto físico para devolver. Gera apenas crédito.">
                                         <AlertCircle size={10} /> FALTA (Crédito)
                                     </span>
                                 )}
@@ -506,7 +506,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               value={sel.qtd} 
                               onChange={(e) => updateSelecao(item.id, 'qtd', Number(e.target.value))} 
                               disabled={!sel.selected}
-                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '4px' }}
                             />
                           </td>
                           <td style={{ padding: '12px' }}>
@@ -514,7 +514,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               value={sel.motivo} 
                               onChange={(e) => updateSelecao(item.id, 'motivo', e.target.value)} 
                               disabled={!sel.selected}
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
+                              style={{ width: '100%', padding: '6px', border: '1px solid var(--border-strong)', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
                             >
                                 <option value="Devolução Padrão">Devolução Padrão</option>
                                 <option value="Falta (Faturado mas não entregue)">Falta (Faturado mas não entregue)</option>
@@ -528,14 +528,14 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                                 <option value="Outro Motivo">Outro Motivo</option>
                             </select>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? '#16a34a' : '#9ca3af' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? 'var(--success)' : 'var(--text-subtle)' }}>
                             R$ {(sel.qtd * sel.valorUnitario).toFixed(2)}
                           </td>
                         </tr>
                       );
                     })}
                     {Object.entries(selecaoPedido).filter(([id, sel]) => sel.isNaoSolicitado).map(([id, sel]) => (
-                        <tr key={`ns_${id}`} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sel.selected ? '#ede9fe' : 'white', opacity: sel.selected ? 1 : 0.6 }}>
+                        <tr key={`ns_${id}`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: sel.selected ? 'var(--purple-soft)' : 'var(--surface)', opacity: sel.selected ? 1 : 0.6 }}>
                           <td style={{ padding: '12px', textAlign: 'center' }}>
                             <input 
                               type="checkbox" 
@@ -544,10 +544,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                             />
                           </td>
-                          <td style={{ padding: '12px', color: '#1e293b', fontWeight: '500', fontSize: '14px' }}>
+                          <td style={{ padding: '12px', color: 'var(--text)', fontWeight: '500', fontSize: '14px' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
                                 {sel.nomeProduto}
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: '#8b5cf6', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '2px', fontSize: '10px', backgroundColor: 'var(--purple)', color: 'white', padding: '2px 6px', borderRadius: '10px', fontWeight: 'bold' }}>
                                     NÃO SOLICITADO
                                 </span>
                             </div>
@@ -560,7 +560,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               value={sel.qtd} 
                               onChange={(e) => updateSelecao(id, 'qtd', Number(e.target.value))} 
                               disabled={!sel.selected}
-                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid #cbd5e1', borderRadius: '4px' }}
+                              style={{ width: '60px', padding: '4px', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '4px' }}
                             />
                           </td>
                           <td style={{ padding: '12px' }}>
@@ -568,7 +568,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               value={sel.motivo} 
                               onChange={(e) => updateSelecao(id, 'motivo', e.target.value)} 
                               disabled={!sel.selected}
-                              style={{ width: '100%', padding: '6px', border: '1px solid #cbd5e1', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
+                              style={{ width: '100%', padding: '6px', border: '1px solid var(--border-strong)', borderRadius: '4px', fontSize: '13px', outline: 'none' }}
                             >
                                 <option value="Produto Não Solicitado">Produto Não Solicitado</option>
                                 <option value="Devolução Padrão">Devolução Padrão</option>
@@ -576,7 +576,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                                 <option value="Outro Motivo">Outro Motivo</option>
                             </select>
                           </td>
-                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? '#16a34a' : '#9ca3af' }}>
+                          <td style={{ padding: '12px', textAlign: 'right', fontWeight: 'bold', color: sel.selected ? 'var(--success)' : 'var(--text-subtle)' }}>
                             R$ {(sel.qtd * sel.valorUnitario).toFixed(2)}
                           </td>
                         </tr>
@@ -587,10 +587,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
             </div>
           ) : (
             <div>
-              <h3 style={{ fontSize: '16px', color: '#1e293b', marginBottom: '16px' }}>Produtos Informados</h3>
+              <h3 style={{ fontSize: '16px', color: 'var(--text)', marginBottom: '16px' }}>Produtos Informados</h3>
               
               {!readOnly && (
-                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px', backgroundColor: '#f1f5f9', padding: '16px', borderRadius: '8px' }}>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'flex-end', marginBottom: '16px', backgroundColor: 'var(--surface-muted)', padding: '16px', borderRadius: '8px' }}>
                   <div style={{ flex: 2 }}>
                     <label style={styles.label}>Nome do Produto / Motivo</label>
                     <input type="text" style={styles.input} placeholder="Nome do produto - Motivo" value={novoItem.nomeProduto} onChange={e => setNovoItem({...novoItem, nomeProduto: e.target.value})} />
@@ -603,7 +603,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                     <label style={styles.label}>Vlr Unit. (R$)</label>
                     <input type="number" step="0.01" style={styles.input} value={novoItem.valorUnitario} onChange={e => setNovoItem({...novoItem, valorUnitario: Number(e.target.value)})} onFocus={e => e.target.select()} />
                   </div>
-                  <button type="button" onClick={(e) => { e.preventDefault(); handleAddItem(); }} style={{ height: '38px', padding: '0 16px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
+                  <button type="button" onClick={(e) => { e.preventDefault(); handleAddItem(); }} style={{ height: '38px', padding: '0 16px', backgroundColor: 'var(--info)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold' }}>
                     <Plus size={16} /> Adicionar
                   </button>
                 </div>
@@ -611,7 +611,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                 <thead>
-                  <tr style={{ borderBottom: '2px solid #e2e8f0', color: '#64748b' }}>
+                  <tr style={{ borderBottom: '2px solid var(--border)', color: 'var(--text-muted)' }}>
                     <th style={{ padding: '8px 0', fontSize: '13px' }}>Produto / Motivo</th>
                     <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'center' }}>Qtd</th>
                     <th style={{ padding: '8px 0', fontSize: '13px', textAlign: 'right' }}>Unitário</th>
@@ -621,10 +621,10 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                 </thead>
                 <tbody>
                   {itens.length === 0 && (
-                    <tr><td colSpan={readOnly ? "4" : "5"} style={{ textAlign: 'center', padding: '20px', color: '#94a3b8' }}>Nenhum produto adicionado.</td></tr>
+                    <tr><td colSpan={readOnly ? "4" : "5"} style={{ textAlign: 'center', padding: '20px', color: 'var(--text-subtle)' }}>Nenhum produto adicionado.</td></tr>
                   )}
                   {itens.map((item, idx) => (
-                    <tr key={item.id || idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                    <tr key={item.id || idx} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                       {editingIndex === idx ? (
                         <>
                           <td style={{ padding: '12px 0' }}>
@@ -655,16 +655,16 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                               onFocus={e => e.target.select()}
                             />
                           </td>
-                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>
                             R$ {(editItemForm.quantidade * editItemForm.valorUnitario).toFixed(2)}
                           </td>
                           {!readOnly && (
                             <td style={{ padding: '12px 0', textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSalvarEdicaoItem(idx); }} style={{ background: 'none', border: 'none', color: '#10b981', cursor: 'pointer' }} title="Salvar">
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); handleSalvarEdicaoItem(idx); }} style={{ background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer' }} title="Salvar">
                                   <Check size={18} />
                                 </button>
-                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIndex(null); }} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer' }} title="Cancelar">
+                                <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setEditingIndex(null); }} style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer' }} title="Cancelar">
                                   <X size={18} />
                                 </button>
                               </div>
@@ -673,17 +673,17 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
                         </>
                       ) : (
                         <>
-                          <td style={{ padding: '12px 0', color: '#334155', fontWeight: '500' }}>{item.nomeProduto}</td>
+                          <td style={{ padding: '12px 0', color: 'var(--text-secondary)', fontWeight: '500' }}>{item.nomeProduto}</td>
                           <td style={{ padding: '12px 0', textAlign: 'center' }}>{item.quantidade}</td>
                           <td style={{ padding: '12px 0', textAlign: 'right' }}>R$ {(item.valorUnitario || 0).toFixed(2)}</td>
-                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: '#16a34a' }}>R$ {((item.quantidade || 0) * (item.valorUnitario || 0)).toFixed(2)}</td>
+                          <td style={{ padding: '12px 0', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)' }}>R$ {((item.quantidade || 0) * (item.valorUnitario || 0)).toFixed(2)}</td>
                           {!readOnly && (
                             <td style={{ padding: '12px 0', textAlign: 'right' }}>
                               <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
-                                <button type="button" onClick={(e) => { e.preventDefault(); iniciarEdicaoItem(idx, item); }} style={{ background: 'none', border: 'none', color: '#3b82f6', cursor: 'pointer' }} title="Editar Produto">
+                                <button type="button" onClick={(e) => { e.preventDefault(); iniciarEdicaoItem(idx, item); }} style={{ background: 'none', border: 'none', color: 'var(--info)', cursor: 'pointer' }} title="Editar Produto">
                                   <Edit2 size={16} />
                                 </button>
-                                <button type="button" onClick={(e) => { e.preventDefault(); handleRemoverItem(idx); }} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }} title="Remover Produto">
+                                <button type="button" onClick={(e) => { e.preventDefault(); handleRemoverItem(idx); }} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }} title="Remover Produto">
                                   <Trash2 size={16} />
                                 </button>
                               </div>
@@ -700,16 +700,16 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 
         </div>
 
-        <div style={{ padding: '20px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <div style={{ fontSize: '18px', color: '#1e293b' }}>
-            Total a Ressarcir: <strong style={{ color: '#16a34a', fontSize: '24px' }}>R$ {calcTotal().toFixed(2)}</strong>
+        <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface-muted)', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div style={{ fontSize: '18px', color: 'var(--text)' }}>
+            Total a Ressarcir: <strong style={{ color: 'var(--success)', fontSize: '24px' }}>R$ {calcTotal().toFixed(2)}</strong>
           </div>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: '#475569' }}>
+            <button type="button" onClick={(e) => { e.preventDefault(); onClose(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '8px', cursor: 'pointer', fontWeight: '500', color: 'var(--text-secondary)' }}>
               {readOnly ? 'Fechar' : 'Cancelar'}
             </button>
             {!readOnly && (
-              <button type="button" onClick={(e) => { e.preventDefault(); handleSalvar(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button type="button" onClick={(e) => { e.preventDefault(); handleSalvar(); }} disabled={loading} style={{ padding: '10px 20px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Save size={18} /> {loading ? 'Salvando...' : 'Salvar Devolução/Crédito'}
               </button>
             )}
@@ -725,7 +725,7 @@ export default function DevolucaoModal({ devolucaoId, pedidoId, onClose, onSucce
 }
 
 const styles = {
-  label: { display: 'block', fontSize: '13px', fontWeight: '600', color: '#475569', marginBottom: '6px' },
-  input: { width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' },
+  label: { display: 'block', fontSize: '13px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' },
+  input: { width: '100%', padding: '8px 12px', borderRadius: '6px', border: '1px solid var(--border-strong)', outline: 'none', boxSizing: 'border-box', fontSize: '14px', fontFamily: 'inherit' },
   btnFiltro: { display: 'flex', alignItems: 'center', gap: '4px', border: 'none', padding: '6px 12px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', transition: '0.2s' }
 };

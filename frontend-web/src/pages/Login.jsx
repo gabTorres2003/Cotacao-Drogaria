@@ -1,7 +1,18 @@
 import React, { useState, useEffect } from 'react'
 import { useNavigate, useLocation } from 'react-router-dom'
-import { Lock, User, Eye, EyeOff, Info } from 'lucide-react'
+import {
+  Lock,
+  User,
+  Eye,
+  EyeOff,
+  Info,
+  Loader2,
+  ShieldCheck,
+  TrendingUp,
+  Truck,
+} from 'lucide-react'
 import api from '../services/api'
+import ThemeToggle from '../components/layout/ThemeToggle'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -41,10 +52,8 @@ export default function Login() {
 
       if (from) {
         navigate(from)
-      } else if (tipoUsuario === 'ADMIN' || tipoUsuario === 'CONFERENTE') {
-        navigate('/cotacoes')
       } else {
-        navigate('/portal-fornecedor')
+        navigate('/inicio')
       }
     } catch (error) {
       setErro(
@@ -56,192 +65,145 @@ export default function Login() {
   }
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        height: '100vh',
-        backgroundColor: '#f3f4f6',
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: 'white',
-          padding: '40px',
-          borderRadius: '12px',
-          boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-          width: '100%',
-          maxWidth: '400px',
-        }}
-      >
-        <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+    <div className="login-page">
+      <aside className="login-visual" aria-hidden="true">
+        <div className="login-visual-top">
           <img
             src="/assets/logo-torres.png"
-            alt="Drogaria Torres Farma"
-            style={{
-              height:
-                '110px',
-              objectFit: 'contain',
-              marginBottom:
-                '-20px' 
-            }}
+            alt=""
+            className="login-logo"
           />
-          <h2
-            style={{
-              fontSize: '24px',
-              fontWeight: 'bold',
-              color: '#1f2937',
-              margin: 0,
-            }}
-          >
-            Portal de Cotações <br /> Drogaria Torres Farma
-          </h2>
+          <div className="login-visual-brand">
+            <strong>Torres Farma</strong>
+            <span>Gestão de Compras e Cotações</span>
+          </div>
         </div>
 
-        <form
-          onSubmit={handleLogin}
-          style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}
-        >
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#f9fafb',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '0 10px',
-            }}
-          >
-            <User size={18} color="#9ca3af" />
-            <input
-              id="username"
-              name="username"
-              type="text"
-              placeholder="Digite seu usuário ou login"
-              required
-              value={username}
-              onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
-              style={{
-                flex: 1,
-                border: 'none',
-                background: 'transparent',
-                padding: '12px',
-                outline: 'none',
-                fontSize: '15px',
-              }}
-            />
-          </div>
-
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              background: '#f9fafb',
-              border: '1px solid #d1d5db',
-              borderRadius: '8px',
-              padding: '0 10px',
-            }}
-          >
-            <Lock size={18} color="#9ca3af" />
-            <input
-              id="pin"
-              name="pin"
-              type={mostrarSenha ? 'text' : 'password'}
-              inputMode="numeric"
-              pattern="[0-9]*"
-              maxLength={6}
-              placeholder="Senha de acesso"
-              required
-              value={pin}
-              onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
-              style={{
-                flex: 1,
-                border: 'none',
-                background: 'transparent',
-                padding: '12px',
-                outline: 'none',
-                fontSize: '15px',
-              }}
-            />
-            <button
-              type="button"
-              onClick={() => setMostrarSenha(!mostrarSenha)}
-              style={{
-                background: 'none',
-                border: 'none',
-                cursor: 'pointer',
-                display: 'flex',
-                padding: '5px',
-              }}
-            >
-              {mostrarSenha ? (
-                <EyeOff size={18} color="#9ca3af" />
-              ) : (
-                <Eye size={18} color="#9ca3af" />
-              )}
-            </button>
-          </div>
-
-          {erro && (
-            <span
-              style={{
-                color: '#dc2626',
-                fontSize: '14px',
-                textAlign: 'center',
-                backgroundColor: '#fee2e2',
-                padding: '10px',
-                borderRadius: '6px',
-                fontWeight: '500',
-              }}
-            >
-              {erro}
-            </span>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || pin.length < 4}
-            style={{
-              width: '100%',
-              padding: '14px',
-              backgroundColor: '#2563eb',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontWeight: 'bold',
-              fontSize: '16px',
-              cursor: loading || pin.length < 4 ? 'not-allowed' : 'pointer',
-              marginTop: '5px',
-              transition: '0.2s',
-              opacity: loading || pin.length < 4 ? 0.7 : 1,
-            }}
-          >
-            {loading ? 'Autenticando...' : 'Acessar Portal'}
-          </button>
-        </form>
-
-        <div
-          style={{
-            marginTop: '24px',
-            paddingTop: '20px',
-            borderTop: '1px solid #e5e7eb',
-            display: 'flex',
-            gap: '10px',
-            alignItems: 'flex-start',
-            color: '#64748b',
-          }}
-        >
-          <Info
-            size={20}
-            style={{ flexShrink: 0, marginTop: '2px', color: '#94a3b8' }}
-          />
-          <p style={{ margin: 0, fontSize: '13px', lineHeight: '1.5' }}>
-            Problemas com o acesso? Entre em contato com a Drogaria Torres Farma
-            pelo WhatsApp.
+        <div className="login-visual-content">
+          <h1>Cotações, pedidos e fornecedores em um só lugar.</h1>
+          <p>
+            Centralize o processo de compras da rede: da identificação da
+            necessidade até a conferência do recebimento.
           </p>
+
+          <div className="login-features">
+            <div className="login-feature">
+              <span className="login-feature-icon">
+                <TrendingUp size={16} />
+              </span>
+              Compare preços e acompanhe indicadores de compra.
+            </div>
+            <div className="login-feature">
+              <span className="login-feature-icon">
+                <Truck size={16} />
+              </span>
+              Receba respostas e pedidos dos fornecedores com agilidade.
+            </div>
+            <div className="login-feature">
+              <span className="login-feature-icon">
+                <ShieldCheck size={16} />
+              </span>
+              Acesso seguro e individual para cada perfil.
+            </div>
+          </div>
         </div>
-      </div>
+
+        <div className="login-visual-foot">
+          Drogaria Torres Farma — Todos os direitos reservados.
+        </div>
+      </aside>
+
+      <section className="login-form-side">
+        <div className="login-theme">
+          <ThemeToggle compact />
+        </div>
+
+        <div className="login-card">
+          <div className="login-mobile-brand">
+            <img src="/assets/logo-torres.png" alt="Torres Farma" />
+            <div>
+              <strong className="brand-name">Torres Farma</strong>
+              <span className="brand-subtitle">Gestão de Compras</span>
+            </div>
+          </div>
+
+          <div className="login-header">
+            <h2>Acessar portal</h2>
+            <p>Informe seu usuário e senha de acesso para continuar.</p>
+          </div>
+
+          <form className="login-form" onSubmit={handleLogin}>
+            <div>
+              <label className="login-label" htmlFor="username">
+                Usuário
+              </label>
+              <div className="login-field">
+                <User size={18} />
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autoComplete="username"
+                  placeholder="Digite seu usuário ou login"
+                  required
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value.toLowerCase().trim())}
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="login-label" htmlFor="pin">
+                Senha de acesso
+              </label>
+              <div className="login-field">
+                <Lock size={18} />
+                <input
+                  id="pin"
+                  name="pin"
+                  type={mostrarSenha ? 'text' : 'password'}
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  autoComplete="current-password"
+                  placeholder="Senha de acesso"
+                  required
+                  value={pin}
+                  onChange={(e) => setPin(e.target.value.replace(/\D/g, ''))}
+                />
+                <button
+                  type="button"
+                  className="login-field-action"
+                  onClick={() => setMostrarSenha(!mostrarSenha)}
+                  aria-label={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                  title={mostrarSenha ? 'Ocultar senha' : 'Mostrar senha'}
+                >
+                  {mostrarSenha ? <EyeOff size={18} /> : <Eye size={18} />}
+                </button>
+              </div>
+            </div>
+
+            {erro && <div className="login-error">{erro}</div>}
+
+            <button
+              type="submit"
+              className="login-submit"
+              disabled={loading || pin.length < 4}
+            >
+              {loading && <Loader2 size={18} className="animate-spin" />}
+              {loading ? 'Autenticando...' : 'Acessar Portal'}
+            </button>
+          </form>
+
+          <div className="login-info">
+            <Info size={18} />
+            <p>
+              Problemas com o acesso? Entre em contato com a Drogaria Torres
+              Farma pelo WhatsApp.
+            </p>
+          </div>
+        </div>
+      </section>
     </div>
   )
 }

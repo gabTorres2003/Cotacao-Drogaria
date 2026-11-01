@@ -295,13 +295,13 @@ export default function TabelaDetalhes({
       return offset;
   };
 
-  const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid #e5e7eb', color: '#4b5563', fontSize: '13px', whiteSpace: 'nowrap', backgroundColor: '#ffffff' };
-  const tdStyle = { padding: '12px', borderBottom: '1px solid #e5e7eb', color: '#374151', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
-  const inputEdicao = { padding: '4px 8px', border: '1px solid #d1d5db', borderRadius: '4px', fontSize: '13px' };
+  const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'nowrap', backgroundColor: 'var(--surface)' };
+  const tdStyle = { padding: '12px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
+  const inputEdicao = { padding: '4px 8px', border: '1px solid var(--border-strong)', borderRadius: '4px', fontSize: '13px' };
 
   const SortIcon = ({ sortKey }) => {
-    if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="#9ca3af" style={{ marginLeft: '6px' }} />;
-    return sortConfig.direction === 'asc' ? <ChevronUp size={14} color="#2563eb" style={{ marginLeft: '6px' }} /> : <ChevronDown size={14} color="#2563eb" style={{ marginLeft: '6px' }} />;
+    if (sortConfig.key !== sortKey) return <ArrowUpDown size={14} color="var(--text-subtle)" style={{ marginLeft: '6px' }} />;
+    return sortConfig.direction === 'asc' ? <ChevronUp size={14} color="var(--primary)" style={{ marginLeft: '6px' }} /> : <ChevronDown size={14} color="var(--primary)" style={{ marginLeft: '6px' }} />;
   };
 
   const getHeaderStyle = (isPinnedCol, leftPos, minWidth, isRight = false) => {
@@ -311,16 +311,16 @@ export default function TabelaDetalhes({
           position: isPinned ? 'sticky' : 'relative', top: isHeaderPinned ? '0' : 'auto',
           left: isPinnedCol ? `${leftPos}px` : 'auto',
           zIndex: isHeaderPinned && isPinnedCol ? 40 : (isHeaderPinned ? 30 : (isPinnedCol ? 20 : 10)),
-          backgroundColor: isPinnedCol ? '#f0fdf4' : '#ffffff',
+          backgroundColor: isPinnedCol ? 'var(--success-soft)' : 'var(--surface)',
           boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
       };
   };
 
-  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = '#374151', isPinnedRow = false, isBaixoGiro = false) => ({
+  const getCellColStyle = (isPinnedCol, leftPos, isRight = false, isBold = false, color = 'var(--text-secondary)', isPinnedRow = false, isBaixoGiro = false) => ({
       ...tdStyle, textAlign: isRight ? 'right' : 'center', fontWeight: isBold ? '500' : 'normal', color: color,
       position: isPinnedCol ? 'sticky' : 'relative', left: isPinnedCol ? `${leftPos}px` : 'auto',
       zIndex: isPinnedCol ? 15 : 1,
-      backgroundColor: isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : 'inherit'),
+      backgroundColor: isPinnedRow ? (isPinnedCol ? 'var(--info-soft)' : 'var(--info-soft)') : (isPinnedCol ? (isBaixoGiro ? 'var(--danger-soft)' : 'var(--surface-muted)') : 'inherit'),
       boxShadow: isPinnedCol ? '2px 0 5px -2px rgba(0,0,0,0.1)' : 'none'
   });
 
@@ -348,7 +348,7 @@ export default function TabelaDetalhes({
 
   const renderItemRow = (item, isPinnedRow) => {
       const isBloqueado = !!itensJaComprados[item.idItem];
-      const textStyle = isBloqueado ? { textDecoration: 'line-through', color: '#9ca3af' } : {};
+      const textStyle = isBloqueado ? { textDecoration: 'line-through', color: 'var(--text-subtle)' } : {};
       const precoBaseAlerta = item.ultimoPreco || item.ultimoPrecoComprado;
 
       // VARIÁVEIS DA LÓGICA DE INTELIGÊNCIA
@@ -438,10 +438,10 @@ export default function TabelaDetalhes({
       const riscoDesconsiderado = !!itensRiscoDesconsiderado[item.idItem];
       const isBaixoGiro = destacarBaixoGiro && temRiscoExcesso && !riscoDesconsiderado;
 
-      let rowBgColor = '#ffffff';
-      if (isPinnedRow) rowBgColor = '#f0f9ff';
-      else if (isBaixoGiro) rowBgColor = '#fef2f2';
-      else if (modoExcluirProdutos && produtosParaExcluir[item.idItem]) rowBgColor = '#fee2e2';
+      let rowBgColor = 'var(--surface)';
+      if (isPinnedRow) rowBgColor = 'var(--info-soft)';
+      else if (isBaixoGiro) rowBgColor = 'var(--danger-soft)';
+      else if (modoExcluirProdutos && produtosParaExcluir[item.idItem]) rowBgColor = 'var(--danger-soft)';
 
       const ofertasValidas = calcularOfertasValidas(item);
 
@@ -455,7 +455,7 @@ export default function TabelaDetalhes({
 
       return (
         <tr key={item.idItem} style={{ backgroundColor: rowBgColor, opacity: item.excluido ? 0.5 : 1 }}>
-          <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#e0f2fe' : (isBaixoGiro ? '#fee2e2' : '#ffffff'), boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+          <td style={{ ...tdStyle, position: 'sticky', left: 0, zIndex: 20, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'var(--surface)'), boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)' }}>
             {editandoItem === `${item.idItem}-nome` ? (
               <input style={{ ...inputEdicao, width: '100%', minWidth: '200px' }} value={formEdicao.nome} onChange={(e) => setFormEdicao({ ...formEdicao, nome: e.target.value })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} autoFocus />
             ) : (
@@ -470,11 +470,11 @@ export default function TabelaDetalhes({
                     <input type="checkbox" checked={!!produtosParaRetorno[item.idItem]} onChange={() => setProdutosParaRetorno(prev => ({ ...prev, [item.idItem]: !prev[item.idItem] }))} style={{ cursor: 'pointer', transform: 'scale(1.2)' }} title="Selecionar para retorno a pedidos" />
                   )}
 
-                  <button type="button" onClick={() => toggleRowPin(item.idItem)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: isPinnedRow ? '#2563eb' : '#9ca3af' }} title={isPinnedRow ? "Descongelar Linha" : "Congelar Linha no Topo"}>
+                  <button type="button" onClick={() => toggleRowPin(item.idItem)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: isPinnedRow ? 'var(--primary)' : 'var(--text-subtle)' }} title={isPinnedRow ? "Descongelar Linha" : "Congelar Linha no Topo"}>
                     <Pin size={16} />
                   </button>
 
-                  <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
+                  <strong style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed var(--text-subtle)' : 'none' }} onClick={() => !item.excluido && iniciarEdicao(item, 'nome')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>
                     {getNomeExibicao(item.nomeProduto)}
                   </strong>
                   
@@ -486,14 +486,14 @@ export default function TabelaDetalhes({
                           style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}
                           title="Ver os motivos do alerta de estoque"
                       >
-                          <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                          <span style={{ fontSize: '10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--danger-border)', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                           <AlertTriangle size={10} /> Risco de Excesso
                           </span>
                       </button>
                       <button
                           type="button"
                           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setItensRiscoDesconsiderado(prev => ({ ...prev, [item.idItem]: true })); }}
-                          style={{ fontSize: '9px', backgroundColor: '#f3f4f6', color: '#6b7280', padding: '2px 5px', borderRadius: '3px', border: '1px solid #d1d5db', cursor: 'pointer', fontWeight: 'bold' }}
+                          style={{ fontSize: '9px', backgroundColor: 'var(--bg)', color: 'var(--text-muted)', padding: '2px 5px', borderRadius: '3px', border: '1px solid var(--border-strong)', cursor: 'pointer', fontWeight: 'bold' }}
                           title="Desconsiderar este alerta para este produto"
                       >
                           Dispensar
@@ -501,11 +501,11 @@ export default function TabelaDetalhes({
                     </div>
                   )}
 
-                  {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }}>Genérico</span>)}
-                  {item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fecaca', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
-                  {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: '#e0f2fe', color: '#0369a1', padding: '2px 6px', borderRadius: '4px', border: '1px solid #bae6fd', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
-                  {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: '#fee2e2', color: '#991b1b', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fca5a5', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
-                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? '#10b981' : '#9ca3af' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
+                  {isDiversos(item.nomeProduto) && !mostrarNomeReal && (<span style={{ fontSize: '10px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--warning-border)', fontWeight: 'bold' }}>Genérico</span>)}
+                  {item.excluido && <span style={{ fontSize: '10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--danger-border)', fontWeight: 'bold', marginLeft: '6px' }}>🗑️ Excluído</span>}
+                  {item.editadoManual && !item.excluido && <span style={{ fontSize: '10px', backgroundColor: 'var(--info-soft)', color: 'var(--info-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--info-border)', fontWeight: 'bold', marginLeft: '6px' }}>✏️ Editado</span>}
+                  {item.motivoRetorno && !isBloqueado && <span style={{ fontSize: '10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--danger-border)', fontWeight: 'bold', marginLeft: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}><AlertTriangle size={10} /> Retornado: {item.motivoRetorno}</span>}
+                  <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); copiarParaAreaTransferencia(getNomeExibicao(item.nomeProduto), item.idItem); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: copiadoId === item.idItem ? 'var(--success)' : 'var(--text-subtle)' }}>{copiadoId === item.idItem ? <Check size={14} /> : <Copy size={14} />}</button>
                   
                   {!isBloqueado && !isEncerrada && !item.excluido && (
                     <div style={{ display: 'inline-flex' }}>
@@ -524,10 +524,10 @@ export default function TabelaDetalhes({
                             setObsEditando(item.idItem);
                           }
                         }}
-                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: item.observacaoComprador ? '#f59e0b' : '#9ca3af' }}
+                        style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: item.observacaoComprador ? 'var(--warning)' : 'var(--text-subtle)' }}
                         title={item.observacaoComprador ? `Obs: ${item.observacaoComprador}` : "Adicionar observação para o fornecedor"}
                       >
-                        <MessageSquare size={14} fill={item.observacaoComprador ? '#f59e0b' : 'none'} />
+                        <MessageSquare size={14} fill={item.observacaoComprador ? 'var(--warning)' : 'none'} />
                       </button>
                     </div>
                   )}
@@ -535,7 +535,7 @@ export default function TabelaDetalhes({
 
                 {isComparativo && mostrarFracao && !item.excluido && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
-                    <span style={{ fontSize: '10px', color: '#6b7280', fontWeight: '600' }}>/</span>
+                    <span style={{ fontSize: '10px', color: 'var(--text-muted)', fontWeight: '600' }}>/</span>
                     <input
                       type="number"
                       min="1"
@@ -545,11 +545,11 @@ export default function TabelaDetalhes({
                         const val = e.target.value === '' ? 1 : Math.max(1, Number(e.target.value));
                         setFracoesPorProduto(prev => ({ ...prev, [item.idItem]: val }));
                       }}
-                      style={{ width: '50px', padding: '3px 6px', fontSize: '12px', textAlign: 'center', border: '1px solid #d1d5db', borderRadius: '3px', backgroundColor: (fracoesPorProduto[item.idItem] || 1) > 1 ? '#ede9fe' : 'white' }}
+                      style={{ width: '50px', padding: '3px 6px', fontSize: '12px', textAlign: 'center', border: '1px solid var(--border-strong)', borderRadius: '3px', backgroundColor: (fracoesPorProduto[item.idItem] || 1) > 1 ? 'var(--purple-soft)' : 'var(--surface)' }}
                       title="Fração para comparação (ex: 7 = preço ÷ 7)"
                     />
                     {(fracoesPorProduto[item.idItem] || 1) > 1 && (
-                      <span style={{ fontSize: '9px', color: '#6d28d9', backgroundColor: '#ede9fe', padding: '1px 4px', borderRadius: '3px', border: '1px solid #c4b5fd', fontWeight: 'bold' }}>
+                      <span style={{ fontSize: '9px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '1px 4px', borderRadius: '3px', border: '1px solid var(--purple-border)', fontWeight: 'bold' }}>
                         / {fracoesPorProduto[item.idItem]}
                       </span>
                     )}
@@ -558,12 +558,12 @@ export default function TabelaDetalhes({
                 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
                   <BadgeOrigem origem={item.origemItem} />
-                  {item.classificacaoInteligencia === 'BAIXO_GIRO' && <span style={{ fontSize: '10px', backgroundColor: '#fef3c7', color: '#b45309', padding: '2px 6px', borderRadius: '4px', border: '1px solid #fde047', fontWeight: 'bold' }} title="Poucas vendas na janela e compra antiga em relação à última venda: incluir manualmente se necessário">⚠ Baixo giro — análise manual</span>}
-                  {item.classificacaoInteligencia === 'HISTORICO_INSUFICIENTE' && <span style={{ fontSize: '10px', backgroundColor: '#f3f4f6', color: '#6b7280', padding: '2px 6px', borderRadius: '4px', border: '1px solid #d1d5db', fontWeight: 'bold' }} title="Sem dados suficientes para estimativa confiável: incluir manualmente se necessário">Histórico insuficiente</span>}
+                  {item.classificacaoInteligencia === 'BAIXO_GIRO' && <span style={{ fontSize: '10px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--warning-border)', fontWeight: 'bold' }} title="Poucas vendas na janela e compra antiga em relação à última venda: incluir manualmente se necessário">⚠ Baixo giro — análise manual</span>}
+                  {item.classificacaoInteligencia === 'HISTORICO_INSUFICIENTE' && <span style={{ fontSize: '10px', backgroundColor: 'var(--bg)', color: 'var(--text-muted)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-strong)', fontWeight: 'bold' }} title="Sem dados suficientes para estimativa confiável: incluir manualmente se necessário">Histórico insuficiente</span>}
                   {isBloqueado && (
                     <>
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', border: '1px solid #86efac', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
-                      {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
+                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
+                      {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--info)', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
                     </>
                   )}
                 </div>
@@ -578,14 +578,14 @@ export default function TabelaDetalhes({
                   {editandoItem === `${item.idItem}-qtd` ? (
                     <input type="number" style={{ ...inputEdicao, width: '70px', textAlign: 'center' }} value={formEdicao.qtd} onChange={(e) => setFormEdicao({ ...formEdicao, qtd: Number(e.target.value) })} onKeyDown={(e) => { if (e.key === 'Enter') salvarEdicao(item.idItem); if (e.key === 'Escape') iniciarEdicao(null); }} onBlur={() => salvarEdicao(item.idItem)} onFocus={(e) => e.target.select()} autoFocus />
                   ) : (
-                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed #9ca3af' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
+                    <span style={{ ...textStyle, cursor: (!isBloqueado && !isEncerrada && !item.excluido) ? 'pointer' : 'default', borderBottom: (!isBloqueado && !isEncerrada && !item.excluido) ? '1px dashed var(--text-subtle)' : 'none', display: 'inline-block', padding: '4px' }} onClick={() => !item.excluido && iniciarEdicao(item, 'qtd')} title={(!isBloqueado && !isEncerrada && !item.excluido) ? "Clique para editar" : ""}>{item.quantidade} un</span>
                   )}
                 </td>
               );
           })()}
 
-          {temModoMesclado && colunasVisiveis.qtdBalcao && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.quantidadeBalcao ?? '—'}</span></td>}
-          {temModoMesclado && colunasVisiveis.qtdSugerida && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.quantidadeSugerida ?? '—'}</span></td>}
+          {temModoMesclado && colunasVisiveis.qtdBalcao && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.quantidadeBalcao ?? '—'}</span></td>}
+          {temModoMesclado && colunasVisiveis.qtdSugerida && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.quantidadeSugerida ?? '—'}</span></td>}
 
           {colunasVisiveis.estoque && (() => {
               const isPinned = pinnedStats.includes('estoque');
@@ -594,22 +594,22 @@ export default function TabelaDetalhes({
 
           {isItens && (
             <>
-              {colunasVisiveis.vmd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtVmd(item.vmd)}</span></td>}
-              {colunasVisiveis.vendas30d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendas30d ?? '—'}</span></td>}
-              {colunasVisiveis.vendas60d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendas60d ?? '—'}</span></td>}
-              {colunasVisiveis.vendas90d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendas90d ?? '—'}</span></td>}
-              {colunasVisiveis.cad && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCad(item))}</span></td>}
-              {colunasVisiveis.cpd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCpd(item))}</span></td>}
-              {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
-              {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
-              {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
-              {colunasVisiveis.ultVendaData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fef2f2' : 'inherit')}}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
+              {colunasVisiveis.vmd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{fmtVmd(item.vmd)}</span></td>}
+              {colunasVisiveis.vendas30d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.vendas30d ?? '—'}</span></td>}
+              {colunasVisiveis.vendas60d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.vendas60d ?? '—'}</span></td>}
+              {colunasVisiveis.vendas90d && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.vendas90d ?? '—'}</span></td>}
+              {colunasVisiveis.cad && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCad(item))}</span></td>}
+              {colunasVisiveis.cpd && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{fmtCobertura(calcCpd(item))}</span></td>}
+              {colunasVisiveis.vendidoAposUltCompra && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.vendidoAposUltCompra ?? '-'}</span></td>}
+              {colunasVisiveis.ultCompraData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{fData(item.ultCompraData)}</span></td>}
+              {colunasVisiveis.ultCompraQtde && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{item.ultCompraQtde ?? '-'}</span></td>}
+              {colunasVisiveis.ultVendaData && <td style={{...tdStyle, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit')}}><span style={textStyle}>{fData(item.ultVendaData)}</span></td>}
             </>
           )}
 
           {colunasVisiveis.ultimoPreco && (() => {
               const isPinned = pinnedStats.includes('ultimoPreco');
-              return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, '#4f46e5', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
+              return <td style={getCellColStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), true, true, 'var(--purple)', isPinnedRow, isBaixoGiro)}><span style={textStyle}>{item.ultimoPreco != null ? fMoney(item.ultimoPreco) : '-'}</span></td>;
           })()}
 
           {colunasVisiveis.codBarras && (() => {
@@ -692,18 +692,18 @@ export default function TabelaDetalhes({
                   }}
                   data-balloon={isOfertaVisivel && !isIrreal && (isWinner || rank > 0) ? 'true' : undefined}
                   data-balloon-label={isOfertaVisivel && !isIrreal ? (isWinner ? 'VENCEDOR' : (rank > 0 ? `${rank}º LUGAR` : undefined)) : undefined}
-                  data-balloon-color={(isWinner && !isIrreal) ? '#10b981' : (rank === 1 ? '#f59e0b' : (rank === 2 ? '#94a3b8' : (rank === 3 ? '#cd7f32' : '#fde047')))}
+                  data-balloon-color={(isWinner && !isIrreal) ? 'var(--success)' : (rank === 1 ? 'var(--warning)' : (rank === 2 ? 'var(--text-subtle)' : (rank === 3 ? '#cd7f32' : 'var(--warning-border)')))}
                   data-balloon-textcolor={(isWinner && !isIrreal) ? 'white' : (rank <= 3 ? 'white' : '#713f12')}
-                  data-balloon-border={(isWinner && !isIrreal) ? '#059669' : (rank === 1 ? '#d97706' : (rank === 2 ? '#64748b' : (rank === 3 ? '#a0522d' : '#facc15')))}
+                  data-balloon-border={(isWinner && !isIrreal) ? 'var(--success)' : (rank === 1 ? 'var(--warning)' : (rank === 2 ? 'var(--text-muted)' : (rank === 3 ? '#a0522d' : 'var(--warning)')))}
                   data-balloon-fontsize={(rank <= 3 || isWinner) ? '11px' : '10px'}
                   data-balloon-padding={(rank <= 3 || isWinner) ? '3px 10px' : '2px 8px'}
                   data-balloon-shadow={(rank <= 3 || isWinner) ? 'true' : 'false'}
                   style={{ 
                       ...tdStyle, 
-                      backgroundColor: isWinner ? '#ecfdf5' : (isPinnedRow ? (isPinnedCol ? '#e0f2fe' : '#f0f9ff') : (isPinnedCol ? (isBaixoGiro ? '#fee2e2' : '#f8fafc') : (isBaixoGiro ? '#fef2f2' : 'inherit'))), 
+                      backgroundColor: isWinner ? 'var(--success-soft)' : (isPinnedRow ? (isPinnedCol ? 'var(--info-soft)' : 'var(--info-soft)') : (isPinnedCol ? (isBaixoGiro ? 'var(--danger-soft)' : 'var(--surface-muted)') : (isBaixoGiro ? 'var(--danger-soft)' : 'inherit'))),
                       textAlign: 'center', 
-                      borderLeft: '1px solid #f3f4f6', 
-                      border: isWinner ? '2px solid #10b981' : '1px solid #e5e7eb', 
+                      borderLeft: '1px solid var(--bg)',
+                      border: isWinner ? '2px solid var(--success)' : '1px solid var(--border)',
                       cursor: isBloqueado || isEncerrada || item.excluido || isIrreal ? 'not-allowed' : 'pointer', 
                       verticalAlign: 'top', 
                       position: isPinnedCol ? 'sticky' : 'relative', 
@@ -714,13 +714,13 @@ export default function TabelaDetalhes({
                       pointerEvents: !isOfertaVisivel ? 'none' : 'auto'
                   }}>
                 
-                <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? '#dc2626' : (isIrreal ? '#9ca3af' : (isPrecoDiscrepante && mostrarAlertasPreco ? '#b91c1c' : '#374151')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
+                <div style={{ marginTop: '8px', fontWeight: isWinner ? 'bold' : 'normal', color: isEmFaltaOriginal ? 'var(--danger)' : (isIrreal ? 'var(--text-subtle)' : (isPrecoDiscrepante && mostrarAlertasPreco ? 'var(--danger-text)' : 'var(--text-secondary)')), textDecoration: isBloqueado || isIrreal ? 'line-through' : 'none' }}>
                     {isEmFaltaOriginal ? 'Em falta' : (
                         <>
                             <span title={pctImpostoForn > 0 ? `Informado: ${fMoney(precoOriginal)} + ${pctImpostoForn}% de imposto` : undefined}>{fMoney(aplicarFracao(precoOriginalAjustado))}</span>
-                            {fracaoAtual > 1 && !isFracaoDesc && <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>/ {fracaoAtual}</span>}
+                            {fracaoAtual > 1 && !isFracaoDesc && <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>/ {fracaoAtual}</span>}
                             {pctImpostoForn > 0 && (
-                                <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>+{pctImpostoForn}%</span>
+                                <span style={{ marginLeft: '4px', fontSize: '9px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)', padding: '1px 4px', borderRadius: '4px', fontWeight: 'bold', verticalAlign: 'middle' }}>+{pctImpostoForn}%</span>
                             )}
                         </>
                     )}
@@ -732,7 +732,7 @@ export default function TabelaDetalhes({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setImpostoDesconsiderado(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }); }}
-                        style={{ fontSize: '9px', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ fontSize: '9px', backgroundColor: 'var(--info-soft)', color: 'var(--primary-hover)', border: '1px solid var(--primary-disabled)', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Reconsiderar imposto para este fornecedor"
                       >
                         Reconsiderar imposto
@@ -741,7 +741,7 @@ export default function TabelaDetalhes({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); setImpostoDesconsiderado(prev => ({ ...prev, [`${item.idItem}-${f}`]: true })); }}
-                        style={{ fontSize: '9px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde047', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ fontSize: '9px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Desconsiderar imposto deste fornecedor para este produto"
                       >
                         Desconsiderar imposto
@@ -756,7 +756,7 @@ export default function TabelaDetalhes({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); alterarFracaoDesconsiderada(item.idItem, f, false); }}
-                        style={{ fontSize: '9px', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ fontSize: '9px', backgroundColor: 'var(--info-soft)', color: 'var(--primary-hover)', border: '1px solid var(--primary-disabled)', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Reconsiderar fração para este fornecedor"
                       >
                         Reconsiderar fração
@@ -765,7 +765,7 @@ export default function TabelaDetalhes({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); alterarFracaoDesconsiderada(item.idItem, f, true); }}
-                        style={{ fontSize: '9px', backgroundColor: '#fef3c7', color: '#92400e', border: '1px solid #fde047', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ fontSize: '9px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)', borderRadius: '3px', padding: '2px 6px', cursor: 'pointer', fontWeight: 'bold' }}
                         title="Desconsiderar fração deste fornecedor para este produto"
                       >
                         Desconsiderar fração
@@ -777,12 +777,12 @@ export default function TabelaDetalhes({
                 {editandoResposta?.itemId === item.idItem && editandoResposta?.fornecedor === f ? (
                   <div style={{ marginTop: '8px', display: 'flex', flexDirection: 'column', gap: '4px' }} onClick={(e) => e.stopPropagation()}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                      <span style={{ fontSize: '10px', color: '#6b7280', minWidth: '32px' }}>R$</span>
-                      <input type="number" step="0.01" value={formEdicaoResposta.precoOfertado} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoOfertado: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid #93c5fd', borderRadius: '3px' }} placeholder="Preço" autoFocus />
+                      <span style={{ fontSize: '10px', color: 'var(--text-muted)', minWidth: '32px' }}>R$</span>
+                      <input type="number" step="0.01" value={formEdicaoResposta.precoOfertado} onChange={(e) => setFormEdicaoResposta({ ...formEdicaoResposta, precoOfertado: e.target.value })} style={{ width: '100%', padding: '3px 4px', fontSize: '11px', border: '1px solid var(--primary-disabled)', borderRadius: '3px' }} placeholder="Preço" autoFocus />
                     </div>
                     <div style={{ display: 'flex', gap: '4px', marginTop: '2px' }}>
-                      <button onClick={(e) => { e.stopPropagation(); salvarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Salvar</button>
-                      <button onClick={(e) => { e.stopPropagation(); cancelarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '3px', cursor: 'pointer' }}>Cancelar</button>
+                      <button onClick={(e) => { e.stopPropagation(); salvarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', fontWeight: 'bold', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '3px', cursor: 'pointer' }}>Salvar</button>
+                      <button onClick={(e) => { e.stopPropagation(); cancelarEdicaoResposta(); }} style={{ flex: 1, padding: '3px', fontSize: '10px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '3px', cursor: 'pointer' }}>Cancelar</button>
                     </div>
                   </div>
                 ) : (
@@ -791,7 +791,7 @@ export default function TabelaDetalhes({
                       <button
                         type="button"
                         onClick={(e) => { e.stopPropagation(); iniciarEdicaoResposta(item, f); }}
-                        style={{ marginTop: '4px', background: 'none', border: '1px solid #d1d5db', borderRadius: '3px', padding: '2px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#6b7280' }}
+                        style={{ marginTop: '4px', background: 'none', border: '1px solid var(--border-strong)', borderRadius: '3px', padding: '2px 4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--text-muted)' }}
                         title="Editar resposta deste fornecedor"
                       >
                         <Pencil size={10} /> Editar
@@ -801,19 +801,19 @@ export default function TabelaDetalhes({
                 )}
                 
                 {isPrecoDiscrepante && !isEmFaltaOriginal && !isIrreal && mostrarAlertasPreco && (
-                   <div style={{ fontSize: '10px', color: '#991b1b', backgroundColor: '#fee2e2', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid #fca5a5' }} title="Preço muito divergente do padrão.">
+                   <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px', border: '1px solid var(--danger-border)' }} title="Preço muito divergente do padrão.">
                       <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                         <AlertTriangle size={14} /> Divergência Alta
                       </div>
                       <button 
                         onClick={(e) => { e.stopPropagation(); registrarDecisaoDivergencia(item.idsPrecoPorFornecedor?.[f], 'CONFIRMAR_IRREAL', `${item.idItem}-${f}`); }}
-                        style={{ background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
+                        style={{ background: 'var(--danger)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', boxShadow: '0 1px 2px rgba(0,0,0,0.1)', fontWeight: 'bold' }}
                       >
                         Confirmar Valor Irreal
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); registrarDecisaoDivergencia(item.idsPrecoPorFornecedor?.[f], 'IGNORAR_DIVERGENCIA', `${item.idItem}-${f}`); }}
-                        style={{ background: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', fontWeight: 'bold' }}
+                        style={{ background: 'var(--warning)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 6px', fontSize: '10px', cursor: 'pointer', width: '100%', fontWeight: 'bold' }}
                       >
                         Ignorar Divergência
                       </button>
@@ -821,11 +821,11 @@ export default function TabelaDetalhes({
                 )}
 
                 {isIrreal && (
-                   <div style={{ fontSize: '11px', color: '#4b5563', backgroundColor: '#f3f4f6', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #d1d5db' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--text-secondary)', backgroundColor: 'var(--bg)', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid var(--border-strong)' }}>
                       ❌ Valor Irreal
                       <button 
                         onClick={(e) => { e.stopPropagation(); setValoresIrreais(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
-                        style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ background: 'none', color: 'var(--info)', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
                         Desfazer
                       </button>
@@ -833,11 +833,11 @@ export default function TabelaDetalhes({
                 )}
 
                 {isRecusado && !isIrreal && (
-                   <div style={{ fontSize: '11px', color: '#92400e', backgroundColor: '#fef3c7', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }}>
+                   <div style={{ fontSize: '11px', color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', padding: '6px', borderRadius: '6px', marginTop: '6px', fontWeight: 'bold', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', border: '1px solid var(--warning-border)' }}>
                       🚫 Valor Recusado
                       <button 
                         onClick={(e) => { e.stopPropagation(); setValoresRecusados(prev => { const n = {...prev}; delete n[`${item.idItem}-${f}`]; return n; }) }}
-                        style={{ background: 'none', color: '#3b82f6', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
+                        style={{ background: 'none', color: 'var(--info)', border: 'none', textDecoration: 'underline', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}
                       >
                         Desfazer
                       </button>
@@ -847,7 +847,7 @@ export default function TabelaDetalhes({
                 {!isEmFaltaOriginal && condsArr.length > 0 && !isIrreal && (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '6px' }}>
                         {condsArr.map((cond, idx) => (
-                            <div key={idx} style={{ fontSize: '11px', color: '#166534', backgroundColor: '#dcfce7', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                            <div key={idx} style={{ fontSize: '11px', color: 'var(--success-text)', backgroundColor: 'var(--success-soft)', padding: '4px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--success-border)', justifyContent: 'center' }}>
                                 <Tags size={12} /> A partir de {cond.qtd} un: {fMoney(aplicarFracao(ajustarPrecoExibicao(cond.preco)))}
                             </div>
                         ))}
@@ -855,17 +855,17 @@ export default function TabelaDetalhes({
                 )}
 
                 {substituto && !isIrreal && (
-                  <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? '#dcfce7' : '#fef3c7', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? '#4ade80' : '#fde047'}`, textAlign: 'left' }}>
-                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: '#111827' }}>
+                  <div onClick={(e) => { e.stopPropagation(); if(!isBloqueado && !item.excluido) toggleTroca(item.idItem, f); }} style={{ marginTop: '8px', backgroundColor: (isTrocaAceita && isWinner) ? 'var(--success-soft)' : 'var(--warning-soft)', padding: '6px', borderRadius: '6px', border: `1px solid ${(isTrocaAceita && isWinner) ? 'var(--success)' : 'var(--warning-border)'}`, textAlign: 'left' }}>
+                    <label style={{ display: 'flex', alignItems: 'flex-start', gap: '6px', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', fontSize: '11px', color: 'var(--text)' }}>
                       <input type="checkbox" checked={isTrocaAceita && isWinner} onChange={() => !isBloqueado && !item.excluido && toggleTroca(item.idItem, f)} style={{ marginTop: '2px' }} disabled={isBloqueado || isEncerrada || item.excluido} />
                       <div style={{ textDecoration: isBloqueado ? 'line-through' : 'none', width: '100%' }}>
-                        <strong style={{ color: '#b45309' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
-                        <span style={{ color: '#059669', fontWeight: 'bold' }}>{fMoney(aplicarFracao(precoSubstitutoAjustado))}</span>{fracaoAtual > 1 && <span style={{ fontSize: '9px', backgroundColor: '#ede9fe', color: '#6d28d9', border: '1px solid #c4b5fd', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>/ {fracaoAtual}</span>}{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: '#fef9c3', color: '#854d0e', border: '1px solid #fde047', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
+                        <strong style={{ color: 'var(--warning-text)' }}>Troca: {getNomeExibicao(substituto)}</strong><br/>
+                        <span style={{ color: 'var(--success)', fontWeight: 'bold' }}>{fMoney(aplicarFracao(precoSubstitutoAjustado))}</span>{fracaoAtual > 1 && <span style={{ fontSize: '9px', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>/ {fracaoAtual}</span>}{pctImpostoForn > 0 && <span style={{ fontSize: '9px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', border: '1px solid var(--warning-border)', padding: '0 3px', borderRadius: '3px', fontWeight: 'bold', marginLeft: '3px' }}>+{pctImpostoForn}%</span>} (Qtd: {qtdSubstituto})
                         
                         {condsArrSubst.length > 0 && (
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
                               {condsArrSubst.map((cond, idx) => (
-                                  <div key={idx} style={{ fontSize: '10px', color: '#166534', backgroundColor: '#dcfce7', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid #bbf7d0' }}>
+                                  <div key={idx} style={{ fontSize: '10px', color: 'var(--success-text)', backgroundColor: 'var(--success-soft)', padding: '2px 4px', borderRadius: '4px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', border: '1px solid var(--success-border)' }}>
                                       <Tags size={10} /> A partir de {cond.qtd} un: {fMoney(aplicarFracao(ajustarPrecoExibicao(cond.preco)))}
                                   </div>
                               ))}
@@ -875,7 +875,7 @@ export default function TabelaDetalhes({
                     </label>
                   </div>
                 )}
-                {obs && !isIrreal && <div style={{ fontSize: '11px', color: '#475569', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
+                {obs && !isIrreal && <div style={{ fontSize: '11px', color: 'var(--text-secondary)', marginTop: '8px', fontStyle: 'italic', lineHeight: '1.2' }}>Obs: {obs}</div>}
 
                 {temOfertaValida && !isBloqueado && !isEncerrada && !item.excluido && !isIrreal && (
                   <div style={{ marginTop: '10px' }}>
@@ -920,7 +920,7 @@ export default function TabelaDetalhes({
                           condicaoAplicada: condAplicada
                         }, f);
                       }}
-                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
+                      style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '4px', padding: '4px 8px', cursor: 'pointer', boxShadow: '0 1px 2px rgba(0,0,0,0.1)' }}
                     >
                       <ShoppingCart size={12} /> + Pedido
                     </button>
@@ -931,12 +931,12 @@ export default function TabelaDetalhes({
           })}
 
           {isItens && (
-            <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? '#f0f9ff' : (isBaixoGiro ? '#fee2e2' : '#ffffff'), boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
+            <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'var(--surface)'), boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
               {subAbaItens === 'comprados' ? (
-                <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: '#e0e7ff', color: '#4338ca', border: '1px solid #c7d2fe', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
+                <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
               ) : (
                 <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
-                  <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: '#ef4444' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
+                  <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: 'var(--danger)' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">
                     <Trash2 size={18} opacity={isBloqueado || isEncerrada || item.excluido ? 0.3 : 1}/>
                   </button>
                 </div>
@@ -996,8 +996,8 @@ export default function TabelaDetalhes({
       <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0 8px', gap: '10px', flexWrap: 'wrap', marginBottom: '10px' }}>
           
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flex: 1, minWidth: '200px', maxWidth: '320px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'white', flex: 1 }}>
-              <Search size={14} color="#6b7280" />
+            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '6px 10px', borderRadius: '6px', backgroundColor: 'var(--surface)', flex: 1 }}>
+              <Search size={14} color="var(--text-muted)" />
               <input type="text" placeholder="Buscar por EAN, nome ou código DNA..." value={termoBusca}
                 onChange={e => setTermoBusca(e.target.value)}
                 style={{ border: 'none', outline: 'none', width: '100%', fontSize: '12px' }} />
@@ -1005,9 +1005,9 @@ export default function TabelaDetalhes({
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', userSelect: 'none' }}>
               <input type="checkbox" checked={mostrarNomeReal} onChange={(e) => setMostrarNomeReal(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-              <Tag size={14} color={mostrarNomeReal ? '#2563eb' : '#9ca3af'} />
+              <Tag size={14} color={mostrarNomeReal ? 'var(--primary)' : 'var(--text-subtle)'} />
               Nome Real
             </label>
 
@@ -1015,10 +1015,10 @@ export default function TabelaDetalhes({
               <button
                 type="button"
                 onClick={toggleModoRetornoProdutos}
-                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#9a3412', fontWeight: 'bold', backgroundColor: '#ffedd5', padding: '6px 12px', borderRadius: '6px', border: '1px solid #fdba74', userSelect: 'none' }}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--warning-text)', fontWeight: 'bold', backgroundColor: 'var(--warning-soft)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--warning-border)', userSelect: 'none' }}
                 title="Enviar produtos retornados por falta para pedidos"
               >
-                <RefreshCcw size={14} color="#ea580c" /> Retorno a Pedidos
+                <RefreshCcw size={14} color="var(--warning)" /> Retorno a Pedidos
               </button>
             )}
 
@@ -1027,7 +1027,7 @@ export default function TabelaDetalhes({
                 <select
                   value={pedidoAlvoRetorno}
                   onChange={e => setPedidoAlvoRetorno(e.target.value)}
-                  style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '6px', border: '1px solid #d1d5db', fontWeight: 'bold', color: '#1e293b', backgroundColor: 'white', cursor: 'pointer', maxWidth: '280px' }}
+                  style={{ fontSize: '12px', padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-strong)', fontWeight: 'bold', color: 'var(--text)', backgroundColor: 'var(--surface)', cursor: 'pointer', maxWidth: '280px' }}
                 >
                   <option value="">{(pedidosAbertosList || []).length === 0 ? 'Nenhum pedido aguardando confirmação' : 'Aguardando Confirmação: selecione o pedido...'}</option>
                   {(pedidosAbertosList || []).map(p => (
@@ -1039,7 +1039,7 @@ export default function TabelaDetalhes({
                   type="button"
                   onClick={() => executarRetorno('AGUARDANDO')}
                   disabled={qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '#e5e7eb' : '#2563eb', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '1px solid #d1d5db' : '1px solid #1d4ed8', userSelect: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? 'var(--text-subtle)' : 'var(--surface)', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? 'var(--border)' : 'var(--primary)', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 || !pedidoAlvoRetorno ? '1px solid var(--border-strong)' : '1px solid var(--primary-hover)', userSelect: 'none' }}
                   title="Enviar os produtos selecionados para um pedido aguardando confirmação"
                 >
                   <ShoppingCart size={14} /> Enviar para Aguardando Confirmação ({qtdSelecionadosRetorno})
@@ -1049,7 +1049,7 @@ export default function TabelaDetalhes({
                   type="button"
                   onClick={() => executarRetorno('ORIGINAL')}
                   disabled={qtdSelecionadosRetorno === 0}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 ? '#e5e7eb' : '#ea580c', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 ? '1px solid #d1d5db' : '1px solid #c2410c', userSelect: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosRetorno === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosRetorno === 0 ? 'var(--text-subtle)' : 'var(--surface)', fontWeight: 'bold', backgroundColor: qtdSelecionadosRetorno === 0 ? 'var(--border)' : 'var(--warning)', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosRetorno === 0 ? '1px solid var(--border-strong)' : '1px solid var(--warning-text)', userSelect: 'none' }}
                   title="Devolver os produtos selecionados ao(s) pedido(s) original(is)"
                 >
                   <RefreshCcw size={14} /> Retornar ao(s) Pedido(s) Original(is) ({qtdSelecionadosRetorno})
@@ -1058,7 +1058,7 @@ export default function TabelaDetalhes({
                 <button
                   type="button"
                   onClick={toggleModoRetornoProdutos}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', userSelect: 'none' }}
                   title="Cancelar seleção"
                 >
                   <X size={14} /> Cancelar
@@ -1071,10 +1071,10 @@ export default function TabelaDetalhes({
                 <button
                   type="button"
                   onClick={toggleModoExcluirProdutos}
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: modoExcluirProdutos ? '#ffffff' : '#475569', fontWeight: 'bold', backgroundColor: modoExcluirProdutos ? '#dc2626' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: modoExcluirProdutos ? '1px solid #b91c1c' : '1px solid #e2e8f0', userSelect: 'none' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: modoExcluirProdutos ? 'var(--surface)' : 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: modoExcluirProdutos ? 'var(--danger)' : 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: modoExcluirProdutos ? '1px solid var(--danger-text)' : '1px solid var(--border)', userSelect: 'none' }}
                   title="Selecionar produtos para remover da cotação"
                 >
-                  <Trash2 size={14} color={modoExcluirProdutos ? '#ffffff' : '#ef4444'} /> Excluir Produtos
+                  <Trash2 size={14} color={modoExcluirProdutos ? 'var(--surface)' : 'var(--danger)'} /> Excluir Produtos
                 </button>
 
                 {modoExcluirProdutos && (
@@ -1083,14 +1083,14 @@ export default function TabelaDetalhes({
                       type="button"
                       onClick={handleDeletarSelecionados}
                       disabled={qtdSelecionadosExcluir === 0}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosExcluir === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosExcluir === 0 ? '#9ca3af' : '#ffffff', fontWeight: 'bold', backgroundColor: qtdSelecionadosExcluir === 0 ? '#e5e7eb' : '#dc2626', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosExcluir === 0 ? '1px solid #d1d5db' : '1px solid #b91c1c', userSelect: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: qtdSelecionadosExcluir === 0 ? 'not-allowed' : 'pointer', color: qtdSelecionadosExcluir === 0 ? 'var(--text-subtle)' : 'var(--surface)', fontWeight: 'bold', backgroundColor: qtdSelecionadosExcluir === 0 ? 'var(--border)' : 'var(--danger)', padding: '6px 12px', borderRadius: '6px', border: qtdSelecionadosExcluir === 0 ? '1px solid var(--border-strong)' : '1px solid var(--danger-text)', userSelect: 'none' }}
                     >
                       <Trash2 size={14} /> Deletar Produtos ({qtdSelecionadosExcluir})
                     </button>
                     <button
                       type="button"
                       onClick={toggleModoExcluirProdutos}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', userSelect: 'none' }}
                       title="Cancelar seleção"
                     >
                       <X size={14} /> Cancelar
@@ -1098,9 +1098,9 @@ export default function TabelaDetalhes({
                   </>
                 )}
 
-                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarComImposto ? '#fef9c3' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid #facc15' : '1px solid #e2e8f0', userSelect: 'none' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: mostrarComImposto ? 'var(--warning-soft)' : 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: mostrarComImposto ? '1px solid var(--warning)' : '1px solid var(--border)', userSelect: 'none' }}>
                   <input type="checkbox" checked={mostrarComImposto} onChange={alterarVisualizacaoImposto} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                  <DollarSign size={14} color={mostrarComImposto ? '#854d0e' : '#9ca3af'} />
+                  <DollarSign size={14} color={mostrarComImposto ? 'var(--warning-text)' : 'var(--text-subtle)'} />
                   {mostrarComImposto ? 'Com Imposto' : 'Valores Informados'}
                 </label>
               </>
@@ -1108,28 +1108,28 @@ export default function TabelaDetalhes({
 
                 <div style={{ position: 'relative' }}>
                   <button onClick={() => setShowColunasDropdown(!showColunasDropdown)}
-                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: showColunasDropdown ? '#f1f5f9' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+                    style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: showColunasDropdown ? 'var(--surface-muted)' : 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', userSelect: 'none' }}>
                     <Settings2 size={14} /> Filtros e Colunas
                   </button>
                   {showColunasDropdown && (
-                    <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'white', border: '1px solid #e5e7eb', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
-                      <div style={{ display: 'flex', gap: '4px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '6px' }}>
-                        <button onClick={() => setSubAbaItens('todos')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'white' : 'transparent', color: subAbaItens === 'todos' ? '#4f46e5' : '#64748b', boxShadow: subAbaItens === 'todos' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                    <div style={{ position: 'absolute', top: '110%', right: 0, backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', padding: '12px', zIndex: 50, minWidth: '260px', display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto' }}>
+                      <div style={{ display: 'flex', gap: '4px', backgroundColor: 'var(--border)', padding: '3px', borderRadius: '6px' }}>
+                        <button onClick={() => setSubAbaItens('todos')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'todos' ? 'var(--surface)' : 'transparent', color: subAbaItens === 'todos' ? 'var(--purple)' : 'var(--text-muted)', boxShadow: subAbaItens === 'todos' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
                           Todos
                         </button>
-                        <button onClick={() => setSubAbaItens('pendentes')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'white' : 'transparent', color: subAbaItens === 'pendentes' ? '#2563eb' : '#64748b', boxShadow: subAbaItens === 'pendentes' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                        <button onClick={() => setSubAbaItens('pendentes')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'pendentes' ? 'var(--surface)' : 'transparent', color: subAbaItens === 'pendentes' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: subAbaItens === 'pendentes' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
                           Pendentes
                         </button>
-                        <button onClick={() => setSubAbaItens('comprados')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'white' : 'transparent', color: subAbaItens === 'comprados' ? '#16a34a' : '#64748b', boxShadow: subAbaItens === 'comprados' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
+                        <button onClick={() => setSubAbaItens('comprados')} style={{ flex: 1, padding: '6px 8px', border: 'none', borderRadius: '4px', fontWeight: '600', fontSize: '11px', cursor: 'pointer', backgroundColor: subAbaItens === 'comprados' ? 'var(--surface)' : 'transparent', color: subAbaItens === 'comprados' ? 'var(--success)' : 'var(--text-muted)', boxShadow: subAbaItens === 'comprados' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none' }}>
                           Comprados
                         </button>
                       </div>
 
                       <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                         <div style={{ flex: 1, minWidth: '100px' }}>
-                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Origem:</label>
+                          <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Origem:</label>
                           <select value={filtroOrigem} onChange={e => setFiltroOrigem(e.target.value)}
-                            style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
+                            style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid var(--border-strong)', fontSize: '11px', outline: 'none' }}>
                             <option value="TODOS">Todas</option>
                             <option value="Falta do Pedido">Falta do Pedido (retorno)</option>
                             <option value="Extra Manual">Extra Manual</option>
@@ -1144,9 +1144,9 @@ export default function TabelaDetalhes({
                       </select>
                     </div>
                     <div style={{ flex: 1, minWidth: '100px' }}>
-                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: '#6b7280', display: 'block', marginBottom: '3px' }}>Propostas:</label>
+                      <label style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-muted)', display: 'block', marginBottom: '3px' }}>Propostas:</label>
                       <select value={filtroPropostas} onChange={e => setFiltroPropostas(e.target.value)}
-                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid #d1d5db', fontSize: '11px', outline: 'none' }}>
+                        style={{ width: '100%', padding: '5px', borderRadius: '4px', border: '1px solid var(--border-strong)', fontSize: '11px', outline: 'none' }}>
                         <option value="TODOS">Todas</option>
                         <option value="COM_PROPOSTAS">Com Propostas</option>
                         <option value="SEM_PROPOSTAS">Sem Propostas</option>
@@ -1154,20 +1154,20 @@ export default function TabelaDetalhes({
                     </div>
                   </div>
 
-                  <div style={{ borderTop: '1px solid #e5e7eb', paddingTop: '8px' }}>
-                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '6px' }}>Colunas da Tabela</div>
+                  <div style={{ borderTop: '1px solid var(--border)', paddingTop: '8px' }}>
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '6px' }}>Colunas da Tabela</div>
                     {Object.entries({ quantidade: 'Qtd Solicitada', qtdBalcao: 'Qtd. Balcão', qtdSugerida: 'Qtd. Sugerida', estoque: 'Estoque Atual', vmd: 'VMD', vendas30d: 'V30 (30 dias)', vendas60d: 'V60 (60 dias)', vendas90d: 'V90 (90 dias)', cad: 'CAD (dias)', cpd: 'CPD (dias)', vendidoAposUltCompra: 'Vend. pós Últ. Compra', ultCompraData: 'Data Últ. Compra', ultCompraQtde: 'Qtd Últ. Compra', ultVendaData: 'Data Últ. Venda', ultimoPreco: 'Preço Últ. Compra', codBarras: 'Cód. Barras' }).map(([key, label]) => (
-                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
+                      <label key={key} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
                         <input type="checkbox" checked={colunasVisiveis[key]} onChange={(e) => setColunasVisiveis(prev => ({ ...prev, [key]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
                         {label}
                       </label>
                     ))}
                     {isComparativo && fornecedores.length > 0 && (
                       <>
-                        <div style={{ borderTop: '1px solid #e5e7eb', margin: '6px 0' }}></div>
-                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#9ca3af', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
+                        <div style={{ borderTop: '1px solid var(--border)', margin: '6px 0' }}></div>
+                        <div style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--text-subtle)', textTransform: 'uppercase', marginBottom: '4px' }}>Fornecedores</div>
                         {fornecedores.map(f => (
-                          <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: '#374151', marginBottom: '2px' }}>
+                          <label key={f} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '11px', color: 'var(--text-secondary)', marginBottom: '2px' }}>
                             <input type="checkbox" checked={fornecedoresVisiveis[f] ?? true} onChange={(e) => setFornecedoresVisiveis(prev => ({ ...prev, [f]: e.target.checked }))} style={{ transform: 'scale(1.1)' }} />
                             {f}
                           </label>
@@ -1180,16 +1180,16 @@ export default function TabelaDetalhes({
                 </div>
           </div>
 
-          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: '1px solid #e2e8f0', userSelect: 'none' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: '1px solid var(--border)', userSelect: 'none' }}>
               <input type="checkbox" checked={isHeaderPinned} onChange={(e) => setIsHeaderPinned(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-              <Pin size={14} color={isHeaderPinned ? '#2563eb' : '#9ca3af'} />
+              <Pin size={14} color={isHeaderPinned ? 'var(--primary)' : 'var(--text-subtle)'} />
               Fixar Cabeçalho no Topo
           </label>
 
           {isComparativo && (
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: '#475569', fontWeight: 'bold', backgroundColor: mostrarFracao ? '#ede9fe' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: mostrarFracao ? '1px solid #c4b5fd' : '1px solid #e2e8f0', userSelect: 'none' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: mostrarFracao ? 'var(--purple-soft)' : 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: mostrarFracao ? '1px solid var(--purple-border)' : '1px solid var(--border)', userSelect: 'none' }}>
                   <input type="checkbox" checked={mostrarFracao} onChange={(e) => setMostrarFracao(e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
-                  <Tags size={14} color={mostrarFracao ? '#7c3aed' : '#9ca3af'} />
+                  <Tags size={14} color={mostrarFracao ? 'var(--purple)' : 'var(--text-subtle)'} />
                   Adicionar Fração
               </label>
           )}
@@ -1200,23 +1200,23 @@ export default function TabelaDetalhes({
                   <button
                       type="button"
                       onClick={confirmarFracao}
-                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: temAlteracaoPendente ? '#ffffff' : '#475569', fontWeight: 'bold', backgroundColor: temAlteracaoPendente ? '#7c3aed' : '#f8fafc', padding: '6px 12px', borderRadius: '6px', border: temAlteracaoPendente ? '1px solid #6d28d9' : '1px solid #e2e8f0', userSelect: 'none' }}
+                      style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '12px', cursor: 'pointer', color: temAlteracaoPendente ? 'var(--surface)' : 'var(--text-secondary)', fontWeight: 'bold', backgroundColor: temAlteracaoPendente ? 'var(--purple)' : 'var(--surface-muted)', padding: '6px 12px', borderRadius: '6px', border: temAlteracaoPendente ? '1px solid var(--purple-text)' : '1px solid var(--border)', userSelect: 'none' }}
                       title={temAlteracaoPendente ? "Existem frações não confirmadas. Clique para confirmar e aplicar ao ranking e pedidos." : "Frações confirmadas. Alterações pendentes serão aplicadas ao clicar novamente."}
                   >
-                      <Check size={14} color={temAlteracaoPendente ? '#ffffff' : '#9ca3af'} />
+                      <Check size={14} color={temAlteracaoPendente ? 'var(--surface)' : 'var(--text-subtle)'} />
                       Confirmar Frações
-                      {temAlteracaoPendente && <span style={{ fontSize: '10px', backgroundColor: '#ffffff', color: '#7c3aed', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>!</span>}
+                      {temAlteracaoPendente && <span style={{ fontSize: '10px', backgroundColor: 'var(--surface)', color: 'var(--purple)', padding: '1px 6px', borderRadius: '10px', fontWeight: 'bold' }}>!</span>}
                   </button>
               );
           })()}
       </div>
 
-      <div ref={scrollContainerRef} style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid #e5e7eb', borderRadius: '8px', position: 'relative' }}>
+      <div ref={scrollContainerRef} style={{ maxHeight: '75vh', overflowY: 'auto', overflowX: 'auto', border: '1px solid var(--border)', borderRadius: '8px', position: 'relative' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', marginTop: 0 }}>
           
-          <thead style={{ position: shouldStickHead ? 'sticky' : 'static', top: 0, zIndex: 50, backgroundColor: '#ffffff', boxShadow: shouldStickHead ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>
+          <thead style={{ position: shouldStickHead ? 'sticky' : 'static', top: 0, zIndex: 50, backgroundColor: 'var(--surface)', boxShadow: shouldStickHead ? '0 4px 6px -1px rgba(0,0,0,0.1)' : 'none' }}>
             <tr>
-              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)', backgroundColor: isHeaderPinned ? '#f0fdf4' : '#ffffff' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
+              <th style={{ ...thStyle, cursor: 'pointer', userSelect: 'none', minWidth: '250px', position: 'sticky', left: 0, top: isHeaderPinned ? 0 : 'auto', zIndex: isHeaderPinned ? 40 : 30, boxShadow: '2px 0 5px -2px rgba(0,0,0,0.1)', backgroundColor: isHeaderPinned ? 'var(--success-soft)' : 'var(--surface)' }} onClick={() => requestSort('nomeProduto')}><div style={{ display: 'flex', alignItems: 'center' }}>Produto <SortIcon sortKey="nomeProduto" /></div></th>
               
               {colunasVisiveis.quantidade && (() => {
                   const isPinned = pinnedStats.includes('quantidade');
@@ -1224,7 +1224,7 @@ export default function TabelaDetalhes({
                       <th style={getHeaderStyle(isPinned, getLeftOffset('quantidade', 'stat'), '130px')}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('quantidade')}>Qtd. Solicitada <SortIcon sortKey="quantidade" /></div>
-                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar" : "Congelar Coluna"} onClick={() => togglePinStat('quantidade')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? 'var(--success-border)' : 'transparent' }}><Pin size={12} color={isPinned ? 'var(--success-text)' : 'var(--text-subtle)'} /></button>
                           </div>
                       </th>
                   );
@@ -1239,7 +1239,7 @@ export default function TabelaDetalhes({
                       <th style={getHeaderStyle(isPinned, getLeftOffset('estoque', 'stat'), '130px')}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                               <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none' }} onClick={() => requestSort('estoque')}>Estoque Atual <SortIcon sortKey="estoque" /></div>
-                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('estoque')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
+                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('estoque')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? 'var(--success-border)' : 'transparent' }}><Pin size={12} color={isPinned ? 'var(--success-text)' : 'var(--text-subtle)'} /></button>
                           </div>
                       </th>
                   );
@@ -1265,8 +1265,8 @@ export default function TabelaDetalhes({
                   return (
                       <th style={getHeaderStyle(isPinned, getLeftOffset('ultimoPreco', 'stat'), '150px', true)}>
                           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('ultimoPreco')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : 'transparent', marginRight: '6px' }}><Pin size={12} color={isPinned ? '#166534' : '#9ca3af'} /></button>
-                              <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none', color: '#4f46e5' }} onClick={() => requestSort('ultimoPreco')}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
+                              <button title={isPinned ? "Descongelar" : "Congelar"} onClick={() => togglePinStat('ultimoPreco')} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? 'var(--success-border)' : 'transparent', marginRight: '6px' }}><Pin size={12} color={isPinned ? 'var(--success-text)' : 'var(--text-subtle)'} /></button>
+                              <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer', userSelect: 'none', color: 'var(--purple)' }} onClick={() => requestSort('ultimoPreco')}>Preço Últ. Compra <SortIcon sortKey="ultimoPreco" /></div>
                           </div>
                       </th>
                   );
@@ -1299,23 +1299,23 @@ export default function TabelaDetalhes({
                         onDragEnd={() => setDraggedSupplier(null)}
                         style={{ 
                           ...getHeaderStyle(isPinned, leftPos, '180px'),
-                          textAlign: 'center', borderLeft: '1px solid #e5e7eb',
-                          backgroundColor: isPinned ? '#f0fdf4' : '#f9fafb',
+                          textAlign: 'center', borderLeft: '1px solid var(--border)',
+                          backgroundColor: isPinned ? 'var(--success-soft)' : 'var(--surface-muted)',
                           opacity: draggedSupplier === f ? 0.5 : 1,
                           cursor: 'grab'
                       }}>
                           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <GripHorizontal size={14} color="#9ca3af" />
-                                      <span style={{ fontWeight: 'bold', color: isPinned ? '#166534' : '#374151' }}>{f}</span>
+                                      <GripHorizontal size={14} color="var(--text-subtle)" />
+                                      <span style={{ fontWeight: 'bold', color: isPinned ? 'var(--success-text)' : 'var(--text-secondary)' }}>{f}</span>
                                   </div>
                                   <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                      <button title={isPinned ? "Descongelar Coluna inteira" : "Congelar (Fixar coluna inteira na tela)"} onClick={() => togglePin(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? '#bbf7d0' : '#e2e8f0', display: 'flex', alignItems: 'center' }}>
-                                          <Pin size={14} color={isPinned ? '#166534' : '#64748b'} />
+                                      <button title={isPinned ? "Descongelar Coluna inteira" : "Congelar (Fixar coluna inteira na tela)"} onClick={() => togglePin(f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: isPinned ? 'var(--success-border)' : 'var(--border)', display: 'flex', alignItems: 'center' }}>
+                                          <Pin size={14} color={isPinned ? 'var(--success-text)' : 'var(--text-muted)'} />
                                       </button>
-                                      <button title={`Filtrar apenas itens ganhos por ${f}`} onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? '#dbeafe' : 'transparent', display: 'flex', alignItems: 'center' }}>
-                                          <Filter size={14} color={filtroVencedor === f ? '#2563eb' : '#9ca3af'} />
+                                      <button title={`Filtrar apenas itens ganhos por ${f}`} onClick={() => setFiltroVencedor(filtroVencedor === f ? 'TODOS' : f)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2, borderRadius: '4px', backgroundColor: filtroVencedor === f ? 'var(--info-soft)' : 'transparent', display: 'flex', alignItems: 'center' }}>
+                                          <Filter size={14} color={filtroVencedor === f ? 'var(--primary)' : 'var(--text-subtle)'} />
                                       </button>
                                   </div>
                               </div>
@@ -1348,18 +1348,18 @@ export default function TabelaDetalhes({
       </div>
 
       {(isItens || isComparativo) && itensExcluidosLocal && itensExcluidosLocal.length > 0 && (
-        <div style={{ borderTop: '2px solid #e5e7eb', padding: '12px', backgroundColor: '#fafafa', borderRadius: '8px' }}>
-          <div style={{ fontSize: '13px', fontWeight: 'bold', color: '#6b7280', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+        <div style={{ borderTop: '2px solid var(--border)', padding: '12px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px' }}>
+          <div style={{ fontSize: '13px', fontWeight: 'bold', color: 'var(--text-muted)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
             🗑️ Itens Excluídos ({itensExcluidosLocal.length})
           </div>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
             {itensExcluidosLocal.map(item => (
-              <div key={item.idItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: '#f3f4f6', borderRadius: '6px', border: '1px solid #e5e7eb' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280', textDecoration: 'line-through' }}>{getNomeExibicao(item.nomeProduto)}</span>
+              <div key={item.idItem} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '8px 12px', backgroundColor: 'var(--bg)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', textDecoration: 'line-through' }}>{getNomeExibicao(item.nomeProduto)}</span>
                 <button
                   type="button"
                   onClick={() => retornarItem(item.idItem)}
-                  style={{ fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dbeafe', color: '#1d4ed8', border: '1px solid #93c5fd', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
+                  style={{ fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--info-soft)', color: 'var(--primary-hover)', border: '1px solid var(--primary-disabled)', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px' }}
                 >
                   <RefreshCcw size={12} /> Retornar
                 </button>
@@ -1370,7 +1370,7 @@ export default function TabelaDetalhes({
             <button
               type="button"
               onClick={confirmarListaExcluidos}
-              style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
+              style={{ fontSize: '12px', fontWeight: 'bold', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', padding: '8px 14px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}
             >
               <Check size={14} /> Confirmar e Limpar Lista de Excluídos
             </button>
@@ -1381,26 +1381,26 @@ export default function TabelaDetalhes({
       {/* MODAL COM OS MOTIVOS DO EXCESSO DE ESTOQUE */}
       {alertaProduto && (
           <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999 }}>
-              <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+              <div style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                      <h3 style={{ margin: 0, fontSize: '18px', color: '#991b1b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--danger-text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <AlertTriangle size={20} /> Alertas de Compra
                       </h3>
-                      <button onClick={() => setAlertaProduto(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                      <button onClick={() => setAlertaProduto(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
                   </div>
                   
-                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: '#1f2937', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid #e2e8f0' }}>
+                  <p style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text)', marginBottom: '16px', paddingBottom: '8px', borderBottom: '1px solid var(--border)' }}>
                       {alertaProduto.nome}
                   </p>
                   
-                  <ul style={{ paddingLeft: '20px', margin: 0, color: '#4b5563', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <ul style={{ paddingLeft: '20px', margin: 0, color: 'var(--text-secondary)', fontSize: '14px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {alertaProduto.motivos.map((m, idx) => (
                           <li key={idx} style={{ lineHeight: '1.4' }}>{m}</li>
                       ))}
                   </ul>
                   
                   <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '24px' }}>
-                      <button onClick={() => setAlertaProduto(null)} style={{ padding: '8px 16px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 'bold', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
+                      <button onClick={() => setAlertaProduto(null)} style={{ padding: '8px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', fontWeight: 'bold', borderRadius: '6px', border: 'none', cursor: 'pointer' }}>
                           Fechar
                       </button>
                   </div>
@@ -1409,15 +1409,15 @@ export default function TabelaDetalhes({
       )}
 
       {contextMenu && (
-        <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999, backgroundColor: 'white', border: '1px solid #d1d5db', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '4px', minWidth: '160px' }}>
+        <div style={{ position: 'fixed', left: contextMenu.x, top: contextMenu.y, zIndex: 9999, backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '6px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', padding: '4px', minWidth: '160px' }}>
           <button
             onClick={(e) => {
               e.stopPropagation();
               setValoresRecusados(prev => ({ ...prev, [`${contextMenu.itemId}-${contextMenu.fornecedor}`]: { preco: contextMenu.preco, data: new Date().toISOString() } }));
               setContextMenu(null);
             }}
-            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: '#92400e', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-            onMouseEnter={(e) => e.target.style.backgroundColor = '#fef3c7'}
+            style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: 'var(--warning-text)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+            onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--warning-soft)'}
             onMouseLeave={(e) => e.target.style.backgroundColor = 'none'}
           >
             🚫 Recusar Valor
@@ -1429,8 +1429,8 @@ export default function TabelaDetalhes({
                 setValoresRecusados(prev => { const n = {...prev}; delete n[`${contextMenu.itemId}-${contextMenu.fornecedor}`]; return n; });
                 setContextMenu(null);
               }}
-              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: '#374151', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
-              onMouseEnter={(e) => e.target.style.backgroundColor = '#f3f4f6'}
+              style={{ display: 'block', width: '100%', textAlign: 'left', padding: '8px 12px', fontSize: '13px', color: 'var(--text-secondary)', background: 'none', border: 'none', cursor: 'pointer', borderRadius: '4px' }}
+              onMouseEnter={(e) => e.target.style.backgroundColor = 'var(--bg)'}
               onMouseLeave={(e) => e.target.style.backgroundColor = 'none'}
             >
               ✓ Desfazer Recusa
@@ -1440,20 +1440,20 @@ export default function TabelaDetalhes({
       )}
 
       {obsEditando && (
-        <div className="obs-popup-container" style={{ position: 'fixed', top: obsPosition.top, left: obsPosition.left, zIndex: 9999, backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', width: '300px' }} onClick={(e) => e.stopPropagation()}>
-          <div style={{ fontSize: '12px', color: '#64748b', marginBottom: '6px', fontWeight: '600' }}>Observação para o fornecedor:</div>
+        <div className="obs-popup-container" style={{ position: 'fixed', top: obsPosition.top, left: obsPosition.left, zIndex: 9999, backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', boxShadow: '0 8px 24px rgba(0,0,0,0.2)', width: '300px' }} onClick={(e) => e.stopPropagation()}>
+          <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginBottom: '6px', fontWeight: '600' }}>Observação para o fornecedor:</div>
           <textarea
             autoFocus
             rows={3}
             value={obsTemp}
             onChange={(e) => setObsTemp(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); salvarObservacao(obsEditando, obsTemp); } if (e.key === 'Escape') setObsEditando(null); }}
-            style={{ width: '100%', padding: '8px', fontSize: '13px', border: '1px solid #cbd5e1', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box', minHeight: '60px' }}
+            style={{ width: '100%', padding: '8px', fontSize: '13px', border: '1px solid var(--border-strong)', borderRadius: '4px', resize: 'vertical', boxSizing: 'border-box', minHeight: '60px' }}
             placeholder="Ex: Preencha o valor deste produto fracionado para 12 unidades"
           />
           <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
-            <button type="button" onClick={() => salvarObservacao(obsEditando, obsTemp)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Salvar</button>
-            <button type="button" onClick={() => setObsEditando(null)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
+            <button type="button" onClick={() => salvarObservacao(obsEditando, obsTemp)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>Salvar</button>
+            <button type="button" onClick={() => setObsEditando(null)} style={{ flex: 1, padding: '6px', fontSize: '12px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
           </div>
         </div>
       )}

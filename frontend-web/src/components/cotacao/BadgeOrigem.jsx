@@ -2,16 +2,16 @@ import React from 'react';
 
 export default function BadgeOrigem({ origem }) {
   const getCorOrigem = (orig) => {
-    if (!orig) return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: 'Geral' };
+    if (!orig) return { bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border-strong)', label: 'Geral' };
     const str = String(orig).toUpperCase();
     
-    if (str.includes('ENCOMENDA')) return { bg: '#e0e7ff', color: '#3730a3', border: '#c7d2fe', label: '📦 Encomenda Balcão' };
+    if (str.includes('ENCOMENDA')) return { bg: 'var(--purple-soft)', color: 'var(--purple-text)', border: 'var(--purple-border)', label: '📦 Encomenda Balcão' };
     if (str.includes('EXTRA MANUAL')) return { bg: '#fce7f3', color: '#be185d', border: '#fbcfe8', label: '➕ Inserido Manualmente' };
-    if (str.includes('NOVA IMPORTAÇÃO') || str.includes('ATUALIZAÇÃO')) return { bg: '#f3e8ff', color: '#7e22ce', border: '#e9d5ff', label: '🔄 Atualização DNA' };
-    if (str.includes('SUGESTÃO') && str.includes('FALTA')) return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74', label: orig };
-    if (str.includes('SUGESTÃO')) return { bg: '#e0e7ff', color: '#1d4ed8', border: '#93c5fd', label: orig };
-    if (str.includes('FALTA')) return { bg: '#ffedd5', color: '#c2410c', border: '#fdba74', label: orig };
-    return { bg: '#f3f4f6', color: '#4b5563', border: '#d1d5db', label: orig };
+    if (str.includes('NOVA IMPORTAÇÃO') || str.includes('ATUALIZAÇÃO')) return { bg: 'var(--purple-soft)', color: 'var(--purple-text)', border: 'var(--purple-border)', label: '🔄 Atualização DNA' };
+    if (str.includes('SUGESTÃO') && str.includes('FALTA')) return { bg: 'var(--warning-soft)', color: 'var(--warning-text)', border: 'var(--warning-border)', label: orig };
+    if (str.includes('SUGESTÃO')) return { bg: 'var(--purple-soft)', color: 'var(--primary-hover)', border: 'var(--primary-disabled)', label: orig };
+    if (str.includes('FALTA')) return { bg: 'var(--warning-soft)', color: 'var(--warning-text)', border: 'var(--warning-border)', label: orig };
+    return { bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border-strong)', label: orig };
   };
 
   const cores = getCorOrigem(origem);

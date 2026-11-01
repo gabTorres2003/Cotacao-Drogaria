@@ -165,7 +165,7 @@ export default function ModalResumoPedidos({
     <div style={styles.overlay}>
       <div style={styles.modal}>
         <div style={styles.header}>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b' }}>Resumo de Pedidos</h2>
+          <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--text)' }}>Resumo de Pedidos</h2>
           <button onClick={onClose} style={styles.closeBtn}><X size={24} /></button>
         </div>
 
@@ -187,11 +187,11 @@ export default function ModalResumoPedidos({
                 <div style={styles.cardHeader}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <input type="checkbox" checked={allSelected} ref={el => { if(el) el.indeterminate = !allSelected && someSelected; }} onChange={e => handleToggleFornecedor(fIndex, e.target.checked)} style={{ transform: 'scale(1.2)', cursor: 'pointer' }} />
-                    <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>{pedido.fornecedorNome}</h3>
+                    <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text)' }}>{pedido.fornecedorNome}</h3>
                   </div>
                   
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>Ação:</span>
+                    <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)' }}>Ação:</span>
                     <select value={pedido.acaoFornecedor || 'NOVO'} onChange={e => { const val = e.target.value; setPedidosGerados(prev => { const next = [...prev]; next[fIndex].acaoFornecedor = val; return next; }); }} style={styles.selectAcao} disabled={!someSelected}>
                        <option value="NOVO">Gerar Novo Pedido</option>
                        {ordersForn.map(o => <option key={o.id} value={o.id}>Adicionar ao Pedido #{o.id}</option>)}
@@ -201,7 +201,7 @@ export default function ModalResumoPedidos({
 
                 <table style={styles.table}>
                   <thead>
-                    <tr style={{ borderBottom: '1px solid #e2e8f0', color: '#475569', fontSize: '13px' }}>
+                    <tr style={{ borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px' }}>
                       <th style={{ padding: '8px', width: '30px', textAlign: 'center' }}>✓</th>
                       <th style={{ padding: '8px', textAlign: 'left' }}>Produto</th>
                       <th style={{ padding: '8px', textAlign: 'center', width: '90px' }}>Qtd</th>
@@ -269,24 +269,24 @@ export default function ModalResumoPedidos({
                                precosArr.push(item.valorUnitarioPedido);
                                precosArr = [...new Set(precosArr)].sort((a, b) => a - b);
                                const rankIndex = precosArr.indexOf(item.valorUnitarioPedido) + 1;
-                               const corFundo = rankIndex === 1 ? '#dcfce7' : (rankIndex === 2 ? '#fef08a' : '#f1f5f9');
-                               const corTexto = rankIndex === 1 ? '#166534' : (rankIndex === 2 ? '#854d0e' : '#475569');
+                               const corFundo = rankIndex === 1 ? 'var(--success-soft)' : (rankIndex === 2 ? 'var(--warning-border)' : 'var(--surface-muted)');
+                               const corTexto = rankIndex === 1 ? 'var(--success-text)' : (rankIndex === 2 ? 'var(--warning-text)' : 'var(--text-secondary)');
                                rankBadge = (<span style={{ fontSize: '10px', backgroundColor: corFundo, color: corTexto, padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '2px' }}><Tag size={10} /> {rankIndex}º Melhor Preço</span>);
                            } else {
-                               rankBadge = <span style={{ fontSize: '10px', backgroundColor: '#e2e8f0', color: '#475569', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Item Novo (Extra)</span>;
+                               rankBadge = <span style={{ fontSize: '10px', backgroundColor: 'var(--border)', color: 'var(--text-secondary)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>Item Novo (Extra)</span>;
                            }
                        }
 
                        return (
-                         <tr key={iIndex} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: item.selected ? (item.isExtra ? '#fefce8' : 'white') : '#f8fafc', opacity: item.selected ? 1 : 0.5 }}>
+                         <tr key={iIndex} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: item.selected ? (item.isExtra ? 'var(--warning-soft)' : 'var(--surface)') : 'var(--surface-muted)', opacity: item.selected ? 1 : 0.5 }}>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
                              <input type="checkbox" checked={item.selected} onChange={e => handleToggleItem(fIndex, iIndex, e.target.checked)} style={{ cursor: 'pointer', transform: 'scale(1.1)' }} />
                            </td>
-                           <td style={{ padding: '8px', fontSize: '13px', fontWeight: '500', color: '#1e293b' }}>
+                           <td style={{ padding: '8px', fontSize: '13px', fontWeight: '500', color: 'var(--text)' }}>
                              {nomeExibir}
                              
                              {item.nomeOriginal && item.nomeProduto !== item.nomeOriginal && (
-                               <div style={{ fontSize: '10px', color: '#d97706', marginTop: '2px' }}>
+                               <div style={{ fontSize: '10px', color: 'var(--warning)', marginTop: '2px' }}>
                                  Troca de: {item.nomeOriginal}
                                </div>
                              )}
@@ -296,7 +296,7 @@ export default function ModalResumoPedidos({
                                   {item.condicoes.map((cond, idx) => {
                                       const isAtiva = item.condicaoAplicada && item.qtdCondicao === cond.qtd;
                                       return isAtiva ? (
-                                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#dcfce7', color: '#166534', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', width: 'fit-content' }}>
+                                        <div key={idx} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid var(--success-border)', width: 'fit-content' }}>
                                           <Tag size={10} /> Condição Aplicada ({cond.qtd} un por {fMoney(cond.preco)})
                                         </div>
                                       ) : (
@@ -304,7 +304,7 @@ export default function ModalResumoPedidos({
                                           key={idx}
                                           type="button" 
                                           onClick={() => handleAplicarCondicao(fIndex, iIndex, cond.qtd, cond.preco)}
-                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: '#fef08a', color: '#854d0e', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: 'fit-content' }}
+                                          style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--warning-border)', color: 'var(--warning-text)', padding: '3px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid var(--warning-border)', cursor: 'pointer', width: 'fit-content' }}
                                         >
                                           <Tags size={10} /> Aceitar Condição: {cond.qtd} un por {fMoney(cond.preco)}
                                         </button>
@@ -315,14 +315,14 @@ export default function ModalResumoPedidos({
 
                              {item.isExtra && (
                                <div style={{ display: 'flex', gap: '6px', alignItems: 'center', marginTop: '4px' }}>
-                                 <span style={{ fontSize: '10px', backgroundColor: '#fde047', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
+                                 <span style={{ fontSize: '10px', backgroundColor: 'var(--warning-border)', color: 'var(--warning-text)', padding: '2px 6px', borderRadius: '4px', fontWeight: 'bold' }}>
                                    ⭐ {item.isSugestaoTroca ? 'Sugestão de Troca' : 'Sugestão Extra'}
                                  </span>
                                  {rankBadge}
                                </div>
                              )}
                              {proximoMenor && (
-                               <div style={{ marginTop: '5px', fontSize: '10px', color: '#475569', backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', borderRadius: '4px', padding: '3px 6px', width: 'fit-content' }}>
+                               <div style={{ marginTop: '5px', fontSize: '10px', color: 'var(--text-secondary)', backgroundColor: 'var(--surface-muted)', border: '1px solid var(--border-strong)', borderRadius: '4px', padding: '3px 6px', width: 'fit-content' }}>
                                  Próximo menor: <strong>{proximoMenor.fornecedor}</strong> ({fMoney(proximoMenor.preco)})
                                </div>
                              )}
@@ -335,21 +335,21 @@ export default function ModalResumoPedidos({
                                value={item.quantidadePedida || 1} 
                                onChange={e => handleQtdChange(fIndex, iIndex, e.target.value)}
                                onFocus={e => e.target.select()}
-                               style={{ width: '65px', padding: '6px 4px', textAlign: 'center', borderRadius: '4px', border: '1px solid #cbd5e1', fontWeight: 'bold', fontSize: '13px' }} 
+                               style={{ width: '65px', padding: '6px 4px', textAlign: 'center', borderRadius: '4px', border: '1px solid var(--border-strong)', fontWeight: 'bold', fontSize: '13px' }}
                              />
                            </td>
 
-                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', color: item.condicaoAplicada ? '#16a34a' : '#374151', fontWeight: item.condicaoAplicada ? 'bold' : 'normal' }}>
+                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', color: item.condicaoAplicada ? 'var(--success)' : 'var(--text-secondary)', fontWeight: item.condicaoAplicada ? 'bold' : 'normal' }}>
                              {fMoney(item.valorUnitarioPedido)}
                            </td>
-                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? '#16a34a' : '#9ca3af' }}>
+                           <td style={{ padding: '8px', textAlign: 'right', fontSize: '13px', fontWeight: 'bold', color: item.selected ? 'var(--success)' : 'var(--text-subtle)' }}>
                              {fMoney(item.subtotal)}
                            </td>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
                              {!item.isExtra && item.selected && (
                                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                   <ArrowRight size={12} color="#6b7280" />
+                                   <ArrowRight size={12} color="var(--text-muted)" />
                                    <select style={styles.selectSmall} value={pedido.fornecedorNome} onChange={(e) => moverItemParaFornecedor(pedido.fornecedorNome, iIndex, e.target.value)}>
                                      <option value={pedido.fornecedorNome}>{pedido.fornecedorNome}</option>
                                      {fornecedores.filter(f => f !== pedido.fornecedorNome).map(f => (
@@ -362,15 +362,15 @@ export default function ModalResumoPedidos({
                              )}
                            </td>
                            <td style={{ padding: '8px', textAlign: 'center' }}>
-                             <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, iIndex)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                             <button onClick={() => removerItemDoPedido(pedido.fornecedorNome, iIndex)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
                            </td>
                          </tr>
                        )
                     })}
                   </tbody>
                 </table>
-                <div style={{ textAlign: 'right', padding: '12px 16px', borderTop: '1px solid #e2e8f0', fontSize: '14px', fontWeight: 'bold', backgroundColor: '#f8fafc', borderRadius: '0 0 8px 8px' }}>
-                   Total Selecionado de {pedido.fornecedorNome}: <span style={{ color: '#16a34a', fontSize: '16px' }}>{fMoney(totalForn)}</span>
+                <div style={{ textAlign: 'right', padding: '12px 16px', borderTop: '1px solid var(--border)', fontSize: '14px', fontWeight: 'bold', backgroundColor: 'var(--surface-muted)', borderRadius: '0 0 8px 8px' }}>
+                   Total Selecionado de {pedido.fornecedorNome}: <span style={{ color: 'var(--success)', fontSize: '16px' }}>{fMoney(totalForn)}</span>
                 </div>
               </div>
             )
@@ -379,19 +379,19 @@ export default function ModalResumoPedidos({
 
         <div style={styles.footer}>
           <div style={styles.footerOptions}>
-            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px', color: '#1e293b' }}>Após processar os pedidos, o que deseja fazer com a cotação?</p>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#2563eb', fontWeight: '500' }}>
+            <p style={{ margin: '0 0 8px 0', fontWeight: 'bold', fontSize: '14px', color: 'var(--text)' }}>Após processar os pedidos, o que deseja fazer com a cotação?</p>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--primary)', fontWeight: '500' }}>
               <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ABERTA'} onChange={() => setAcaoPosPedido('ABERTA')} /> Deixar em Aberto (Aguardando outros pedidos)
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: '#dc2626', fontWeight: '500', marginTop: '4px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', cursor: 'pointer', color: 'var(--danger)', fontWeight: '500', marginTop: '4px' }}>
               <input type="radio" name="acaoCotacao" checked={acaoPosPedido === 'ENCERRADA'} onChange={() => setAcaoPosPedido('ENCERRADA')} /> Encerrar Cotação (Mover para o Histórico)
             </label>
           </div>
 
           <div style={{ display: 'flex', gap: '12px', alignItems: 'flex-end' }}>
              <div style={{ textAlign: 'right', marginRight: '16px' }}>
-                <div style={{ fontSize: '12px', color: '#64748b', fontWeight: 'bold' }}>Total Geral Selecionado</div>
-                <div style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</div>
+                <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Total Geral Selecionado</div>
+                <div style={{ fontSize: '20px', color: 'var(--success)', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</div>
              </div>
             <button onClick={onClose} disabled={salvandoPedidos} style={styles.btnCancel}>Cancelar</button>
             <button onClick={handleSalvarMudancasClick} disabled={salvandoPedidos || salvandoConfiguracao} style={styles.btnSaveMudancas}>
@@ -408,64 +408,64 @@ export default function ModalResumoPedidos({
         <div style={styles.confirmOverlay}>
           <div style={styles.confirmModal}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '16px' }}>
-              <div style={{ backgroundColor: '#fef3c7', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <AlertTriangle size={24} color="#d97706" />
+              <div style={{ backgroundColor: 'var(--warning-soft)', borderRadius: '50%', width: '48px', height: '48px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <AlertTriangle size={24} color="var(--warning)" />
               </div>
               <div>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Confirmar Envio de Pedidos</h3>
-                <p style={{ margin: '4px 0 0', fontSize: '13px', color: '#6b7280' }}>Revise o resumo antes de confirmar</p>
+                <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text)' }}>Confirmar Envio de Pedidos</h3>
+                <p style={{ margin: '4px 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>Revise o resumo antes de confirmar</p>
               </div>
             </div>
 
-            <div style={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
+            <div style={{ backgroundColor: 'var(--surface-muted)', border: '1px solid var(--border)', borderRadius: '8px', padding: '16px', marginBottom: '16px' }}>
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ backgroundColor: '#dbeafe', borderRadius: '6px', padding: '6px' }}><Package size={16} color="#2563eb" /></div>
+                  <div style={{ backgroundColor: 'var(--info-soft)', borderRadius: '6px', padding: '6px' }}><Package size={16} color="var(--primary)" /></div>
                   <div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Itens Selecionados</div>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalItensSelecionados}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Itens Selecionados</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)' }}>{totalItensSelecionados}</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ backgroundColor: '#e0e7ff', borderRadius: '6px', padding: '6px' }}><Truck size={16} color="#4f46e5" /></div>
+                  <div style={{ backgroundColor: 'var(--purple-soft)', borderRadius: '6px', padding: '6px' }}><Truck size={16} color="var(--purple)" /></div>
                   <div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Fornecedores</div>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalFornecedoresSelecionados}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Fornecedores</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)' }}>{totalFornecedoresSelecionados}</div>
                   </div>
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{ backgroundColor: '#dcfce7', borderRadius: '6px', padding: '6px' }}><FileText size={16} color="#16a34a" /></div>
+                  <div style={{ backgroundColor: 'var(--success-soft)', borderRadius: '6px', padding: '6px' }}><FileText size={16} color="var(--success)" /></div>
                   <div>
-                    <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Novos Pedidos</div>
-                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalNovosPedidos}</div>
+                    <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Novos Pedidos</div>
+                    <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)' }}>{totalNovosPedidos}</div>
                   </div>
                 </div>
                 {totalAdicionarExistente > 0 && (
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                    <div style={{ backgroundColor: '#fef08a', borderRadius: '6px', padding: '6px' }}><ArrowRight size={16} color="#854d0e" /></div>
+                    <div style={{ backgroundColor: 'var(--warning-border)', borderRadius: '6px', padding: '6px' }}><ArrowRight size={16} color="var(--warning-text)" /></div>
                     <div>
-                      <div style={{ fontSize: '11px', color: '#6b7280', fontWeight: '600' }}>Adicionar a Existente</div>
-                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#1e293b' }}>{totalAdicionarExistente}</div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>Adicionar a Existente</div>
+                      <div style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)' }}>{totalAdicionarExistente}</div>
                     </div>
                   </div>
                 )}
               </div>
-              <div style={{ borderTop: '1px solid #e2e8f0', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Valor Total:</span>
-                <span style={{ fontSize: '20px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</span>
+              <div style={{ borderTop: '1px solid var(--border)', marginTop: '12px', paddingTop: '12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>Valor Total:</span>
+                <span style={{ fontSize: '20px', color: 'var(--success)', fontWeight: '900' }}>{fMoney(totalGeralSelecionado)}</span>
               </div>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', backgroundColor: acaoPosPedido === 'ENCERRADA' ? '#fef2f2' : '#f0fdf4', borderRadius: '6px', border: `1px solid ${acaoPosPedido === 'ENCERRADA' ? '#fecaca' : '#bbf7d0'}`, marginBottom: '20px' }}>
-              <AlertTriangle size={14} color={acaoPosPedido === 'ENCERRADA' ? '#dc2626' : '#16a34a'} />
-              <span style={{ fontSize: '12px', color: acaoPosPedido === 'ENCERRADA' ? '#991b1b' : '#166534', fontWeight: '500' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px', backgroundColor: acaoPosPedido === 'ENCERRADA' ? 'var(--danger-soft)' : 'var(--success-soft)', borderRadius: '6px', border: `1px solid ${acaoPosPedido === 'ENCERRADA' ? 'var(--danger-border)' : 'var(--success-border)'}`, marginBottom: '20px' }}>
+              <AlertTriangle size={14} color={acaoPosPedido === 'ENCERRADA' ? 'var(--danger)' : 'var(--success)'} />
+              <span style={{ fontSize: '12px', color: acaoPosPedido === 'ENCERRADA' ? 'var(--danger-text)' : 'var(--success-text)', fontWeight: '500' }}>
                 {acaoPosPedido === 'ENCERRADA'
                   ? 'A cotação será encerrada e movida para o histórico após o envio.'
                   : 'A cotação permanecerá aberta para futuros pedidos.'}
               </span>
             </div>
 
-            <p style={{ fontSize: '13px', color: '#6b7280', marginBottom: '16px', lineHeight: '1.5' }}>
+            <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px', lineHeight: '1.5' }}>
               As alterações feitas (quantidades, vencedores, exclusões) serão salvas automaticamente no banco de dados.
             </p>
 
@@ -480,7 +480,7 @@ export default function ModalResumoPedidos({
       )}
 
       {toastMensagem && (
-        <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: '#059669', color: 'white', padding: '12px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2000, fontSize: '14px', fontWeight: '600', animation: 'slideIn 0.3s ease-out' }}>
+        <div style={{ position: 'fixed', top: '20px', right: '20px', backgroundColor: 'var(--success)', color: 'white', padding: '12px 20px', borderRadius: '8px', boxShadow: '0 4px 12px rgba(0,0,0,0.15)', display: 'flex', alignItems: 'center', gap: '8px', zIndex: 2000, fontSize: '14px', fontWeight: '600', animation: 'slideIn 0.3s ease-out' }}>
           <CheckCircle size={18} />
           {toastMensagem}
         </div>
@@ -491,22 +491,22 @@ export default function ModalResumoPedidos({
 
 const styles = {
   overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000, padding: '20px' },
-  modal: { backgroundColor: '#f8fafc', borderRadius: '12px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
-  header: { padding: '20px 24px', backgroundColor: 'white', borderBottom: '1px solid #e2e8f0', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#64748b' },
+  modal: { backgroundColor: 'var(--surface-muted)', borderRadius: '12px', width: '100%', maxWidth: '1000px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+  header: { padding: '20px 24px', backgroundColor: 'var(--surface)', borderBottom: '1px solid var(--border)', borderRadius: '12px 12px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' },
   content: { padding: '24px', overflowY: 'auto', flex: 1, display: 'flex', flexDirection: 'column', gap: '20px' },
-  card: { backgroundColor: 'white', border: '1px solid #e2e8f0', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: '0.2s' },
-  cardHeader: { padding: '16px', borderBottom: '1px solid #e2e8f0', backgroundColor: '#f1f5f9', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  selectAcao: { padding: '6px 10px', borderRadius: '6px', border: '1px solid #cbd5e1', fontSize: '13px', fontWeight: 'bold', color: '#1e293b', outline: 'none', cursor: 'pointer', minWidth: '200px' },
+  card: { backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)', transition: '0.2s' },
+  cardHeader: { padding: '16px', borderBottom: '1px solid var(--border)', backgroundColor: 'var(--surface-muted)', borderRadius: '8px 8px 0 0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  selectAcao: { padding: '6px 10px', borderRadius: '6px', border: '1px solid var(--border-strong)', fontSize: '13px', fontWeight: 'bold', color: 'var(--text)', outline: 'none', cursor: 'pointer', minWidth: '200px' },
   table: { width: '100%', borderCollapse: 'collapse' },
-  selectSmall: { padding: '2px 4px', fontSize: '11px', borderRadius: '4px', border: '1px solid #cbd5e1', maxWidth: '120px' },
-  btnSmallBlue: { padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '4px', cursor: 'pointer' },
-  footer: { padding: '20px 24px', backgroundColor: 'white', borderTop: '1px solid #e2e8f0', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
-  footerOptions: { backgroundColor: '#f8fafc', padding: '12px 16px', borderRadius: '8px', border: '1px solid #e2e8f0' },
-  btnCancel: { padding: '10px 20px', backgroundColor: '#64748b', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
-  btnSaveMudancas: { padding: '10px 24px', backgroundColor: '#2563eb', color: 'white', border: '2px solid #1d4ed8', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)', transition: 'all 0.2s' },
-  btnSend: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
+  selectSmall: { padding: '2px 4px', fontSize: '11px', borderRadius: '4px', border: '1px solid var(--border-strong)', maxWidth: '120px' },
+  btnSmallBlue: { padding: '4px 8px', fontSize: '10px', fontWeight: 'bold', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: 'none', borderRadius: '4px', cursor: 'pointer' },
+  footer: { padding: '20px 24px', backgroundColor: 'var(--surface)', borderTop: '1px solid var(--border)', borderRadius: '0 0 12px 12px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' },
+  footerOptions: { backgroundColor: 'var(--surface-muted)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border)' },
+  btnCancel: { padding: '10px 20px', backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer' },
+  btnSaveMudancas: { padding: '10px 24px', backgroundColor: 'var(--primary)', color: 'white', border: '2px solid var(--primary-hover)', borderRadius: '8px', fontWeight: '700', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', boxShadow: '0 2px 8px rgba(37, 99, 235, 0.3)', transition: 'all 0.2s' },
+  btnSend: { padding: '10px 20px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' },
   confirmOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 },
-  confirmModal: { backgroundColor: 'white', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
-  btnConfirm: { padding: '10px 20px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
+  confirmModal: { backgroundColor: 'var(--surface)', borderRadius: '12px', padding: '24px', width: '90%', maxWidth: '480px', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+  btnConfirm: { padding: '10px 20px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px' }
 };

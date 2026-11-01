@@ -1291,19 +1291,19 @@ export default function CotacaoDetalhes() {
   }, 0);
 
   const styles = {
-    container: { padding: '12px 16px', backgroundColor: '#f3f4f6', minHeight: '100vh', fontFamily: 'Segoe UI' },
-    card: { backgroundColor: 'white', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
-    toggleContainer: { display: 'flex', gap: '8px', marginBottom: '12px', backgroundColor: '#e5e7eb', padding: '3px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
-    toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '13px', backgroundColor: ativo ? 'white' : 'transparent', color: ativo ? '#111827' : '#6b7280', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
-    btnVoltar: { padding: '10px 20px', backgroundColor: '#6b7280', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }
+    container: { padding: '12px 16px', backgroundColor: 'var(--bg)', minHeight: '100vh', fontFamily: 'Segoe UI' },
+    card: { backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '10px', boxShadow: '0 2px 4px rgba(0,0,0,0.05)' },
+    toggleContainer: { display: 'flex', gap: '8px', marginBottom: '12px', backgroundColor: 'var(--border)', padding: '3px', borderRadius: '8px', width: 'fit-content', flexWrap: 'wrap' },
+    toggleBtn: (ativo) => ({ display: 'flex', alignItems: 'center', gap: '6px', padding: '8px 16px', borderRadius: '6px', border: 'none', cursor: 'pointer', fontWeight: '600', fontSize: '13px', backgroundColor: ativo ? 'var(--surface)' : 'transparent', color: ativo ? 'var(--text)' : 'var(--text-muted)', boxShadow: ativo ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }),
+    btnVoltar: { padding: '10px 20px', backgroundColor: 'var(--text-muted)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }
   };
 
   if (loading) return (
     <div style={styles.container}>
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '60vh', gap: '16px' }}>
-        <Loader2 size={40} color="#4f46e5" className="animate-spin" />
-        <div style={{ fontSize: '16px', fontWeight: '600', color: '#374151' }}>Carregando cotação...</div>
-        <div style={{ fontSize: '13px', color: '#6b7280' }}>Aguarde enquanto os dados são preparados</div>
+        <Loader2 size={40} color="var(--purple)" className="animate-spin" />
+        <div style={{ fontSize: '16px', fontWeight: '600', color: 'var(--text-secondary)' }}>Carregando cotação...</div>
+        <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Aguarde enquanto os dados são preparados</div>
       </div>
     </div>
   );
@@ -1316,20 +1316,20 @@ export default function CotacaoDetalhes() {
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'itens')} onClick={() => setModoVisualizacao('itens')}><List size={18} /> Detalhes da Cotação</button>
         <button type="button" style={styles.toggleBtn(modoVisualizacao === 'comparativo')} onClick={() => setModoVisualizacao('comparativo')}><BarChart2 size={18} /> Comparativo de Preços</button>
         {!isEncerrada && (
-          <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? '#10b981' : '#6b7280'} /> Registro Manual (Checklist)</button>
+          <button type="button" style={styles.toggleBtn(modoVisualizacao === 'manual')} onClick={() => setModoVisualizacao('manual')}><ClipboardCheck size={18} color={modoVisualizacao === 'manual' ? 'var(--success)' : 'var(--text-muted)'} /> Registro Manual (Checklist)</button>
         )}
       </div>
 
       {modoVisualizacao === 'manual' ? (
-        <div style={{ ...styles.card, borderTop: '4px solid #10b981' }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed #e5e7eb', flexWrap: 'wrap', gap: '15px' }}>
+        <div style={{ ...styles.card, borderTop: '4px solid var(--success)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '25px', paddingBottom: '20px', borderBottom: '2px dashed var(--border)', flexWrap: 'wrap', gap: '15px' }}>
             <div>
-              <h3 style={{ margin: 0, fontSize: '18px', color: '#111827' }}>Registro de Pedidos Manuais</h3>
-              <p style={{ fontSize: '12px', color: '#6b7280', marginTop: '6px' }}>Marque os itens, ajuste os preços e vincule o fornecedor para gerar o pedido espelho.</p>
+              <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text)' }}>Registro de Pedidos Manuais</h3>
+              <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '6px' }}>Marque os itens, ajuste os preços e vincule o fornecedor para gerar o pedido espelho.</p>
             </div>
             <div style={{ textAlign: 'right' }}>
-              <div style={{ fontSize: '13px', color: '#6b7280', fontWeight: '600' }}>Total Acumulado (Itens Marcados)</div>
-              <div style={{ fontSize: '28px', color: '#16a34a', fontWeight: '900' }}>{fMoney(totalComprado)}</div>
+              <div style={{ fontSize: '13px', color: 'var(--text-muted)', fontWeight: '600' }}>Total Acumulado (Itens Marcados)</div>
+              <div style={{ fontSize: '28px', color: 'var(--success)', fontWeight: '900' }}>{fMoney(totalComprado)}</div>
             </div>
           </div>
 
@@ -1345,7 +1345,7 @@ export default function CotacaoDetalhes() {
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>
-            <button type="button" onClick={handlePrepararRegistroManual} disabled={isProcessandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? '#9ca3af' : '#10b981', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
+            <button type="button" onClick={handlePrepararRegistroManual} disabled={isProcessandoPedidos || isEncerrada} style={{ ...styles.btnVoltar, backgroundColor: isEncerrada ? 'var(--text-subtle)' : 'var(--success)', fontSize: '15px', padding: '12px 24px', boxShadow: isEncerrada ? 'none' : '0 4px 6px -1px rgba(16, 185, 129, 0.4)' }}>
               {isProcessandoPedidos ? <Loader2 size={18} className="animate-spin" style={{ marginRight: '8px' }} /> : <Save size={18} style={{ marginRight: '8px' }} />} Finalizar Registro e Gerar Pedidos
             </button>
           </div>
@@ -1451,20 +1451,20 @@ export default function CotacaoDetalhes() {
       
       {modalAddPedidoAberto && itemAddPedido && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
-          <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+          <div style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '450px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                <h3 style={{ margin: 0, fontSize: '18px', color: '#1f2937' }}>Adicionar a Pedido Existente</h3>
-                <button onClick={() => setModalAddPedidoAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                <h3 style={{ margin: 0, fontSize: '18px', color: 'var(--text)' }}>Adicionar a Pedido Existente</h3>
+                <button onClick={() => setModalAddPedidoAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
              </div>
 
              <div style={{ marginBottom: '20px' }}>
-               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
+               <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '6px' }}>Selecione o Pedido de Destino</label>
                
                {(() => {
                     const pedidosDropdown = fornecedorTargetToModal ? pedidosCompativeisFornecedor(fornecedorTargetToModal) : pedidosAbertosList;
 
                     return (
-                         <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
+                         <select style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', backgroundColor: 'var(--surface-muted)', fontWeight: 'bold', color: 'var(--text)' }} value={addPedidoForm.pedidoId} onChange={e => setAddPedidoForm(prev => ({ ...prev, pedidoId: e.target.value }))}>
                            <option value="">{pedidosDropdown.length === 0 ? 'Nenhum pedido aberto deste fornecedor no sistema' : '-- Selecione --'}</option>
                            {pedidosDropdown.map(p => {
                               const emp = p.fornecedor?.empresa || p.fornecedor?.nomeEmpresa || '';
@@ -1486,32 +1486,32 @@ export default function CotacaoDetalhes() {
              </div>
 
              {fornecedorTargetToModal ? (
-               <div style={{ padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px', marginBottom: '20px' }}>
-                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#334155', marginBottom: '10px' }}>O que deseja transferir?</div>
+               <div style={{ padding: '12px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px', marginBottom: '20px' }}>
+                 <div style={{ fontSize: '14px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '10px' }}>O que deseja transferir?</div>
                  
-                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '8px' }}>
+                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text)', marginBottom: '8px' }}>
                    <input type="radio" checked={addPedidoModo === 'UNICO'} onChange={() => setAddPedidoModo('UNICO')} style={{ transform: 'scale(1.2)' }} />
-                   <span>Somente este produto: <strong style={{ color: '#2563eb' }}>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></span>
+                   <span>Somente este produto: <strong style={{ color: 'var(--primary)' }}>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></span>
                  </label>
                  
-                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                 <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text)' }}>
                    <input type="radio" checked={addPedidoModo === 'TODOS'} onChange={() => setAddPedidoModo('TODOS')} style={{ transform: 'scale(1.2)' }} disabled={itensGanhosFornecedor.length === 0} />
                    <span>Adicionar <strong>TODOS</strong> os {itensGanhosFornecedor.length} produtos pendentes que o fornecedor <strong>{fornecedorTargetToModal}</strong> ganhou.</span>
                  </label>
                </div>
              ) : (
-                <p style={{ fontSize: '14px', color: '#4b5563', marginBottom: '16px' }}>Produto Selecionado: <strong>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></p>
+                <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '16px' }}>Produto Selecionado: <strong>{getNomeExibicao(itemAddPedido.nomeProduto)}</strong></p>
              )}
 
              {addPedidoModo === 'UNICO' && (
                 <>
                   <div style={{ display: 'flex', gap: '15px' }}>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Qtd a Pedir</label>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '6px' }}>Qtd a Pedir</label>
                       <input 
                           type="number" 
                           min="1" 
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1' }} 
+                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)' }}
                           value={addPedidoForm.qtd} 
                           onFocus={e => e.target.select()}
                           onChange={e => {
@@ -1540,11 +1540,11 @@ export default function CotacaoDetalhes() {
                       />
                     </div>
                     <div style={{ flex: 1 }}>
-                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' }}>Valor Unit. (R$)</label>
+                      <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '6px' }}>Valor Unit. (R$)</label>
                       <input 
                           type="number" 
                           step="0.01" 
-                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', color: itemAddPedido.condicaoAplicada ? '#16a34a' : 'inherit', fontWeight: itemAddPedido.condicaoAplicada ? 'bold' : 'normal' }} 
+                          style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', color: itemAddPedido.condicaoAplicada ? 'var(--success)' : 'inherit', fontWeight: itemAddPedido.condicaoAplicada ? 'bold' : 'normal' }}
                           value={addPedidoForm.valor} 
                           onChange={e => setAddPedidoForm({...addPedidoForm, valor: e.target.value})} 
                           onFocus={e => e.target.select()}
@@ -1559,7 +1559,7 @@ export default function CotacaoDetalhes() {
                               return (
                                   <div key={idx} style={{ marginBottom: '6px' }}>
                                       {isAtiva ? (
-                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#dcfce7', color: '#166534', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #bbf7d0', justifyContent: 'center' }}>
+                                          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid var(--success-border)', justifyContent: 'center' }}>
                                               <Tag size={14} /> Condição Aplicada: {cond.qtd} un por {fMoney(cond.preco)}
                                           </div>
                                       ) : (
@@ -1569,7 +1569,7 @@ export default function CotacaoDetalhes() {
                                                   setAddPedidoForm({...addPedidoForm, qtd: cond.qtd, valor: cond.preco});
                                                   setItemAddPedido({...itemAddPedido, condicaoAplicada: true, qtdCondicao: cond.qtd, precoCondicao: cond.preco});
                                               }}
-                                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: '#fef08a', color: '#854d0e', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid #fde047', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
+                                              style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', backgroundColor: 'var(--warning-border)', color: 'var(--warning-text)', padding: '6px 8px', borderRadius: '4px', fontWeight: 'bold', border: '1px solid var(--warning-border)', cursor: 'pointer', width: '100%', justifyContent: 'center' }}
                                           >
                                               <Tags size={14} /> Aceitar Condição: {cond.qtd} un por {fMoney(cond.preco)}
                                           </button>
@@ -1585,7 +1585,7 @@ export default function CotacaoDetalhes() {
              <button 
                onClick={confirmarAddPedido} 
                disabled={loadingAddPedido || !addPedidoForm.pedidoId}
-               style={{ width: '100%', padding: '12px', marginTop: '16px', backgroundColor: !addPedidoForm.pedidoId ? '#9ca3af' : '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: !addPedidoForm.pedidoId ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+               style={{ width: '100%', padding: '12px', marginTop: '16px', backgroundColor: !addPedidoForm.pedidoId ? 'var(--text-subtle)' : 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: !addPedidoForm.pedidoId ? 'not-allowed' : 'pointer', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
              >
                {loadingAddPedido ? <Loader2 className="animate-spin" size={18} /> : (addPedidoModo === 'TODOS' ? 'Confirmar Adição Massiva' : 'Confirmar e Adicionar')}
              </button>

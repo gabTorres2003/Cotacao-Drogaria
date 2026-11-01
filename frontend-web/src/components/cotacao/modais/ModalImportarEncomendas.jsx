@@ -72,36 +72,36 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
 
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.6)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1050 }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '90%', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', width: '90%', maxWidth: '900px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}>
         
-        <div style={{ padding: '20px 24px', borderBottom: '1px solid #e2e8f0', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: '20px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <PackageOpen color="#4338ca"/> Importar Encomendas do Balcão
+            <h2 style={{ margin: 0, fontSize: '20px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <PackageOpen color="var(--purple-text)"/> Importar Encomendas do Balcão
             </h2>
-            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: '#64748b' }}>
+            <p style={{ margin: '4px 0 0 0', fontSize: '13px', color: 'var(--text-muted)' }}>
               Selecione as encomendas pendentes registradas pelos atendentes.
             </p>
           </div>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#9ca3af' }}>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-subtle)' }}>
             <X size={24} />
           </button>
         </div>
 
         <div style={{ padding: '24px', overflowY: 'auto', flex: 1 }}>
           {loading ? (
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px', color: '#6b7280' }}>
-              <Loader2 size={32} className="animate-spin" color="#4338ca" style={{ marginBottom: '10px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '40px', color: 'var(--text-muted)' }}>
+              <Loader2 size={32} className="animate-spin" color="var(--purple-text)" style={{ marginBottom: '10px' }} />
               Buscando encomendas...
             </div>
           ) : encomendas.length === 0 ? (
-            <div style={{ textAlign: 'center', padding: '40px', color: '#6b7280', backgroundColor: '#f8fafc', borderRadius: '8px', border: '1px dashed #cbd5e1' }}>
+            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)', backgroundColor: 'var(--surface-muted)', borderRadius: '8px', border: '1px dashed var(--border-strong)' }}>
               Nenhuma encomenda pendente de compra no balcão no momento.
             </div>
           ) : (
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '8px', overflow: 'hidden' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: '8px', overflow: 'hidden' }}>
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '2px solid #e2e8f0' }}>
+                <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '2px solid var(--border)' }}>
                   <tr>
                     <th style={{ padding: '12px 16px', width: '40px', textAlign: 'center' }}>
                       <input 
@@ -111,13 +111,13 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
                         style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                       />
                     </th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Datas (Enc/Prev)</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Balconista</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Cliente</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Produto</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b', textAlign: 'center' }}>Qtd</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Pagamento</th>
-                    <th style={{ padding: '12px 16px', fontSize: '12px', color: '#64748b' }}>Forn. Sugerido</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Datas (Enc/Prev)</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Balconista</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Cliente</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Produto</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)', textAlign: 'center' }}>Qtd</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Pagamento</th>
+                    <th style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-muted)' }}>Forn. Sugerido</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -126,7 +126,7 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
                     const dataPrev = enc.dataPrevista ? new Date(enc.dataPrevista).toLocaleDateString('pt-BR') : '-';
                     const isSelected = selecionados.includes(enc.id);
                     return (
-                      <tr key={enc.id} style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: isSelected ? '#eef2ff' : 'white', transition: '0.2s' }}>
+                      <tr key={enc.id} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: isSelected ? 'var(--purple-soft)' : 'var(--surface)', transition: '0.2s' }}>
                         <td style={{ padding: '12px 16px', textAlign: 'center' }}>
                           <input 
                             type="checkbox" 
@@ -135,22 +135,22 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
                             style={{ transform: 'scale(1.2)', cursor: 'pointer' }}
                           />
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '12px', color: '#4b5563' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '12px', color: 'var(--text-secondary)' }}>
                           <div>{dataEnc}</div>
-                          <div style={{ color: '#ea580c', fontSize: '11px' }}>Prev: {dataPrev}</div>
+                          <div style={{ color: 'var(--warning)', fontSize: '11px' }}>Prev: {dataPrev}</div>
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#334155' }}>{enc.vendedor || '-'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1e293b', fontWeight: '600' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>{enc.vendedor || '-'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text)', fontWeight: '600' }}>
                           {enc.cliente}
-                          <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'normal' }}>{enc.telefone}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'normal' }}>{enc.telefone}</div>
                         </td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#1e293b', fontWeight: 'bold' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text)', fontWeight: 'bold' }}>
                           {enc.produto}
-                          <div style={{ fontSize: '11px', color: '#2563eb' }}>Cód: {enc.codigoProduto || '-'}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--primary)' }}>Cód: {enc.codigoProduto || '-'}</div>
                         </td>
                         <td style={{ padding: '12px 16px', textAlign: 'center', fontSize: '13px', fontWeight: 'bold' }}>{enc.quantidade || 1}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4b5563' }}>{enc.pagamento || 'Dinheiro'}</td>
-                        <td style={{ padding: '12px 16px', fontSize: '13px', color: '#4338ca', fontWeight: '500' }}>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--text-secondary)' }}>{enc.pagamento || 'Dinheiro'}</td>
+                        <td style={{ padding: '12px 16px', fontSize: '13px', color: 'var(--purple-text)', fontWeight: '500' }}>
                           {enc.fornecedorSugerido || enc.fornecedor || '-'}
                         </td>
                       </tr>
@@ -162,18 +162,18 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
           )}
         </div>
 
-        <div style={{ padding: '20px 24px', borderTop: '1px solid #e2e8f0', backgroundColor: '#f8fafc', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
-          <span style={{ fontSize: '14px', color: '#475569', fontWeight: '600' }}>
+        <div style={{ padding: '20px 24px', borderTop: '1px solid var(--border)', backgroundColor: 'var(--surface-muted)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderRadius: '0 0 12px 12px' }}>
+          <span style={{ fontSize: '14px', color: 'var(--text-secondary)', fontWeight: '600' }}>
             {selecionados.length} selecionado(s)
           </span>
           <div style={{ display: 'flex', gap: '12px' }}>
-            <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer' }}>
+            <button onClick={onClose} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--border-strong)', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}>
               Cancelar
             </button>
             <button 
                 onClick={handleImportar} 
                 disabled={salvando || selecionados.length === 0} 
-                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#4338ca', color: 'white', fontWeight: 'bold', cursor: (salvando || selecionados.length === 0) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (salvando || selecionados.length === 0) ? 0.6 : 1 }}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--purple-text)', color: 'white', fontWeight: 'bold', cursor: (salvando || selecionados.length === 0) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (salvando || selecionados.length === 0) ? 0.6 : 1 }}
             >
               {salvando ? <><Loader2 size={18} className="animate-spin" /> Importando...</> : <><CheckSquare size={18} /> Importar Encomendas</>}
             </button>

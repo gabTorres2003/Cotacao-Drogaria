@@ -143,12 +143,12 @@ export default function Cotacoes() {
 
   const getBadge = (status) => {
     switch (status) {
-      case 'ABERTA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#e0e7ff', color: '#3730a3' }}>Em Aberto</span>;
-      case 'PENDENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#ffedd5', color: '#c2410c' }}>Aguard. Resposta</span>;
-      case 'RESPONDIDA_PARCIALMENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#fef3c7', color: '#b45309' }}>Resp. Parcial</span>;
-      case 'RESPONDIDA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#dcfce7', color: '#15803d' }}>Pronta p/ Fechar</span>;
-      case 'FINALIZADA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>Encerrada</span>;
-      default: return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: '#f3f4f6', color: '#4b5563' }}>{status}</span>;
+      case 'ABERTA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)' }}>Em Aberto</span>;
+      case 'PENDENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)' }}>Aguard. Resposta</span>;
+      case 'RESPONDIDA_PARCIALMENTE': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)' }}>Resp. Parcial</span>;
+      case 'RESPONDIDA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--success-soft)', color: 'var(--success)' }}>Pronta p/ Fechar</span>;
+      case 'FINALIZADA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)' }}>Encerrada</span>;
+      default: return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: 'bold', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)' }}>{status}</span>;
     }
   };
 
@@ -159,27 +159,27 @@ export default function Cotacoes() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Painel de Cotações</h1>
-            <p style={{ color: '#6b7280' }}>Gerencie suas compras e fornecedores</p>
+            <p style={{ color: 'var(--text-muted)' }}>Gerencie suas compras e fornecedores</p>
           </div>
           
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button 
               onClick={() => setIsModalManualOpen(true)}
-              style={{ padding: '10px 20px', backgroundColor: '#eab308', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+              style={{ padding: '10px 20px', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
             >
               <ListPlus size={20} /> Nova Cotação (Manual / Busca)
             </button>
 
             <button 
               onClick={() => setIsUploadModalOpen(true)}
-              style={{ padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+              style={{ padding: '10px 20px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
             >
               <FileText size={20} /> Importar Faltas DNA
             </button>
 
             <button 
               onClick={() => setIsModalInteligencaOpen(true)}
-              style={{ padding: '10px 20px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+              style={{ padding: '10px 20px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
             >
               <Brain size={20} /> Gerar Lista Inteligência
             </button>
@@ -192,61 +192,61 @@ export default function Cotacoes() {
             <div className="stat-label">Total Gerado</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#3b82f6' }}>{resumo.emAberto}</div>
+            <div className="stat-value" style={{ color: 'var(--info)' }}>{resumo.emAberto}</div>
             <div className="stat-label">Em Aberto (Sem Envio)</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.aguardando}</div>
+            <div className="stat-value" style={{ color: 'var(--warning)' }}>{resumo.aguardando}</div>
             <div className="stat-label">Aguardando Respostas</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>{resumo.finalizadas}</div>
+            <div className="stat-value" style={{ color: 'var(--success)' }}>{resumo.finalizadas}</div>
             <div className="stat-label">Finalizadas / Histórico</div>
           </div>
         </div>
 
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px', marginBottom: '20px', alignItems: 'center' }}>
-            <div style={{ display: 'flex', gap: '10px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+            <div style={{ display: 'flex', gap: '10px', backgroundColor: 'var(--border)', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
               <button 
                 onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'var(--surface)' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Cotações em Andamento
               </button>
               <button 
                 onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); }}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'var(--surface)' : 'transparent', color: abaAtiva === 'HISTORICO' ? 'var(--success)' : 'var(--text-muted)', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Histórico (Encerradas)
               </button>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--surface-muted)', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid var(--border-strong)' }}>
               <button 
                 onClick={() => setSetorAtivo('TODOS')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'white' : 'transparent', color: setorAtivo === 'TODOS' ? '#1e293b' : '#64748b', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'TODOS' ? 'var(--text)' : 'var(--text-muted)', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Todas Origens
               </button>
               <button 
                 onClick={() => setSetorAtivo('MEDICAMENTOS')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'white' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? '#2563eb' : '#64748b', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Medicamentos
               </button>
               <button 
                 onClick={() => setSetorAtivo('PERFUMARIA')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'white' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? '#9333ea' : '#64748b', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? 'var(--purple)' : 'var(--text-muted)', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Perfumaria
               </button>
             </div>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
           
-          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <Search size={18} color="#9ca3af" />
+          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <Search size={18} color="var(--text-subtle)" />
             <input
               type="text"
               placeholder="Buscar por ID ou Descrição..."
@@ -256,9 +256,9 @@ export default function Cotacoes() {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <Filter size={16} color="#6b7280" />
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <Filter size={16} color="var(--text-muted)" />
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
               <option value="TODOS">Todos os Status</option>
               {abaAtiva === 'ANDAMENTO' ? (
                 <>
@@ -276,9 +276,9 @@ export default function Cotacoes() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <ArrowUpDown size={16} color="#6b7280" />
-            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <ArrowUpDown size={16} color="var(--text-muted)" />
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer' }}>
               <option value="RECENTES">Mais Recentes</option>
               <option value="ANTIGOS">Mais Antigas</option>
             </select>
@@ -287,7 +287,7 @@ export default function Cotacoes() {
           {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES' || setorAtivo !== 'TODOS') && (
             <button 
               onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); setSetorAtivo('TODOS'); }}
-              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--danger)', backgroundColor: 'var(--danger-soft)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Limpar Filtros
             </button>
@@ -297,7 +297,7 @@ export default function Cotacoes() {
             <button 
               onClick={excluirSelecionadas}
               disabled={excluindoEmMassa}
-              style={{ padding: '8px 16px', fontSize: '12px', color: 'white', backgroundColor: '#ef4444', border: 'none', borderRadius: '6px', cursor: excluindoEmMassa ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', opacity: excluindoEmMassa ? 0.6 : 1 }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: 'white', backgroundColor: 'var(--danger)', border: 'none', borderRadius: '6px', cursor: excluindoEmMassa ? 'not-allowed' : 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', opacity: excluindoEmMassa ? 0.6 : 1 }}
             >
               {excluindoEmMassa ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
               Excluir {qtdSelecionadas} selecionada{qtdSelecionadas > 1 ? 's' : ''}
@@ -305,54 +305,54 @@ export default function Cotacoes() {
           )}
         </div>
 
-        <div className="table-container" style={{ backgroundColor: 'white', borderRadius: '12px', border: '1px solid #e2e8f0', overflowX: 'auto' }}>
+        <div className="table-container" style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '800px' }}>
-            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
               <tr>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '40px' }}>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '40px' }}>
                   <input type="checkbox" checked={todasSelecionadas} onChange={toggleTodas} style={{ cursor: 'pointer' }} />
                 </th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Setor</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Usuário</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', width: '120px', textAlign: 'center' }}>Ações</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '80px' }}>ID</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>Descrição</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Setor</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '150px' }}>Usuário</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '120px' }}>Data</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '150px' }}>Status</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', width: '120px', textAlign: 'center' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <Loader2 size={32} className="animate-spin" color="#3b82f6" />
+                      <Loader2 size={32} className="animate-spin" color="var(--info)" />
                       <span style={{ fontWeight: '500' }}>Carregando cotações...</span>
                     </div>
                   </td>
                 </tr>
               ) : cotacoesFiltradas.length === 0 ? (
                 <tr>
-                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="8" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
                     Nenhuma cotação encontrada nesta aba ou setor.
                   </td>
                 </tr>
               ) : (
                 cotacoesFiltradas.map((cotacao) => (
-                  <tr key={cotacao.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={cotacao.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <input type="checkbox" checked={!!selecionadas[cotacao.id]} onChange={() => toggleSelecao(cotacao.id)} style={{ cursor: 'pointer' }} />
                     </td>
-                    <td style={{ padding: '16px', fontWeight: 'bold', color: '#374151' }}>#{cotacao.id}</td>
-                    <td style={{ padding: '16px', color: '#1f2937', fontWeight: '500' }}>
+                    <td style={{ padding: '16px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>#{cotacao.id}</td>
+                    <td style={{ padding: '16px', color: 'var(--text)', fontWeight: '500' }}>
                       {cotacao.descricao || cotacao.origem || 'Cotação Manual'}
                     </td>
                     
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       {(() => {
                         const setor = cotacao.setor || 'AMBOS';
-                        const setorColor = setor === 'MEDICAMENTOS' ? '#2563eb' : setor === 'PERFUMARIA' ? '#9333ea' : '#475569';
-                        const setorBg = setor === 'MEDICAMENTOS' ? '#dbeafe' : setor === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9';
+                        const setorColor = setor === 'MEDICAMENTOS' ? 'var(--primary)' : setor === 'PERFUMARIA' ? 'var(--purple)' : 'var(--text-secondary)';
+                        const setorBg = setor === 'MEDICAMENTOS' ? 'var(--info-soft)' : setor === 'PERFUMARIA' ? 'var(--purple-soft)' : 'var(--surface-muted)';
                         return (
                           <div style={{ fontSize: '11px', fontWeight: 'bold', color: setorColor, backgroundColor: setorBg, padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                             <Tag size={12} /> {setor === 'AMBOS' ? 'Med / Perf' : setor}
@@ -361,17 +361,17 @@ export default function Cotacoes() {
                       })()}
                     </td>
 
-                    <td style={{ padding: '16px', color: '#4b5563', fontSize: '14px' }}>
-                      <span style={{ backgroundColor: '#f1f5f9', padding: '4px 8px', borderRadius: '6px', border: '1px solid #e2e8f0' }}>
+                    <td style={{ padding: '16px', color: 'var(--text-secondary)', fontSize: '14px' }}>
+                      <span style={{ backgroundColor: 'var(--surface-muted)', padding: '4px 8px', borderRadius: '6px', border: '1px solid var(--border)' }}>
                         {cotacao.nomeUsuario || cotacao.usuario || 'Sistema'}
                       </span>
                     </td>
 
-                    <td style={{ padding: '16px', color: '#6b7280', fontSize: '14px' }}>{formatarData(cotacao.dataCriacao)}</td>
+                    <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '14px' }}>{formatarData(cotacao.dataCriacao)}</td>
                     <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => navigate(`/cotacao/${cotacao.id}`)} title="Abrir Cotação" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                        <button onClick={() => navigate(`/cotacao/${cotacao.id}`)} title="Abrir Cotação" style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
                           <Eye size={16} /> Abrir
                         </button>
                         
@@ -379,7 +379,7 @@ export default function Cotacoes() {
                           onClick={() => deletarCotacao(cotacao.id)} 
                           disabled={deletandoId === cotacao.id}
                           title="Excluir Cotação" 
-                          style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: deletandoId === cotacao.id ? 'not-allowed' : 'pointer' }}
+                          style={{ background: 'var(--danger-soft)', color: 'var(--danger)', border: 'none', padding: '8px', borderRadius: '6px', cursor: deletandoId === cotacao.id ? 'not-allowed' : 'pointer' }}
                         >
                           {deletandoId === cotacao.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                         </button>

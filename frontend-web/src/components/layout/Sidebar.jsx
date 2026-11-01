@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import {
   LayoutDashboard,
   Users,
@@ -13,11 +13,44 @@ import {
   ChevronLeft,
   ChevronRight,
   ShieldAlert,
-  RotateCcw, 
+  RotateCcw,
   Brain,
+  Home,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
+import ThemeToggle from './ThemeToggle'
+
+const MENU_ADMIN = [
+  { to: '/inicio', label: 'Início', icon: Home, exact: true },
+  { to: '/cotacoes', label: 'Cotações', icon: LayoutDashboard },
+  { to: '/pedidos', label: 'Pedidos', icon: ShoppingCart },
+  { to: '/fornecedores', label: 'Fornecedores', icon: Users },
+  { to: '/usuarios', label: 'Usuários', icon: UserCog },
+  { to: '/relatorios', label: 'Relatórios', icon: FileSpreadsheet },
+  { to: '/devolucoes', label: 'Devoluções', icon: RotateCcw },
+  { to: '/inteligencia', label: 'Inteligência', icon: Brain },
+  { to: '/auditoria', label: 'Auditoria', icon: ShieldAlert },
+]
+
+const MENU_CONFERENTE = [
+  { to: '/inicio', label: 'Início', icon: Home, exact: true },
+  { to: '/pedidos', label: 'Pedidos', icon: ShoppingCart },
+]
+
+function iniciais(nome) {
+  const partes = String(nome || '').trim().split(/\s+/).filter(Boolean)
+  if (partes.length === 0) return '?'
+  if (partes.length === 1) return partes[0].slice(0, 2).toUpperCase()
+  return (partes[0][0] + partes[partes.length - 1][0]).toUpperCase()
+}
+
+function rotuloPerfil(perfil) {
+  if (perfil === 'ADMIN') return 'Administrador'
+  if (perfil === 'CONFERENTE') return 'Conferente'
+  if (perfil === 'FORNECEDOR') return 'Fornecedor'
+  return perfil || 'Usuário'
+}
 
 export default function Sidebar() {
   const location = useLocation()
@@ -25,17 +58,52 @@ export default function Sidebar() {
   const [showFirstAccessModal, setShowFirstAccessModal] = useState(false)
   const [novoPin, setNovoPin] = useState('')
   const [loadingModal, setLoadingModal] = useState(false)
-  const [isCollapsed, setIsCollapsed] = useState(
-    localStorage.getItem('sidebarCollapsed') === 'true',
-  )
+  const [isCollapsed, setIsCollapsed] = useState(() => {
+    if (location.pathname === '/inicio') return true
+    return localStorage.getItem('sidebarCollapsed') === 'true'
+  })
   const [isMobileOpen, setIsMobileOpen] = useState(false)
-  const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE'
+
+  const perfil = localStorage.getItem('tipoUsuario')
+  const nome = localStorage.getItem('nomeUsuario') || ''
+  const isConferente = perfil === 'CONFERENTE'
+  const menu = isConferente ? MENU_CONFERENTE : MENU_ADMIN
 
   useEffect(() => {
     if (localStorage.getItem('primeiroAcesso') === 'true') {
       setShowFirstAccessModal(true)
     }
   }, [])
+
+  // A página inicial começa com o menu recolhido, mas o usuário pode expandi-lo.
+  useEffect(() => {
+    if (location.pathname === '/inicio') {
+      setIsCollapsed(true)
+    }
+  }, [location.pathname])
+
+  // Fecha o menu mobile ao navegar.
+  useEffect(() => {
+    setIsMobileOpen(false)
+  }, [location.pathname])
+
+  // Bloqueia o scroll do fundo e permite fechar o menu com Escape no mobile.
+  useEffect(() => {
+    if (!isMobileOpen) return undefined
+
+    const overflowAnterior = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+
+    const aoPressionarTecla = (event) => {
+      if (event.key === 'Escape') setIsMobileOpen(false)
+    }
+    window.addEventListener('keydown', aoPressionarTecla)
+
+    return () => {
+      document.body.style.overflow = overflowAnterior
+      window.removeEventListener('keydown', aoPressionarTecla)
+    }
+  }, [isMobileOpen])
 
   const toggleCollapse = () => {
     const newState = !isCollapsed
@@ -44,7 +112,10 @@ export default function Sidebar() {
   }
 
   const handleLogout = () => {
-    localStorage.clear()
+    // Mantém a preferência de tema entre sessões.
+    ;['token', 'tipoUsuario', 'primeiroAcesso', 'nomeUsuario', 'usuarioId'].forEach(
+      (chave) => localStorage.removeItem(chave),
+    )
     navigate('/')
   }
 
@@ -62,318 +133,154 @@ export default function Sidebar() {
     }
   }
 
-  const isActive = (basePath) =>
-    location.pathname.startsWith(basePath) ? 'menu-item active' : 'menu-item'
+  const isActive = (item) => {
+    if (item.exact) return location.pathname === item.to
+    return location.pathname.startsWith(item.to)
+  }
 
   return (
     <>
-      <style>{`
-        body { margin: 0; padding: 0; overflow-x: hidden; }
-        .layout { display: flex; min-height: 100vh; background-color: #f8fafc; flex-direction: row; width: 100%; }
-        .main-content { flex: 1; padding: 32px; overflow-y: auto; width: 100%; max-width: 100vw; box-sizing: border-box; transition: padding 0.3s; }
-        
-        .sidebar { 
-          width: 260px; background: white; border-right: 1px solid #e2e8f0; 
-          transition: width 0.3s ease, transform 0.3s ease; 
-          display: flex; flex-direction: column; height: 100vh; 
-          position: sticky; top: 0; z-index: 50; 
-        }
-        
-        .sidebar.collapsed { width: 80px; }
-        .sidebar.collapsed .hide-on-collapse { display: none; }
-        .sidebar.collapsed .menu-item { justify-content: center; padding: 12px; }
-        .sidebar.collapsed .logo-container { justify-content: center; padding: 20px 0; }
-        
-        .menu-item {
-          display: flex; align-items: center; gap: 12px; padding: 12px 16px;
-          color: #64748b; text-decoration: none; border-radius: 8px;
-          margin-bottom: 4px; font-weight: 500; transition: all 0.2s; white-space: nowrap;
-        }
-        .menu-item:hover { background-color: #f1f5f9; color: #1e293b; }
-        .menu-item.active { background-color: #eff6ff; color: #2563eb; }
-        
-        .desktop-toggle-btn { 
-          display: flex; align-items: center; gap: 12px; padding: 12px 16px; 
-          width: 100%; border: none; background: transparent; color: #64748b; 
-          cursor: pointer; border-radius: 8px; font-weight: 500; white-space: nowrap;
-        }
-        .desktop-toggle-btn:hover { background-color: #f1f5f9; }
-        
-        .mobile-topbar { 
-          display: none; background: white; padding: 16px 20px; 
-          border-bottom: 1px solid #e2e8f0; position: sticky; top: 0; 
-          z-index: 40; align-items: center; justify-content: space-between; 
-          box-shadow: 0 1px 2px rgba(0,0,0,0.05); width: 100%; box-sizing: border-box;
-        }
-
-        .table-container { overflow-x: auto; width: 100%; background: white; border-radius: 12px; border: 1px solid #e2e8f0; }
-        .table-container table { width: 100%; min-width: 700px; border-collapse: collapse; }
-        
-        @media (max-width: 768px) {
-          .layout { flex-direction: column; }
-          .mobile-topbar { display: flex; }
-          .desktop-toggle-btn { display: none !important; }
-          
-          .sidebar { 
-            position: fixed; left: 0; top: 0; transform: translateX(-100%); 
-            width: 280px !important; z-index: 100; box-shadow: 4px 0 10px rgba(0,0,0,0.1); 
-          }
-          .sidebar.mobile-open { transform: translateX(0); }
-          .sidebar .hide-on-collapse { display: block !important; } 
-          .sidebar .menu-item { justify-content: flex-start !important; padding: 12px 20px !important; }
-          .sidebar .logo-container { justify-content: flex-start !important; padding: 20px !important; }
-
-          .sidebar-overlay { 
-            position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 90; 
-            opacity: 0; visibility: hidden; transition: 0.3s; 
-          }
-          .sidebar-overlay.active { opacity: 1; visibility: visible; }
-          
-          .main-content { padding: 16px; }
-          .stats-grid { grid-template-columns: 1fr 1fr !important; gap: 12px !important; }
-          .filters-bar { flex-direction: column !important; align-items: stretch !important; gap: 12px !important; }
-          .filters-bar > div { width: 100%; justify-content: space-between; }
-          .search-input-container { width: 100% !important; }
-          .main-content > header { flex-direction: column; align-items: flex-start !important; gap: 16px; }
-          .btn-new-cotacao { width: 100%; justify-content: center; }
-        }
-      `}</style>
-
       <div className="mobile-topbar">
         <button
+          type="button"
+          className="icon-button"
           onClick={() => setIsMobileOpen(true)}
-          style={{
-            background: 'none',
-            border: 'none',
-            color: '#374151',
-            cursor: 'pointer',
-            padding: 0,
-          }}
+          aria-label="Abrir menu"
+          aria-expanded={isMobileOpen}
         >
-          <Menu size={28} />
+          <Menu size={24} />
         </button>
-        <img
-          src="/assets/logo-torres.png"
-          alt="Torres Farma"
-          style={{ height: '28px' }}
-        />
-        <div style={{ width: '28px' }}></div>
+
+        <div className="mobile-brand">
+          <img src="/assets/logo-torres.png" alt="" />
+          <span>Torres Farma</span>
+        </div>
+
+        <div className="mobile-actions">
+          <ThemeToggle compact />
+          <button
+            type="button"
+            className="icon-button danger"
+            onClick={handleLogout}
+            aria-label="Sair do sistema"
+            title="Sair do sistema"
+          >
+            <LogOut size={20} />
+          </button>
+        </div>
       </div>
 
       <div
         className={`sidebar-overlay ${isMobileOpen ? 'active' : ''}`}
         onClick={() => setIsMobileOpen(false)}
+        aria-hidden="true"
       ></div>
 
       <aside
         className={`sidebar ${isCollapsed ? 'collapsed' : ''} ${isMobileOpen ? 'mobile-open' : ''}`}
+        aria-label="Menu principal"
       >
-        <div
-          className="logo-container"
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            padding: '20px',
-            marginBottom: '10px',
-          }}
-        >
-          <img
-            src="/assets/logo-torres.png"
-            alt="Logo"
-            style={{ height: '32px', minWidth: '32px' }}
-          />
-          <span
-            className="hide-on-collapse"
-            style={{ fontWeight: 'bold', fontSize: '18px', color: '#1d4ed8' }}
-          >
-            Torres Farma
-          </span>
+        <div className="sidebar-brand">
+          <img src="/assets/logo-torres.png" alt="Logo Torres Farma" className="brand-logo" />
+          <div className="hide-on-collapse">
+            <p className="brand-name">Torres Farma</p>
+            <span className="brand-subtitle">Gestão de Compras</span>
+          </div>
 
           {isMobileOpen && (
             <button
+              type="button"
+              className="icon-button"
               onClick={() => setIsMobileOpen(false)}
-              style={{
-                marginLeft: 'auto',
-                background: 'none',
-                border: 'none',
-                color: '#64748b',
-              }}
+              aria-label="Fechar menu"
+              style={{ marginLeft: 'auto' }}
             >
-              <X size={24} />
+              <X size={22} />
             </button>
           )}
         </div>
 
-        <nav
-          style={{ flex: 1, overflowY: 'auto', padding: '0 12px' }}
-          onClick={() => setIsMobileOpen(false)}
-        >
-          {!isConferente && <Link to="/cotacoes" className={isActive('/cotacoes')}>
-            <LayoutDashboard size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Cotação</span>
-          </Link>}
+        <nav className="sidebar-nav">
+          {menu.map((item) => {
+            const Icone = item.icon
+            return (
+              <Link
+                key={item.to}
+                to={item.to}
+                className={`menu-item ${isActive(item) ? 'active' : ''}`}
+                title={isCollapsed ? item.label : undefined}
+              >
+                <Icone size={20} />
+                <span className="hide-on-collapse">{item.label}</span>
+              </Link>
+            )
+          })}
 
-          <Link to="/pedidos" className={isActive('/pedidos')}>
-            <ShoppingCart size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Pedidos</span>
-          </Link>
-
-          {!isConferente && <Link to="/fornecedores" className={isActive('/fornecedores')}>
-            <Users size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Fornecedores</span>
-          </Link>}
-
-          {!isConferente && <Link to="/usuarios" className={isActive('/usuarios')}>
-            <UserCog size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Usuários</span>
-          </Link>}
-
-          {!isConferente && <Link to="/relatorios" className={isActive('/relatorios')}>
-            <FileSpreadsheet size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Relatórios</span>
-          </Link>}
-
-          {!isConferente && <Link to="/devolucoes" className={isActive('/devolucoes')}>
-            <RotateCcw size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Devoluções</span>
-          </Link>}
-
-          {!isConferente && <Link to="/inteligencia" className={isActive('/inteligencia')}>
-            <Brain size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Inteligência</span>
-          </Link>}
-
-          {!isConferente && <Link to="/auditoria" className={isActive('/auditoria')}>
-            <ShieldAlert size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Auditoria</span>
-          </Link>}
-
-          {!isConferente && <div className="menu-item" style={{ cursor: 'pointer' }}>
-            <Settings size={20} style={{ minWidth: '20px' }} />
-            <span className="hide-on-collapse">Configurações</span>
-          </div>}
+          {!isConferente && (
+            <div
+              className="menu-item hide-on-collapse"
+              style={{ cursor: 'pointer' }}
+              title="Configurações"
+            >
+              <Settings size={20} />
+              <span className="hide-on-collapse">Configurações</span>
+            </div>
+          )}
         </nav>
 
-        <div
-          style={{
-            padding: '12px',
-            borderTop: '1px solid #e2e8f0',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-          }}
-        >
-          <button className="desktop-toggle-btn" onClick={toggleCollapse}>
-            {isCollapsed ? (
-              <ChevronRight size={20} style={{ minWidth: '20px' }} />
-            ) : (
-              <ChevronLeft size={20} style={{ minWidth: '20px' }} />
-            )}
-            <span className="hide-on-collapse">Recolher Menu</span>
-          </button>
+        <div className="sidebar-footer">
+          <div className="user-chip" title={nome || 'Usuário'}>
+            <span className="user-avatar">{iniciais(nome)}</span>
+            <div className="user-meta hide-on-collapse">
+              <span className="user-name">{nome || 'Usuário'}</span>
+              <span className="user-role">{rotuloPerfil(perfil)}</span>
+            </div>
+          </div>
+
+          <div className="hide-on-collapse">
+            <ThemeToggle />
+          </div>
+          <div className="sidebar-collapsed-only">
+            <ThemeToggle compact />
+          </div>
 
           <button
-            onClick={handleLogout}
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: '12px',
-              width: '100%',
-              padding: '12px 16px',
-              backgroundColor: '#fee2e2',
-              color: '#dc2626',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: '600',
-              fontSize: '15px',
-              transition: '0.2s',
-              justifyContent: isCollapsed ? 'center' : 'flex-start',
-            }}
+            className="desktop-toggle-btn"
+            onClick={toggleCollapse}
+            title={isCollapsed ? 'Expandir menu' : 'Recolher menu'}
           >
-            <LogOut size={20} style={{ minWidth: '20px' }} />
+            {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
+            <span className="hide-on-collapse">Recolher menu</span>
+          </button>
+
+          <button className="logout-btn" onClick={handleLogout}>
+            <LogOut size={20} />
             <span className="hide-on-collapse">Sair do Sistema</span>
           </button>
         </div>
       </aside>
 
       {showFirstAccessModal && (
-        <div
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            zIndex: 9999,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: 'white',
-              padding: '32px',
-              borderRadius: '12px',
-              width: '90%',
-              maxWidth: '400px',
-            }}
-          >
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                marginBottom: '24px',
-              }}
-            >
-              <div
-                style={{
-                  backgroundColor: '#eff6ff',
-                  padding: '12px',
-                  borderRadius: '50%',
-                  color: '#3b82f6',
-                  marginBottom: '16px',
-                }}
-              >
-                <Lock size={32} />
+        <div className="modal-overlay">
+          <div className="modal-content" role="dialog" aria-modal="true" aria-labelledby="titulo-primeiro-acesso">
+            <div className="modal-body">
+              <div className="first-access-header">
+                <div className="first-access-icon">
+                  <Lock size={28} />
+                </div>
+                <h2 id="titulo-primeiro-acesso">Bem-vindo(a)!</h2>
+                <p>
+                  Por questões de segurança, você precisa cadastrar um novo PIN de
+                  acesso para continuar.
+                </p>
               </div>
-              <h2
-                style={{
-                  margin: '0 0 8px 0',
-                  color: '#1e293b',
-                  fontSize: '20px',
-                }}
-              >
-                Bem-vindo(a)!
-              </h2>
-              <p
-                style={{
-                  margin: 0,
-                  color: '#64748b',
-                  textAlign: 'center',
-                  fontSize: '14px',
-                }}
-              >
-                Por questões de segurança, você precisa cadastrar um novo PIN de
-                acesso para continuar.
-              </p>
-            </div>
 
-            <form onSubmit={handleAlterarPin}>
-              <div style={{ marginBottom: '24px' }}>
-                <label
-                  style={{
-                    display: 'block',
-                    fontSize: '14px',
-                    fontWeight: '500',
-                    color: '#334155',
-                    marginBottom: '8px',
-                  }}
-                >
+              <form onSubmit={handleAlterarPin}>
+                <label className="login-label" htmlFor="novo-pin">
                   Novo PIN
                 </label>
                 <input
+                  id="novo-pin"
                   type="password"
                   inputMode="numeric"
                   pattern="[0-9]*"
@@ -381,43 +288,20 @@ export default function Sidebar() {
                   required
                   autoFocus
                   value={novoPin}
-                  onChange={(e) =>
-                    setNovoPin(e.target.value.replace(/\D/g, ''))
-                  }
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    border: '1px solid #cbd5e1',
-                    outline: 'none',
-                    boxSizing: 'border-box',
-                    fontSize: '16px',
-                  }}
+                  onChange={(e) => setNovoPin(e.target.value.replace(/\D/g, ''))}
+                  className="form-input"
                   placeholder="Mínimo 4 dígitos"
                 />
-              </div>
-              <button
-                type="submit"
-                disabled={novoPin.length < 4 || loadingModal}
-                style={{
-                  width: '100%',
-                  padding: '14px',
-                  borderRadius: '8px',
-                  border: 'none',
-                  backgroundColor: '#3b82f6',
-                  color: 'white',
-                  fontWeight: '600',
-                  fontSize: '16px',
-                  cursor:
-                    novoPin.length < 4 || loadingModal
-                      ? 'not-allowed'
-                      : 'pointer',
-                  opacity: novoPin.length < 4 || loadingModal ? 0.7 : 1,
-                }}
-              >
-                {loadingModal ? 'Salvando...' : 'Salvar Novo PIN'}
-              </button>
-            </form>
+                <button
+                  type="submit"
+                  disabled={novoPin.length < 4 || loadingModal}
+                  className="btn-primary"
+                  style={{ width: '100%', marginTop: '18px' }}
+                >
+                  {loadingModal ? 'Salvando...' : 'Salvar Novo PIN'}
+                </button>
+              </form>
+            </div>
           </div>
         </div>
       )}

@@ -221,20 +221,20 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.55)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100 }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', width: '92%', maxWidth: '760px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '18px 22px', borderBottom: '1px solid #e5e7eb', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', width: '92%', maxWidth: '760px', maxHeight: '90vh', display: 'flex', flexDirection: 'column' }}>
+        <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div>
-            <h3 style={{ margin: 0, color: '#1f2937' }}><FileDown size={19} style={{ verticalAlign: 'middle', marginRight: '6px' }} />Importar produtos não comprados</h3>
-            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '5px' }}>Escolha a cotação de origem e a quantidade de cada produto.</div>
+            <h3 style={{ margin: 0, color: 'var(--text)' }}><FileDown size={19} style={{ verticalAlign: 'middle', marginRight: '6px' }} />Importar produtos não comprados</h3>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '5px' }}>Escolha a cotação de origem e a quantidade de cada produto.</div>
           </div>
-          <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={21} /></button>
+          <button onClick={onClose} style={{ border: 'none', background: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={21} /></button>
         </div>
 
         <div style={{ padding: '20px', overflowY: 'auto' }}>
-          <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#374151', marginBottom: '6px' }}>Cotação de origem</label>
+          <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '6px' }}>Cotação de origem</label>
           <div style={{ display: 'flex', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-            <div style={{ flex: 2, minWidth: '190px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '6px', padding: '7px 10px', backgroundColor: 'white' }}>
-              <Search size={15} color="#9ca3af" />
+            <div style={{ flex: 2, minWidth: '190px', display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', borderRadius: '6px', padding: '7px 10px', backgroundColor: 'var(--surface)' }}>
+              <Search size={15} color="var(--text-subtle)" />
               <input
                 type="text"
                 placeholder="Buscar por nome, número ou descrição..."
@@ -247,7 +247,7 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
               value={filtroSetor}
               onChange={e => setFiltroSetor(e.target.value)}
               title="Filtrar por grupo"
-              style={{ flex: 1, minWidth: '130px', padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'white' }}
+              style={{ flex: 1, minWidth: '130px', padding: '7px', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'var(--surface)' }}
             >
               <option value="TODOS">Todos os grupos</option>
               {setoresDisponiveis.map(s => <option key={s} value={s}>{s.charAt(0) + s.slice(1).toLowerCase()}</option>)}
@@ -256,7 +256,7 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
               value={ordemCotacoes}
               onChange={e => setOrdemCotacoes(e.target.value)}
               title="Ordenar cotações"
-              style={{ flex: 1, minWidth: '140px', padding: '7px', border: '1px solid #cbd5e1', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'white' }}
+              style={{ flex: 1, minWidth: '140px', padding: '7px', border: '1px solid var(--border-strong)', borderRadius: '6px', fontSize: '13px', cursor: 'pointer', backgroundColor: 'var(--surface)' }}
             >
               <option value="MAIS_RECENTES">Data (mais recentes)</option>
               <option value="MAIS_ANTIGAS">Data (mais antigas)</option>
@@ -264,7 +264,7 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
               <option value="NUMERO">Nº da cotação</option>
             </select>
           </div>
-          <select value={cotacaoOrigem} onChange={e => carregarItens(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '6px', marginBottom: '16px' }}>
+          <select value={cotacaoOrigem} onChange={e => carregarItens(e.target.value)} style={{ width: '100%', padding: '10px', border: '1px solid var(--border-strong)', borderRadius: '6px', marginBottom: '16px' }}>
             <option value="">-- Selecione uma cotação ({cotacoesExibicao.length} de {cotacoes.length}) --</option>
             {cotacoesExibicao.map(cotacao => (
               <option key={cotacao.id} value={cotacao.id}>
@@ -273,31 +273,31 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
             ))}
           </select>
           {cotacoes.length > 0 && cotacoesExibicao.length === 0 && (
-            <div style={{ fontSize: '12px', color: '#6b7280', marginTop: '-10px', marginBottom: '12px' }}>Nenhuma cotação encontrada com os filtros aplicados.</div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '-10px', marginBottom: '12px' }}>Nenhuma cotação encontrada com os filtros aplicados.</div>
           )}
 
-          {carregando && <div style={{ textAlign: 'center', padding: '25px', color: '#6b7280' }}><Loader2 className="animate-spin" size={24} /></div>}
+          {carregando && <div style={{ textAlign: 'center', padding: '25px', color: 'var(--text-muted)' }}><Loader2 className="animate-spin" size={24} /></div>}
           {!carregando && itens.length > 0 && (
             <>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                <label style={{ fontSize: '12px', fontWeight: 'bold', color: '#374151' }}>
+                <label style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
                   <input type="checkbox" checked={itens.length > 0 && itens.every(item => selecionados[item.id])} onChange={alternarTodos} style={{ marginRight: '6px' }} />
                   Selecionar todos ({itens.length})
                 </label>
-                <span style={{ fontSize: '12px', color: '#6b7280' }}>{itens.filter(item => selecionados[item.id]).length} selecionado(s)</span>
+                <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>{itens.filter(item => selecionados[item.id]).length} selecionado(s)</span>
               </div>
-              <div style={{ border: '1px solid #e5e7eb', borderRadius: '7px', overflow: 'hidden' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '7px', overflow: 'hidden' }}>
                 {itens.map(item => {
                   const duplicado = ehDuplicado(item);
                   return (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '10px 12px', borderBottom: '1px solid #f1f5f9', backgroundColor: duplicado ? '#fff7ed' : 'white' }}>
+                    <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '10px 12px', borderBottom: '1px solid var(--surface-muted)', backgroundColor: duplicado ? 'var(--warning-soft)' : 'var(--surface)' }}>
                       <input type="checkbox" checked={!!selecionados[item.id]} onChange={() => setSelecionados(prev => ({ ...prev, [item.id]: !prev[item.id] }))} />
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: '13px', fontWeight: '600', color: '#1f2937' }}>{item.nomeProduto}</div>
-                        {duplicado && <div style={{ fontSize: '11px', color: '#c2410c', fontWeight: 'bold', marginTop: '3px' }}><AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />Repetido — {descricaoDuplicidade(item)}</div>}
+                        <div style={{ fontSize: '13px', fontWeight: '600', color: 'var(--text)' }}>{item.nomeProduto}</div>
+                        {duplicado && <div style={{ fontSize: '11px', color: 'var(--warning-text)', fontWeight: 'bold', marginTop: '3px' }}><AlertTriangle size={12} style={{ verticalAlign: 'middle', marginRight: '3px' }} />Repetido — {descricaoDuplicidade(item)}</div>}
                       </div>
-                      <label style={{ fontSize: '11px', color: '#6b7280' }}>Qtd.
-                        <input type="number" min="1" value={quantidades[item.id] || 1} onChange={e => setQuantidades(prev => ({ ...prev, [item.id]: e.target.value }))} style={{ width: '62px', marginLeft: '5px', padding: '5px', border: '1px solid #cbd5e1', borderRadius: '4px' }} />
+                      <label style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Qtd.
+                        <input type="number" min="1" value={quantidades[item.id] || 1} onChange={e => setQuantidades(prev => ({ ...prev, [item.id]: e.target.value }))} style={{ width: '62px', marginLeft: '5px', padding: '5px', border: '1px solid var(--border-strong)', borderRadius: '4px' }} />
                       </label>
                     </div>
                   );
@@ -305,12 +305,12 @@ export default function ModalImportarItensCotacao({ isOpen, onClose, cotacaoId, 
               </div>
             </>
           )}
-          {!carregando && cotacaoOrigem && itens.length === 0 && <div style={{ padding: '22px', textAlign: 'center', color: '#6b7280' }}>Nenhum produto não comprado disponível nesta cotação.</div>}
+          {!carregando && cotacaoOrigem && itens.length === 0 && <div style={{ padding: '22px', textAlign: 'center', color: 'var(--text-muted)' }}>Nenhum produto não comprado disponível nesta cotação.</div>}
         </div>
 
-        <div style={{ padding: '14px 20px', borderTop: '1px solid #e5e7eb', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
-          <button onClick={onClose} style={{ padding: '9px 15px', border: '1px solid #d1d5db', backgroundColor: 'white', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
-          <button onClick={importar} disabled={salvando || !cotacaoOrigem || itens.length === 0} style={{ padding: '9px 15px', border: 'none', backgroundColor: salvando ? '#9ca3af' : '#2563eb', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
+        <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end', gap: '8px' }}>
+          <button onClick={onClose} style={{ padding: '9px 15px', border: '1px solid var(--border-strong)', backgroundColor: 'var(--surface)', borderRadius: '6px', cursor: 'pointer' }}>Cancelar</button>
+          <button onClick={importar} disabled={salvando || !cotacaoOrigem || itens.length === 0} style={{ padding: '9px 15px', border: 'none', backgroundColor: salvando ? 'var(--text-subtle)' : 'var(--primary)', color: 'white', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}>
             {salvando ? <><Loader2 size={15} className="animate-spin" style={{ verticalAlign: 'middle', marginRight: '5px' }} />Importando...</> : <><Check size={15} style={{ verticalAlign: 'middle', marginRight: '5px' }} />Importar selecionados</>}
           </button>
         </div>

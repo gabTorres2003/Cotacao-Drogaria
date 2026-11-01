@@ -9,13 +9,13 @@ const estiloOpcao = {
   alignItems: 'center',
   gap: '8px',
   padding: '12px',
-  border: '1px solid #fbbf24',
+  border: '1px solid var(--warning)',
   borderRadius: '8px',
-  background: 'white',
+  background: 'var(--surface)',
   cursor: 'pointer',
   fontSize: '13px',
   fontWeight: '600',
-  color: '#92400e',
+  color: 'var(--warning-text)',
   textAlign: 'left',
   minHeight: '48px',
   flex: '1 1 200px'
@@ -23,42 +23,42 @@ const estiloOpcao = {
 
 const estiloBotaoSecundario = {
   padding: '8px 11px',
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--border-strong)',
   borderRadius: '6px',
-  background: 'white',
+  background: 'var(--surface)',
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
   gap: '6px',
   fontSize: '12px',
   fontWeight: '600',
-  color: '#374151',
+  color: 'var(--text-secondary)',
   minHeight: '40px'
 };
 
 const estiloPainel = {
   padding: '10px',
-  border: '1px solid #fde68a',
+  border: '1px solid var(--warning-border)',
   borderRadius: '8px',
-  backgroundColor: '#fffdf5'
+  backgroundColor: 'var(--warning-soft)'
 };
 
 const estiloCampo = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--border-strong)',
   borderRadius: '6px',
   fontSize: '14px',
-  backgroundColor: 'white',
+  backgroundColor: 'var(--surface)',
   boxSizing: 'border-box'
 };
 
 const estiloAba = (ativa) => ({
   padding: '8px 10px',
-  border: `1px solid ${ativa ? '#f59e0b' : '#d1d5db'}`,
+  border: `1px solid ${ativa ? 'var(--warning)' : 'var(--border-strong)'}`,
   borderRadius: '6px',
-  background: ativa ? '#fef3c7' : 'white',
-  color: ativa ? '#92400e' : '#475569',
+  background: ativa ? 'var(--warning-soft)' : 'var(--surface)',
+  color: ativa ? 'var(--warning-text)' : 'var(--text-secondary)',
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
@@ -261,7 +261,7 @@ export default function IdentificacaoProdutoRecebido({
 
   if (disabled) {
     return (
-      <div style={{ ...estiloPainel, backgroundColor: '#fffbeb' }}>
+      <div style={{ ...estiloPainel, backgroundColor: 'var(--warning-soft)' }}>
         <Linha titulo="Produto identificado" valor={nome || 'Não informado'} />
         <Linha titulo="EAN / código de barras" valor={codigo || 'Não informado'} />
         {codigoDna && <Linha titulo="Código DNA" valor={codigoDna} />}
@@ -273,7 +273,7 @@ export default function IdentificacaoProdutoRecebido({
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
       {!String(nome).trim() && (
-        <div style={{ fontSize: '11px', color: '#b45309', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', padding: '7px 9px' }}>
+        <div style={{ fontSize: '11px', color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '6px', padding: '7px 9px' }}>
           Informe o nome do produto recebido para confirmar este item.
         </div>
       )}
@@ -301,7 +301,7 @@ export default function IdentificacaoProdutoRecebido({
       )}
 
       {modo === 'CAMERA' && observacoesAbertas && (
-        <div style={{ ...estiloPainel, fontSize: '12px', color: '#92400e' }}>
+        <div style={{ ...estiloPainel, fontSize: '12px', color: 'var(--warning-text)' }}>
           Câmera pausada enquanto você preenche as observações.
         </div>
       )}
@@ -361,7 +361,7 @@ export default function IdentificacaoProdutoRecebido({
 
           {(tipoCodigo === 'EAN' || tipoCodigo === 'DNA') ? (
             <>
-              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+              <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--warning-text)', marginBottom: '4px' }}>
                 {tipoCodigo === 'EAN' ? 'Código de barras do produto recebido:' : 'Código interno do DNA:'}
               </label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -384,7 +384,7 @@ export default function IdentificacaoProdutoRecebido({
                   type="button"
                   onClick={() => consultarCodigo(tipoCodigo === 'EAN' ? valorEan : valorDna, tipoCodigo)}
                   disabled={consultando}
-                  style={{ padding: '9px 14px', backgroundColor: consultando ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: consultando ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+                  style={{ padding: '9px 14px', backgroundColor: consultando ? 'var(--text-subtle)' : 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', cursor: consultando ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
                 >
                   <Search size={15} /> {consultando ? 'Consultando...' : 'Consultar DNA'}
                 </button>
@@ -393,14 +393,14 @@ export default function IdentificacaoProdutoRecebido({
               <button
                 type="button"
                 onClick={abrirCamera}
-                style={{ marginTop: '8px', background: 'none', border: 'none', color: '#b45309', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
+                style={{ marginTop: '8px', background: 'none', border: 'none', color: 'var(--warning-text)', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
               >
                 Ler com a câmera
               </button>
             </>
           ) : (
             <>
-              <label htmlFor="identificacao_texto_dna" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+              <label htmlFor="identificacao_texto_dna" style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--warning-text)', marginBottom: '4px' }}>
                 {tipoCodigo === 'DESCRICAO' ? 'Descrição do produto:' : 'Princípio ativo:'}
               </label>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -424,18 +424,18 @@ export default function IdentificacaoProdutoRecebido({
                   type="button"
                   onClick={buscarPorTexto}
                   disabled={buscandoTexto || termoTexto.trim().length < 2}
-                  style={{ padding: '9px 14px', backgroundColor: buscandoTexto ? '#94a3b8' : '#f59e0b', color: 'white', border: 'none', borderRadius: '6px', cursor: buscandoTexto ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+                  style={{ padding: '9px 14px', backgroundColor: buscandoTexto ? 'var(--text-subtle)' : 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', cursor: buscandoTexto ? 'wait' : 'pointer', fontSize: '13px', fontWeight: '700', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
                 >
                   <Search size={15} /> {buscandoTexto ? 'Buscando...' : 'Buscar no DNA'}
                 </button>
               </div>
 
-              <span style={{ display: 'block', marginTop: '6px', fontSize: '11px', color: '#92400e' }}>
+              <span style={{ display: 'block', marginTop: '6px', fontSize: '11px', color: 'var(--warning-text)' }}>
                 Pesquisa feita no DNA. Se houver muitos resultados, refine o termo.
               </span>
 
               {buscandoTexto && (
-                <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: '#92400e' }}>
+                <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: 'var(--warning-text)' }}>
                   Buscando produtos no DNA...
                 </div>
               )}
@@ -447,13 +447,13 @@ export default function IdentificacaoProdutoRecebido({
                       <button
                         type="button"
                         onClick={() => aplicarResultadoTexto(item)}
-                        style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
+                        style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
                       >
-                        <strong style={{ fontSize: '12px', color: '#1f2937' }}>{item.descricao || 'Produto sem descrição'}</strong>
-                        <span style={{ fontSize: '11px', color: '#4b5563' }}>
+                        <strong style={{ fontSize: '12px', color: 'var(--text)' }}>{item.descricao || 'Produto sem descrição'}</strong>
+                        <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                           {[item.principioAtivo, item.apresentacao, item.fabricante].filter(Boolean).join(' · ') || 'Sem informações complementares'}
                         </span>
-                        <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                        <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                           Código DNA: {item.codigo ?? '-'} · EAN: {item.codbarras || '-'}
                           {item.inativo === 'S' ? ' · Inativo no DNA' : ''}
                         </span>
@@ -464,7 +464,7 @@ export default function IdentificacaoProdutoRecebido({
               )}
 
               {truncadoTexto && (
-                <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '11px', color: '#92400e' }}>
+                <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '11px', color: 'var(--warning-text)' }}>
                   Existem mais resultados do que os exibidos. Refine a pesquisa para encontrar o produto certo.
                 </div>
               )}
@@ -477,7 +477,7 @@ export default function IdentificacaoProdutoRecebido({
 
       {modo === 'MANUAL' && (
         <div style={estiloPainel}>
-          <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: '#92400e', marginBottom: '4px' }}>
+          <label style={{ display: 'block', fontSize: '11px', fontWeight: '600', color: 'var(--warning-text)', marginBottom: '4px' }}>
             Nome do produto recebido:
           </label>
           <input
@@ -506,7 +506,7 @@ export default function IdentificacaoProdutoRecebido({
           <button
             type="button"
             onClick={() => { setModo(null); setResultado(null); }}
-            style={{ marginTop: '8px', background: 'none', border: 'none', color: '#b45309', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
+            style={{ marginTop: '8px', background: 'none', border: 'none', color: 'var(--warning-text)', cursor: 'pointer', fontSize: '12px', textDecoration: 'underline', padding: 0 }}
           >
             Alterar identificação
           </button>
@@ -517,7 +517,7 @@ export default function IdentificacaoProdutoRecebido({
         <button
           type="button"
           onClick={() => setObservacoesAbertas(v => !v)}
-          style={{ background: 'none', border: 'none', color: '#92400e', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: 0 }}
+          style={{ background: 'none', border: 'none', color: 'var(--warning-text)', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: 0 }}
         >
           <MessageSquare size={14} />
           {observacoesAbertas
@@ -541,7 +541,7 @@ export default function IdentificacaoProdutoRecebido({
 
 function Linha({ titulo, valor }) {
   return (
-    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', fontSize: '12px', color: '#78350f', marginBottom: '3px' }}>
+    <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', fontSize: '12px', color: 'var(--warning-text)', marginBottom: '3px' }}>
       <strong style={{ fontWeight: '700' }}>{titulo}:</strong>
       <span>{valor}</span>
     </div>
@@ -553,12 +553,12 @@ function FeedbackConsulta({ resultado, onManual, onCamera }) {
     const produto = resultado.produto || {};
     const nome = resultado.nome || produto.descricao || produto.nome || 'Produto';
     return (
-      <div style={{ marginTop: '8px', padding: '9px 10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
+      <div style={{ marginTop: '8px', padding: '9px 10px', backgroundColor: 'var(--success-soft)', border: '1px solid var(--success-border)', borderRadius: '6px', fontSize: '12px', color: 'var(--success-text)' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '700', marginBottom: '3px' }}>
           <CheckCircle2 size={14} /> Produto encontrado no DNA
         </div>
         <div>{nome}</div>
-        <div style={{ color: '#166534', marginTop: '3px' }}>
+        <div style={{ color: 'var(--success-text)', marginTop: '3px' }}>
           Código DNA: {produto.codigo ?? '-'} · EAN: {produto.codbarras || '-'}
         </div>
       </div>
@@ -567,7 +567,7 @@ function FeedbackConsulta({ resultado, onManual, onCamera }) {
 
   const naoEncontrado = resultado.tipo === 'nao_encontrado';
   return (
-    <div style={{ marginTop: '8px', padding: '9px 10px', backgroundColor: naoEncontrado ? '#fffbeb' : '#fef2f2', border: `1px solid ${naoEncontrado ? '#fde68a' : '#fecaca'}`, borderRadius: '6px', fontSize: '12px', color: naoEncontrado ? '#92400e' : '#991b1b' }}>
+    <div style={{ marginTop: '8px', padding: '9px 10px', backgroundColor: naoEncontrado ? 'var(--warning-soft)' : 'var(--danger-soft)', border: `1px solid ${naoEncontrado ? 'var(--warning-border)' : 'var(--danger-border)'}`, borderRadius: '6px', fontSize: '12px', color: naoEncontrado ? 'var(--warning-text)' : 'var(--danger-text)' }}>
       <div style={{ marginBottom: '6px', lineHeight: 1.4 }}>{resultado.texto}</div>
       <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
         <button type="button" onClick={onManual} style={{ ...estiloBotaoSecundario, minHeight: '36px', padding: '6px 10px' }}>

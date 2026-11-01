@@ -6,10 +6,10 @@ import { validarCodigoLido } from '../utils/codigoBarras';
 
 const estiloBotaoModo = (ativo) => ({
   padding: '10px',
-  border: `1px solid ${ativo ? '#f97316' : '#d1d5db'}`,
+  border: `1px solid ${ativo ? 'var(--warning)' : 'var(--border-strong)'}`,
   borderRadius: '8px',
-  backgroundColor: ativo ? '#fff7ed' : 'white',
-  color: ativo ? '#9a3412' : '#374151',
+  backgroundColor: ativo ? 'var(--warning-soft)' : 'var(--surface)',
+  color: ativo ? 'var(--warning-text)' : 'var(--text-secondary)',
   cursor: 'pointer',
   display: 'inline-flex',
   alignItems: 'center',
@@ -23,16 +23,16 @@ const estiloBotaoModo = (ativo) => ({
 
 const estiloPainel = {
   padding: '10px',
-  border: '1px solid #e2e8f0',
+  border: '1px solid var(--border)',
   borderRadius: '8px',
-  backgroundColor: '#f8fafc',
+  backgroundColor: 'var(--surface-muted)',
   marginBottom: '14px'
 };
 
 const estiloCampo = {
   width: '100%',
   padding: '9px 12px',
-  border: '1px solid #d1d5db',
+  border: '1px solid var(--border-strong)',
   borderRadius: '6px',
   fontSize: '14px',
   boxSizing: 'border-box'
@@ -42,7 +42,7 @@ const estiloLink = {
   marginTop: '8px',
   background: 'none',
   border: 'none',
-  color: '#2563eb',
+  color: 'var(--primary)',
   cursor: 'pointer',
   fontSize: '12px',
   textDecoration: 'underline',
@@ -247,18 +247,18 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '10px' }}>
-      <div style={{ backgroundColor: 'white', borderRadius: '12px', padding: '20px', width: '560px', maxWidth: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', padding: '20px', width: '560px', maxWidth: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Package size={20} color="#f97316" />
+          <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Package size={20} color="var(--warning)" />
             Produto Não Solicitado
           </h3>
           <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
-            <X size={20} color="#6b7280" />
+            <X size={20} color="var(--text-muted)" />
           </button>
         </div>
 
-        <p style={{ fontSize: '13px', color: '#6b7280', marginTop: 0, marginBottom: '14px' }}>
+        <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 0, marginBottom: '14px' }}>
           Produto que veio na entrega mas não faz parte do pedido original.
         </p>
 
@@ -281,7 +281,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
         )}
 
         {modo === 'CAMERA' && observacoesAbertas && (
-          <div style={{ ...estiloPainel, fontSize: '12px', color: '#92400e' }}>
+          <div style={{ ...estiloPainel, fontSize: '12px', color: 'var(--warning-text)' }}>
             Câmera pausada enquanto você preenche as observações.
           </div>
         )}
@@ -307,7 +307,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
         {modo === 'EAN' && (
           <div style={estiloPainel}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Código de barras (EAN/UPC):
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -330,7 +330,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 type="button"
                 onClick={() => consultarCodigo(codigoBarrasRecebido, 'EAN')}
                 disabled={buscando}
-                style={{ padding: '9px 14px', backgroundColor: buscando ? '#94a3b8' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
+                style={{ padding: '9px 14px', backgroundColor: buscando ? 'var(--text-subtle)' : 'var(--info)', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
               >
                 <Search size={14} /> {buscando ? 'Consultando...' : 'Consultar'}
               </button>
@@ -343,7 +343,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
         {modo === 'DNA' && (
           <div style={estiloPainel}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Código interno do DNA:
             </label>
             <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
@@ -366,7 +366,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 type="button"
                 onClick={() => consultarCodigo(codigoDna, 'DNA')}
                 disabled={buscando}
-                style={{ padding: '9px 14px', backgroundColor: buscando ? '#94a3b8' : '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
+                style={{ padding: '9px 14px', backgroundColor: buscando ? 'var(--text-subtle)' : 'var(--info)', color: 'white', border: 'none', borderRadius: '6px', cursor: buscando ? 'wait' : 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
               >
                 <Search size={14} /> {buscando ? 'Consultando...' : 'Consultar'}
               </button>
@@ -376,7 +376,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
         {modo === 'MANUAL' && (
           <div style={estiloPainel}>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>
               Nome do produto:
             </label>
             <input
@@ -415,14 +415,14 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                 type="button"
                 onClick={buscarPorNome}
                 disabled={buscandoNome || buscaNome.trim().length < 2}
-                style={{ padding: '9px 12px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', cursor: buscandoNome ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '42px' }}
+                style={{ padding: '9px 12px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', cursor: buscandoNome ? 'wait' : 'pointer', fontSize: '12px', fontWeight: '600', minHeight: '42px' }}
               >
                 {buscandoNome ? 'Buscando...' : 'Buscar no DNA'}
               </button>
             </div>
 
             {buscandoNome && (
-              <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: '#6b7280' }}>
+              <div role="status" aria-live="polite" style={{ marginTop: '8px', fontSize: '12px', color: 'var(--text-muted)' }}>
                 Buscando produtos no DNA...
               </div>
             )}
@@ -434,13 +434,13 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
                     <button
                       type="button"
                       onClick={() => aplicarResultadoNome(item)}
-                      style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid #e5e7eb', borderRadius: '6px', backgroundColor: 'white', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
+                      style={{ width: '100%', textAlign: 'left', padding: '9px 10px', border: '1px solid var(--border)', borderRadius: '6px', backgroundColor: 'var(--surface)', cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: '3px' }}
                     >
-                      <strong style={{ fontSize: '12px', color: '#1f2937' }}>{item.descricao || 'Produto sem descrição'}</strong>
-                      <span style={{ fontSize: '11px', color: '#4b5563' }}>
+                      <strong style={{ fontSize: '12px', color: 'var(--text)' }}>{item.descricao || 'Produto sem descrição'}</strong>
+                      <span style={{ fontSize: '11px', color: 'var(--text-secondary)' }}>
                         {[item.principioAtivo, item.apresentacao, item.fabricante].filter(Boolean).join(' · ') || 'Sem informações complementares'}
                       </span>
-                      <span style={{ fontSize: '11px', color: '#6b7280' }}>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
                         Código DNA: {item.codigo ?? '-'} · EAN: {item.codbarras || '-'}
                         {item.inativo === 'S' ? ' · Inativo no DNA' : ''}
                       </span>
@@ -451,7 +451,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
             )}
 
             {truncadoNome && (
-              <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '11px', color: '#92400e' }}>
+              <div style={{ marginTop: '8px', padding: '8px 10px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '11px', color: 'var(--warning-text)' }}>
                 Existem mais resultados do que os exibidos. Refine a pesquisa.
               </div>
             )}
@@ -460,11 +460,11 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
 
         {resultadoBusca && (
           resultadoBusca.erro ? (
-            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', color: '#92400e', lineHeight: 1.4 }}>
+            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '12px', color: 'var(--warning-text)', lineHeight: 1.4 }}>
               {resultadoBusca.texto || 'Produto não encontrado no DNA.'}
             </div>
           ) : (
-            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: '6px', fontSize: '12px', color: '#166534' }}>
+            <div style={{ marginBottom: '14px', padding: '9px 10px', backgroundColor: 'var(--success-soft)', border: '1px solid var(--success-border)', borderRadius: '6px', fontSize: '12px', color: 'var(--success-text)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '5px', fontWeight: '700', marginBottom: '3px' }}>
                 <CheckCircle2 size={14} /> Produto encontrado no DNA
               </div>
@@ -477,14 +477,14 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
         )}
 
         {nomeProdutoRecebido && !resultadoBusca && (
-          <div style={{ marginBottom: '14px', fontSize: '12px', color: '#166534' }}>
+          <div style={{ marginBottom: '14px', fontSize: '12px', color: 'var(--success-text)' }}>
             Produto identificado: {nomeProdutoRecebido}
           </div>
         )}
 
         <div style={{ display: 'grid', gridTemplateColumns: ocultarValor ? '1fr' : '1fr 1fr', gap: '12px', marginBottom: '16px' }}>
           <div>
-            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Quantidade:</label>
+            <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Quantidade:</label>
             <input
               type="number"
               min="1"
@@ -497,7 +497,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
           </div>
           {!ocultarValor && (
             <div>
-              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Valor unitário (NF):</label>
+              <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '6px' }}>Valor unitário (NF):</label>
               <input
                 type="number"
                 min="0"
@@ -514,14 +514,14 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
         </div>
 
         <div style={{ marginBottom: '16px' }}>
-          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: '#374151', marginBottom: '8px' }}>Situação:</label>
+          <label style={{ display: 'block', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '8px' }}>Situação:</label>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#374151', cursor: 'pointer', padding: '8px 12px', border: `1px solid ${classificacao === 'ENVIADO_POR_ENGANO' ? '#f97316' : '#d1d5db'}`, borderRadius: '6px', backgroundColor: classificacao === 'ENVIADO_POR_ENGANO' ? '#fff7ed' : 'white' }}>
-              <input type="radio" name="classificacao" value="ENVIADO_POR_ENGANO" checked={classificacao === 'ENVIADO_POR_ENGANO'} onChange={e => setClassificacao(e.target.value)} style={{ accentColor: '#f97316' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', padding: '8px 12px', border: `1px solid ${classificacao === 'ENVIADO_POR_ENGANO' ? 'var(--warning)' : 'var(--border-strong)'}`, borderRadius: '6px', backgroundColor: classificacao === 'ENVIADO_POR_ENGANO' ? 'var(--warning-soft)' : 'var(--surface)' }}>
+              <input type="radio" name="classificacao" value="ENVIADO_POR_ENGANO" checked={classificacao === 'ENVIADO_POR_ENGANO'} onChange={e => setClassificacao(e.target.value)} style={{ accentColor: 'var(--warning)' }} />
               Enviado por engano (sem cobrança)
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: '#374151', cursor: 'pointer', padding: '8px 12px', border: `1px solid ${classificacao === 'NAO_PEDIDO' ? '#2563eb' : '#d1d5db'}`, borderRadius: '6px', backgroundColor: classificacao === 'NAO_PEDIDO' ? '#eff6ff' : 'white' }}>
-              <input type="radio" name="classificacao" value="NAO_PEDIDO" checked={classificacao === 'NAO_PEDIDO'} onChange={e => setClassificacao(e.target.value)} style={{ accentColor: '#2563eb' }} />
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', padding: '8px 12px', border: `1px solid ${classificacao === 'NAO_PEDIDO' ? 'var(--primary)' : 'var(--border-strong)'}`, borderRadius: '6px', backgroundColor: classificacao === 'NAO_PEDIDO' ? 'var(--primary-soft)' : 'var(--surface)' }}>
+              <input type="radio" name="classificacao" value="NAO_PEDIDO" checked={classificacao === 'NAO_PEDIDO'} onChange={e => setClassificacao(e.target.value)} style={{ accentColor: 'var(--primary)' }} />
               Não estava no pedido (com cobrança)
             </label>
           </div>
@@ -531,7 +531,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
           <button
             type="button"
             onClick={() => setObservacoesAbertas(v => !v)}
-            style={{ background: 'none', border: 'none', color: '#374151', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: 0, fontWeight: '600' }}
+            style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '12px', display: 'inline-flex', alignItems: 'center', gap: '5px', padding: 0, fontWeight: '600' }}
           >
             <MessageSquare size={14} />
             {observacoesAbertas ? 'Fechar observações' : (observacao.trim() ? 'Observações preenchidas' : 'Adicionar observações')}
@@ -552,14 +552,14 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
           <button
             type="button"
             onClick={onClose}
-            style={{ padding: '9px 16px', backgroundColor: '#f3f4f6', color: '#374151', border: '1px solid #d1d5db', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
+            style={{ padding: '9px 16px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
           >
             Cancelar
           </button>
           <button
             type="button"
             onClick={handleConfirm}
-            style={{ padding: '9px 16px', backgroundColor: '#f97316', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
+            style={{ padding: '9px 16px', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
           >
             Adicionar à Conferência
           </button>

@@ -14,6 +14,7 @@ import PedidoConferencia from './pages/PedidoConferencia'
 import Auditoria from './pages/Auditoria'
 import Devolucoes from './pages/Devolucoes'
 import InteligenciaCompras from './pages/InteligenciaCompras'
+import Inicio from './pages/Inicio'
 import SessionTimeout from './components/SessionTimeout'
 import './App.css'
 
@@ -25,7 +26,7 @@ const RotaPrivada = ({ children }) => {
 
 const RotaPerfil = ({ children, permitidos }) => {
   const perfil = localStorage.getItem('tipoUsuario')
-  return permitidos.includes(perfil) ? children : <Navigate to="/pedidos" replace />
+  return permitidos.includes(perfil) ? children : <Navigate to="/inicio" replace />
 }
 
 function App() {
@@ -34,6 +35,7 @@ function App() {
       <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />
+        <Route path="/inicio" element={<RotaPrivada><Inicio /></RotaPrivada>} />
         
         <Route path="/usuarios" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Usuarios /></RotaPerfil></RotaPrivada>} />
         <Route path="/cotacoes" element={<RotaPrivada><RotaPerfil permitidos={['ADMIN']}><Cotacoes /></RotaPerfil></RotaPrivada>} />

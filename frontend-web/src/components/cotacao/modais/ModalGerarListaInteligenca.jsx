@@ -74,18 +74,18 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
     }
   };
 
-  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '6px' };
-  const inputStyle = { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', boxSizing: 'border-box', backgroundColor: '#f8fafc', fontWeight: 'bold', color: '#1e293b' };
+  const labelStyle = { display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '6px' };
+  const inputStyle = { width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', outline: 'none', boxSizing: 'border-box', backgroundColor: 'var(--surface-muted)', fontWeight: 'bold', color: 'var(--text)' };
 
   return (
     <div className="modal-overlay" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-      <div className="modal-content" style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto' }}>
+      <div className="modal-content" style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', width: '95%', maxWidth: '550px', maxHeight: '90vh', overflowY: 'auto' }}>
 
         <div className="modal-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-          <h3 style={{ margin: 0, fontSize: '20px', color: '#1f2937', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Brain size={22} color="#7c3aed" /> Gerar Lista - Inteligência
+          <h3 style={{ margin: 0, fontSize: '20px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Brain size={22} color="var(--purple)" /> Gerar Lista - Inteligência
           </h3>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} color="#6b7280" /></button>
+          <button onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer' }}><X size={24} color="var(--text-muted)" /></button>
         </div>
 
         <div className="modal-body">
@@ -98,15 +98,15 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
             </select>
           </div>
 
-          <p style={{ fontWeight: '500', color: '#374151', marginBottom: '10px' }}>1. Selecione os grupos:</p>
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '25px', padding: '15px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb' }}>
+          <p style={{ fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '10px' }}>1. Selecione os grupos:</p>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px', marginBottom: '25px', padding: '15px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px', border: '1px solid var(--border)' }}>
             {carregandoGrupos ? (
-              <span style={{ fontSize: '13px', color: '#9ca3af' }}>Carregando grupos...</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-subtle)' }}>Carregando grupos...</span>
             ) : grupos.length === 0 ? (
-              <span style={{ fontSize: '13px', color: '#9ca3af' }}>Nenhum grupo encontrado.</span>
+              <span style={{ fontSize: '13px', color: 'var(--text-subtle)' }}>Nenhum grupo encontrado.</span>
             ) : (
               grupos.map((g) => (
-                <label key={g.codigo} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: '#4b5563' }}>
+                <label key={g.codigo} style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', color: 'var(--text-secondary)' }}>
                   <input
                     type="checkbox"
                     checked={gruposSelecionados.includes(g.nome)}
@@ -114,15 +114,15 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
                     style={{ transform: 'scale(1.1)' }}
                   />
                   {g.nome}
-                  {g.configurado && <span title="Grupo configurado na Inteligência" style={{ color: '#16a34a', fontSize: '11px', fontWeight: 'bold' }}>✓</span>}
+                  {g.configurado && <span title="Grupo configurado na Inteligência" style={{ color: 'var(--success)', fontSize: '11px', fontWeight: 'bold' }}>✓</span>}
                 </label>
               ))
             )}
           </div>
 
-          <p style={{ fontWeight: '500', color: '#374151', marginBottom: '10px' }}>2. Parâmetros da Inteligência:</p>
-          <div style={{ padding: '15px', backgroundColor: '#f9fafb', borderRadius: '8px', border: '1px solid #e5e7eb', marginBottom: '20px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', color: '#5b21b6', fontWeight: '500', fontSize: '13px' }}>
+          <p style={{ fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '10px' }}>2. Parâmetros da Inteligência:</p>
+          <div style={{ padding: '15px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px', border: '1px solid var(--border)', marginBottom: '20px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '15px', color: 'var(--purple-text)', fontWeight: '500', fontSize: '13px' }}>
               <CalendarDays size={16} />
               <span>Entram produtos com cobertura de estoque abaixo do mínimo e com vendas no período.</span>
             </div>
@@ -164,8 +164,8 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
             </div>
           </div>
 
-          <p style={{ fontWeight: '500', color: '#374151', marginBottom: '10px' }}>3. Mesclagem:</p>
-          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px', backgroundColor: incluirFaltas ? '#eff6ff' : '#f9fafb', border: `1px solid ${incluirFaltas ? '#bfdbfe' : '#e5e7eb'}`, borderRadius: '8px', transition: 'all 0.2s' }}>
+          <p style={{ fontWeight: '500', color: 'var(--text-secondary)', marginBottom: '10px' }}>3. Mesclagem:</p>
+          <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', padding: '12px', backgroundColor: incluirFaltas ? 'var(--primary-soft)' : 'var(--surface-muted)', border: `1px solid ${incluirFaltas ? 'var(--info-border)' : 'var(--border)'}`, borderRadius: '8px', transition: 'all 0.2s' }}>
             <input
               type="checkbox"
               checked={incluirFaltas}
@@ -173,8 +173,8 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
               style={{ transform: 'scale(1.2)' }}
             />
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <AlertTriangle size={18} color={incluirFaltas ? '#2563eb' : '#9ca3af'} />
-              <span style={{ fontSize: '14px', fontWeight: '600', color: incluirFaltas ? '#1e40af' : '#4b5563' }}>
+              <AlertTriangle size={18} color={incluirFaltas ? 'var(--primary)' : 'var(--text-subtle)'} />
+              <span style={{ fontSize: '14px', fontWeight: '600', color: incluirFaltas ? 'var(--primary-text)' : 'var(--text-secondary)' }}>
                 Mesclar com as Faltas do DNA (mesmos grupos)
               </span>
             </div>
@@ -182,13 +182,13 @@ export default function ModalGerarListaInteligenca({ onClose, onSuccess }) {
         </div>
 
         <div className="modal-footer" style={{ marginTop: '25px', display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-          <button onClick={onClose} disabled={loading} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid #d1d5db', backgroundColor: 'white', color: '#374151', fontWeight: '500', cursor: 'pointer' }}>
+          <button onClick={onClose} disabled={loading} style={{ padding: '10px 20px', borderRadius: '6px', border: '1px solid var(--border-strong)', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', fontWeight: '500', cursor: 'pointer' }}>
             Cancelar
           </button>
           <button
             onClick={gerarLista}
             disabled={loading || carregandoGrupos}
-            style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: '#7c3aed', color: 'white', fontWeight: '600', cursor: loading || carregandoGrupos ? 'not-allowed' : 'pointer', opacity: loading || carregandoGrupos ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ padding: '10px 20px', borderRadius: '6px', border: 'none', backgroundColor: 'var(--purple)', color: 'white', fontWeight: '600', cursor: loading || carregandoGrupos ? 'not-allowed' : 'pointer', opacity: loading || carregandoGrupos ? 0.7 : 1, display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <Brain size={16} />
             {loading ? 'Gerando...' : 'Gerar Lista de Compra'}

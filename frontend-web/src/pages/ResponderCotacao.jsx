@@ -408,13 +408,13 @@ export default function ResponderCotacao() {
   if (isPrimeiroAcesso) {
     return (
       <div style={mobileStyles.loginBox}>
-        <h2 style={{ color: '#1f2937', marginBottom: '10px' }}>Segurança</h2>
-        <p style={{ color: '#6b7280', marginBottom: '25px', fontSize: '14px' }}>Crie um novo PIN numérico.</p>
+        <h2 style={{ color: 'var(--text)', marginBottom: '10px' }}>Segurança</h2>
+        <p style={{ color: 'var(--text-muted)', marginBottom: '25px', fontSize: '14px' }}>Crie um novo PIN numérico.</p>
         <form onSubmit={handlePrimeiroAcesso} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
           <input type="password" placeholder="Novo PIN" required style={mobileStyles.inputField} value={novoPin} onChange={(e) => setNovoPin(e.target.value)} />
           <input type="password" placeholder="Confirme o PIN" required style={mobileStyles.inputField} value={confirmaPin} onChange={(e) => setConfirmaPin(e.target.value)} />
-          {erroLogin && <div style={{ color: '#ef4444', fontSize: '13px', fontWeight: 'bold' }}>{erroLogin}</div>}
-          <button type="submit" style={{ ...mobileStyles.submitButton, backgroundColor: '#059669' }}>Salvar</button>
+          {erroLogin && <div style={{ color: 'var(--danger)', fontSize: '13px', fontWeight: 'bold' }}>{erroLogin}</div>}
+          <button type="submit" style={{ ...mobileStyles.submitButton, backgroundColor: 'var(--success)' }}>Salvar</button>
         </form>
       </div>
     )
@@ -423,7 +423,7 @@ export default function ResponderCotacao() {
   if (enviado) {
     return (
       <div style={mobileStyles.successBox}>
-        <CheckCircle size={48} color="#059669" style={{ margin: '0 auto 15px auto' }} />
+        <CheckCircle size={48} color="var(--success)" style={{ margin: '0 auto 15px auto' }} />
         <h2 style={{ marginBottom: '10px' }}>Proposta Enviada!</h2>
         <p>Retornando ao painel...</p>
       </div>
@@ -432,48 +432,48 @@ export default function ResponderCotacao() {
 
   return (
     <div style={mobileStyles.container}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: '#f3f4f6', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid #e5e7eb' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: 'var(--bg)', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid var(--border)' }}>
         <button onClick={() => navigate('/portal-fornecedor')} style={mobileStyles.btnVoltar}><ArrowLeft size={18} /> Voltar</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '24px' }} />
           <h1 style={{ fontSize: '18px', fontWeight: 'bold', margin: 0 }}>Cotação #{idCotacao}</h1>
         </div>
-        <div style={{ background: '#dbeafe', color: '#1e40af', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>{nomeUsuario}</div>
+        <div style={{ background: 'var(--info-soft)', color: 'var(--primary-text)', padding: '6px 10px', borderRadius: '8px', fontSize: '12px', fontWeight: 'bold' }}>{nomeUsuario}</div>
       </div>
 
-      <div style={{ position: 'sticky', top: '56px', backgroundColor: '#f3f4f6', zIndex: 99, paddingBottom: '16px' }}>
+      <div style={{ position: 'sticky', top: '56px', backgroundColor: 'var(--bg)', zIndex: 99, paddingBottom: '16px' }}>
         {mostrarAlertaNovos && (
-          <div style={{ marginBottom: '10px', padding: '10px 14px', borderRadius: '8px', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: '#92400e' }}>
-              <AlertTriangle size={18} color="#f59e0b" />
+          <div style={{ marginBottom: '10px', padding: '10px 14px', borderRadius: '8px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', fontWeight: '600', color: 'var(--warning-text)' }}>
+              <AlertTriangle size={18} color="var(--warning)" />
               <span>Existem novos produtos adicionados após sua última resposta!</span>
             </div>
             <button
               onClick={() => { setFiltroNovos(true); setMostrarAlertaNovos(false); }}
-              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '700', backgroundColor: '#f59e0b', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ padding: '4px 10px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               Ver novos
             </button>
             <button
               onClick={() => setMostrarAlertaNovos(false)}
-              style={{ padding: '2px 6px', fontSize: '14px', fontWeight: 'bold', backgroundColor: 'transparent', color: '#92400e', border: 'none', cursor: 'pointer', lineHeight: 1 }}
+              style={{ padding: '2px 6px', fontSize: '14px', fontWeight: 'bold', backgroundColor: 'transparent', color: 'var(--warning-text)', border: 'none', cursor: 'pointer', lineHeight: 1 }}
             >
               ×
             </button>
           </div>
         )}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', borderRadius: '8px', backgroundColor: '#dbeafe', border: '1px solid #bfdbfe' }}>
-          <span style={{ fontSize: '13px', fontWeight: '700', color: '#1e40af' }}>{percentualRespondido}%</span>
-          <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: '#bfdbfe', overflow: 'hidden' }}>
-            <div style={{ width: `${percentualRespondido}%`, height: '100%', backgroundColor: '#2563eb', transition: 'width 0.2s ease' }} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', padding: '8px 12px', borderRadius: '8px', backgroundColor: 'var(--info-soft)', border: '1px solid var(--info-border)' }}>
+          <span style={{ fontSize: '13px', fontWeight: '700', color: 'var(--primary-text)' }}>{percentualRespondido}%</span>
+          <div style={{ flex: 1, height: '6px', borderRadius: '3px', backgroundColor: 'var(--info-border)', overflow: 'hidden' }}>
+            <div style={{ width: `${percentualRespondido}%`, height: '100%', backgroundColor: 'var(--primary)', transition: 'width 0.2s ease' }} />
           </div>
         </div>
-        <div style={{ fontSize: '12px', fontWeight: '600', color: '#1e40af', marginBottom: '8px', textAlign: 'center' }}>
+        <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--primary-text)', marginBottom: '8px', textAlign: 'center' }}>
           {percentualRespondido}% — {respondidos} de {totalResponder} respondidos — {totalResponder - respondidos} faltando
         </div>
         <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
           <div style={{ flex: 1, position: 'relative' }}>
-            <Search size={16} color="#9ca3af" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
+            <Search size={16} color="var(--text-subtle)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input type="text" placeholder="Pesquisar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...mobileStyles.inputFieldItem, paddingLeft: '36px' }} />
           </div>
           <button
@@ -482,9 +482,9 @@ export default function ResponderCotacao() {
             aria-pressed={ordemAlfabetica}
             style={{
               ...mobileStyles.btnVoltar,
-              backgroundColor: ordemAlfabetica ? '#dbeafe' : 'white',
-              color: ordemAlfabetica ? '#1e40af' : '#4b5563',
-              border: ordemAlfabetica ? '1px solid #2563eb' : '1px solid #cbd5e1',
+              backgroundColor: ordemAlfabetica ? 'var(--info-soft)' : 'var(--surface)',
+              color: ordemAlfabetica ? 'var(--primary-text)' : 'var(--text-secondary)',
+              border: ordemAlfabetica ? '1px solid var(--primary)' : '1px solid var(--border-strong)',
               fontWeight: ordemAlfabetica ? 600 : 500,
             }}
           >
@@ -496,9 +496,9 @@ export default function ResponderCotacao() {
             aria-pressed={filtroNovos}
             style={{
               ...mobileStyles.btnVoltar,
-              backgroundColor: filtroNovos ? '#fef3c7' : 'white',
-              color: filtroNovos ? '#92400e' : '#4b5563',
-              border: filtroNovos ? '1px solid #f59e0b' : '1px solid #cbd5e1',
+              backgroundColor: filtroNovos ? 'var(--warning-soft)' : 'var(--surface)',
+              color: filtroNovos ? 'var(--warning-text)' : 'var(--text-secondary)',
+              border: filtroNovos ? '1px solid var(--warning)' : '1px solid var(--border-strong)',
               fontWeight: filtroNovos ? 600 : 500,
               whiteSpace: 'nowrap',
             }}
@@ -509,8 +509,8 @@ export default function ResponderCotacao() {
       </div>
 
       {loading ? (
-        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: '#6b7280' }}>
-          <Loader2 size={32} className="animate-spin" color="#3b82f6" style={{ marginBottom: '10px' }} />
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+          <Loader2 size={32} className="animate-spin" color="var(--info)" style={{ marginBottom: '10px' }} />
           <p>Carregando itens...</p>
         </div>
       ) : (
@@ -525,17 +525,17 @@ export default function ResponderCotacao() {
               return (
                 <div key={item.idItem} style={mobileStyles.card}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '15px', fontWeight: '600', color: '#1f2937' }}>{getNomeReal(item.nomeProduto)}</span>
+                    <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)' }}>{getNomeReal(item.nomeProduto)}</span>
                     {isItemNovo(item) && (
-                      <span style={{ fontSize: '10px', fontWeight: '700', color: '#92400e', backgroundColor: '#fef3c7', border: '1px solid #f59e0b', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' }}>NOVO</span>
+                      <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning)', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' }}>NOVO</span>
                     )}
                   </div>
-                  <div style={{ fontSize: '13px', color: '#6b7280' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
                   
                   {item.observacaoComprador && (
-                    <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: '#fef3c7', border: '1px solid #fbbf24', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
-                      <MessageSquare size={14} color="#d97706" style={{ marginTop: '2px', flexShrink: 0 }} />
-                      <span style={{ fontSize: '12px', color: '#92400e', fontStyle: 'italic', lineHeight: '1.4' }}>{item.observacaoComprador}</span>
+                    <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning)', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
+                      <MessageSquare size={14} color="var(--warning)" style={{ marginTop: '2px', flexShrink: 0 }} />
+                      <span style={{ fontSize: '12px', color: 'var(--warning-text)', fontStyle: 'italic', lineHeight: '1.4' }}>{item.observacaoComprador}</span>
                     </div>
                   )}
 
@@ -584,11 +584,11 @@ export default function ResponderCotacao() {
                       
                       {condsAtivas.map((cond, idx) => (
                         <div key={idx} style={mobileStyles.boxCondicao}>
-                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
+                          <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>Na compra de</span>
                           <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoChange(item.idItem, idx, 'qtd', e.target.value, 'NORMAL')}/>
-                          <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                          <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>un, sai R$</span>
                           <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoChange(item.idItem, idx, 'preco', e.target.value, 'NORMAL')}/>
-                          <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'NORMAL')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                          <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'NORMAL')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
                             <Trash2 size={16} />
                           </button>
                         </div>
@@ -602,19 +602,19 @@ export default function ResponderCotacao() {
                     </button>
 
                     {temTrocaAtiva && (
-                      <div style={{ marginTop: '8px', padding: '10px', backgroundColor: '#eff6ff', borderRadius: '6px', border: '1px solid #bfdbfe', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <div style={{ marginTop: '8px', padding: '10px', backgroundColor: 'var(--primary-soft)', borderRadius: '6px', border: '1px solid var(--info-border)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                         <div>
                           <label style={mobileStyles.labelMini}>Nome do Produto Alternativo *</label>
-                          <input type="text" placeholder="Ex: Cimegripe 1g c/ 20 - Medley" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={produtoSubstituto[item.idItem] || ''} onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
+                          <input type="text" placeholder="Ex: Cimegripe 1g c/ 20 - Medley" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'var(--surface)' }} value={produtoSubstituto[item.idItem] || ''} onChange={(e) => setProdutoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
                         </div>
                         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
                           <div>
                             <label style={mobileStyles.labelMini}>Qtd. Disp. (Troca)</label>
-                            <input type="number" min="0" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={qtdSubstituto[item.idItem] !== undefined ? qtdSubstituto[item.idItem] : item.quantidade} onChange={(e) => setQtdSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
+                            <input type="number" min="0" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'var(--surface)' }} value={qtdSubstituto[item.idItem] !== undefined ? qtdSubstituto[item.idItem] : item.quantidade} onChange={(e) => setQtdSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
                           </div>
                           <div>
                             <label style={mobileStyles.labelMini}>Preço Unit. R$ (Troca)</label>
-                            <input type="number" step="0.01" placeholder="0,00" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'white' }} value={precoSubstituto[item.idItem] !== undefined ? precoSubstituto[item.idItem] : ''} onChange={(e) => setPrecoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
+                            <input type="number" step="0.01" placeholder="0,00" style={{ ...mobileStyles.inputFieldItem, backgroundColor: 'var(--surface)' }} value={precoSubstituto[item.idItem] !== undefined ? precoSubstituto[item.idItem] : ''} onChange={(e) => setPrecoSubstituto((prev) => ({ ...prev, [item.idItem]: e.target.value }))} />
                           </div>
                         </div>
 
@@ -626,11 +626,11 @@ export default function ResponderCotacao() {
                             
                             {condsSubstAtivas.map((cond, idx) => (
                                 <div key={idx} style={mobileStyles.boxCondicao}>
-                                    <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>Na compra de</span>
                                     <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoChange(item.idItem, idx, 'qtd', e.target.value, 'SUBST')}/>
-                                    <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                                    <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>un, sai R$</span>
                                     <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoChange(item.idItem, idx, 'preco', e.target.value, 'SUBST')}/>
-                                    <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'SUBST')} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                                    <button type="button" onClick={() => removeCondicao(item.idItem, idx, 'SUBST')} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
                                         <Trash2 size={16} />
                                     </button>
                                 </div>
@@ -648,16 +648,16 @@ export default function ResponderCotacao() {
               )
           })}
 
-          <div style={{ marginTop: '24px', backgroundColor: 'white', padding: '16px', borderRadius: '10px', border: '1px solid #e5e7eb' }}>
+          <div style={{ marginTop: '24px', backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: '#111827', margin: 0 }}>Sugestões & Promoções</h3>
+              <h3 style={{ fontSize: '16px', fontWeight: 'bold', color: 'var(--text)', margin: 0 }}>Sugestões & Promoções</h3>
               <button type="button" onClick={adicionarSugestao} style={mobileStyles.btnAddSugestao}><Plus size={14} /> Adicionar</button>
             </div>
             {sugestoes.map((sug, index) => (
-              <div key={sug.tempId} style={{ padding: '12px', border: '1px solid #cbd5e1', borderRadius: '8px', backgroundColor: '#f8fafc', marginBottom: '10px' }}>
+              <div key={sug.tempId} style={{ padding: '12px', border: '1px solid var(--border-strong)', borderRadius: '8px', backgroundColor: 'var(--surface-muted)', marginBottom: '10px' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: '#2563eb' }}>Sugestão #{index + 1}</span>
-                  <button type="button" onClick={() => removerSugestao(sug.tempId)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer' }}><Trash2 size={16} /></button>
+                  <span style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--primary)' }}>Sugestão #{index + 1}</span>
+                  <button type="button" onClick={() => removerSugestao(sug.tempId)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer' }}><Trash2 size={16} /></button>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
                   <input type="text" placeholder="Nome do Produto *" style={mobileStyles.inputFieldItem} value={sug.nomeProduto} onChange={(e) => handleSugestaoChange(sug.tempId, 'nomeProduto', e.target.value)} />
@@ -674,11 +674,11 @@ export default function ResponderCotacao() {
                       
                       {sug.condicoes?.map((cond, idx) => (
                           <div key={idx} style={mobileStyles.boxCondicao}>
-                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>Na compra de</span>
+                            <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>Na compra de</span>
                             <input type="number" min="2" placeholder="Qtd" style={mobileStyles.inputMini} value={cond.qtd} onChange={e => handleCondicaoSugestaoChange(sug.tempId, idx, 'qtd', e.target.value)}/>
-                            <span style={{ fontSize: '12px', color: '#166534', fontWeight: 'bold' }}>un, sai R$</span>
+                            <span style={{ fontSize: '12px', color: 'var(--success-text)', fontWeight: 'bold' }}>un, sai R$</span>
                             <input type="number" step="0.01" placeholder="Valor" style={mobileStyles.inputMini} value={cond.preco} onChange={e => handleCondicaoSugestaoChange(sug.tempId, idx, 'preco', e.target.value)}/>
-                            <button type="button" onClick={() => removeCondicaoSugestao(sug.tempId, idx)} style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
+                            <button type="button" onClick={() => removeCondicaoSugestao(sug.tempId, idx)} style={{ background: 'none', border: 'none', color: 'var(--danger)', cursor: 'pointer', marginLeft: 'auto', padding: '4px' }}>
                                 <Trash2 size={16} />
                             </button>
                           </div>
@@ -697,7 +697,7 @@ export default function ResponderCotacao() {
               {isSubmitting ? <><Loader2 size={18} className="animate-spin" /> Enviando Proposta...</> : 'Enviar Proposta'}
             </button>
             <div style={{ display: 'flex', gap: '10px', marginTop: '12px' }}>
-              <button onClick={() => gerarEspelhoRespostaFornecedor(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal)} style={{ flex: 1, padding: '12px', backgroundColor: '#7c3aed', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '14px' }}>
+              <button onClick={() => gerarEspelhoRespostaFornecedor(idCotacao, nomeUsuario, itens, precos, quantidades, getNomeReal)} style={{ flex: 1, padding: '12px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '14px' }}>
                 <FileText size={18} /> Espelho PDF
               </button>
               <button onClick={() => {
@@ -707,7 +707,7 @@ export default function ResponderCotacao() {
                 <MessageCircle size={18} /> Espelho WhatsApp
               </button>
             </div>
-            <button onClick={limparRascunho} style={{ width: '100%', background: 'none', border: 'none', color: '#ef4444', fontSize: '13px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer', textDecoration: 'underline' }}>
+            <button onClick={limparRascunho} style={{ width: '100%', background: 'none', border: 'none', color: 'var(--danger)', fontSize: '13px', fontWeight: 'bold', marginTop: '16px', cursor: 'pointer', textDecoration: 'underline' }}>
               Apagar rascunho e recomeçar
             </button>
           </div>
@@ -728,19 +728,19 @@ export default function ResponderCotacao() {
 }
 
 const mobileStyles = {
-  container: { maxWidth: '800px', margin: '0 auto', padding: '12px', fontFamily: "'Segoe UI', sans-serif", backgroundColor: '#f3f4f6', minHeight: '100vh', boxSizing: 'border-box' },
-  card: { backgroundColor: 'white', padding: '14px', marginBottom: '10px', borderRadius: '8px', border: '1px solid #e5e7eb', display: 'flex', flexDirection: 'column', gap: '8px' },
-  labelMini: { fontSize: '11px', color: '#6b7280', fontWeight: '600' },
-  inputFieldItem: { width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #d1d5db', fontSize: '15px', boxSizing: 'border-box' },
-  inputMini: { padding: '6px', borderRadius: '4px', border: '1px solid #86efac', fontSize: '13px', width: '70px', textAlign: 'center', outline: 'none' },
-  boxCondicao: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px', padding: '10px', backgroundColor: '#f0fdf4', borderRadius: '6px', border: '1px dashed #4ade80' },
-  btnLinkAdd: { background: 'none', border: 'none', color: '#16a34a', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0' },
-  btnFalta: (ativo) => ({ padding: '8px 12px', borderRadius: '6px', border: '1px solid', borderColor: ativo ? '#ef4444' : '#d1d5db', backgroundColor: ativo ? '#fee2e2' : 'white', color: ativo ? '#b91c1c' : '#6b7280', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '39px' }),
-  btnAddSugestao: { padding: '6px 12px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer' },
-  submitButton: { width: '100%', padding: '14px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
-  btnVoltar: { display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', backgroundColor: '#e2e8f0', color: '#475569', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' },
-  fabButton: { width: '46px', height: '46px', borderRadius: '23px', backgroundColor: '#2563eb', color: 'white', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', cursor: 'pointer' },
-  successBox: { textAlign: 'center', padding: '30px 20px', backgroundColor: '#d1fae5', color: '#065f46', borderRadius: '12px', margin: '40px auto', maxWidth: '400px' },
-  loginBox: { maxWidth: '380px', margin: '60px auto', backgroundColor: 'white', padding: '24px', borderRadius: '12px', textAlign: 'center' },
-  errorBox: { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', backgroundColor: '#fee2e2', border: '1px solid #f87171', borderRadius: '8px', color: '#991b1b', fontSize: '14px', marginBottom: '15px', fontWeight: '600', textAlign: 'left' }
+  container: { maxWidth: '800px', margin: '0 auto', padding: '12px', fontFamily: "'Segoe UI', sans-serif", backgroundColor: 'var(--bg)', minHeight: '100vh', boxSizing: 'border-box' },
+  card: { backgroundColor: 'var(--surface)', padding: '14px', marginBottom: '10px', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' },
+  labelMini: { fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' },
+  inputFieldItem: { width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-strong)', fontSize: '15px', boxSizing: 'border-box' },
+  inputMini: { padding: '6px', borderRadius: '4px', border: '1px solid var(--success-border)', fontSize: '13px', width: '70px', textAlign: 'center', outline: 'none' },
+  boxCondicao: { display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', marginTop: '6px', padding: '10px', backgroundColor: 'var(--success-soft)', borderRadius: '6px', border: '1px dashed var(--success)' },
+  btnLinkAdd: { background: 'none', border: 'none', color: 'var(--success)', cursor: 'pointer', fontSize: '12px', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px', padding: '4px 0' },
+  btnFalta: (ativo) => ({ padding: '8px 12px', borderRadius: '6px', border: '1px solid', borderColor: ativo ? 'var(--danger)' : 'var(--border-strong)', backgroundColor: ativo ? 'var(--danger-soft)' : 'var(--surface)', color: ativo ? 'var(--danger-text)' : 'var(--text-muted)', fontSize: '13px', fontWeight: '600', cursor: 'pointer', height: '39px' }),
+  btnAddSugestao: { padding: '6px 12px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '12px', cursor: 'pointer' },
+  submitButton: { width: '100%', padding: '14px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '16px', fontWeight: 'bold', cursor: 'pointer' },
+  btnVoltar: { display: 'flex', alignItems: 'center', gap: '4px', padding: '6px 10px', backgroundColor: 'var(--border)', color: 'var(--text-secondary)', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', fontSize: '13px' },
+  fabButton: { width: '46px', height: '46px', borderRadius: '23px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', display: 'flex', justifyContent: 'center', alignItems: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.2)', cursor: 'pointer' },
+  successBox: { textAlign: 'center', padding: '30px 20px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', borderRadius: '12px', margin: '40px auto', maxWidth: '400px' },
+  loginBox: { maxWidth: '380px', margin: '60px auto', backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', textAlign: 'center' },
+  errorBox: { display: 'flex', alignItems: 'center', gap: '10px', padding: '12px', backgroundColor: 'var(--danger-soft)', border: '1px solid var(--danger-border)', borderRadius: '8px', color: 'var(--danger-text)', fontSize: '14px', marginBottom: '15px', fontWeight: '600', textAlign: 'left' }
 }

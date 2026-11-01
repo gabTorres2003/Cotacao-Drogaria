@@ -234,7 +234,7 @@ export default function Fornecedores() {
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>
               Gerenciar Fornecedores
             </h1>
-            <p style={{ color: '#6b7280' }}>
+            <p style={{ color: 'var(--text-muted)' }}>
               Cadastre os contatos e os acessos (login) para envio de cotações
             </p>
           </div>
@@ -246,7 +246,7 @@ export default function Fornecedores() {
 
         <div className="filters-bar">
           <div className="search-input-container">
-            <Search size={18} color="#9ca3af" />
+            <Search size={18} color="var(--text-subtle)" />
             <input
               type="text"
               placeholder="Buscar por nome, empresa, login ou telefone..."
@@ -278,7 +278,7 @@ export default function Fornecedores() {
                     style={{
                       textAlign: 'center',
                       padding: '20px',
-                      color: '#888',
+                      color: 'var(--text-muted)',
                     }}
                   >
                     Nenhum fornecedor encontrado.
@@ -298,24 +298,24 @@ export default function Fornecedores() {
                       >
                         <div
                           style={{
-                            background: '#e0f2fe',
+                            background: 'var(--info-soft)',
                             padding: '8px',
                             borderRadius: '50%',
-                            color: '#0284c7',
+                            color: 'var(--info)',
                           }}
                         >
                           <User size={16} />
                         </div>
                         <div>
-                          <div style={{ fontWeight: '600', color: '#374151', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ fontWeight: '600', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             {f.nome}
                             {f.ativo === false && (
-                              <span style={{ fontSize: '10px', fontWeight: 'bold', color: '#dc2626', backgroundColor: '#fee2e2', padding: '1px 6px', borderRadius: '4px', border: '1px solid #fecaca' }}>
+                              <span style={{ fontSize: '10px', fontWeight: 'bold', color: 'var(--danger)', backgroundColor: 'var(--danger-soft)', padding: '1px 6px', borderRadius: '4px', border: '1px solid var(--danger-border)' }}>
                                 INATIVO
                               </span>
                             )}
                           </div>
-                          <div style={{ fontSize: '12px', color: '#6b7280' }}>
+                          <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                             Login: {f.login}
                           </div>
                         </div>
@@ -327,26 +327,26 @@ export default function Fornecedores() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '6px',
-                          color: '#4b5563',
+                          color: 'var(--text-secondary)',
                           fontWeight: '500',
                         }}
                       >
-                        <Building2 size={16} color="#9ca3af" />
+                        <Building2 size={16} color="var(--text-subtle)" />
                         {f.empresa || f.nomeEmpresa || '-'}
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? '#2563eb' : f.setorCompra === 'PERFUMARIA' ? '#9333ea' : '#475569', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? '#dbeafe' : f.setorCompra === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9', padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <div style={{ fontSize: '11px', fontWeight: 'bold', color: f.setorCompra === 'MEDICAMENTOS' ? 'var(--primary)' : f.setorCompra === 'PERFUMARIA' ? 'var(--purple)' : 'var(--text-secondary)', backgroundColor: f.setorCompra === 'MEDICAMENTOS' ? 'var(--info-soft)' : f.setorCompra === 'PERFUMARIA' ? 'var(--purple-soft)' : 'var(--surface-muted)', padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                         <Tags size={12} /> {f.setorCompra === 'AMBOS' ? 'Med / Perf' : (f.setorCompra || 'Ambos')}
                       </div>
                     </td>
                     <td style={{ textAlign: 'center' }}>
-                      <span style={{ color: '#92400e', backgroundColor: '#fef3c7', border: '1px solid #fde68a', padding: '4px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '12px' }}>
+                      <span style={{ color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', padding: '4px 8px', borderRadius: '6px', fontWeight: '700', fontSize: '12px' }}>
                         {f.percentualImposto != null ? `${Number(f.percentualImposto).toFixed(2)}%` : 'Não calculado'}
                       </span>
                     </td>
                     <td>
-                      <span style={{ color: '#4b5563', fontSize: '14px', fontWeight: '500' }}>
+                      <span style={{ color: 'var(--text-secondary)', fontSize: '14px', fontWeight: '500' }}>
                         {f.entreguePor || '-'}
                       </span>
                     </td>
@@ -356,7 +356,7 @@ export default function Fornecedores() {
                           display: 'flex',
                           alignItems: 'center',
                           gap: '8px',
-                          color: '#666',
+                          color: 'var(--text-muted)',
                         }}
                       >
                         <Phone size={16} />
@@ -367,7 +367,7 @@ export default function Fornecedores() {
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button
                           className="btn-icon"
-                          style={{ color: '#2563eb', background: '#eff6ff' }}
+                          style={{ color: 'var(--primary)', background: 'var(--primary-soft)' }}
                           title="Editar"
                           onClick={() => abrirModalEdicao(f)}
                         >
@@ -376,7 +376,7 @@ export default function Fornecedores() {
 
                         <button
                           className="btn-icon"
-                          style={{ color: '#d97706', background: '#fef3c7' }}
+                          style={{ color: 'var(--warning)', background: 'var(--warning-soft)' }}
                           title="Resetar Senha"
                           onClick={() => handleResetSenha(f.id, f.nome)}
                         >
@@ -385,7 +385,7 @@ export default function Fornecedores() {
 
                         <button
                           className="btn-icon"
-                          style={{ color: f.ativo === false ? '#16a34a' : '#ea580c', background: f.ativo === false ? '#f0fdf4' : '#fff7ed' }}
+                          style={{ color: f.ativo === false ? 'var(--success)' : 'var(--warning)', background: f.ativo === false ? 'var(--success-soft)' : 'var(--warning-soft)' }}
                           title={f.ativo === false ? 'Reativar Fornecedor' : 'Inativar Fornecedor'}
                           onClick={() => handleToggleStatus(f.id, f.nome, f.ativo !== false)}
                         >
@@ -394,7 +394,7 @@ export default function Fornecedores() {
 
                         <button
                           className="btn-icon"
-                          style={{ color: '#ef4444', background: '#fef2f2' }}
+                          style={{ color: 'var(--danger)', background: 'var(--danger-soft)' }}
                           title="Excluir"
                           onClick={() => handleExcluir(f.id, f.nome)}
                         >
@@ -467,7 +467,7 @@ export default function Fornecedores() {
               <div>
                 <label style={styles.label}>Setor de Compra *</label>
                 <select
-                  style={{ ...styles.input, backgroundColor: '#f8fafc', fontWeight: 'bold' }}
+                  style={{ ...styles.input, backgroundColor: 'var(--surface-muted)', fontWeight: 'bold' }}
                   value={form.setorCompra}
                   onChange={(e) => setForm({ ...form, setorCompra: e.target.value })}
                   required
@@ -514,9 +514,9 @@ export default function Fornecedores() {
                     width: '100%',
                     padding: '10px',
                     borderRadius: '6px',
-                    border: '1px solid #d1d5db',
+                    border: '1px solid var(--border-strong)',
                     fontSize: '15px',
-                    outlineColor: '#2563eb',
+                    outlineColor: 'var(--primary)',
                   }}
                 />
               </div>
@@ -535,7 +535,7 @@ export default function Fornecedores() {
                 />
               </div>
 
-              <div style={{ borderTop: '1px solid #eee', paddingTop: '15px' }}>
+              <div style={{ borderTop: '1px solid var(--border)', paddingTop: '15px' }}>
                 <label style={styles.label}>Login de Acesso *</label>
                 <input
                   type="text"
@@ -610,7 +610,7 @@ const styles = {
     zIndex: 1000,
   },
   modal: {
-    backgroundColor: 'white',
+    backgroundColor: 'var(--surface)',
     padding: '30px',
     borderRadius: '12px',
     width: '90%',
@@ -624,32 +624,32 @@ const styles = {
     fontWeight: '500',
     marginBottom: '5px',
     display: 'block',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   input: {
     width: '100%',
     padding: '10px',
     borderRadius: '6px',
-    border: '1px solid #d1d5db',
+    border: '1px solid var(--border-strong)',
     fontSize: '15px',
-    outlineColor: '#2563eb',
+    outlineColor: 'var(--primary)',
   },
   btnCancel: {
     flex: 1,
     padding: '12px',
     borderRadius: '8px',
-    border: '1px solid #d1d5db',
-    background: 'white',
+    border: '1px solid var(--border-strong)',
+    background: 'var(--surface)',
     cursor: 'pointer',
     fontWeight: '500',
-    color: '#374151',
+    color: 'var(--text-secondary)',
   },
   btnSave: {
     flex: 1,
     padding: '12px',
     borderRadius: '8px',
     border: 'none',
-    background: '#2563eb',
+    background: 'var(--primary)',
     color: 'white',
     fontWeight: '600',
     cursor: 'pointer',

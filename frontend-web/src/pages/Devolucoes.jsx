@@ -131,11 +131,11 @@ export default function Devolucoes() {
 
   const getStatusBadge = (status) => {
     switch (status) {
-      case 'AGUARDANDO_RECOLHIMENTO': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#ffedd5', color: '#c2410c' }}>Aguard. Recolhimento</span>;
-      case 'AGUARDANDO_CREDITO': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#dbeafe', color: '#1d4ed8' }}>Aguard. Crédito/Boleto</span>;
-      case 'CONCLUIDA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#dcfce7', color: '#15803d' }}>Concluída</span>;
-      case 'CANCELADA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#fee2e2', color: '#b91c1c' }}>Cancelada</span>;
-      default: return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: '#f3f4f6', color: '#4b5563' }}>{status}</span>;
+      case 'AGUARDANDO_RECOLHIMENTO': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)' }}>Aguard. Recolhimento</span>;
+      case 'AGUARDANDO_CREDITO': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--info-soft)', color: 'var(--primary-hover)' }}>Aguard. Crédito/Boleto</span>;
+      case 'CONCLUIDA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--success-soft)', color: 'var(--success)' }}>Concluída</span>;
+      case 'CANCELADA': return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)' }}>Cancelada</span>;
+      default: return <span style={{ padding: '4px 10px', borderRadius: '20px', fontSize: '11px', fontWeight: '700', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)' }}>{status}</span>;
     }
   };
 
@@ -147,14 +147,14 @@ export default function Devolucoes() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <RotateCcw size={28} color="#1d4ed8" /> Gestão de Devoluções
+              <RotateCcw size={28} color="var(--primary-hover)" /> Gestão de Devoluções
             </h1>
-            <p style={{ color: '#6b7280' }}>Acompanhe recolhimentos, protocolos e abatimentos financeiros.</p>
+            <p style={{ color: 'var(--text-muted)' }}>Acompanhe recolhimentos, protocolos e abatimentos financeiros.</p>
           </div>
           
           <button 
             onClick={abrirModalNova}
-            style={{ padding: '10px 20px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
+            style={{ padding: '10px 20px', backgroundColor: 'var(--info)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 1px 3px rgba(0,0,0,0.1)' }}
           >
             <Plus size={20} /> Registrar Devolução Manual
           </button>
@@ -166,35 +166,35 @@ export default function Devolucoes() {
             <div className="stat-label">Total Registrado</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Clock size={24} /> {resumo.aguardandoRecolhimento}
             </div>
             <div className="stat-label">Aguard. Recolhimento</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#3b82f6', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--info)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <Banknote size={24} /> {resumo.aguardandoCredito}
             </div>
             <div className="stat-label">Aguard. Crédito (NF/Boleto)</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CheckCircle size={24} /> {resumo.concluidas}
             </div>
             <div className="stat-label">Devoluções Concluídas</div>
           </div>
         </div>
 
-        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: '#e5e7eb', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
+        <div style={{ display: 'flex', gap: '10px', marginBottom: '20px', backgroundColor: 'var(--border)', padding: '4px', borderRadius: '8px', width: 'fit-content' }}>
           <button 
             onClick={() => { setAbaAtiva('ANDAMENTO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'white' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? '#2563eb' : '#6b7280', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'ANDAMENTO' ? 'var(--surface)' : 'transparent', color: abaAtiva === 'ANDAMENTO' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: abaAtiva === 'ANDAMENTO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Devoluções em Andamento
           </button>
           <button 
             onClick={() => { setAbaAtiva('HISTORICO'); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
-            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'white' : 'transparent', color: abaAtiva === 'HISTORICO' ? '#16a34a' : '#6b7280', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+            style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: abaAtiva === 'HISTORICO' ? 'var(--surface)' : 'transparent', color: abaAtiva === 'HISTORICO' ? 'var(--success)' : 'var(--text-muted)', boxShadow: abaAtiva === 'HISTORICO' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
           >
             Histórico (Encerradas)
           </button>
@@ -202,7 +202,7 @@ export default function Devolucoes() {
 
         <div className="filters-bar" style={{ marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center' }}>
           <div className="search-input-container" style={{ margin: 0, flex: '1 1 250px' }}>
-            <Search size={18} color="#9ca3af" />
+            <Search size={18} color="var(--text-subtle)" />
             <input
               type="text"
               placeholder="Buscar Fornecedor, NF, ID ou Pedido..."
@@ -213,12 +213,12 @@ export default function Devolucoes() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <Filter size={18} color="#6b7280" />
+            <Filter size={18} color="var(--text-muted)" />
             <select
               className="filter-select"
               value={filtroStatus}
               onChange={(e) => setFiltroStatus(e.target.value)}
-              style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}
+              style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}
             >
               <option value="TODOS">Todos os Status</option>
               {abaAtiva === 'ANDAMENTO' ? (
@@ -236,12 +236,12 @@ export default function Devolucoes() {
           </div>
 
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-            <ArrowUpDown size={18} color="#6b7280" />
+            <ArrowUpDown size={18} color="var(--text-muted)" />
             <select
               className="filter-select"
               value={ordenacao}
               onChange={(e) => setOrdenacao(e.target.value)}
-              style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}
+              style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}
             >
               <option value="RECENTES">Mais Recentes</option>
               <option value="ANTIGOS">Mais Antigas</option>
@@ -253,7 +253,7 @@ export default function Devolucoes() {
           {(busca || filtroStatus !== 'TODOS' || ordenacao !== 'RECENTES') && (
             <button 
               onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setOrdenacao('RECENTES'); }}
-              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--danger)', backgroundColor: 'var(--danger-soft)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Limpar Filtros
             </button>
@@ -262,72 +262,72 @@ export default function Devolucoes() {
 
         <div className="table-container">
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1000px' }}>
-            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
               <tr>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>ID / NF</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Origem</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Pedido por</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Entregue por</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitada</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px' }}>Protocolo(s)</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>Valor Total</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Status</th>
-                <th style={{ padding: '16px', color: '#64748b', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Ações</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>ID / NF</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Origem</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>Pedido por</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>Entregue por</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Solicitada</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Data Recolhido</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px' }}>Protocolo(s)</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'right' }}>Valor Total</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Status</th>
+                <th style={{ padding: '16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '13px', textAlign: 'center' }}>Ações</th>
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando devoluções...</td></tr>
+                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Carregando devoluções...</td></tr>
               ) : devolucoesFiltradas.length === 0 ? (
-                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma devolução encontrada nesta aba.</td></tr>
+                <tr><td colSpan="10" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Nenhuma devolução encontrada nesta aba.</td></tr>
               ) : (
                 devolucoesFiltradas.map((dev) => (
-                  <tr key={dev.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                  <tr key={dev.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                     <td style={{ padding: '16px' }}>
-                      <div style={{ fontWeight: 'bold', color: '#374151' }}>#{dev.id}</div>
-                      <div style={{ fontSize: '12px', color: '#64748b', marginTop: '4px' }}>NF: {dev.nfOrigem || 'Não inf.'}</div>
+                      <div style={{ fontWeight: 'bold', color: 'var(--text-secondary)' }}>#{dev.id}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>NF: {dev.nfOrigem || 'Não inf.'}</div>
                     </td>
                     
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       {dev.pedido?.id ? (
                         <button 
                           onClick={() => navigate(`/pedidos/${dev.pedido.id}`)}
-                          style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
+                          style={{ backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
                           Pedido #{dev.pedido.id}
                         </button>
                       ) : (
-                        <span style={{ backgroundColor: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
+                        <span style={{ backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
                           Manual
                         </span>
                       )}
                     </td>
 
-                    <td style={{ padding: '16px', fontWeight: '600', color: '#1e293b', fontSize: '14px' }}>
+                    <td style={{ padding: '16px', fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>
                       {dev.fornecedor?.empresa || dev.fornecedor?.nome || 'Fornecedor Excluído'}
                     </td>
                     
-                    <td style={{ padding: '16px', fontWeight: '500', color: '#475569', fontSize: '13px' }}>
+                    <td style={{ padding: '16px', fontWeight: '500', color: 'var(--text-secondary)', fontSize: '13px' }}>
                       {dev.fornecedor?.entreguePor || '-'}
                     </td>
                     
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+                    <td style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                       {formatarData(dev.dataSolicitacao)}
                     </td>
 
-                    <td style={{ padding: '16px', textAlign: 'center', color: '#64748b', fontSize: '14px' }}>
+                    <td style={{ padding: '16px', textAlign: 'center', color: 'var(--text-muted)', fontSize: '14px' }}>
                       {formatarData(dev.dataRecolhimento)}
                     </td>
 
                     <td style={{ padding: '16px' }}>
-                      {dev.protocolo && <div style={{ fontSize: '12px', color: '#334155' }}>Geral: {dev.protocolo}</div>}
-                      {dev.protocoloFalta && <div style={{ fontSize: '12px', color: '#b45309' }}>Falta: {dev.protocoloFalta}</div>}
-                      {dev.protocoloSobra && <div style={{ fontSize: '12px', color: '#1d4ed8' }}>Sobra: {dev.protocoloSobra}</div>}
-                      {!dev.protocolo && !dev.protocoloFalta && !dev.protocoloSobra && <span style={{ color: '#94a3b8', fontSize: '12px' }}>Aguardando...</span>}
+                      {dev.protocolo && <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Geral: {dev.protocolo}</div>}
+                      {dev.protocoloFalta && <div style={{ fontSize: '12px', color: 'var(--warning-text)' }}>Falta: {dev.protocoloFalta}</div>}
+                      {dev.protocoloSobra && <div style={{ fontSize: '12px', color: 'var(--primary-hover)' }}>Sobra: {dev.protocoloSobra}</div>}
+                      {!dev.protocolo && !dev.protocoloFalta && !dev.protocoloSobra && <span style={{ color: 'var(--text-subtle)', fontSize: '12px' }}>Aguardando...</span>}
                     </td>
 
-                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: '#16a34a', fontSize: '15px' }}>
+                    <td style={{ padding: '16px', textAlign: 'right', fontWeight: 'bold', color: 'var(--success)', fontSize: '15px' }}>
                       {fMoney(dev.valorTotal)}
                     </td>
 
@@ -337,13 +337,13 @@ export default function Devolucoes() {
 
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => abrirModalVisualizacao(dev.id)} title="Ver Detalhes" style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button onClick={() => abrirModalVisualizacao(dev.id)} title="Ver Detalhes" style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Eye size={18} />
                         </button>
-                        <button onClick={() => abrirModalEdicao(dev.id)} title="Editar" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button onClick={() => abrirModalEdicao(dev.id)} title="Editar" style={{ background: 'var(--primary-soft)', color: 'var(--info)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Edit2 size={18} />
                         </button>
-                        <button onClick={() => deletarDevolucao(dev.id)} title="Excluir" style={{ background: '#fef2f2', color: '#ef4444', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
+                        <button onClick={() => deletarDevolucao(dev.id)} title="Excluir" style={{ background: 'var(--danger-soft)', color: 'var(--danger)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Trash2 size={18} />
                         </button>
                       </div>

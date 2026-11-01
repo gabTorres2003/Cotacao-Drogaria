@@ -320,12 +320,12 @@ export default function LeitorCodigoBarras({ onDetected, onClose, autoIniciar = 
         <button
           type="button"
           onClick={abrir}
-          style={{ padding: '9px 12px', border: '1px solid #94a3b8', borderRadius: '6px', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
+          style={{ padding: '9px 12px', border: '1px solid var(--text-subtle)', borderRadius: '6px', background: 'var(--surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', minHeight: '42px' }}
         >
           <Camera size={16} /> Ler câmera
         </button>
         {aberto && (
-          <div style={{ marginTop: '8px', padding: '8px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc' }}>
+          <div style={{ marginTop: '8px', padding: '8px', border: '1px solid var(--border-strong)', borderRadius: '8px', background: 'var(--surface-muted)' }}>
             <ConteudoLeitor
               containerId={containerId}
               estado={estado}
@@ -351,7 +351,7 @@ export default function LeitorCodigoBarras({ onDetected, onClose, autoIniciar = 
   if (!aberto) return null;
 
   return (
-    <div style={{ marginTop: '8px', padding: '10px', border: '1px solid #cbd5e1', borderRadius: '8px', background: '#f8fafc' }}>
+    <div style={{ marginTop: '8px', padding: '10px', border: '1px solid var(--border-strong)', borderRadius: '8px', background: 'var(--surface-muted)' }}>
       <ConteudoLeitor
         containerId={containerId}
         estado={estado}
@@ -391,7 +391,7 @@ function ConteudoLeitor({
   return (
     <>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-        <strong style={{ fontSize: '13px', color: '#334155' }}>
+        <strong style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
           {codigoLido ? 'Confirme o código lido' : 'Aponte para o código de barras'}
         </strong>
         <button type="button" onClick={onFechar} aria-label="Fechar câmera" style={{ border: 0, background: 'transparent', cursor: 'pointer', padding: '4px' }}>
@@ -401,20 +401,20 @@ function ConteudoLeitor({
 
       <div
         id={containerId}
-        style={{ width: '100%', maxWidth: '640px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', background: '#111827', minHeight: estado === 'erro' ? 0 : '180px' }}
+        style={{ width: '100%', maxWidth: '640px', margin: '0 auto', overflow: 'hidden', borderRadius: '8px', background: 'var(--text)', minHeight: estado === 'erro' ? 0 : '180px' }}
       />
 
       {estado === 'iniciando' && (
-        <p style={{ fontSize: '12px', color: '#475569', margin: '8px 0 0', textAlign: 'center' }}>Iniciando a câmera...</p>
+        <p style={{ fontSize: '12px', color: 'var(--text-secondary)', margin: '8px 0 0', textAlign: 'center' }}>Iniciando a câmera...</p>
       )}
 
       {erro && (
         <div style={{ marginTop: '8px' }}>
-          <p style={{ color: '#b91c1c', fontSize: '12px', margin: '0 0 8px', lineHeight: 1.4 }}>{erro}</p>
+          <p style={{ color: 'var(--danger-text)', fontSize: '12px', margin: '0 0 8px', lineHeight: 1.4 }}>{erro}</p>
           <button
             type="button"
             onClick={onTentarNovamente}
-            style={{ padding: '8px 12px', border: '1px solid #cbd5e1', borderRadius: '6px', background: 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600' }}
+            style={{ padding: '8px 12px', border: '1px solid var(--border-strong)', borderRadius: '6px', background: 'var(--surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', fontWeight: '600' }}
           >
             <RotateCcw size={14} /> Tentar novamente
           </button>
@@ -422,7 +422,7 @@ function ConteudoLeitor({
       )}
 
       {aviso && !codigoLido && (
-        <p style={{ color: '#b45309', backgroundColor: '#fffbeb', border: '1px solid #fde68a', borderRadius: '6px', fontSize: '12px', margin: '8px 0 0', padding: '8px 10px', lineHeight: 1.4 }}>
+        <p style={{ color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '6px', fontSize: '12px', margin: '8px 0 0', padding: '8px 10px', lineHeight: 1.4 }}>
           {aviso}
         </p>
       )}
@@ -433,14 +433,14 @@ function ConteudoLeitor({
             <button
               type="button"
               onClick={onAlternarLanterna}
-              style={{ padding: '7px 10px', border: `1px solid ${lanternaAtiva ? '#f59e0b' : '#cbd5e1'}`, borderRadius: '6px', background: lanternaAtiva ? '#fef3c7' : 'white', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '600', color: '#334155' }}
+              style={{ padding: '7px 10px', border: `1px solid ${lanternaAtiva ? 'var(--warning)' : 'var(--border-strong)'}`, borderRadius: '6px', background: lanternaAtiva ? 'var(--warning-soft)' : 'var(--surface)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '5px', fontSize: '12px', fontWeight: '600', color: 'var(--text-secondary)' }}
             >
               {lanternaAtiva ? <FlashlightOff size={14} /> : <Flashlight size={14} />}
               {lanternaAtiva ? 'Desligar lanterna' : 'Lanterna'}
             </button>
           )}
           {zoom && (
-            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: '#334155', fontWeight: '600' }}>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '12px', color: 'var(--text-secondary)', fontWeight: '600' }}>
               <ZoomIn size={14} />
               <input
                 type="range"
@@ -449,7 +449,7 @@ function ConteudoLeitor({
                 step={zoom.passo}
                 value={zoom.atual}
                 onChange={e => onAlterarZoom(e.target.value)}
-                style={{ width: '110px', accentColor: '#3b82f6' }}
+                style={{ width: '110px', accentColor: 'var(--info)' }}
               />
             </label>
           )}
@@ -457,23 +457,23 @@ function ConteudoLeitor({
       )}
 
       {codigoLido && (
-        <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', border: '1px solid #bbf7d0', backgroundColor: '#f0fdf4' }}>
-          <div style={{ fontSize: '12px', color: '#166534', marginBottom: '4px' }}>Código lido ({codigoLido.formatoNome}):</div>
-          <div style={{ fontSize: '18px', fontWeight: '700', color: '#166534', letterSpacing: '0.5px', wordBreak: 'break-all' }}>
+        <div style={{ marginTop: '10px', padding: '10px', borderRadius: '8px', border: '1px solid var(--success-border)', backgroundColor: 'var(--success-soft)' }}>
+          <div style={{ fontSize: '12px', color: 'var(--success-text)', marginBottom: '4px' }}>Código lido ({codigoLido.formatoNome}):</div>
+          <div style={{ fontSize: '18px', fontWeight: '700', color: 'var(--success-text)', letterSpacing: '0.5px', wordBreak: 'break-all' }}>
             {codigoLido.valor}
           </div>
           <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '10px' }}>
             <button
               type="button"
               onClick={onConfirmar}
-              style={{ padding: '9px 14px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '700', minHeight: '42px' }}
+              style={{ padding: '9px 14px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '700', minHeight: '42px' }}
             >
               <Check size={15} /> Confirmar e consultar
             </button>
             <button
               type="button"
               onClick={onLerNovamente}
-              style={{ padding: '9px 14px', backgroundColor: 'white', color: '#334155', border: '1px solid #cbd5e1', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
+              style={{ padding: '9px 14px', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', fontSize: '13px', fontWeight: '600', minHeight: '42px' }}
             >
               <RotateCcw size={15} /> Ler novamente
             </button>

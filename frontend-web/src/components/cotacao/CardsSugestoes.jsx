@@ -8,9 +8,9 @@ export default function CardsSugestoes({
   if (!promocoes || promocoes.length === 0) return null;
 
   return (
-    <div style={{ marginTop: '24px', backgroundColor: '#f8fafc', padding: '20px', borderRadius: '12px', border: '1px solid #e2e8f0' }}>
-      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⭐</span>
+    <div style={{ marginTop: '24px', backgroundColor: 'var(--surface-muted)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border)' }}>
+      <h3 style={{ margin: '0 0 16px 0', fontSize: '18px', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <span style={{ backgroundColor: 'var(--warning-border)', color: 'var(--warning-text)', padding: '4px 8px', borderRadius: '6px', fontSize: '14px' }}>⭐</span>
         Sugestões Extras dos Fornecedores
       </h3>
       
@@ -30,8 +30,8 @@ export default function CardsSugestoes({
                    precosArr = [...new Set(precosArr)].sort((a, b) => a - b);
                    const rankIndex = precosArr.indexOf(promo.preco) + 1;
                    
-                   const corFundo = rankIndex === 1 ? '#dcfce7' : (rankIndex === 2 ? '#fef08a' : '#f1f5f9');
-                   const corTexto = rankIndex === 1 ? '#166534' : (rankIndex === 2 ? '#854d0e' : '#475569');
+                   const corFundo = rankIndex === 1 ? 'var(--success-soft)' : (rankIndex === 2 ? 'var(--warning-border)' : 'var(--surface-muted)');
+                   const corTexto = rankIndex === 1 ? 'var(--success-text)' : (rankIndex === 2 ? 'var(--warning-text)' : 'var(--text-secondary)');
                    
                    rankBadge = (
                      <span style={{ fontSize: '12px', backgroundColor: corFundo, color: corTexto, padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -39,30 +39,30 @@ export default function CardsSugestoes({
                      </span>
                    );
                } else {
-                   rankBadge = <span style={{ fontSize: '12px', backgroundColor: '#e2e8f0', color: '#475569', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold' }}>Item Não Cotado (Novo)</span>;
+                   rankBadge = <span style={{ fontSize: '12px', backgroundColor: 'var(--border)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '6px', fontWeight: 'bold' }}>Item Não Cotado (Novo)</span>;
                }
            }
 
            return (
-              <div key={idx} style={{ backgroundColor: 'white', border: '1px solid #cbd5e1', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
+              <div key={idx} style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '8px', padding: '16px', display: 'flex', flexDirection: 'column', gap: '12px', boxShadow: '0 1px 3px rgba(0,0,0,0.05)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: '#64748b' }}>{promo.fornecedorNome}</div>
+                  <div style={{ fontSize: '12px', fontWeight: 'bold', color: 'var(--text-muted)' }}>{promo.fornecedorNome}</div>
                   {rankBadge}
                 </div>
                 
                 <div>
-                  <strong style={{ fontSize: '15px', color: '#1e293b', display: 'block', marginBottom: '4px' }}>{getNomeExibicao(promo.nomeProduto)}</strong>
-                  {promo.observacao && <div style={{ fontSize: '12px', color: '#64748b', fontStyle: 'italic' }}>Obs: {promo.observacao}</div>}
+                  <strong style={{ fontSize: '15px', color: 'var(--text)', display: 'block', marginBottom: '4px' }}>{getNomeExibicao(promo.nomeProduto)}</strong>
+                  {promo.observacao && <div style={{ fontSize: '12px', color: 'var(--text-muted)', fontStyle: 'italic' }}>Obs: {promo.observacao}</div>}
                 </div>
                 
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8fafc', padding: '10px', borderRadius: '6px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'var(--surface-muted)', padding: '10px', borderRadius: '6px' }}>
                    <div>
-                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>Qtd Mínima</div>
-                     <div style={{ fontSize: '14px', color: '#1e293b', fontWeight: 'bold' }}>{promo.qtdMinima} un</div>
+                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Qtd Mínima</div>
+                     <div style={{ fontSize: '14px', color: 'var(--text)', fontWeight: 'bold' }}>{promo.qtdMinima} un</div>
                    </div>
                    <div style={{ textAlign: 'right' }}>
-                     <div style={{ fontSize: '11px', color: '#64748b', fontWeight: 'bold' }}>Preço Unitário</div>
-                     <div style={{ fontSize: '16px', color: '#16a34a', fontWeight: '900' }}>{fMoney(promo.preco)}</div>
+                     <div style={{ fontSize: '11px', color: 'var(--text-muted)', fontWeight: 'bold' }}>Preço Unitário</div>
+                     <div style={{ fontSize: '16px', color: 'var(--success)', fontWeight: '900' }}>{fMoney(promo.preco)}</div>
                    </div>
                 </div>
 
@@ -74,7 +74,7 @@ export default function CardsSugestoes({
                     ultimoPreco: promo.preco,
                     precoCustom: promo.preco
                   }, promo.fornecedorNome)}
-                  style={{ padding: '10px', backgroundColor: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: 'auto' }}
+                  style={{ padding: '10px', backgroundColor: 'var(--info)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: 'auto' }}
                 >
                   <ShoppingCart size={16} /> Incluir no Pedido
                 </button>

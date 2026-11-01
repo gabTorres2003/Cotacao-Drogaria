@@ -38,44 +38,44 @@ const badge = (texto, fundo, cor) => (
 );
 
 const STATUS_ITEM = {
-  OK: badge('OK', '#dcfce7', '#15803d'),
-  SUSPENSO: badge('Suspenso (DNA)', '#fee2e2', '#b91c1c'),
-  SEM_HISTORICO: badge('Sem Histórico', '#f3f4f6', '#4b5563'),
-  SEM_GIRO: badge('Sem Giro', '#ffedd5', '#c2410c'),
-  HISTORICO_INSUFICIENTE: badge('Histórico Insuficiente', '#fef9c3', '#a16207'),
+  OK: badge('OK', 'var(--success-soft)', 'var(--success)'),
+  SUSPENSO: badge('Suspenso (DNA)', 'var(--danger-soft)', 'var(--danger-text)'),
+  SEM_HISTORICO: badge('Sem Histórico', 'var(--bg)', 'var(--text-secondary)'),
+  SEM_GIRO: badge('Sem Giro', 'var(--warning-soft)', 'var(--warning-text)'),
+  HISTORICO_INSUFICIENTE: badge('Histórico Insuficiente', 'var(--warning-soft)', 'var(--warning-text)'),
 };
 
 const STATUS_SUGESTAO = {
-  GERADA: badge('Gerada', '#dbeafe', '#1d4ed8'),
-  EM_REVISAO: badge('Em Revisão', '#ffedd5', '#c2410c'),
-  APROVADA: badge('Aprovada', '#dcfce7', '#15803d'),
-  DESCARTADA: badge('Descartada', '#fee2e2', '#b91c1c'),
-  COTACAO_GERADA: badge('Cotação Gerada', '#ede9fe', '#6d28d9'),
+  GERADA: badge('Gerada', 'var(--info-soft)', 'var(--primary-hover)'),
+  EM_REVISAO: badge('Em Revisão', 'var(--warning-soft)', 'var(--warning-text)'),
+  APROVADA: badge('Aprovada', 'var(--success-soft)', 'var(--success)'),
+  DESCARTADA: badge('Descartada', 'var(--danger-soft)', 'var(--danger-text)'),
+  COTACAO_GERADA: badge('Cotação Gerada', 'var(--purple-soft)', 'var(--purple-text)'),
 };
 
 const DECISAO_BADGE = {
-  PENDENTE: badge('Pendente', '#f3f4f6', '#4b5563'),
-  APROVADO: badge('Aprovado', '#dcfce7', '#15803d'),
-  AJUSTADO: badge('Ajustado', '#dbeafe', '#1d4ed8'),
-  RECUSADO: badge('Recusado', '#fee2e2', '#b91c1c'),
+  PENDENTE: badge('Pendente', 'var(--bg)', 'var(--text-secondary)'),
+  APROVADO: badge('Aprovado', 'var(--success-soft)', 'var(--success)'),
+  AJUSTADO: badge('Ajustado', 'var(--info-soft)', 'var(--primary-hover)'),
+  RECUSADO: badge('Recusado', 'var(--danger-soft)', 'var(--danger-text)'),
 };
 
 const inputStyle = {
   width: '100%',
   padding: '10px 12px',
   borderRadius: '8px',
-  border: '1px solid #cbd5e1',
+  border: '1px solid var(--border-strong)',
   outline: 'none',
   boxSizing: 'border-box',
   fontSize: '14px',
-  backgroundColor: 'white',
+  backgroundColor: 'var(--surface)',
 };
 
 const labelStyle = {
   display: 'block',
   fontSize: '13px',
   fontWeight: '600',
-  color: '#374151',
+  color: 'var(--text-secondary)',
   marginBottom: '6px',
 };
 
@@ -414,8 +414,8 @@ export default function InteligenciaCompras() {
     (i) => (i.decisao === 'APROVADO' || i.decisao === 'AJUSTADO') && Number(i.quantidadeAprovada) > 0,
   ).length;
 
-  const thStyle = { padding: '14px 12px', color: '#64748b', fontWeight: '600', fontSize: '12px', textAlign: 'left', whiteSpace: 'nowrap' };
-  const tdStyle = { padding: '12px', fontSize: '13px', color: '#374151', verticalAlign: 'middle' };
+  const thStyle = { padding: '14px 12px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'left', whiteSpace: 'nowrap' };
+  const tdStyle = { padding: '12px', fontSize: '13px', color: 'var(--text-secondary)', verticalAlign: 'middle' };
 
   return (
     <div className="layout">
@@ -425,22 +425,22 @@ export default function InteligenciaCompras() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', flexWrap: 'wrap', gap: '15px' }}>
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Brain size={28} color="#1d4ed8" /> Inteligência de Compras
+              <Brain size={28} color="var(--primary-hover)" /> Inteligência de Compras
             </h1>
-            <p style={{ color: '#6b7280' }}>
+            <p style={{ color: 'var(--text-muted)' }}>
               Análise de demanda, estoque e histórico de compras para gerar sugestões inteligentes.
             </p>
           </div>
           <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
             <button
               onClick={abrirConfigGrupo}
-              style={{ padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ padding: '10px 16px', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Settings size={18} /> Config. Grupos
             </button>
             <button
               onClick={abrirConfigFornecedores}
-              style={{ padding: '10px 16px', backgroundColor: 'white', color: '#374151', border: '1px solid #cbd5e1', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ padding: '10px 16px', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <Truck size={18} /> Fornecedores / Lead Time
             </button>
@@ -448,7 +448,7 @@ export default function InteligenciaCompras() {
         </header>
 
         {/* Gerador de análise */}
-        <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '12px', padding: '20px', marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
+        <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '12px', padding: '20px', marginBottom: '24px', display: 'flex', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-end' }}>
           <div style={{ flex: '1 1 320px' }}>
             <label style={labelStyle}>Grupo de produtos (DNA)</label>
             <select
@@ -470,7 +470,7 @@ export default function InteligenciaCompras() {
             onClick={gerarAnalise}
             disabled={gerando || !grupoSelecionado}
             style={{
-              padding: '11px 22px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px',
+              padding: '11px 22px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px',
               cursor: gerando || !grupoSelecionado ? 'not-allowed' : 'pointer', fontWeight: '700',
               display: 'flex', alignItems: 'center', gap: '8px', opacity: gerando || !grupoSelecionado ? 0.6 : 1,
             }}
@@ -481,7 +481,7 @@ export default function InteligenciaCompras() {
           {sugestoes.length > 0 && (
             <button
               onClick={() => carregarSugestoes()}
-              style={{ padding: '11px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
+              style={{ padding: '11px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600', display: 'flex', alignItems: 'center', gap: '8px' }}
             >
               <RefreshCw size={16} /> Atualizar
             </button>
@@ -495,19 +495,19 @@ export default function InteligenciaCompras() {
             <div className="stat-label">Análises Geradas</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--warning)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <AlertTriangle size={24} /> {totais.pendentes}
             </div>
             <div className="stat-label">Itens Pendentes</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--success)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <CheckCircle size={24} /> {totais.aprovados}
             </div>
             <div className="stat-label">Itens Aprovados</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#7c3aed', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div className="stat-value" style={{ color: 'var(--purple)', display: 'flex', alignItems: 'center', gap: '8px' }}>
               <ShoppingCart size={24} /> {totais.cotacoes}
             </div>
             <div className="stat-label">Cotações Geradas</div>
@@ -517,7 +517,7 @@ export default function InteligenciaCompras() {
         {/* Lista de sugestões */}
         <div className="table-container" style={{ marginBottom: '24px' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '900px' }}>
-            <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+            <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
               <tr>
                 <th style={thStyle}>Grupo</th>
                 <th style={thStyle}>Gerada em</th>
@@ -532,14 +532,14 @@ export default function InteligenciaCompras() {
             </thead>
             <tbody>
               {carregandoSugestoes ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Carregando sugestões...</td></tr>
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Carregando sugestões...</td></tr>
               ) : sugestoes.length === 0 ? (
-                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhuma análise gerada ainda. Selecione um grupo e clique em "Gerar Análise".</td></tr>
+                <tr><td colSpan="9" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Nenhuma análise gerada ainda. Selecione um grupo e clique em "Gerar Análise".</td></tr>
               ) : (
                 sugestoes.map((s) => (
                   <tr
                     key={s.id}
-                    style={{ borderBottom: '1px solid #f1f5f9', backgroundColor: sugestaoAtiva?.sugestao.id === s.id ? '#eff6ff' : 'transparent', cursor: 'pointer' }}
+                    style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: sugestaoAtiva?.sugestao.id === s.id ? 'var(--primary-soft)' : 'transparent', cursor: 'pointer' }}
                     onClick={() => abrirSugestao(s.id)}
                   >
                     <td style={{ ...tdStyle, fontWeight: '600' }}>{s.dnaGrupoNome || `Grupo ${s.dnaGrupoId}`}</td>
@@ -547,14 +547,14 @@ export default function InteligenciaCompras() {
                     <td style={tdStyle}>{fDate(s.periodoInicio)} a {fDate(s.periodoFim)}</td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>{STATUS_SUGESTAO[s.status] || s.status}</td>
                     <td style={{ ...tdStyle, textAlign: 'center', fontWeight: '700' }}>{s.totalItens}</td>
-                    <td style={{ ...tdStyle, textAlign: 'center', color: '#c2410c', fontWeight: '700' }}>{s.pendentes}</td>
-                    <td style={{ ...tdStyle, textAlign: 'center', color: '#15803d', fontWeight: '700' }}>{s.aprovados}</td>
-                    <td style={{ ...tdStyle, textAlign: 'center', color: '#b91c1c', fontWeight: '700' }}>{s.recusados}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--warning-text)', fontWeight: '700' }}>{s.pendentes}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--success)', fontWeight: '700' }}>{s.aprovados}</td>
+                    <td style={{ ...tdStyle, textAlign: 'center', color: 'var(--danger-text)', fontWeight: '700' }}>{s.recusados}</td>
                     <td style={{ ...tdStyle, textAlign: 'center' }}>
                       <button
                         onClick={(e) => { e.stopPropagation(); abrirSugestao(s.id); }}
                         title="Visualizar itens"
-                        style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}
+                        style={{ background: 'var(--primary-soft)', color: 'var(--info)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}
                       >
                         <Eye size={18} />
                       </button>
@@ -572,10 +572,10 @@ export default function InteligenciaCompras() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', flexWrap: 'wrap', gap: '12px' }}>
               <div>
                 <h2 style={{ fontSize: '18px', margin: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <Package size={20} color="#1d4ed8" />
+                  <Package size={20} color="var(--primary-hover)" />
                   {sugestaoAtiva.sugestao.dnaGrupoNome} — sugestão de compra
                 </h2>
-                <p style={{ color: '#6b7280', fontSize: '13px', margin: '4px 0 0 0' }}>
+                <p style={{ color: 'var(--text-muted)', fontSize: '13px', margin: '4px 0 0 0' }}>
                   Período {fDate(sugestaoAtiva.sugestao.periodoInicio)} a {fDate(sugestaoAtiva.sugestao.periodoFim)} ·{' '}
                   {STATUS_SUGESTAO[sugestaoAtiva.sugestao.status]}
                 </p>
@@ -583,7 +583,7 @@ export default function InteligenciaCompras() {
               <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setSugestaoAtiva(null)}
-                  style={{ padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
+                  style={{ padding: '10px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}
                 >
                   Fechar
                 </button>
@@ -591,7 +591,7 @@ export default function InteligenciaCompras() {
                   onClick={gerarCotacao}
                   disabled={gerandoCotacao || aprovadosAtivos === 0 || sugestaoAtiva.sugestao.status === 'COTACAO_GERADA'}
                   style={{
-                    padding: '10px 18px', backgroundColor: '#16a34a', color: 'white', border: 'none', borderRadius: '8px',
+                    padding: '10px 18px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px',
                     cursor: gerandoCotacao || aprovadosAtivos === 0 || sugestaoAtiva.sugestao.status === 'COTACAO_GERADA' ? 'not-allowed' : 'pointer',
                     fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px',
                     opacity: gerandoCotacao || aprovadosAtivos === 0 || sugestaoAtiva.sugestao.status === 'COTACAO_GERADA' ? 0.6 : 1,
@@ -605,7 +605,7 @@ export default function InteligenciaCompras() {
 
             <div className="filters-bar" style={{ marginBottom: '16px', display: 'flex', flexWrap: 'wrap', gap: '15px', alignItems: 'center' }}>
               <div className="search-input-container" style={{ margin: 0, flex: '1 1 260px' }}>
-                <Search size={18} color="#9ca3af" />
+                <Search size={18} color="var(--text-subtle)" />
                 <input
                   type="text"
                   placeholder="Buscar produto, EAN ou código..."
@@ -615,8 +615,8 @@ export default function InteligenciaCompras() {
                 />
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <Filter size={18} color="#6b7280" />
-                <select className="filter-select" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
+                <Filter size={18} color="var(--text-muted)" />
+                <select className="filter-select" value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}>
                   <option value="TODOS">Todos os status</option>
                   <option value="OK">OK</option>
                   <option value="SUSPENSO">Suspenso (DNA)</option>
@@ -626,8 +626,8 @@ export default function InteligenciaCompras() {
                 </select>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <SlidersHorizontal size={18} color="#6b7280" />
-                <select className="filter-select" value={filtroDecisao} onChange={(e) => setFiltroDecisao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
+                <SlidersHorizontal size={18} color="var(--text-muted)" />
+                <select className="filter-select" value={filtroDecisao} onChange={(e) => setFiltroDecisao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}>
                   <option value="TODAS">Todas decisões</option>
                   <option value="PENDENTE">Pendentes</option>
                   <option value="APROVADO">Aprovados</option>
@@ -638,7 +638,7 @@ export default function InteligenciaCompras() {
               {(busca || filtroStatus !== 'TODOS' || filtroDecisao !== 'TODAS') && (
                 <button
                   onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setFiltroDecisao('TODAS'); }}
-                  style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+                  style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--danger)', backgroundColor: 'var(--danger-soft)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
                 >
                   Limpar Filtros
                 </button>
@@ -647,7 +647,7 @@ export default function InteligenciaCompras() {
 
             <div className="table-container">
               <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', minWidth: '1300px' }}>
-                <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
                   <tr>
                     <th style={thStyle}>Produto</th>
                     <th style={thStyle}>EAN</th>
@@ -666,30 +666,30 @@ export default function InteligenciaCompras() {
                 </thead>
                 <tbody>
                   {itensFiltrados.length === 0 ? (
-                    <tr><td colSpan="13" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>Nenhum item encontrado com os filtros atuais.</td></tr>
+                    <tr><td colSpan="13" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>Nenhum item encontrado com os filtros atuais.</td></tr>
                   ) : (
                     itensFiltrados.map((item) => (
-                      <tr key={item.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={item.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                         <td style={{ ...tdStyle, fontWeight: '600', maxWidth: '320px' }}>
                           <div style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{item.produtoNome}</div>
-                          <div style={{ fontSize: '11px', color: '#94a3b8' }}>DNA #{item.dnaProdutoId}</div>
+                          <div style={{ fontSize: '11px', color: 'var(--text-subtle)' }}>DNA #{item.dnaProdutoId}</div>
                         </td>
-                        <td style={{ ...tdStyle, fontSize: '12px', color: '#64748b' }}>{item.ean || '-'}</td>
+                        <td style={{ ...tdStyle, fontSize: '12px', color: 'var(--text-muted)' }}>{item.ean || '-'}</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fNum(item.estoqueAtual)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fNum(item.vendas30d)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fNum(item.vmd30d, 2)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700' }}>{fNum(item.demandaDiariaPrevista, 2)}</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fNum(item.coberturaAtualDias, 1)}d</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fNum(item.estoqueAlvo)}</td>
-                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: '#1d4ed8' }}>{fNum(item.quantidadeSugerida)}</td>
-                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: '#15803d' }}>{item.quantidadeAprovada != null ? fNum(item.quantidadeAprovada) : '-'}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: 'var(--primary-hover)' }}>{fNum(item.quantidadeSugerida)}</td>
+                        <td style={{ ...tdStyle, textAlign: 'right', fontWeight: '700', color: 'var(--success)' }}>{item.quantidadeAprovada != null ? fNum(item.quantidadeAprovada) : '-'}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>{STATUS_ITEM[item.status] || item.status || '-'}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>{DECISAO_BADGE[item.decisao] || item.decisao}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>
                           <button
                             onClick={() => abrirDetalheProduto(item.id)}
                             title="Detalhar e decidir"
-                            style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}
+                            style={{ background: 'var(--primary-soft)', color: 'var(--info)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}
                           >
                             <Eye size={18} />
                           </button>
@@ -707,9 +707,9 @@ export default function InteligenciaCompras() {
       {/* Modal: configuração de grupos */}
       {modalConfigGrupo && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Settings size={20} color="#1d4ed8" /> Configuração de Grupos de Compra
+              <Settings size={20} color="var(--primary-hover)" /> Configuração de Grupos de Compra
             </h3>
 
             <div style={{ marginBottom: '14px' }}>
@@ -750,16 +750,16 @@ export default function InteligenciaCompras() {
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: '#374151', marginBottom: '18px', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '18px', cursor: 'pointer' }}>
               <input type="checkbox" checked={configForm.ativo} onChange={(e) => setConfigForm({ ...configForm, ativo: e.target.checked })} />
               Grupo ativo para análises
             </label>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-              <button onClick={() => setModalConfigGrupo(false)} style={{ padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+              <button onClick={() => setModalConfigGrupo(false)} style={{ padding: '10px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                 Cancelar
               </button>
-              <button onClick={salvarConfigGrupo} style={{ padding: '10px 18px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button onClick={salvarConfigGrupo} style={{ padding: '10px 18px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Save size={16} /> Salvar
               </button>
             </div>
@@ -770,9 +770,9 @@ export default function InteligenciaCompras() {
       {/* Modal: fornecedores / lead time */}
       {modalFornecedores && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '720px', maxHeight: '90vh', overflowY: 'auto' }}>
             <h3 style={{ marginTop: 0, display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <Truck size={20} color="#1d4ed8" /> Fornecedores — Lead Time e Pedido Mínimo
+              <Truck size={20} color="var(--primary-hover)" /> Fornecedores — Lead Time e Pedido Mínimo
             </h3>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px', marginBottom: '14px' }}>
@@ -818,21 +818,21 @@ export default function InteligenciaCompras() {
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', marginBottom: '18px' }}>
-              <button onClick={() => setFormFornecedor({ fornecedorId: '', dnaFornecedorId: '', leadTimeManualDias: '', pedidoMinimoValor: '', observacao: '', ativo: true })} style={{ padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+              <button onClick={() => setFormFornecedor({ fornecedorId: '', dnaFornecedorId: '', leadTimeManualDias: '', pedidoMinimoValor: '', observacao: '', ativo: true })} style={{ padding: '10px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                 Limpar
               </button>
-              <button onClick={salvarConfigFornecedor} style={{ padding: '10px 18px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <button onClick={salvarConfigFornecedor} style={{ padding: '10px 18px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <Save size={16} /> Salvar Fornecedor
               </button>
             </div>
 
-            <h4 style={{ margin: '0 0 10px 0', color: '#475569' }}>Configurações existentes</h4>
+            <h4 style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)' }}>Configurações existentes</h4>
             {configFornecedores.length === 0 ? (
-              <p style={{ color: '#94a3b8', fontSize: '13px' }}>Nenhum fornecedor configurado ainda.</p>
+              <p style={{ color: 'var(--text-subtle)', fontSize: '13px' }}>Nenhum fornecedor configurado ainda.</p>
             ) : (
               <div className="table-container">
                 <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '600px' }}>
-                  <thead style={{ backgroundColor: '#f8fafc', borderBottom: '1px solid #e2e8f0' }}>
+                  <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
                     <tr>
                       <th style={thStyle}>Fornecedor</th>
                       <th style={{ ...thStyle, textAlign: 'center' }}>Lead time</th>
@@ -843,13 +843,13 @@ export default function InteligenciaCompras() {
                   </thead>
                   <tbody>
                     {configFornecedores.map((cfg) => (
-                      <tr key={cfg.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <tr key={cfg.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                         <td style={tdStyle}>{cfg.fornecedorNome || (cfg.fornecedorId ? `Fornecedor #${cfg.fornecedorId}` : `DNA #${cfg.dnaFornecedorId}`)}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>{cfg.leadTimeManualDias != null ? `${cfg.leadTimeManualDias}d` : '-'}</td>
                         <td style={{ ...tdStyle, textAlign: 'right' }}>{fMoney(cfg.pedidoMinimoValor)}</td>
-                        <td style={{ ...tdStyle, fontSize: '12px', color: '#64748b' }}>{cfg.observacao || '-'}</td>
+                        <td style={{ ...tdStyle, fontSize: '12px', color: 'var(--text-muted)' }}>{cfg.observacao || '-'}</td>
                         <td style={{ ...tdStyle, textAlign: 'center' }}>
-                          <button onClick={() => editarConfigFornecedor(cfg)} title="Editar" style={{ background: '#eff6ff', color: '#3b82f6', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
+                          <button onClick={() => editarConfigFornecedor(cfg)} title="Editar" style={{ background: 'var(--primary-soft)', color: 'var(--info)', border: 'none', padding: '6px', borderRadius: '6px', cursor: 'pointer' }}>
                             <Settings size={16} />
                           </button>
                         </td>
@@ -861,7 +861,7 @@ export default function InteligenciaCompras() {
             )}
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '18px' }}>
-              <button onClick={() => setModalFornecedores(false)} style={{ padding: '10px 16px', backgroundColor: '#f1f5f9', color: '#475569', border: '1px solid #e2e8f0', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
+              <button onClick={() => setModalFornecedores(false)} style={{ padding: '10px 16px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border)', borderRadius: '8px', cursor: 'pointer', fontWeight: '600' }}>
                 Fechar
               </button>
             </div>
@@ -872,38 +872,38 @@ export default function InteligenciaCompras() {
       {/* Modal: detalhe do produto + decisão */}
       {detalheProduto && (
         <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.6)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-          <div style={{ background: 'white', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '860px', maxHeight: '92vh', overflowY: 'auto' }}>
+          <div style={{ background: 'var(--surface)', borderRadius: '12px', padding: '24px', width: '100%', maxWidth: '860px', maxHeight: '92vh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ margin: '0 0 4px 0' }}>{detalheProduto.snapshot.produtoNome}</h3>
-                <div style={{ fontSize: '13px', color: '#64748b' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
                   DNA #{detalheProduto.dnaProdutoId} {detalheProduto.snapshot.ean ? `· EAN ${detalheProduto.snapshot.ean}` : ''}{' '}
                   {detalheProduto.curvaAbc ? `· Curva ${detalheProduto.curvaAbc}` : ''}
                 </div>
                 <div style={{ marginTop: '6px', display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
                   {STATUS_ITEM[detalheProduto.snapshot.status] || detalheProduto.snapshot.status}
                   {DECISAO_BADGE[detalheProduto.snapshot.decisao] || detalheProduto.snapshot.decisao}
-                  {detalheProduto.suspenderCompra === 'S' && badge('SUSPENDERCOMPRA = S', '#fee2e2', '#b91c1c')}
+                  {detalheProduto.suspenderCompra === 'S' && badge('SUSPENDERCOMPRA = S', 'var(--danger-soft)', 'var(--danger-text)')}
                 </div>
               </div>
-              <button onClick={() => setDetalheProduto(null)} style={{ background: '#f3f4f6', color: '#4b5563', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
+              <button onClick={() => setDetalheProduto(null)} style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', padding: '8px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: '600' }}>
                 Fechar
               </button>
             </div>
 
             {(detalheProduto.snapshot.alertas?.length > 0) && (
-              <div style={{ background: '#fffbeb', border: '1px solid #fde68a', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: '#92400e' }}>
+              <div style={{ background: 'var(--warning-soft)', border: '1px solid var(--warning-border)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: 'var(--warning-text)' }}>
                 <strong>Alertas:</strong> {detalheProduto.snapshot.alertas.join(' · ')}
               </div>
             )}
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginBottom: '16px' }}>
               {/* ESTOQUE */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ fontWeight: '700', fontSize: '13px', color: '#1d4ed8', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--primary-hover)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Package size={16} /> ESTOQUE
                 </div>
-                <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.9' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.9' }}>
                   <div>Atual: <strong>{fNum(detalheProduto.snapshot.estoqueAtual)}</strong></div>
                   <div>Cobertura: <strong>{fNum(detalheProduto.snapshot.coberturaAtualDias, 1)} dias</strong></div>
                   <div>Última venda: <strong>{fDate(detalheProduto.snapshot.dataUltimaVenda)}</strong></div>
@@ -911,11 +911,11 @@ export default function InteligenciaCompras() {
               </div>
 
               {/* VENDAS */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ fontWeight: '700', fontSize: '13px', color: '#16a34a', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--success)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <TrendingUp size={16} /> VENDAS
                 </div>
-                <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.9' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.9' }}>
                   <div>7d: <strong>{fNum(detalheProduto.snapshot.vendas7d)}</strong> (VMD {fNum(detalheProduto.snapshot.vmd7d, 2)})</div>
                   <div>30d: <strong>{fNum(detalheProduto.snapshot.vendas30d)}</strong> (VMD {fNum(detalheProduto.snapshot.vmd30d, 2)})</div>
                   <div>60d: <strong>{fNum(detalheProduto.snapshot.vendas60d)}</strong> (VMD {fNum(detalheProduto.snapshot.vmd60d, 2)})</div>
@@ -925,11 +925,11 @@ export default function InteligenciaCompras() {
               </div>
 
               {/* PREÇOS */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ fontWeight: '700', fontSize: '13px', color: '#c2410c', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--warning-text)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <Sparkles size={16} /> PREÇOS
                 </div>
-                <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.9' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.9' }}>
                   <div>Custo atual: <strong>{fMoney(detalheProduto.snapshot.custoAtual)}</strong></div>
                   <div>Custo médio: <strong>{fMoney(detalheProduto.snapshot.custoMedio)}</strong></div>
                   <div>Venda: <strong>{fMoney(detalheProduto.snapshot.precoVenda)}</strong></div>
@@ -939,31 +939,31 @@ export default function InteligenciaCompras() {
               </div>
 
               {/* PLANEJAMENTO */}
-              <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px' }}>
-                <div style={{ fontWeight: '700', fontSize: '13px', color: '#7c3aed', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '14px' }}>
+                <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--purple)', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                   <CalendarDays size={16} /> PLANEJAMENTO
                 </div>
-                <div style={{ fontSize: '13px', color: '#475569', lineHeight: '1.9' }}>
+                <div style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.9' }}>
                   <div>Demanda/dia prevista: <strong>{fNum(detalheProduto.snapshot.demandaDiariaPrevista, 2)}</strong></div>
                   <div>Ciclo de compra: <strong>{fNum(detalheProduto.snapshot.cicloCompraDias)} dias</strong></div>
                   <div>Lead time: <strong>{fNum(detalheProduto.snapshot.leadTimeDias)} dias</strong></div>
                   <div>Dias de segurança: <strong>{fNum(detalheProduto.snapshot.diasSeguranca)}</strong></div>
                   <div>Estoque alvo: <strong>{fNum(detalheProduto.snapshot.estoqueAlvo)}</strong></div>
-                  <div style={{ color: '#1d4ed8', fontWeight: '700' }}>Qtd sugerida: {fNum(detalheProduto.snapshot.quantidadeSugerida)}</div>
+                  <div style={{ color: 'var(--primary-hover)', fontWeight: '700' }}>Qtd sugerida: {fNum(detalheProduto.snapshot.quantidadeSugerida)}</div>
                 </div>
               </div>
             </div>
 
             {/* COMPRAS */}
-            <div style={{ border: '1px solid #e2e8f0', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
-              <div style={{ fontWeight: '700', fontSize: '13px', color: '#475569', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <div style={{ border: '1px solid var(--border)', borderRadius: '10px', padding: '14px', marginBottom: '16px' }}>
+              <div style={{ fontWeight: '700', fontSize: '13px', color: 'var(--text-secondary)', marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <ShoppingCart size={16} /> COMPRAS (últimas entradas — 12 meses)
               </div>
               {detalheProduto.ultimasCompras?.length > 0 ? (
                 <div style={{ overflowX: 'auto' }}>
                   <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: '520px' }}>
                     <thead>
-                      <tr style={{ borderBottom: '1px solid #e2e8f0' }}>
+                      <tr style={{ borderBottom: '1px solid var(--border)' }}>
                         <th style={{ ...thStyle, fontSize: '11px' }}>NF</th>
                         <th style={{ ...thStyle, fontSize: '11px' }}>Entrada</th>
                         <th style={{ ...thStyle, fontSize: '11px', textAlign: 'right' }}>Qtd</th>
@@ -974,7 +974,7 @@ export default function InteligenciaCompras() {
                     </thead>
                     <tbody>
                       {detalheProduto.ultimasCompras.map((c, idx) => (
-                        <tr key={idx} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                        <tr key={idx} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                           <td style={{ ...tdStyle, fontSize: '12px' }}>{c.nrNota || '-'}</td>
                           <td style={{ ...tdStyle, fontSize: '12px' }}>{fDate(c.dtEntrada)}</td>
                           <td style={{ ...tdStyle, textAlign: 'right', fontSize: '12px' }}>{fNum(c.quantidade)}</td>
@@ -987,10 +987,10 @@ export default function InteligenciaCompras() {
                   </table>
                 </div>
               ) : (
-                <p style={{ fontSize: '13px', color: '#94a3b8', margin: 0 }}>Sem compras registradas nos últimos 12 meses.</p>
+                <p style={{ fontSize: '13px', color: 'var(--text-subtle)', margin: 0 }}>Sem compras registradas nos últimos 12 meses.</p>
               )}
               {detalheProduto.snapshot.dataUltimaCompra && (
-                <p style={{ fontSize: '12px', color: '#64748b', margin: '10px 0 0 0' }}>
+                <p style={{ fontSize: '12px', color: 'var(--text-muted)', margin: '10px 0 0 0' }}>
                   Última compra: {fDate(detalheProduto.snapshot.dataUltimaCompra)} ·{' '}
                   {fNum(detalheProduto.snapshot.quantidadeUltimaCompra)} un
                 </p>
@@ -999,27 +999,27 @@ export default function InteligenciaCompras() {
 
             {/* Justificativa do motor */}
             {detalheProduto.snapshot.justificativaMotor && (
-              <div style={{ background: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: '#334155' }}>
+              <div style={{ background: 'var(--surface-muted)', border: '1px solid var(--border)', borderRadius: '8px', padding: '10px 14px', marginBottom: '16px', fontSize: '13px', color: 'var(--text-secondary)' }}>
                 <strong>Justificativa do motor:</strong> {detalheProduto.snapshot.justificativaMotor}
               </div>
             )}
 
             {/* Decisão */}
             {sugestaoPodeDecidir ? (
-              <div style={{ border: '1px solid #cbd5e1', borderRadius: '10px', padding: '16px', background: '#f8fafc' }}>
-                <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '12px', color: '#1e293b' }}>Decisão de compra</div>
+              <div style={{ border: '1px solid var(--border-strong)', borderRadius: '10px', padding: '16px', background: 'var(--surface-muted)' }}>
+                <div style={{ fontWeight: '700', fontSize: '14px', marginBottom: '12px', color: 'var(--text)' }}>Decisão de compra</div>
 
                 <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap', marginBottom: '14px' }}>
                   {['APROVADO', 'AJUSTADO', 'RECUSADO'].map((d) => {
                     const ativo = decisaoForm.decisao === d;
-                    const cores = { APROVADO: '#16a34a', AJUSTADO: '#2563eb', RECUSADO: '#ef4444' };
+                    const cores = { APROVADO: 'var(--success)', AJUSTADO: 'var(--primary)', RECUSADO: 'var(--danger)' };
                     return (
                       <button
                         key={d}
                         onClick={() => setDecisaoForm({ ...decisaoForm, decisao: d })}
                         style={{
                           padding: '9px 16px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '13px',
-                          backgroundColor: ativo ? cores[d] : 'white',
+                          backgroundColor: ativo ? cores[d] : 'var(--surface)',
                           color: ativo ? 'white' : cores[d],
                           border: `1.5px solid ${cores[d]}`,
                         }}
@@ -1061,7 +1061,7 @@ export default function InteligenciaCompras() {
                     onClick={salvarDecisao}
                     disabled={salvandoDecisao}
                     style={{
-                      padding: '10px 20px', backgroundColor: '#2563eb', color: 'white', border: 'none', borderRadius: '8px',
+                      padding: '10px 20px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px',
                       cursor: salvandoDecisao ? 'not-allowed' : 'pointer', fontWeight: '700',
                       display: 'flex', alignItems: 'center', gap: '8px', opacity: salvandoDecisao ? 0.6 : 1,
                     }}
@@ -1071,7 +1071,7 @@ export default function InteligenciaCompras() {
                 </div>
               </div>
             ) : (
-              <div style={{ background: '#f1f5f9', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ background: 'var(--surface-muted)', borderRadius: '8px', padding: '12px 16px', fontSize: '13px', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <XCircle size={16} /> Cotação já gerada para esta sugestão — decisões encerradas.
               </div>
             )}

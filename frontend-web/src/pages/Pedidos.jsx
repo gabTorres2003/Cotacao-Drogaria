@@ -385,27 +385,27 @@ export default function Pedidos() {
         const tempoRestante = prazoFinal - agora;
 
         if (tempoRestante <= 0) {
-            return { texto: 'Prazo Estourado (> 24h)', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#991b1b', border: '1px solid #fecaca' }, estourado: true };
+            return { texto: 'Prazo Estourado (> 24h)', style: { ...baseStyle, backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)' }, estourado: true };
         }
 
         const horas = Math.floor((tempoRestante % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutos = Math.floor((tempoRestante % (1000 * 60 * 60)) / (1000 * 60));
         const isCritico = horas < 4;
 
-        return { texto: `Aguardando (⏳ ${horas}h ${minutos}m)`, style: { ...baseStyle, backgroundColor: isCritico ? '#fff7ed' : '#ffedd5', color: isCritico ? '#ea580c' : '#c2410c' } };
+        return { texto: `Aguardando (⏳ ${horas}h ${minutos}m)`, style: { ...baseStyle, backgroundColor: isCritico ? 'var(--warning-soft)' : 'var(--warning-soft)', color: isCritico ? 'var(--warning)' : 'var(--warning-text)' } };
     }
 
     switch (status) {
-      case 'CONFIRMADO_FORNECEDOR': return { texto: 'Confirmado na Fábrica', style: { ...baseStyle, backgroundColor: '#cffafe', color: '#1d4ed8' } };
-      case 'ENTREGUE_SUCESSO': return { texto: 'Entregue', style: { ...baseStyle, backgroundColor: '#dcfce7', color: '#15803d' } };
-      case 'ENTREGUE_COM_FALTA': return { texto: 'Entregue com Falta', style: { ...baseStyle, backgroundColor: '#fef3c7', color: '#b45309' } };
-      case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência: Valor', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
-      case 'DIVERGENCIA': return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: '#fee2e2', color: '#b91c1c' } };
-      case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: '#f3e8ff', color: '#7e22ce' } };
-      case 'ENTREGA_PARCIAL': return { texto: 'Entrega Parcial', style: { ...baseStyle, backgroundColor: '#fff7ed', color: '#c2410c' } };
-      case 'CONFERENCIA_INICIADA': return { texto: 'Conferência em andamento', style: { ...baseStyle, backgroundColor: '#e0e7ff', color: '#3730a3' } };
-      case 'CANCELADO': return { texto: 'Cancelado / Falha na Entrega', style: { ...baseStyle, backgroundColor: '#f1f5f9', color: '#475569', textDecoration: 'line-through' } };
-      default: return { texto: status, style: { ...baseStyle, backgroundColor: '#f3f4f6', color: '#4b5563' } };
+      case 'CONFIRMADO_FORNECEDOR': return { texto: 'Confirmado na Fábrica', style: { ...baseStyle, backgroundColor: 'var(--info-soft)', color: 'var(--primary-hover)' } };
+      case 'ENTREGUE_SUCESSO': return { texto: 'Entregue', style: { ...baseStyle, backgroundColor: 'var(--success-soft)', color: 'var(--success)' } };
+      case 'ENTREGUE_COM_FALTA': return { texto: 'Entregue com Falta', style: { ...baseStyle, backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)' } };
+      case 'VALORES_INCOMPATIVEIS': return { texto: 'Divergência: Valor', style: { ...baseStyle, backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)' } };
+      case 'DIVERGENCIA': return { texto: 'Divergência: Quantidade', style: { ...baseStyle, backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)' } };
+      case 'PENDENTE_DEVOLUCAO': return { texto: 'Devolução Pendente', style: { ...baseStyle, backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)' } };
+      case 'ENTREGA_PARCIAL': return { texto: 'Entrega Parcial', style: { ...baseStyle, backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)' } };
+      case 'CONFERENCIA_INICIADA': return { texto: 'Conferência em andamento', style: { ...baseStyle, backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)' } };
+      case 'CANCELADO': return { texto: 'Cancelado / Falha na Entrega', style: { ...baseStyle, backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', textDecoration: 'line-through' } };
+      default: return { texto: status, style: { ...baseStyle, backgroundColor: 'var(--bg)', color: 'var(--text-secondary)' } };
     }
   }
 
@@ -432,7 +432,7 @@ export default function Pedidos() {
           }
           .conferente-pedido-card {
             background: white;
-            border: 1px solid #e2e8f0;
+            border: 1px solid var(--border);
             border-radius: 12px;
             padding: 16px 18px;
             margin: 0;
@@ -450,7 +450,7 @@ export default function Pedidos() {
             width: fit-content;
             min-height: 36px;
             padding: 7px 14px;
-            background: #2563eb;
+            background: var(--primary);
             border: 0;
             border-radius: 7px;
             color: white;
@@ -460,7 +460,7 @@ export default function Pedidos() {
             box-shadow: 0 1px 2px rgba(37, 99, 235, .25);
             transition: background .15s;
           }
-          .conferente-btn-abrir:hover { background: #1d4ed8; }
+          .conferente-btn-abrir:hover { background: var(--primary-hover); }
 
           /* ===== Celular ===== */
           @media (max-width: 768px) {
@@ -499,13 +499,13 @@ export default function Pedidos() {
         <main className="main-content">
           <header style={{ marginBottom: '16px' }}>
             <h1 style={{ fontSize: '24px', margin: '0 0 5px' }}>Conferência de Pedidos</h1>
-            <p style={{ color: '#64748b', margin: 0, fontSize: '14px' }}>
+            <p style={{ color: 'var(--text-muted)', margin: 0, fontSize: '14px' }}>
               Selecione um pedido para conferir os produtos recebidos.
             </p>
           </header>
 
-          <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px 12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <Search size={18} color="#64748b" />
+          <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px 12px', marginBottom: '16px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Search size={18} color="var(--text-muted)" />
             <input
               type="text"
               placeholder="Buscar por produto, empresa, NF ou pedido..."
@@ -515,26 +515,26 @@ export default function Pedidos() {
             />
           </div>
 
-          <div className="conferente-filtros" style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '10px', marginBottom: '16px', display: 'grid', gap: '8px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+          <div className="conferente-filtros" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '10px', marginBottom: '16px', display: 'grid', gap: '8px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', borderRadius: '7px', padding: '8px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
               <Filter size={16} />
-              <select value={setorAtivo} onChange={(e) => setSetorAtivo(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+              <select value={setorAtivo} onChange={(e) => setSetorAtivo(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: 'var(--text-secondary)', fontSize: '13px' }}>
                 <option value="TODOS">Todos os grupos</option>
                 <option value="MEDICAMENTOS">Medicamentos</option>
                 <option value="PERFUMARIA">Perfumaria</option>
               </select>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', borderRadius: '7px', padding: '8px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
               <Calendar size={16} />
-              <select value={periodoConferente} onChange={(e) => setPeriodoConferente(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+              <select value={periodoConferente} onChange={(e) => setPeriodoConferente(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: 'var(--text-secondary)', fontSize: '13px' }}>
                 <option value="TODOS">Todo o período</option>
                 <option value="SEMANA">Esta semana</option>
                 <option value="MES">Este mês</option>
               </select>
             </label>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #cbd5e1', borderRadius: '7px', padding: '8px 10px', color: '#475569', fontSize: '13px' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', borderRadius: '7px', padding: '8px 10px', color: 'var(--text-secondary)', fontSize: '13px' }}>
               <ArrowUpDown size={16} />
-              <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: '#334155', fontSize: '13px' }}>
+              <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 0, outline: 0, width: '100%', background: 'transparent', color: 'var(--text-secondary)', fontSize: '13px' }}>
                 <option value="RECENTES">Mais recentes</option>
                 <option value="ANTIGOS">Mais antigos</option>
               </select>
@@ -543,7 +543,7 @@ export default function Pedidos() {
               <button
                 type="button"
                 onClick={() => { setBusca(''); setSetorAtivo('TODOS'); setPeriodoConferente('TODOS'); setOrdenacao('RECENTES'); }}
-                style={{ minHeight: '42px', border: '1px solid #fecaca', borderRadius: '7px', background: '#fef2f2', color: '#b91c1c', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+                style={{ minHeight: '42px', border: '1px solid var(--danger-border)', borderRadius: '7px', background: 'var(--danger-soft)', color: 'var(--danger-text)', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
               >
                 Limpar filtros
               </button>
@@ -551,12 +551,12 @@ export default function Pedidos() {
           </div>
 
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '32px', color: '#64748b' }}>
+            <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
               <Loader2 size={28} className="animate-spin" />
               <p>Carregando pedidos...</p>
             </div>
           ) : pedidosProcessados.length === 0 ? (
-            <div style={{ background: 'white', border: '1px solid #e2e8f0', borderRadius: '10px', padding: '28px 16px', textAlign: 'center', color: '#64748b' }}>
+            <div style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px', padding: '28px 16px', textAlign: 'center', color: 'var(--text-muted)' }}>
               Nenhum pedido disponível para conferência.
             </div>
           ) : (
@@ -568,12 +568,12 @@ export default function Pedidos() {
                   <article className="conferente-pedido-card" key={p.id}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', alignItems: 'flex-start', flexWrap: 'wrap' }}>
                       <div>
-                        <strong style={{ color: '#1e293b', fontSize: '16px' }}>Pedido #{p.id}</strong>
-                        <div style={{ color: '#475569', fontSize: '14px', marginTop: '4px' }}>{empresa}</div>
+                        <strong style={{ color: 'var(--text)', fontSize: '16px' }}>Pedido #{p.id}</strong>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '14px', marginTop: '4px' }}>{empresa}</div>
                       </div>
                       <span style={statusInfo.style}>{statusInfo.texto}</span>
                     </div>
-                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: '#64748b', fontSize: '13px' }}>
+                    <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', color: 'var(--text-muted)', fontSize: '13px' }}>
                       <span>{p.itens?.length || 0} produto(s)</span>
                       <span>NF: {p.numeroNota || 'Não informada'}</span>
                     </div>
@@ -639,13 +639,13 @@ export default function Pedidos() {
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '30px' }}>
           <div>
             <h1 style={{ fontSize: '24px', marginBottom: '5px' }}>Gerenciamento de Pedidos</h1>
-            <p style={{ color: '#6b7280' }}>Acompanhe entregas e resolva divergências</p>
+            <p style={{ color: 'var(--text-muted)' }}>Acompanhe entregas e resolva divergências</p>
           </div>
         </header>
 
-        <div style={{ backgroundColor: 'white', padding: '14px 16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
-          <div style={{ flex: '1 1 320px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '10px 12px', borderRadius: '8px' }}>
-            <Search size={18} color="#9ca3af" />
+        <div style={{ backgroundColor: 'var(--surface)', padding: '14px 16px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+          <div style={{ flex: '1 1 320px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid var(--border-strong)', padding: '10px 12px', borderRadius: '8px' }}>
+            <Search size={18} color="var(--text-subtle)" />
             <input
               type="text"
               placeholder="Busca geral em pedidos ativos: produto, EAN, fornecedor, empresa, NF ou nº do pedido"
@@ -658,14 +658,14 @@ export default function Pedidos() {
                 type="button"
                 onClick={() => { setBuscaGeral(''); setPedidosSelecionados([]); }}
                 title="Limpar busca geral"
-                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: '#64748b', display: 'flex', alignItems: 'center', padding: 0 }}
+                style={{ border: 'none', background: 'transparent', cursor: 'pointer', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', padding: 0 }}
               >
                 <X size={18} />
               </button>
             )}
           </div>
           {emBuscaGeral && (
-            <span style={{ color: '#475569', fontSize: '13px', fontWeight: '600' }}>
+            <span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600' }}>
               {carregandoBusca ? 'Buscando em todos os pedidos ativos...' : `${pedidosProcessados.length} resultado(s) em todos os pedidos ativos`}
             </span>
           )}
@@ -677,29 +677,29 @@ export default function Pedidos() {
             <div className="stat-label">Total de Pedidos</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#ef4444' }}>{resumo.emTratamento}</div>
+            <div className="stat-value" style={{ color: 'var(--danger)' }}>{resumo.emTratamento}</div>
             <div className="stat-label">Em Tratamento</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#f97316' }}>{resumo.aguardandoEntrega}</div>
+            <div className="stat-value" style={{ color: 'var(--warning)' }}>{resumo.aguardandoEntrega}</div>
             <div className="stat-label">Aguardando Entrega</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#eab308' }}>{resumo.aguardandoConfirmacao}</div>
+            <div className="stat-value" style={{ color: 'var(--warning)' }}>{resumo.aguardandoConfirmacao}</div>
             <div className="stat-label">Aguardando Confirmação</div>
           </div>
           <div className="stat-card">
-            <div className="stat-value" style={{ color: '#16a34a' }}>{resumo.entregues}</div>
+            <div className="stat-value" style={{ color: 'var(--success)' }}>{resumo.entregues}</div>
             <div className="stat-label">Entregues</div>
           </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
-            { chave: 'TRATAMENTO', titulo: 'Em Tratamento', descricao: 'Divergências e pendências', cor: '#dc2626', fundo: '#fef2f2', icone: <AlertTriangle size={20} />, quantidade: resumo.emTratamento },
-            { chave: 'AGUARDANDO_ENTREGA', titulo: 'Aguardando Entrega', descricao: 'Confirmados pelo fornecedor', cor: '#ea580c', fundo: '#fff7ed', icone: <PackagePlus size={20} />, quantidade: resumo.aguardandoEntrega },
-            { chave: 'AGUARDANDO_CONFIRMACAO', titulo: 'Aguardando Confirmação', descricao: 'Aguardando fornecedor', cor: '#ca8a04', fundo: '#fefce8', icone: <Calendar size={20} />, quantidade: resumo.aguardandoConfirmacao },
-            { chave: 'HISTORICO', titulo: 'Histórico', descricao: 'Entregues e cancelados', cor: '#16a34a', fundo: '#f0fdf4', icone: <CheckCircle size={20} />, quantidade: resumo.historico },
+            { chave: 'TRATAMENTO', titulo: 'Em Tratamento', descricao: 'Divergências e pendências', cor: 'var(--danger)', fundo: 'var(--danger-soft)', icone: <AlertTriangle size={20} />, quantidade: resumo.emTratamento },
+            { chave: 'AGUARDANDO_ENTREGA', titulo: 'Aguardando Entrega', descricao: 'Confirmados pelo fornecedor', cor: 'var(--warning)', fundo: 'var(--warning-soft)', icone: <PackagePlus size={20} />, quantidade: resumo.aguardandoEntrega },
+            { chave: 'AGUARDANDO_CONFIRMACAO', titulo: 'Aguardando Confirmação', descricao: 'Aguardando fornecedor', cor: 'var(--warning)', fundo: 'var(--warning-soft)', icone: <Calendar size={20} />, quantidade: resumo.aguardandoConfirmacao },
+            { chave: 'HISTORICO', titulo: 'Histórico', descricao: 'Entregues e cancelados', cor: 'var(--success)', fundo: 'var(--success-soft)', icone: <CheckCircle size={20} />, quantidade: resumo.historico },
           ].map((categoria) => {
             const ativa = abaAtiva === categoria.chave;
             return (
@@ -722,8 +722,8 @@ export default function Pedidos() {
                   borderRadius: '12px',
                   cursor: 'pointer',
                   textAlign: 'left',
-                  backgroundColor: ativa ? categoria.fundo : 'white',
-                  border: `2px solid ${ativa ? categoria.cor : '#e2e8f0'}`,
+                  backgroundColor: ativa ? categoria.fundo : 'var(--surface)',
+                  border: `2px solid ${ativa ? categoria.cor : 'var(--border)'}`,
                   boxShadow: ativa ? `0 4px 10px ${categoria.cor}22` : '0 1px 2px rgba(15, 23, 42, 0.04)',
                   transition: 'all 0.2s',
                 }}
@@ -734,7 +734,7 @@ export default function Pedidos() {
                   </span>
                   <span style={{ color: categoria.cor, fontWeight: '800', fontSize: '20px' }}>{categoria.quantidade}</span>
                 </div>
-                <span style={{ color: '#64748b', fontSize: '12px' }}>{categoria.descricao}</span>
+                <span style={{ color: 'var(--text-muted)', fontSize: '12px' }}>{categoria.descricao}</span>
               </button>
             );
           })}
@@ -742,22 +742,22 @@ export default function Pedidos() {
 
         <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap', gap: '15px', marginBottom: '20px' }}>
           <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
-            <div style={{ display: 'flex', gap: '8px', backgroundColor: '#f1f5f9', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid #cbd5e1' }}>
+            <div style={{ display: 'flex', gap: '8px', backgroundColor: 'var(--surface-muted)', padding: '4px', borderRadius: '8px', width: 'fit-content', border: '1px solid var(--border-strong)' }}>
               <button 
                 onClick={() => setSetorAtivo('TODOS')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'white' : 'transparent', color: setorAtivo === 'TODOS' ? '#1e293b' : '#64748b', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'TODOS' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'TODOS' ? 'var(--text)' : 'var(--text-muted)', boxShadow: setorAtivo === 'TODOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Todas Origens
               </button>
               <button 
                 onClick={() => setSetorAtivo('MEDICAMENTOS')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'white' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? '#2563eb' : '#64748b', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'MEDICAMENTOS' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'MEDICAMENTOS' ? 'var(--primary)' : 'var(--text-muted)', boxShadow: setorAtivo === 'MEDICAMENTOS' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Medicamentos
               </button>
               <button 
                 onClick={() => setSetorAtivo('PERFUMARIA')}
-                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'white' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? '#9333ea' : '#64748b', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
+                style={{ padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', backgroundColor: setorAtivo === 'PERFUMARIA' ? 'var(--surface)' : 'transparent', color: setorAtivo === 'PERFUMARIA' ? 'var(--purple)' : 'var(--text-muted)', boxShadow: setorAtivo === 'PERFUMARIA' ? '0 1px 2px rgba(0,0,0,0.1)' : 'none', transition: 'all 0.2s' }}
               >
                 Perfumaria
               </button>
@@ -766,16 +766,16 @@ export default function Pedidos() {
 
           <button 
               onClick={() => setIsModalManualOpen(true)}
-              style={{ padding: '10px 16px', backgroundColor: '#1e293b', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+              style={{ padding: '10px 16px', backgroundColor: 'var(--text)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
             >
               <PackagePlus size={18} /> Criar Pedido Manual
           </button>
         </div>
 
-        <div style={{ backgroundColor: 'white', padding: '16px', borderRadius: '12px', border: '1px solid #e2e8f0', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
+        <div style={{ backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '12px', border: '1px solid var(--border)', marginBottom: '20px', display: 'flex', flexWrap: 'wrap', gap: '12px', alignItems: 'center' }}>
           
-          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <Search size={18} color="#9ca3af" />
+          <div style={{ flex: '1 1 250px', display: 'flex', alignItems: 'center', gap: '10px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <Search size={18} color="var(--text-subtle)" />
             <input
               type="text"
               placeholder="Buscar Pedido, Empresa, NF ou Produto..."
@@ -785,16 +785,16 @@ export default function Pedidos() {
             />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '6px 12px', borderRadius: '6px' }}>
-             <Calendar size={16} color="#6b7280" />
-             <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Inicial" />
-             <span style={{ color: '#9ca3af', fontSize: '13px' }}>até</span>
-             <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Final" />
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '6px 12px', borderRadius: '6px' }}>
+             <Calendar size={16} color="var(--text-muted)" />
+             <input type="date" value={dataInicio} onChange={e => setDataInicio(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Inicial" />
+             <span style={{ color: 'var(--text-subtle)', fontSize: '13px' }}>até</span>
+             <input type="date" value={dataFim} onChange={e => setDataFim(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }} title="Data Final" />
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <Filter size={16} color="#6b7280" />
-            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <Filter size={16} color="var(--text-muted)" />
+            <select value={filtroStatus} onChange={(e) => setFiltroStatus(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="TODOS">Todos os Status</option>
               {abaAtiva === 'TRATAMENTO' && (
                 <>
@@ -821,9 +821,9 @@ export default function Pedidos() {
             </select>
           </div>
 
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid #d1d5db', padding: '8px 12px', borderRadius: '6px' }}>
-            <ArrowUpDown size={16} color="#6b7280" />
-            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: '#4b5563', cursor: 'pointer', backgroundColor: 'transparent' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', border: '1px solid var(--border-strong)', padding: '8px 12px', borderRadius: '6px' }}>
+            <ArrowUpDown size={16} color="var(--text-muted)" />
+            <select value={ordenacao} onChange={(e) => setOrdenacao(e.target.value)} style={{ border: 'none', outline: 'none', fontSize: '13px', color: 'var(--text-secondary)', cursor: 'pointer', backgroundColor: 'transparent' }}>
               <option value="RECENTES">Mais Recentes</option>
               <option value="ANTIGOS">Mais Antigos</option>
               <option value="MAIOR_VALOR">Maior Valor</option>
@@ -834,7 +834,7 @@ export default function Pedidos() {
           {(busca || filtroStatus !== 'TODOS' || dataInicio || dataFim || ordenacao !== 'RECENTES' || setorAtivo !== 'TODOS') && (
             <button 
               onClick={() => { setBusca(''); setFiltroStatus('TODOS'); setDataInicio(''); setDataFim(''); setOrdenacao('RECENTES'); setSetorAtivo('TODOS'); }}
-              style={{ padding: '8px 16px', fontSize: '12px', color: '#ef4444', backgroundColor: '#fee2e2', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
+              style={{ padding: '8px 16px', fontSize: '12px', color: 'var(--danger)', backgroundColor: 'var(--danger-soft)', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold' }}
             >
               Limpar Filtros
             </button>
@@ -842,8 +842,8 @@ export default function Pedidos() {
         </div>
 
         {pedidosSelecionados.length > 0 && (
-          <div style={{ backgroundColor: '#f8fafc', border: '1px solid #cbd5e1', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'fadeIn 0.3s', flexWrap: 'wrap', gap: '10px' }}>
-            <span style={{ color: '#334155', fontWeight: 'bold', fontSize: '15px' }}>
+          <div style={{ backgroundColor: 'var(--surface-muted)', border: '1px solid var(--border-strong)', padding: '12px 20px', borderRadius: '8px', marginBottom: '20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', animation: 'fadeIn 0.3s', flexWrap: 'wrap', gap: '10px' }}>
+            <span style={{ color: 'var(--text-secondary)', fontWeight: 'bold', fontSize: '15px' }}>
               {pedidosSelecionados.length} pedido(s) selecionado(s)
             </span>
             <div style={{ display: 'flex', gap: '10px' }}>
@@ -862,7 +862,7 @@ export default function Pedidos() {
                       }
                     }
                   }}
-                  style={{ backgroundColor: '#6366f1', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)' }}
+                  style={{ backgroundColor: 'var(--purple)', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(99, 102, 241, 0.3)' }}
                 >
                   <ClipboardCheck size={18} /> Conferir Selecionados
                 </button>
@@ -875,7 +875,7 @@ export default function Pedidos() {
                 <button 
                   onClick={handleExcluirEmMassa} 
                   disabled={isDeleting} 
-                  style={{ backgroundColor: '#ef4444', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
+                  style={{ backgroundColor: 'var(--danger)', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', boxShadow: '0 2px 4px rgba(239, 68, 68, 0.3)' }}
                 >
                   <Trash2 size={18} /> {isDeleting ? 'Excluindo...' : 'Excluir Selecionados'}
                 </button>
@@ -892,7 +892,7 @@ export default function Pedidos() {
                     type="checkbox"
                     checked={pedidosProcessados.length > 0 && pedidosProcessados.every(p => pedidosSelecionados.includes(p.id))}
                     onChange={handleSelectAll}
-                    style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: '#3b82f6' }}
+                    style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: 'var(--info)' }}
                     title="Selecionar/Desmarcar Todos"
                   />
                 </th>
@@ -912,16 +912,16 @@ export default function Pedidos() {
             <tbody>
               {loading || (emBuscaGeral && carregandoBusca) ? (
                 <tr>
-                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px', color: '#6b7280' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '40px', color: 'var(--text-muted)' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                      <Loader2 size={32} className="animate-spin" color="#3b82f6" />
+                      <Loader2 size={32} className="animate-spin" color="var(--info)" />
                       <span style={{ fontWeight: '500' }}>Carregando pedidos...</span>
                     </div>
                   </td>
                 </tr>
               ) : pedidosProcessados.length === 0 ? (
                 <tr>
-                  <td colSpan="12" style={{ textAlign: 'center', padding: '30px', color: '#6b7280' }}>
+                  <td colSpan="12" style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
                     {emBuscaGeral ? 'Nenhum pedido ativo encontrado para a busca.' : 'Nenhum pedido encontrado nesta aba ou setor.'}
                   </td>
                 </tr>
@@ -951,40 +951,40 @@ export default function Pedidos() {
                   const isSelected = pedidosSelecionados.includes(p.id);
 
                   return (
-                    <tr key={p.id} style={{ backgroundColor: isSelected ? '#f0f9ff' : 'transparent', transition: 'background-color 0.2s' }}>
+                    <tr key={p.id} style={{ backgroundColor: isSelected ? 'var(--info-soft)' : 'transparent', transition: 'background-color 0.2s' }}>
                       <td style={{ textAlign: 'center' }}>
                         <input
                           type="checkbox"
                           checked={isSelected}
                           onChange={() => handleSelectPedido(p.id)}
-                          style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: '#3b82f6' }}
+                          style={{ transform: 'scale(1.2)', cursor: 'pointer', accentColor: 'var(--info)' }}
                         />
                       </td>
-                      <td><span style={{ fontWeight: 'bold', color: '#374151' }}>#{p.id}</span></td>
+                      <td><span style={{ fontWeight: 'bold', color: 'var(--text-secondary)' }}>#{p.id}</span></td>
                       
                       <td>
                         {idCotacao !== '-' ? (
                           <button 
                             onClick={() => navigate(`/cotacao/${idCotacao}`)}
-                            style={{ backgroundColor: '#e0e7ff', color: '#3730a3', border: '1px solid #c7d2fe', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                            style={{ backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                             title="Ir para a Cotação"
                           >
                             Ver Cot. #{idCotacao}
                           </button>
                         ) : (
-                          <span style={{ backgroundColor: '#f1f5f9', color: '#475569', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                          <span style={{ backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                             Avulso
                           </span>
                         )}
                       </td>
 
-                      <td><span style={{ fontWeight: '600', color: '#111827', fontSize: '14px' }}>{nomeEmpresa}</span></td>
+                      <td><span style={{ fontWeight: '600', color: 'var(--text)', fontSize: '14px' }}>{nomeEmpresa}</span></td>
                       
                       <td style={{ textAlign: 'center' }}>
                         {(() => {
                           const setor = p.cotacao?.setor || p.fornecedor?.setorCompra || 'AMBOS';
-                          const setorColor = setor === 'MEDICAMENTOS' ? '#2563eb' : setor === 'PERFUMARIA' ? '#9333ea' : '#475569';
-                          const setorBg = setor === 'MEDICAMENTOS' ? '#dbeafe' : setor === 'PERFUMARIA' ? '#f3e8ff' : '#f1f5f9';
+                          const setorColor = setor === 'MEDICAMENTOS' ? 'var(--primary)' : setor === 'PERFUMARIA' ? 'var(--purple)' : 'var(--text-secondary)';
+                          const setorBg = setor === 'MEDICAMENTOS' ? 'var(--info-soft)' : setor === 'PERFUMARIA' ? 'var(--purple-soft)' : 'var(--surface-muted)';
                           return (
                             <div style={{ fontSize: '11px', fontWeight: 'bold', color: setorColor, backgroundColor: setorBg, padding: '4px 8px', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                               <Tag size={12} /> {setor === 'AMBOS' ? 'Med / Perf' : setor}
@@ -993,18 +993,18 @@ export default function Pedidos() {
                         })()}
                       </td>
 
-                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '600', backgroundColor: '#f3f4f6', padding: '2px 6px', borderRadius: '4px' }}>{p.numeroNota || '-'}</span></td>
-                      <td><span style={{ color: '#4b5563', fontSize: '13px', fontWeight: '500' }}>{p.fornecedor?.entreguePor || '-'}</span></td>
-                      <td><span style={{ color: '#4b5563', fontSize: '13px' }}>{gruposFormatados}</span></td>
-                      <td><span style={{ fontWeight: '600', color: '#16a34a', fontSize: '14px' }}>{fMoney(valorExibir)}</span></td>
-                      <td><span style={{ color: '#6b7280', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
+                      <td><span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '600', backgroundColor: 'var(--bg)', padding: '2px 6px', borderRadius: '4px' }}>{p.numeroNota || '-'}</span></td>
+                      <td><span style={{ color: 'var(--text-secondary)', fontSize: '13px', fontWeight: '500' }}>{p.fornecedor?.entreguePor || '-'}</span></td>
+                      <td><span style={{ color: 'var(--text-secondary)', fontSize: '13px' }}>{gruposFormatados}</span></td>
+                      <td><span style={{ fontWeight: '600', color: 'var(--success)', fontSize: '14px' }}>{fMoney(valorExibir)}</span></td>
+                      <td><span style={{ color: 'var(--text-muted)', fontSize: '14px' }}>{formatarDataBR(p.dataCriacao)}</span></td>
                       
                       <td style={{ textAlign: 'center' }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                           <span style={statusInfo.style}>{statusInfo.texto}</span>
                           
                           {(p.qtdSugestoes > 0 || p.sugestoes?.length > 0) && p.status !== 'CANCELADO' && (
-                              <span style={{ backgroundColor: '#fef08a', color: '#854d0e', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid #fde047' }} title="Há sugestões extras do fornecedor pendentes de análise">
+                              <span style={{ backgroundColor: 'var(--warning-border)', color: 'var(--warning-text)', padding: '2px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--warning-border)' }} title="Há sugestões extras do fornecedor pendentes de análise">
                                   <Tag size={10} /> Sugestão Pendente
                               </span>
                           )}
@@ -1025,24 +1025,24 @@ export default function Pedidos() {
 
                           {isAguardando && (
                             <button className="btn-icon" title="Conferir Recebimento" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
-                              <CheckCircle size={18} color="#16a34a" />
+                              <CheckCircle size={18} color="var(--success)" />
                             </button>
                           )}
 
                           {!isConferente && isAguardando && (
                             <button className="btn-icon" title="Registrar Falha na Entrega / Cancelar" onClick={() => abrirModalFalha(p)}>
-                              <XCircle size={18} color="#ef4444" />
+                              <XCircle size={18} color="var(--danger)" />
                             </button>
                           )}
 
                           {!isConferente && p.status === 'PENDENTE_DEVOLUCAO' && (
                             <button className="btn-icon" title="Tratar Devolução" onClick={() => abrirModalDevolucao(p)}>
-                              <RotateCcw size={18} color="#ef4444" />
+                              <RotateCcw size={18} color="var(--danger)" />
                             </button>
                           )}
 
                           {!isConferente && <button className="btn-icon" title="Excluir Pedido" onClick={() => deletarPedido(p.id)}>
-                            <Trash2 size={18} color="#ef4444" />
+                            <Trash2 size={18} color="var(--danger)" />
                           </button>}
                         </div>
                       </td>
@@ -1072,24 +1072,24 @@ export default function Pedidos() {
         {/* MODAL DE FALHA NA ENTREGA */}
         {modalFalhaAberto && pedidoFalha && (
             <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
-                <div style={{ backgroundColor: 'white', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
+                <div style={{ backgroundColor: 'var(--surface)', padding: '24px', borderRadius: '12px', width: '90%', maxWidth: '500px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                        <h3 style={{ margin: '0 0 18px 0', color: '#1e293b', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                            <XCircle size={20} color="#ef4444" /> Registrar Falha de Entrega
+                        <h3 style={{ margin: '0 0 18px 0', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <XCircle size={20} color="var(--danger)" /> Registrar Falha de Entrega
                         </h3>
-                        <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' }}><X size={20} /></button>
+                        <button onClick={() => setModalFalhaAberto(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' }}><X size={20} /></button>
                     </div>
                     
-                    <p style={{ fontSize: '14px', color: '#475569', marginBottom: '20px', lineHeight: '1.5' }}>
+                    <p style={{ fontSize: '14px', color: 'var(--text-secondary)', marginBottom: '20px', lineHeight: '1.5' }}>
                         O Pedido <strong>#{pedidoFalha.id}</strong> ({pedidoFalha.fornecedor?.nome || pedidoFalha.fornecedorNome}) será marcado como Falha/Cancelado.
                     </p>
 
                     <div style={{ marginBottom: '15px' }}>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '8px' }}>Selecione o Motivo da Falha / Cancelamento *</label>
                         <select 
                             value={motivoFalha} 
                             onChange={e => setMotivoFalha(e.target.value)}
-                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '14px' }}
+                            style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', outline: 'none', fontSize: '14px' }}
                         >
                             <option value="">-- Selecione o Motivo --</option>
                             <option value="Prazo Estourado (24h)">Prazo Estourado (24h)</option>
@@ -1100,20 +1100,20 @@ export default function Pedidos() {
                         </select>
                     </div>
 
-                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: '#f1f5f9', borderRadius: '8px' }}>
-                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: '#475569', marginBottom: '12px' }}>O que fazer com os itens deste pedido?</label>
+                    <div style={{ marginBottom: '20px', padding: '12px', backgroundColor: 'var(--surface-muted)', borderRadius: '8px' }}>
+                        <label style={{ display: 'block', fontSize: '13px', fontWeight: 'bold', color: 'var(--text-secondary)', marginBottom: '12px' }}>O que fazer com os itens deste pedido?</label>
                         
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text)', marginBottom: '10px' }}>
                             <input type="radio" checked={acaoDestino === 'ORIGINAL'} onChange={() => setAcaoDestino('ORIGINAL')} style={{ transform: 'scale(1.2)' }} />
                             <span>Devolver para a <strong>Cotação Original</strong> (se houver)</span>
                         </label>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b', marginBottom: '10px' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text)', marginBottom: '10px' }}>
                             <input type="radio" checked={acaoDestino === 'NOVA'} onChange={() => setAcaoDestino('NOVA')} style={{ transform: 'scale(1.2)' }} />
                             <span>Gerar uma <strong>Nova Cotação</strong> com estes itens</span>
                         </label>
 
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: '#1e293b' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '13px', color: 'var(--text)' }}>
                             <input type="radio" checked={acaoDestino === 'EXISTENTE'} onChange={() => setAcaoDestino('EXISTENTE')} style={{ transform: 'scale(1.2)' }} />
                             <span>Adicionar em uma <strong>Cotação Ativa</strong></span>
                         </label>
@@ -1123,7 +1123,7 @@ export default function Pedidos() {
                                 <select 
                                     value={cotacaoDestinoId} 
                                     onChange={e => setCotacaoDestinoId(e.target.value)}
-                                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid #cbd5e1', outline: 'none', fontSize: '13px' }}
+                                    style={{ width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-strong)', outline: 'none', fontSize: '13px' }}
                                 >
                                     <option value="">-- Selecione a Cotação --</option>
                                     {cotacoesAtivas.map(c => (
@@ -1135,8 +1135,8 @@ export default function Pedidos() {
                     </div>
 
                     <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px' }}>
-                        <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: '#ffffff', border: '1px solid #cbd5e1', borderRadius: '6px', fontWeight: 'bold', color: '#475569', cursor: 'pointer' }}>Cancelar</button>
-                        <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: '#ef4444', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <button onClick={() => setModalFalhaAberto(false)} style={{ padding: '10px 16px', background: 'var(--surface)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontWeight: 'bold', color: 'var(--text-secondary)', cursor: 'pointer' }}>Cancelar</button>
+                        <button onClick={registrarFalhaEntrega} style={{ padding: '10px 16px', background: 'var(--danger)', border: 'none', borderRadius: '6px', fontWeight: 'bold', color: 'white', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                             Confirmar Cancelamento
                         </button>
                     </div>

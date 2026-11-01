@@ -156,12 +156,12 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
   const styles = {
     overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 },
-    modal: { backgroundColor: 'white', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '550px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
-    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '15px', marginBottom: '20px' },
-    title: { margin: 0, fontSize: '20px', color: '#1f2937', fontWeight: 'bold' },
-    closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: '#6b7280' },
+    modal: { backgroundColor: 'var(--surface)', padding: '25px', borderRadius: '12px', width: '90%', maxWidth: '550px', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' },
+    header: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border)', paddingBottom: '15px', marginBottom: '20px' },
+    title: { margin: 0, fontSize: '20px', color: 'var(--text)', fontWeight: 'bold' },
+    closeBtn: { background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)' },
     listaContainer: { overflowY: 'auto', flex: 1, paddingRight: '5px' },
-    btnListaGeral: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: '0.2s' }
+    btnListaGeral: { width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px', padding: '14px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '8px', fontSize: '15px', fontWeight: 'bold', cursor: 'pointer', marginBottom: '20px', boxShadow: '0 4px 6px rgba(16, 185, 129, 0.2)', transition: '0.2s' }
   };
 
   return (
@@ -175,9 +175,9 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
         </div>
 
         {!loading && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: '#f1f5f9', padding: '10px 14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid #cbd5e1' }}>
-            <Filter size={18} color="#3b82f6" />
-            <span style={{ fontSize: '13px', color: '#475569', lineHeight: '1.4' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', backgroundColor: 'var(--surface-muted)', padding: '10px 14px', borderRadius: '8px', marginBottom: '20px', border: '1px solid var(--border-strong)' }}>
+            <Filter size={18} color="var(--info)" />
+            <span style={{ fontSize: '13px', color: 'var(--text-secondary)', lineHeight: '1.4' }}>
               Cotação de <strong>{setorCotacao === 'AMBOS' ? 'Medicamentos e Perfumaria' : setorCotacao}</strong>.<br/> 
               Exibindo apenas fornecedores compatíveis com este setor.
             </span>
@@ -186,18 +186,18 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
         {confirmModal ? (
             <div style={{ textAlign: 'center', padding: '20px 0' }}>
-                <AlertTriangle size={48} color="#f59e0b" style={{ margin: '0 auto 15px auto' }} />
-                <h3 style={{ fontSize: '18px', color: '#1f2937', marginBottom: '10px' }}>Confirmar Envio</h3>
-                <p style={{ color: '#4b5563', marginBottom: '25px', lineHeight: '1.5' }}>
+                <AlertTriangle size={48} color="var(--warning)" style={{ margin: '0 auto 15px auto' }} />
+                <h3 style={{ fontSize: '18px', color: 'var(--text)', marginBottom: '10px' }}>Confirmar Envio</h3>
+                <p style={{ color: 'var(--text-secondary)', marginBottom: '25px', lineHeight: '1.5' }}>
                     {confirmModal.type === 'LOTE'
                         ? `Você está prestes a gerar o link de transmissão e registrar no sistema o envio para ${selectedIds.length} fornecedor(es). Confirma esta ação?`
                         : `Você está prestes a registrar o envio individual para ${confirmModal.fornecedor.empresa ? confirmModal.fornecedor.empresa : confirmModal.fornecedor.nome}. Confirma esta ação?`}
                 </p>
                 <div style={{ display: 'flex', gap: '10px', justifyContent: 'center' }}>
-                    <button onClick={() => setConfirmModal(null)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid #cbd5e1', backgroundColor: 'white', color: '#475569', fontWeight: 'bold', cursor: 'pointer' }}>
+                    <button onClick={() => setConfirmModal(null)} style={{ padding: '10px 20px', borderRadius: '8px', border: '1px solid var(--border-strong)', backgroundColor: 'var(--surface)', color: 'var(--text-secondary)', fontWeight: 'bold', cursor: 'pointer' }}>
                         Voltar
                     </button>
-                    <button onClick={confirmarEnvio} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: '#10b981', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <button onClick={confirmarEnvio} style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--success)', color: 'white', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px' }}>
                         <Send size={16} /> Confirmar e Enviar
                     </button>
                 </div>
@@ -210,10 +210,10 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                 </button>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                    <div style={{ fontSize: '14px', color: '#6b7280', fontWeight: '600' }}>
+                    <div style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '600' }}>
                         Lista de Fornecedores:
                     </div>
-                    <label style={{ fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: '#374151' }}>
+                    <label style={{ fontSize: '13px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
                         <input 
                             type="checkbox" 
                             onChange={handleSelectAll} 
@@ -225,9 +225,9 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
 
                 <div style={styles.listaContainer}>
                 {loading ? (
-                    <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Carregando dados dos fornecedores...</p>
+                    <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Carregando dados dos fornecedores...</p>
                 ) : fornecedores.length === 0 ? (
-                    <p style={{ textAlign: 'center', color: '#6b7280', padding: '20px' }}>Nenhum fornecedor compatível com o setor desta cotação.</p>
+                    <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '20px' }}>Nenhum fornecedor compatível com o setor desta cotação.</p>
                 ) : (
                     fornecedores.map((fornecedor) => {
                     
@@ -239,17 +239,17 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                     let bgColor, borderColor, iconBg, iconColor, statusBadge, btnText, btnColor, btnBorder;
 
                     if (isRespondido) {
-                        bgColor = '#f0fdf4'; borderColor = '#bbf7d0'; iconBg = '#22c55e'; iconColor = 'white';
-                        btnText = 'Reenviar'; btnColor = '#22c55e'; btnBorder = '1px solid #22c55e';
-                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#22c55e', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Já Respondeu</span>;
+                        bgColor = 'var(--success-soft)'; borderColor = 'var(--success-border)'; iconBg = 'var(--success)'; iconColor = 'white';
+                        btnText = 'Reenviar'; btnColor = 'var(--success)'; btnBorder = '1px solid var(--success)';
+                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: 'var(--success)', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Já Respondeu</span>;
                     } else if (isPendente) {
-                        bgColor = '#fffbeb'; borderColor = '#fde68a'; iconBg = '#f59e0b'; iconColor = 'white';
-                        btnText = 'Cobrar Resposta'; btnColor = '#f59e0b'; btnBorder = '1px solid #f59e0b';
-                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#f59e0b', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Aguardando</span>;
+                        bgColor = 'var(--warning-soft)'; borderColor = 'var(--warning-border)'; iconBg = 'var(--warning)'; iconColor = 'white';
+                        btnText = 'Cobrar Resposta'; btnColor = 'var(--warning)'; btnBorder = '1px solid var(--warning)';
+                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: 'var(--warning)', color: 'white', borderRadius: '10px', fontWeight: 'bold'}}>Aguardando</span>;
                     } else {
-                        bgColor = '#f8fafc'; borderColor = '#e5e7eb'; iconBg = '#cbd5e1'; iconColor = 'white';
+                        bgColor = 'var(--surface-muted)'; borderColor = 'var(--border)'; iconBg = 'var(--border-strong)'; iconColor = 'white';
                         btnText = 'Enviar Link'; btnColor = 'white'; btnBorder = 'none';
-                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: '#e2e8f0', color: '#64748b', borderRadius: '10px', fontWeight: 'bold'}}>Não Enviado</span>;
+                        statusBadge = <span style={{fontSize: '11px', padding: '3px 8px', backgroundColor: 'var(--border)', color: 'var(--text-muted)', borderRadius: '10px', fontWeight: 'bold'}}>Não Enviado</span>;
                     }
 
                     return (
@@ -268,7 +268,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                             </div>
                             
                             <div>
-                            <h4 style={{ fontWeight: '600', color: '#374151', margin: '0 0 4px 0', fontSize: '14px' }}>
+                            <h4 style={{ fontWeight: '600', color: 'var(--text-secondary)', margin: '0 0 4px 0', fontSize: '14px' }}>
                                 {nomeExibicao}
                             </h4>
                             <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -280,7 +280,7 @@ export default function EnviarLinkModal({ idCotacao, onClose, onStatusUpdate }) 
                         <button 
                             style={{ 
                             display: 'flex', alignItems: 'center', gap: '6px', padding: '6px 10px', 
-                            backgroundColor: isPendente || isRespondido ? 'transparent' : '#2563eb', 
+                            backgroundColor: isPendente || isRespondido ? 'transparent' : 'var(--primary)',
                             color: isPendente || isRespondido ? btnColor : 'white', 
                             border: btnBorder, borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '12px'
                             }}
