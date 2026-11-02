@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import api from '../services/api';
-import { Camera, CheckCircle2, MessageSquare, Package, PackageSearch, PencilLine, Search, X } from 'lucide-react';
+import { Camera, CheckCircle2, MessageSquare, Package, PackageSearch, PencilLine, Plus, Search, Trash2, X } from 'lucide-react';
 import LeitorCodigoBarras from './LeitorCodigoBarras';
 import { validarCodigoLido } from '../utils/codigoBarras';
+import { encontrarDuplicadosNaoSolicitados } from '../utils/conferenciaUtils';
 
 const estiloBotaoModo = (ativo) => ({
   padding: '10px',
@@ -49,7 +50,17 @@ const estiloLink = {
   padding: 0
 };
 
-export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, ocultarValor = false }) {
+const classificacaoLabel = (valor) => valor === 'NAO_PEDIDO'
+  ? 'Não estava no pedido (com cobrança)'
+  : 'Enviado por engano (sem cobrança)';
+
+export default function ModalProdutoNaoSolicitado({
+  isOpen,
+  onClose,
+  onConfirm,
+  ocultarValor = false,
+  itensExistentes = []
+}) {
   const [modo, setModo] = useState('ESCOLHA');
   const [codigoBarrasRecebido, setCodigoBarrasRecebido] = useState('');
   const [codigoDna, setCodigoDna] = useState('');
@@ -67,29 +78,37 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
   const [quantidade, setQuantidade] = useState(1);
   const [valorUnitario, setValorUnitario] = useState('');
   const [classificacao, setClassificacao] = useState('ENVIADO_POR_ENGANO');
+  const [itens, setItens] = useState([]);
   const codigoAceitoRef = useRef(false);
   const emAndamentoRef = useRef({ codigo: false, texto: false });
+  const proximoIdRef = useRef(1);
+
+  const limparFormularioAtual = () => {
+    setModo('ESCOLHA');
+    setCodigoBarrasRecebido('');
+    setCodigoDna('');
+    setNomeManual('');
+    setNomeProdutoRecebido('');
+    setResultadoBusca(null);
+    setBuscando(false);
+    setBuscaNome('');
+    setBuscandoNome(false);
+    setTipoBuscaNome('descricao');
+    setResultadosNome([]);
+    setTruncadoNome(false);
+    setObservacao('');
+    setObservacoesAbertas(false);
+    setQuantidade(1);
+    setValorUnitario('');
+    setClassificacao('ENVIADO_POR_ENGANO');
+    codigoAceitoRef.current = false;
+  };
 
   useEffect(() => {
     if (!isOpen) {
-      setModo('ESCOLHA');
-      setCodigoBarrasRecebido('');
-      setCodigoDna('');
-      setNomeManual('');
-      setNomeProdutoRecebido('');
-      setResultadoBusca(null);
-      setBuscando(false);
-      setBuscaNome('');
-      setBuscandoNome(false);
-      setTipoBuscaNome('descricao');
-      setResultadosNome([]);
-      setTruncadoNome(false);
-      setObservacao('');
-      setObservacoesAbertas(false);
-      setQuantidade(1);
-      setValorUnitario('');
-      setClassificacao('ENVIADO_POR_ENGANO');
-      codigoAceitoRef.current = false;
+      limparFormularioAtual();
+      setItens([]);
+      proximoIdRef.current = 1;
     }
   }, [isOpen]);
 
@@ -210,15 +229,14 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
     setModo('CAMERA');
   };
 
-  const handleConfirm = () => {
+  /** Valida o formulário atual e devolve o item pronto (sem id local). */
+  const montarItemAtual = () => {
     const nome = (nomeManual.trim() || nomeProdutoRecebido.trim()).trim();
     if (!nome) {
-      alert('Informe o nome do produto.');
-      return;
+      return { erro: 'Informe o nome do produto.' };
     }
-    if (quantidade <= 0) {
-      alert('A quantidade deve ser maior que zero.');
-      return;
+    if (!Number.isFinite(Number(quantidade)) || Number(quantidade) <= 0) {
+      return { erro: 'A quantidade deve ser maior que zero.' };
     }
     const codigoTexto = codigoBarrasRecebido.trim();
     if (codigoTexto) {
@@ -226,40 +244,125 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
       if (!validacao.valido) {
         setModo('EAN');
         setResultadoBusca({ erro: true, texto: validacao.motivo });
-        alert('O código de barras informado não é válido. Corrija ou use o código interno do DNA.');
-        return;
+        return { erro: 'O código de barras informado não é válido. Corrija ou use o código interno do DNA.' };
       }
     }
 
-    onConfirm({
-      nomeProduto: nome,
-      codigoBarrasRecebido: codigoTexto,
-      codigoDnaRecebido: codigoDna.trim(),
-      nomeProdutoRecebido: nome,
-      quantidade,
-      valorUnitario: valorUnitario ? Number(valorUnitario) : 0,
-      classificacao,
-      observacao: observacao.trim(),
-      origem: 'NAO_SOLICITADO'
-    });
+    return {
+      item: {
+        nomeProduto: nome,
+        codigoBarrasRecebido: codigoTexto,
+        codigoDnaRecebido: codigoDna.trim(),
+        nomeProdutoRecebido: nome,
+        quantidade: Number(quantidade),
+        valorUnitario: valorUnitario ? Number(valorUnitario) : 0,
+        classificacao,
+        observacao: observacao.trim(),
+        origem: 'NAO_SOLICITADO'
+      }
+    };
+  };
+
+  const verificarDuplicidade = (novoItem, loteAtual) => {
+    const duplicados = encontrarDuplicadosNaoSolicitados(
+      [novoItem],
+      [...(itensExistentes || []), ...loteAtual]
+    );
+    if (duplicados.length === 0) return null;
+    return `O produto "${duplicados[0]}" já foi incluído nesta conferência. Remova o repetido antes de continuar.`;
+  };
+
+  const adicionarItemAtual = () => {
+    const resultado = montarItemAtual();
+    if (resultado.erro) {
+      alert(resultado.erro);
+      return false;
+    }
+    const erroDuplicidade = verificarDuplicidade(resultado.item, itens);
+    if (erroDuplicidade) {
+      alert(erroDuplicidade);
+      return false;
+    }
+
+    setItens(prev => [...prev, {
+      ...resultado.item,
+      id: `extra_${Date.now()}_${proximoIdRef.current++}`
+    }]);
+    limparFormularioAtual();
+    return true;
+  };
+
+  const removerItem = (idItem) => {
+    setItens(prev => prev.filter(item => item.id !== idItem));
+  };
+
+  const alterarQuantidadeItem = (idItem, valor) => {
+    setItens(prev => prev.map(item => item.id === idItem
+      ? { ...item, quantidade: valor }
+      : item));
+  };
+
+  const handleFinalizar = () => {
+    let lote = [...itens];
+    const nomeAtual = (nomeManual.trim() || nomeProdutoRecebido.trim()).trim();
+
+    // Se o formulário atual está preenchido, ele entra no lote sem exigir um
+    // clique extra em "Adicionar produto".
+    if (nomeAtual) {
+      const resultado = montarItemAtual();
+      if (resultado.erro) {
+        alert(resultado.erro);
+        return;
+      }
+      const erroDuplicidade = verificarDuplicidade(resultado.item, lote);
+      if (erroDuplicidade) {
+        alert(erroDuplicidade);
+        return;
+      }
+      lote = [...lote, { ...resultado.item, id: `extra_${Date.now()}_${proximoIdRef.current++}` }];
+    }
+
+    if (lote.length === 0) {
+      alert('Adicione pelo menos um produto antes de finalizar a inclusão.');
+      return;
+    }
+    const invalido = lote.find(item => !Number.isFinite(Number(item.quantidade)) || Number(item.quantidade) <= 0);
+    if (invalido) {
+      alert(`Informe uma quantidade maior que zero para "${invalido.nomeProduto}".`);
+      return;
+    }
+
+    onConfirm(lote.map(item => ({ ...item, quantidade: Number(item.quantidade) })));
+    onClose();
+  };
+
+  const handleFechar = () => {
+    if (itens.length > 0) {
+      const confirmar = window.confirm(
+        `${itens.length} produto(s) adicionado(s) ainda não foram incluídos na conferência. Deseja fechar e descartar?`
+      );
+      if (!confirmar) return;
+    }
     onClose();
   };
 
   return (
     <div style={{ position: 'fixed', inset: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: '10px' }}>
-      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', padding: '20px', width: '560px', maxWidth: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+      <div style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', padding: '20px', width: '620px', maxWidth: '100%', maxHeight: '92vh', overflowY: 'auto', boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
           <h3 style={{ margin: 0, fontSize: '18px', fontWeight: '700', color: 'var(--text)', display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Package size={20} color="var(--warning)" />
-            Produto Não Solicitado
+            Produtos Não Solicitados
           </h3>
-          <button onClick={onClose} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
+          <button onClick={handleFechar} aria-label="Fechar" style={{ background: 'none', border: 'none', cursor: 'pointer', padding: '4px' }}>
             <X size={20} color="var(--text-muted)" />
           </button>
         </div>
 
         <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginTop: 0, marginBottom: '14px' }}>
-          Produto que veio na entrega mas não faz parte do pedido original.
+          Identifique um produto que veio na entrega mas não faz parte do pedido original,
+          informe a quantidade e clique em <strong>Adicionar produto</strong>. Repita para incluir
+          vários produtos e, ao final, clique em <strong>Finalizar inclusão</strong>.
         </p>
 
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginBottom: '12px' }}>
@@ -491,7 +594,7 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
               inputMode="numeric"
               enterkeyHint="next"
               value={quantidade}
-              onChange={e => setQuantidade(Number(e.target.value))}
+              onChange={e => setQuantidade(e.target.value)}
               style={estiloCampo}
             />
           </div>
@@ -548,20 +651,75 @@ export default function ModalProdutoNaoSolicitado({ isOpen, onClose, onConfirm, 
           )}
         </div>
 
+        <div style={{ border: '1px solid var(--border)', borderRadius: '8px', padding: '10px', marginBottom: '16px', backgroundColor: 'var(--surface-muted)' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px', marginBottom: itens.length > 0 ? '8px' : 0 }}>
+            <strong style={{ fontSize: '13px', color: 'var(--text)' }}>
+              Produtos adicionados ({itens.length})
+            </strong>
+            <button
+              type="button"
+              onClick={adicionarItemAtual}
+              style={{ padding: '7px 12px', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+            >
+              <Plus size={14} /> Adicionar produto
+            </button>
+          </div>
+
+          {itens.length === 0 ? (
+            <p style={{ margin: '6px 0 0', fontSize: '12px', color: 'var(--text-muted)' }}>
+              Nenhum produto adicionado ainda. Identifique o produto acima e clique em "Adicionar produto".
+            </p>
+          ) : (
+            <ul style={{ listStyle: 'none', margin: 0, padding: 0, display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
+              {itens.map(item => (
+                <li key={item.id} style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '8px 10px', backgroundColor: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '6px', flexWrap: 'wrap' }}>
+                  <div style={{ flex: '1 1 180px', minWidth: 0 }}>
+                    <strong style={{ display: 'block', fontSize: '12px', color: 'var(--text)', wordBreak: 'break-word' }}>{item.nomeProduto}</strong>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                      {classificacaoLabel(item.classificacao)}
+                      {item.codigoBarrasRecebido ? ` · EAN: ${item.codigoBarrasRecebido}` : ''}
+                      {item.codigoDnaRecebido ? ` · DNA: ${item.codigoDnaRecebido}` : ''}
+                    </span>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '5px', fontSize: '11px', color: 'var(--text-secondary)', fontWeight: '600' }}>
+                    Qtd.
+                    <input
+                      type="number"
+                      min="1"
+                      inputMode="numeric"
+                      value={item.quantidade}
+                      onChange={e => alterarQuantidadeItem(item.id, e.target.value)}
+                      style={{ ...estiloCampo, width: '72px', padding: '6px 8px', fontSize: '13px' }}
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removerItem(item.id)}
+                    aria-label={`Remover ${item.nomeProduto}`}
+                    style={{ padding: '6px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '6px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '10px', flexWrap: 'wrap' }}>
           <button
             type="button"
-            onClick={onClose}
+            onClick={handleFechar}
             style={{ padding: '9px 16px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
           >
-            Cancelar
+            Fechar
           </button>
           <button
             type="button"
-            onClick={handleConfirm}
-            style={{ padding: '9px 16px', backgroundColor: 'var(--warning)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '600', fontSize: '13px', cursor: 'pointer', minHeight: '42px' }}
+            onClick={handleFinalizar}
+            style={{ padding: '9px 16px', backgroundColor: 'var(--success)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: '700', fontSize: '13px', cursor: 'pointer', minHeight: '42px', display: 'inline-flex', alignItems: 'center', gap: '5px' }}
           >
-            Adicionar à Conferência
+            <CheckCircle2 size={15} /> Finalizar inclusão
           </button>
         </div>
       </div>

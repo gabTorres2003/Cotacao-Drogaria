@@ -5,7 +5,7 @@ import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import PesquisaProdutoDna from '../components/PesquisaProdutoDna';
 import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck, FileText } from 'lucide-react';
-import { nomeExibicaoProduto, calcularResumoDivergencias } from '../utils/conferenciaUtils';
+import { nomeExibicaoProduto, calcularResumoDivergencias, quantidadeEsperadaItem, valorUnitarioFisico } from '../utils/conferenciaUtils';
 
 // Produtos aceitos por sugestão de troca são identificados pela diferença entre
 // o nome gravado no pedido e o nome do ItemCotacao original: "Substituto (Original)".
@@ -144,6 +144,21 @@ export default function PedidoDetalhes() {
                 navigate(`/pedidos/${id}/conferir`);
             } catch (error) {
                 alert('Erro ao reabrir a conferência: ' + (error.response?.data?.message || error.message));
+            }
+        }
+    };
+
+    const handleLiberarEdicaoConferencia = async () => {
+        if (window.confirm(
+            'Liberar a edição da conferência física para o Conferente?\n\n'
+            + 'Ele poderá corrigir as quantidades. Ao salvar novamente, o pedido volta a aguardar a conferência financeira do ADM.'
+        )) {
+            try {
+                await api.patch(`/api/pedidos/${id}/conferencia/liberar-edicao`);
+                alert('Edição da conferência liberada para o Conferente.');
+                carregarPedido();
+            } catch (error) {
+                alert('Erro ao liberar a edição da conferência: ' + (error.response?.data?.message || error.message));
             }
         }
     };
@@ -399,6 +414,13 @@ export default function PedidoDetalhes() {
             const recebidos = pedidoObj.itens?.filter(i => i.quantidadeReal !== null && i.quantidadeReal >= i.quantidadePedida).length || 0;
             return `ENTREGA PARCIAL (${recebidos}/${totalItens} itens concluídos)`;
         }
+        if (status === 'CONFERENCIA_INICIADA') {
+            if (pedidoObj.conferenciaFisicaFinalizada && !pedidoObj.conferenciaEdicaoLiberada) {
+                return 'AGUARDANDO CONFERÊNCIA FINANCEIRA (ADM)';
+            }
+            if (pedidoObj.conferenciaEdicaoLiberada) return 'EDIÇÃO LIBERADA PELO ADM';
+            return 'CONFERÊNCIA FÍSICA EM ANDAMENTO';
+        }
 
         if (['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(status)) {
             let faltas = 0, avarias = 0, incorretos = 0, vencimentosProximos = 0;
@@ -433,6 +455,13 @@ export default function PedidoDetalhes() {
     const mostrarReais = !podeConferir && pedido.status !== 'CANCELADO';
     const isEntregaParcial = pedido.status === 'ENTREGA_PARCIAL';
     const conferenciaIniciada = pedido.status === 'CONFERENCIA_INICIADA';
+    const conferenciaFisicaFinalizada = !!pedido.conferenciaFisicaFinalizada;
+    const conferenciaEdicaoLiberada = !!pedido.conferenciaEdicaoLiberada;
+    const podeLiberarEdicao = isAdmin && conferenciaIniciada
+        && conferenciaFisicaFinalizada && !conferenciaEdicaoLiberada;
+    // O Conferente só pode editar enquanto a etapa física não foi finalizada
+    // ou quando o ADM liberou expressamente a edição.
+    const conferenciaBloqueada = isConferente && conferenciaFisicaFinalizada && !conferenciaEdicaoLiberada;
     
     const temDivergencia = ['ENTREGUE_COM_FALTA', 'VALORES_INCOMPATIVEIS', 'DIVERGENCIA', 'PENDENTE_DEVOLUCAO'].includes(pedido.status);
     const podeDevolver = temDivergencia || pedido.status === 'ENTREGUE_SUCESSO'; 
@@ -471,8 +500,9 @@ export default function PedidoDetalhes() {
             if (item.statusRecebimento === 'AVARIADO') return 'Avariado';
             if (item.statusRecebimento === 'INCORRETO') return 'Produto incorreto';
             if (item.statusRecebimento === 'PROXIMO_VENCIMENTO') return 'Próximo do vencimento';
-            if (item.statusRecebimento === 'FALTANTE' || (item.quantidadeReal != null && item.quantidadeReal < item.quantidadePedida)) return 'Faltante';
-            if (item.quantidadeReal != null && item.quantidadeReal >= item.quantidadePedida) return 'Recebido';
+            const esperada = quantidadeEsperadaItem(item);
+            if (item.statusRecebimento === 'FALTANTE' || (item.quantidadeReal != null && item.quantidadeReal < esperada)) return 'Faltante';
+            if (item.quantidadeReal != null && item.quantidadeReal >= esperada) return 'Recebido';
             return 'Pendente';
         };
 
@@ -596,6 +626,18 @@ export default function PedidoDetalhes() {
                             <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
                         </button>
                     </header>
+                    {conferenciaFisicaFinalizada && !conferenciaEdicaoLiberada && (
+                        <div style={{ backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning-border)', color: 'var(--warning-text)', padding: '12px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', lineHeight: 1.5 }}>
+                            <strong>Conferência física finalizada{pedido.conferenciaFisicaFinalizadaPor ? ` por ${pedido.conferenciaFisicaFinalizadaPor}` : ''}.</strong>{' '}
+                            Aguardando a conferência financeira do ADM. A edição está bloqueada até o ADM liberar.
+                        </div>
+                    )}
+                    {conferenciaEdicaoLiberada && (
+                        <div style={{ backgroundColor: 'var(--success-soft)', border: '1px solid var(--success-border)', color: 'var(--success-text)', padding: '12px 14px', borderRadius: '8px', marginBottom: '14px', fontSize: '13px', lineHeight: 1.5 }}>
+                            <strong>Edição liberada pelo ADM{pedido.conferenciaEdicaoLiberadaPor ? ` (${pedido.conferenciaEdicaoLiberadaPor})` : ''}.</strong>{' '}
+                            Corrija as quantidades necessárias e salve novamente.
+                        </div>
+                    )}
                     <div className="produto-card" style={{ background: 'var(--surface)', border: '1px solid var(--border)', borderRadius: '10px' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '10px', marginBottom: '12px', flexWrap: 'wrap' }}>
                             <strong style={{ color: 'var(--text)' }}>Produtos solicitados</strong>
@@ -623,6 +665,13 @@ export default function PedidoDetalhes() {
                                                     <Tag size={10} /> Aceito por sugestão de troca
                                                 </div>
                                             )}
+                                            {Number(item.fatorConversao) > 1 && (
+                                                <div style={{ fontSize: '10px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)' }}>
+                                                    <ArrowUpDown size={10} /> {item.quantidadePedida} un pedidas
+                                                    {' '}{item.sentidoConversao === 'DIVIDIR' ? '÷' : '×'} {item.fatorConversao}
+                                                    {' '}= {quantidadeEsperadaItem(item)} un físicas
+                                                </div>
+                                            )}
                                             {naoEntregue && (
                                                 <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
                                                     <AlertTriangle size={10} /> Não entregue — retornou à cotação
@@ -631,11 +680,18 @@ export default function PedidoDetalhes() {
                                             {!naoEntregue && item.statusRecebimento && item.statusRecebimento !== 'OK' && item.observacaoDevolucao && (
                                                 <div style={{ fontSize: '11px', color: 'var(--warning-text)', marginTop: '4px', lineHeight: 1.4 }}>Obs.: {item.observacaoDevolucao}</div>
                                             )}
-                                            {!naoEntregue && item.statusRecebimento && item.quantidadeReal != null && item.quantidadePedida != null && item.quantidadeReal < item.quantidadePedida && (
-                                                <div style={{ fontSize: '11px', color: 'var(--danger-text)', marginTop: '4px', fontWeight: 600 }}>Recebido: {item.quantidadeReal} de {item.quantidadePedida} un</div>
+                                            {!naoEntregue && item.statusRecebimento && item.quantidadeReal != null && item.quantidadeReal < quantidadeEsperadaItem(item) && (
+                                                <div style={{ fontSize: '11px', color: 'var(--danger-text)', marginTop: '4px', fontWeight: 600 }}>Recebido: {item.quantidadeReal} de {quantidadeEsperadaItem(item)} un físicas</div>
                                             )}
                                         </div>
-                                        <span className="produto-qtd" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Qtd.: {item.quantidadePedida ?? 0}</span>
+                                        <span className="produto-qtd" style={{ color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>
+                                            Qtd.: {item.quantidadePedida ?? 0}
+                                            {Number(item.fatorConversao) > 1 && (
+                                                <span style={{ display: 'block', fontSize: '10px', color: 'var(--purple-text)' }}>
+                                                    → {quantidadeEsperadaItem(item)} físicas
+                                                </span>
+                                            )}
+                                        </span>
                                         <span className="produto-status" style={naoEntregue
                                             ? { background: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }
                                             : { background: 'var(--surface-muted)', color: 'var(--text-secondary)', borderRadius: '999px', padding: '4px 9px', fontSize: '12px', fontWeight: 700 }}>{statusItem(item)}</span>
@@ -650,7 +706,7 @@ export default function PedidoDetalhes() {
                         onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)}
                         style={styles.btnConferir}
                     >
-                        <CheckCircle size={18} style={{ marginRight: '6px' }} /> Abrir conferência item a item
+                        <CheckCircle size={18} style={{ marginRight: '6px' }} /> {conferenciaBloqueada ? 'Ver conferência (somente leitura)' : 'Abrir conferência item a item'}
                     </button>
                 </main>
                 <div className="acoes-mobile">
@@ -658,7 +714,7 @@ export default function PedidoDetalhes() {
                         <ArrowLeft size={17} style={{ marginRight: '5px' }} /> Voltar
                     </button>
                     <button onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)} style={styles.btnConferir}>
-                        <CheckCircle size={17} style={{ marginRight: '5px' }} /> Conferir pedido
+                        <CheckCircle size={17} style={{ marginRight: '5px' }} /> {conferenciaBloqueada ? 'Ver conferência' : 'Conferir pedido'}
                     </button>
                 </div>
             </div>
@@ -744,18 +800,64 @@ export default function PedidoDetalhes() {
                 )}
 
                 {conferenciaIniciada && (
-                    <div style={{ backgroundColor: 'var(--primary-soft)', border: '1px solid var(--info-border)', padding: '12px 16px', borderRadius: '8px', marginBottom: '20px' }}>
-                        <h4 style={{ margin: '0 0 6px 0', color: 'var(--primary-text)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '15px' }}>
-                            <FileText size={18} /> Conferência realizada — ainda não finalizada
+                    <div style={{
+                        backgroundColor: conferenciaEdicaoLiberada
+                            ? 'var(--success-soft)'
+                            : (conferenciaFisicaFinalizada ? 'var(--warning-soft)' : 'var(--primary-soft)'),
+                        border: `1px solid ${conferenciaEdicaoLiberada
+                            ? 'var(--success-border)'
+                            : (conferenciaFisicaFinalizada ? 'var(--warning-border)' : 'var(--info-border)')}`,
+                        padding: '12px 16px',
+                        borderRadius: '8px',
+                        marginBottom: '20px'
+                    }}>
+                        <h4 style={{
+                            margin: '0 0 6px 0',
+                            color: conferenciaEdicaoLiberada
+                                ? 'var(--success-text)'
+                                : (conferenciaFisicaFinalizada ? 'var(--warning-text)' : 'var(--primary-text)'),
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            fontSize: '15px'
+                        }}>
+                            <FileText size={18} /> {conferenciaFisicaFinalizada && !conferenciaEdicaoLiberada
+                                ? 'Conferência física finalizada — aguardando conferência financeira'
+                                : (conferenciaEdicaoLiberada
+                                    ? 'Edição da conferência liberada pelo ADM'
+                                    : 'Conferência realizada — ainda não finalizada')}
                         </h4>
-                        <p style={{ margin: 0, color: 'var(--info-text)', fontSize: '14px', lineHeight: 1.6 }}>
+                        <p style={{ margin: 0, color: 'var(--text-secondary)', fontSize: '14px', lineHeight: 1.6 }}>
                             {pedido.numeroNota ? (<><strong>Número da NF:</strong> {pedido.numeroNota}<br /></>) : null}
                             {totalDivergenciasConferencia > 0
-                                ? (<><strong>Divergências registradas até o momento:</strong> {listaDivergenciasConferencia}.</>)
-                                : 'Nenhuma divergência registrada até o momento.'}
-                            <br />
-                            Os detalhes por produto estão na tabela abaixo. Use "Continuar Conferência" para concluir os lançamentos e finalizar o recebimento.
+                                ? (<><strong>Divergências registradas até o momento:</strong> {listaDivergenciasConferencia}.<br /></>)
+                                : null}
+                            {conferenciaFisicaFinalizada && !conferenciaEdicaoLiberada ? (
+                                <>
+                                    Finalizada{pedido.conferenciaFisicaFinalizadaPor ? ` por ${pedido.conferenciaFisicaFinalizadaPor}` : ''}
+                                    {pedido.dataFinalizacaoConferenciaFisica ? ` em ${fDataHora(pedido.dataFinalizacaoConferenciaFisica)}` : ''}.
+                                    {isConferente
+                                        ? ' A edição está bloqueada até o ADM liberar.'
+                                        : ' Use "Liberar edição" se o Conferente precisar corrigir quantidades; caso contrário, finalize a conferência financeira abaixo.'}
+                                </>
+                            ) : conferenciaEdicaoLiberada ? (
+                                <>
+                                    Liberada{pedido.conferenciaEdicaoLiberadaPor ? ` por ${pedido.conferenciaEdicaoLiberadaPor}` : ''}
+                                    {pedido.conferenciaEdicaoLiberadaEm ? ` em ${fDataHora(pedido.conferenciaEdicaoLiberadaEm)}` : ''}.
+                                    {' '}O Conferente pode corrigir as quantidades; após salvar, o pedido volta a aguardar a conferência financeira.
+                                </>
+                            ) : (
+                                'Os detalhes por produto estão na tabela abaixo. Use "Continuar Conferência" para concluir os lançamentos e finalizar o recebimento.'
+                            )}
                         </p>
+                        {podeLiberarEdicao && (
+                            <button
+                                onClick={handleLiberarEdicaoConferencia}
+                                style={{ marginTop: '10px', backgroundColor: 'var(--warning)', color: 'white', padding: '8px 16px', borderRadius: '6px', border: 'none', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                            >
+                                <Edit2 size={16} /> Liberar edição da conferência
+                            </button>
+                        )}
                     </div>
                 )}
 
@@ -793,7 +895,7 @@ export default function PedidoDetalhes() {
                                     onClick={() => navigate(`/pedidos/${pedido.id}/conferir`)}
                                     style={{ ...styles.btnConferir, backgroundColor: 'var(--warning)' }}
                                 >
-                                    <CheckCircle size={18} style={{ marginRight: '6px' }} /> Continuar Conferência
+                                    <CheckCircle size={18} style={{ marginRight: '6px' }} /> {conferenciaBloqueada ? 'Ver conferência (somente leitura)' : 'Continuar Conferência'}
                                 </button>
                             )}
                             {podeConferir && (
@@ -883,10 +985,10 @@ export default function PedidoDetalhes() {
                             <thead>
                                 <tr>
                                     <th style={styles.th}>Produto</th>
-                                    <th style={{ ...styles.th, textAlign: 'center', backgroundColor: 'var(--surface-muted)' }}>Qtd (Prevista)</th>
-                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'center', backgroundColor: 'var(--success-soft)' }}>Qtd Real (NF)</th>}
-                                    <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--surface-muted)' }}>Valor Unit. (Prev)</th>
-                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--success-soft)' }}>Vlr Unit. (NF)</th>}
+                                    <th style={{ ...styles.th, textAlign: 'center', backgroundColor: 'var(--surface-muted)' }}>Qtd Pedida (Un. Pedido)</th>
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'center', backgroundColor: 'var(--success-soft)' }}>Qtd Real (Un. Física)</th>}
+                                    <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--surface-muted)' }}>Vlr Unit. (Un. Pedido)</th>
+                                    {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--success-soft)' }}>Vlr Unit. (Un. Física)</th>}
                                     {mostrarReais && <th style={{ ...styles.th, textAlign: 'center' }}>% Divergência</th>}
                                     <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--surface-muted)' }}>Subtotal (Prev)</th>
                                     {mostrarReais && <th style={{ ...styles.th, textAlign: 'right', backgroundColor: 'var(--success-soft)' }}>Subtotal (Real)</th>}
@@ -935,8 +1037,19 @@ export default function PedidoDetalhes() {
                                                     <Tag size={12} /> Aceito por sugestão de troca
                                                   </div>
                                                 )}
+                                                {Number(item.fatorConversao) > 1 && (
+                                                  <div style={{ fontSize: '11px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)', flexWrap: 'wrap' }}>
+                                                    <ArrowUpDown size={12} /> Conversão: {item.quantidadePedida} un pedidas
+                                                    {' '}{item.sentidoConversao === 'DIVIDIR' ? '÷' : '×'} {item.fatorConversao}
+                                                    {' '}= {quantidadeEsperadaItem(item)} un físicas
+                                                    <span style={{ fontWeight: 'normal' }}>
+                                                      {' '}({fMoney(item.valorUnitarioPedido)}/un pedida · {fMoney(valorUnitarioFisico(item))}/un física)
+                                                    </span>
+                                                  </div>
+                                                )}
                                                 {mostrarReais && item.quantidadeReal != null && item.valorUnitarioReal != null
                                                     && item.quantidadePedida > 0 && item.valorUnitarioPedido > 0
+                                                    && !(Number(item.fatorConversao) > 1)
                                                     && item.quantidadeReal !== item.quantidadePedida
                                                     && Math.abs(item.quantidadeReal * item.valorUnitarioReal - item.quantidadePedida * item.valorUnitarioPedido) <= 0.01 && (
                                                   <div style={{ fontSize: '11px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)' }}>

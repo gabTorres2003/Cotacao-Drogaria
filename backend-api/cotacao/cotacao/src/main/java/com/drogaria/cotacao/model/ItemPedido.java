@@ -36,6 +36,26 @@ public class ItemPedido {
     @Column(name = "valor_unitario_pedido", nullable = false)
     private Double valorUnitarioPedido;
 
+    /**
+     * Conversão entre a unidade pedida (pacote/caixa) e a unidade física
+     * conferida. MULTIPLICAR: 1 unidade pedida contém {@code fatorConversao}
+     * unidades físicas. DIVIDIR: {@code fatorConversao} unidades pedidas
+     * formam 1 unidade física. O valor unitário pedido permanece por unidade
+     * pedida; o valor por unidade física é derivado no backend.
+     */
+    @Column(name = "fator_conversao")
+    private Integer fatorConversao;
+
+    @Column(name = "sentido_conversao")
+    private String sentidoConversao;
+
+    /**
+     * Quantidade esperada em unidades físicas após a conversão. Persistida
+     * para que a conferência física e a financeira usem a mesma referência.
+     */
+    @Column(name = "quantidade_esperada")
+    private Integer quantidadeEsperada;
+
     @Column(name = "quantidade_real")
     private Integer quantidadeReal;
 

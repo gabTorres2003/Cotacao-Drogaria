@@ -4,8 +4,14 @@ import {
   separarItensConferencia,
   baseFracionamento,
   calcularFracionamento,
+  calcularConversao,
+  quantidadeEsperadaItem,
+  valorUnitarioFisico,
+  conversaoParaEnvio,
   montarItemRecebido,
   mesclarCacheNaConferencia,
+  chavesProdutoNaoSolicitado,
+  encontrarDuplicadosNaoSolicitados,
   calcularResumoDivergencias
 } from './conferenciaUtils';
 
@@ -177,6 +183,154 @@ describe('Ajuste 2: fracionamento de produtos', () => {
       fracaoFator: 5,
       fracionarAberto: false
     });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ajuste 5 — Conversão entre unidade pedida e unidade física
+// ---------------------------------------------------------------------------
+describe('Ajuste 5: conversão de unidades (quantidade x valor)', () => {
+  it('MULTIPLICAR: 1 pacote com N unidades físicas', () => {
+    const calc = calcularConversao(10, 12, 'MULTIPLICAR');
+    expect(calc).toMatchObject({
+      valido: true,
+      sentido: 'MULTIPLICAR',
+      fator: 12,
+      quantidadePedida: 10,
+      quantidadeEsperada: 120
+    });
+  });
+
+  it('DIVIDIR: N unidades pedidas formam 1 unidade física', () => {
+    const calc = calcularConversao(10, 5, 'DIVIDIR');
+    expect(calc).toMatchObject({ valido: true, quantidadeEsperada: 2 });
+  });
+
+  it('rejeita divisão não exata, fator inválido e sentido desconhecido', () => {
+    expect(calcularConversao(10, 3, 'DIVIDIR').valido).toBe(false);
+    expect(calcularConversao(10, 3, 'DIVIDIR').erro).toContain('divisível');
+    expect(calcularConversao(10, 1, 'MULTIPLICAR').valido).toBe(false);
+    expect(calcularConversao(10, 2.5, 'MULTIPLICAR').valido).toBe(false);
+    expect(calcularConversao(10, 2, 'OUTRO').valido).toBe(false);
+    expect(calcularConversao(0, 2, 'MULTIPLICAR').valido).toBe(false);
+  });
+
+  it('deriva a quantidade esperada e o valor por unidade física', () => {
+    const item = { quantidadePedida: 10, valorUnitarioPedido: 24, fatorConversao: 12, sentidoConversao: 'MULTIPLICAR' };
+    expect(quantidadeEsperadaItem(item)).toBe(120);
+    expect(valorUnitarioFisico(item)).toBe(2);
+  });
+
+  it('deriva quantidade e valor no sentido DIVIDIR', () => {
+    const item = { quantidadePedida: 10, valorUnitarioPedido: 4, fatorConversao: 5, sentidoConversao: 'DIVIDIR' };
+    expect(quantidadeEsperadaItem(item)).toBe(2);
+    expect(valorUnitarioFisico(item)).toBe(20);
+  });
+
+  it('mantém quantidade pedida e valor original quando não há conversão', () => {
+    const item = { quantidadePedida: 7, valorUnitarioPedido: 9.5, fatorConversao: null, sentidoConversao: null };
+    expect(quantidadeEsperadaItem(item)).toBe(7);
+    expect(valorUnitarioFisico(item)).toBe(9.5);
+  });
+
+  it('envia fator 1 para remover uma conversão persistida', () => {
+    expect(conversaoParaEnvio({ fatorConversao: 1, sentidoConversao: 'MULTIPLICAR' }))
+      .toEqual({ fatorConversao: 1, sentidoConversao: 'MULTIPLICAR' });
+    expect(conversaoParaEnvio({ fatorConversao: '', sentidoConversao: '' }))
+      .toEqual({ fatorConversao: undefined, sentidoConversao: undefined });
+  });
+
+  it('Conferente não envia valor financeiro, mas envia a conversão', () => {
+    const payload = montarItemRecebido({
+      id: 10,
+      quantidadeRecebidaAgora: 120,
+      valorUnitarioReal: 2,
+      fatorConversao: 12,
+      sentidoConversao: 'MULTIPLICAR',
+      statusRecebimento: 'OK'
+    }, '', { incluirValorFinanceiro: false });
+
+    expect(payload.valorUnitarioReal).toBeUndefined();
+    expect(payload.fatorConversao).toBe(12);
+    expect(payload.sentidoConversao).toBe('MULTIPLICAR');
+  });
+
+  it('ADM envia o valor por unidade física normalmente', () => {
+    const payload = montarItemRecebido({
+      id: 10,
+      quantidadeRecebidaAgora: 120,
+      valorUnitarioReal: 2.1,
+      fatorConversao: 12,
+      sentidoConversao: 'MULTIPLICAR',
+      statusRecebimento: 'OK'
+    }, '');
+
+    expect(payload.valorUnitarioReal).toBe(2.1);
+  });
+
+  it('preserva a conversão ao restaurar o cache após recarregar a página', () => {
+    const base = [{
+      id: 10,
+      quantidadePedida: 10,
+      valorUnitarioPedido: 24,
+      quantidadeRecebidaAgora: '',
+      fatorConversao: '',
+      sentidoConversao: 'MULTIPLICAR',
+      quantidadeEsperada: ''
+    }];
+    const cache = {
+      conferencia: [{
+        id: 10,
+        conferido: true,
+        quantidadeRecebidaAgora: 120,
+        fatorConversao: 12,
+        sentidoConversao: 'MULTIPLICAR',
+        quantidadeEsperada: 120
+      }]
+    };
+
+    const restaurada = mesclarCacheNaConferencia(base, cache, true);
+    expect(restaurada[0]).toMatchObject({
+      fatorConversao: 12,
+      sentidoConversao: 'MULTIPLICAR',
+      quantidadeEsperada: 120,
+      conversaoAberta: false
+    });
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Ajuste 6 — Inclusão em lote de produtos não solicitados
+// ---------------------------------------------------------------------------
+describe('Ajuste 6: duplicidade de produtos não solicitados', () => {
+  it('detecta repetição por EAN e por nome normalizado no mesmo lote', () => {
+    const duplicados = encontrarDuplicadosNaoSolicitados([
+      { nomeProduto: 'Dipirona 500mg', codigoBarrasRecebido: '7891234567895' },
+      { nomeProduto: 'DIPIRONA  500MG' }
+    ]);
+    expect(duplicados).toEqual(['DIPIRONA  500MG']);
+  });
+
+  it('detecta repetição contra produtos já incluídos na conferência', () => {
+    const existentes = [{ nomeProduto: 'Paracetamol', codigoBarrasRecebido: '7890000000001' }];
+    expect(encontrarDuplicadosNaoSolicitados(
+      [{ nomeProduto: 'Paracetamol' }], existentes
+    )).toEqual(['Paracetamol']);
+    expect(encontrarDuplicadosNaoSolicitados(
+      [{ nomeProduto: 'Outro', codigoBarrasRecebido: '789-0000-0000-01' }], existentes
+    )).toEqual(['Outro']);
+  });
+
+  it('não marca produtos distintos como duplicados', () => {
+    expect(encontrarDuplicadosNaoSolicitados([
+      { nomeProduto: 'Dipirona', codigoBarrasRecebido: '7891111111111' },
+      { nomeProduto: 'Paracetamol', codigoBarrasRecebido: '7892222222222' }
+    ])).toEqual([]);
+  });
+
+  it('gera chaves de EAN apenas com dígitos e nome sem acento', () => {
+    expect(chavesProdutoNaoSolicitado({ nomeProduto: 'Ação 500mg', codigoBarrasRecebido: '789-1' }))
+      .toEqual(['EAN:7891', 'NOME:acao 500mg']);
   });
 });
 

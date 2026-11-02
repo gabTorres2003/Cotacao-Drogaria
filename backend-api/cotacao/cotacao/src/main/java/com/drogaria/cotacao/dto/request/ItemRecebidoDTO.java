@@ -16,4 +16,8 @@ public class ItemRecebidoDTO {
     private Boolean foiCobrado;
     private String codigoBarrasRecebido;
     private String nomeProdutoRecebido;
+    /** Fator de conversão entre unidade pedida e unidade física. */
+    private Integer fatorConversao;
+    /** MULTIPLICAR ou DIVIDIR. */
+    private String sentidoConversao;
 }

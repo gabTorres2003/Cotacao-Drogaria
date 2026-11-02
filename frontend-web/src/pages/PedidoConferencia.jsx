@@ -10,8 +10,10 @@ import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, Alert
 import {
   nomeExibicaoProduto,
   separarItensConferencia,
-  baseFracionamento,
-  calcularFracionamento,
+  calcularConversao,
+  quantidadeEsperadaItem,
+  valorUnitarioFisico,
+  conversaoParaEnvio,
   montarItemRecebido,
   mesclarCacheNaConferencia
 } from '../utils/conferenciaUtils';
@@ -73,6 +75,11 @@ export default function PedidoConferencia() {
   const [itemCameraAberta, setItemCameraAberta] = useState(null);
   const [fotos, setFotos] = useState([]);
   const isConferente = localStorage.getItem('tipoUsuario') === 'CONFERENTE';
+  // Trava persistida: após o Conferente finalizar a etapa física, a edição só
+  // volta quando o ADM liberar expressamente pelo detalhe do pedido.
+  const bloqueadoConferente = isConferente
+    && !!pedido?.conferenciaFisicaFinalizada
+    && !pedido?.conferenciaEdicaoLiberada;
 
   useEffect(() => {
     carregarPedido();
@@ -94,44 +101,63 @@ export default function PedidoConferencia() {
       if (response.data.itens) {
         const continuidadeAdministrativa = !isConferente
           && response.data.status === 'CONFERENCIA_INICIADA';
+        const bloqueado = isConferente
+          && !!response.data.conferenciaFisicaFinalizada
+          && !response.data.conferenciaEdicaoLiberada;
+        // Após a liberação do ADM, o Conferente corrige a quantidade já
+        // persistida (o backend substitui, não soma outro volume).
+        const editandoAposLiberacao = isConferente && !!response.data.conferenciaEdicaoLiberada;
         // Itens "Não Veio" que retornaram à cotação não participam mais da conferência;
         // eles aparecem na tabela apenas em modo de leitura, destacados.
         const base = separarItensConferencia(response.data.itens).editaveis.map(item => {
             const qtdJaRecebida = item.quantidadeReal > 0 ? item.quantidadeReal : 0;
-            const totalmenteRecebido = qtdJaRecebida >= item.quantidadePedida;
+            const esperada = quantidadeEsperadaItem(item);
+            const totalmenteRecebido = qtdJaRecebida >= esperada;
             const valorInformado = item.valorUnitarioReal != null && Number(item.valorUnitarioReal) > 0;
-            // Na continuidade administrativa, só trava o que realmente já foi persistido.
-            // Itens sem quantidade salva permanecem editáveis para o ADM completar a conferência.
-            const quantidadeJaPersistida = continuidadeAdministrativa && qtdJaRecebida > 0;
-            const avariadaJaPersistida = continuidadeAdministrativa && (item.quantidadeAvariada || 0) > 0;
+            // Na continuidade administrativa ou na trava do Conferente, só trava
+            // o que realmente já foi persistido.
+            const quantidadeJaPersistida = (continuidadeAdministrativa || bloqueado) && qtdJaRecebida > 0;
+            const avariadaJaPersistida = (continuidadeAdministrativa || bloqueado)
+              && (item.quantidadeAvariada || 0) > 0;
             return {
               id: item.id,
               quantidadePedida: item.quantidadePedida,
               valorUnitarioPedido: item.valorUnitarioPedido,
+              itemCotacao: item.itemCotacao,
               quantidadeJaRecebida: qtdJaRecebida,
-              quantidadeRecebidaAgora: quantidadeJaPersistida ? qtdJaRecebida : '',
+              quantidadeRecebidaAgora: editandoAposLiberacao
+                ? qtdJaRecebida
+                : (quantidadeJaPersistida ? qtdJaRecebida : ''),
               quantidadeRecebidaPersistida: quantidadeJaPersistida,
               quantidadeAvariada: item.quantidadeAvariada || 0,
-              quantidadeAvariadaAgora: avariadaJaPersistida ? (item.quantidadeAvariada || 0) : 0,
+              quantidadeAvariadaAgora: editandoAposLiberacao
+                ? (item.quantidadeAvariada || 0)
+                : (avariadaJaPersistida ? (item.quantidadeAvariada || 0) : 0),
               quantidadeAvariadaPersistida: avariadaJaPersistida,
-              valorUnitarioReal: item.valorUnitarioReal > 0 ? item.valorUnitarioReal : '',
+              valorUnitarioReal: isConferente
+                ? ''
+                : (item.valorUnitarioReal > 0 ? item.valorUnitarioReal : ''),
               statusRecebimento: item.statusRecebimento || 'OK',
               // Faltas de uma etapa anterior precisam ser confirmadas de novo (com valor),
               // pois o produto pode ter chegado no volume atual.
-              conferido: isConferente
-                ? totalmenteRecebido || (item.statusRecebimento && item.statusRecebimento !== 'OK')
-                : valorInformado && (totalmenteRecebido
-                  || (item.statusRecebimento && item.statusRecebimento !== 'OK'
-                    && item.statusRecebimento !== 'FALTANTE')),
+              conferido: bloqueado
+                ? true
+                : (editandoAposLiberacao
+                  ? false
+                  : (isConferente
+                    ? totalmenteRecebido || (item.statusRecebimento && item.statusRecebimento !== 'OK')
+                    : valorInformado && (totalmenteRecebido
+                      || (item.statusRecebimento && item.statusRecebimento !== 'OK'
+                        && item.statusRecebimento !== 'FALTANTE')))),
               totalmenteRecebido,
               codigoBarrasRecebido: item.codigoBarrasRecebido || '',
               produtoRecebido: item.nomeProdutoRecebido || item.produtoRecebido || '',
               observacaoIncorreto: extrairObservacaoIncorreto(item),
               foiCobrado: (item.observacaoDevolucao || '').includes('Cobrado na nota'),
-              fracionado: false,
-              fracaoPartes: '',
-              fracaoFator: '',
-              fracionarAberto: false
+              fatorConversao: item.fatorConversao ?? '',
+              sentidoConversao: item.sentidoConversao || 'MULTIPLICAR',
+              quantidadeEsperada: item.quantidadeEsperada ?? '',
+              conversaoAberta: false
             };
           });
 
@@ -145,7 +171,7 @@ export default function PedidoConferencia() {
           && cache.pedidoStatus === response.data.status;
         if (cacheValido) {
           setNumeroNota(cache.numeroNota || response.data.numeroNota || '');
-          // Restaura o preenchimento salvo (inclusive marcações de fracionamento).
+          // Restaura o preenchimento salvo (inclusive marcações de conversão).
           setConferencia(mesclarCacheNaConferencia(base, cache, isConferente));
         } else {
           if (cache) limparCacheConferencia(id);
@@ -185,6 +211,7 @@ export default function PedidoConferencia() {
   const adicionarFoto = (foto) => setFotos(prev => [...prev, foto]);
 
   const handleInputChange = (idItem, field, value) => {
+    if (bloqueadoConferente) return;
     setConferencia(prev => prev.map(item => {
         if (item.id === idItem) {
             let newItem = { ...item, [field]: value };
@@ -212,6 +239,7 @@ export default function PedidoConferencia() {
   };
 
   const toggleConferido = (idItem) => {
+    if (bloqueadoConferente) return;
     setConferencia(prev => prev.map(item => {
       if (item.id === idItem) {
         if (!item.conferido) {
@@ -243,58 +271,87 @@ export default function PedidoConferencia() {
     }));
   };
 
-  // --- Fracionamento de produtos na conferência ---------------------------------
-  // Permite dividir o valor unitário em N partes e multiplicar a quantidade pelo
-  // fator informado, mantendo o valor total do item equivalente ao original.
+  // --- Conversão entre unidade pedida e unidade física ---------------------------
+  // MULTIPLICAR: 1 unidade pedida contém N unidades físicas.
+  // DIVIDIR: N unidades pedidas formam 1 unidade física (divisão exata).
+  // O Conferente só lida com quantidades; valores financeiros ficam com o ADM.
   // A validação e o cálculo puro ficam em ../utils/conferenciaUtils (testados).
-  const abrirFracionamento = (idItem) => {
+  const abrirConversao = (idItem) => {
+    if (bloqueadoConferente) return;
     setConferencia(prev => prev.map(item => item.id === idItem
-      ? { ...item, fracionarAberto: !item.fracionarAberto }
+      ? { ...item, conversaoAberta: !item.conversaoAberta }
       : item));
   };
 
-  const aplicarFracionamento = (idItem) => {
+  const aplicarConversaoItem = (idItem) => {
+    if (bloqueadoConferente) return;
     const item = conferencia.find(c => c.id === idItem);
     if (!item) return;
 
-    const { qtdBase, vlrBase } = baseFracionamento(item);
-    const calc = calcularFracionamento(qtdBase, vlrBase, item.fracaoPartes, item.fracaoFator);
+    const calc = calcularConversao(item.quantidadePedida, item.fatorConversao, item.sentidoConversao);
     if (!calc.valido) {
       alert(calc.erro);
       return;
     }
 
-    const confirmar = window.confirm(
-      'Confirmar fracionamento deste produto?\n\n' +
-      `Quantidade: ${qtdBase} un → ${calc.novaQuantidade} un (× ${calc.fator})\n` +
-      `Valor unitário: ${fMoney(vlrBase)} → ${fMoney(calc.novoVlrUnitario)} (÷ ${calc.partes} partes)\n` +
-      `Valor total: ${fMoney(calc.totalOriginal)} → ${fMoney(calc.totalFracionado)}\n\n` +
-      (calc.diferenca > 0.005
-        ? `Atenção: o novo total apresenta diferença de arredondamento de ${fMoney(calc.diferenca)} em relação ao original.`
-        : 'O valor total permanece equivalente ao original.')
-    );
+    const valorFisico = valorUnitarioFisico({
+      ...item,
+      fatorConversao: calc.fator,
+      sentidoConversao: calc.sentido
+    });
+    const sinal = calc.sentido === 'MULTIPLICAR' ? '×' : '÷';
+    const linhas = [
+      'Confirmar conversão deste produto?',
+      '',
+      `Quantidade: ${calc.quantidadePedida} un pedidas → ${calc.quantidadeEsperada} un físicas (${sinal} ${calc.fator})`
+    ];
+    if (!isConferente) {
+      linhas.push(`Valor por unidade pedida: ${fMoney(item.valorUnitarioPedido)}`);
+      linhas.push(`Valor por unidade física: ${fMoney(valorFisico)}`);
+    }
+    const confirmar = window.confirm(linhas.join('\n'));
     if (!confirmar) return;
 
     setConferencia(prev => prev.map(c => c.id === idItem
       ? {
           ...c,
-          quantidadeRecebidaAgora: calc.novaQuantidade,
-          valorUnitarioReal: calc.novoVlrUnitario,
-          fracionado: true,
-          fracaoPartes: calc.partes,
-          fracaoFator: calc.fator,
-          fracionarAberto: false
+          fatorConversao: calc.fator,
+          sentidoConversao: calc.sentido,
+          quantidadeEsperada: calc.quantidadeEsperada,
+          quantidadeRecebidaAgora: calc.quantidadeEsperada,
+          // O Conferente nunca recebe valor financeiro. O ADM usa o valor
+          // derivado por unidade física como referência e pode corrigir na NF.
+          valorUnitarioReal: isConferente
+            ? c.valorUnitarioReal
+            : (valorFisico > 0 ? valorFisico : c.valorUnitarioReal),
+          conversaoAberta: false
         }
       : c));
   };
 
-  const adicionarProdutoNaoSolicitado = (dados) => {
-    const novoItem = {
-      id: `extra_${Date.now()}`,
+  const removerConversao = (idItem) => {
+    if (bloqueadoConferente) return;
+    setConferencia(prev => prev.map(c => c.id === idItem
+      ? {
+          ...c,
+          // Fator 1 é o contrato do backend para limpar a conversão persistida.
+          fatorConversao: 1,
+          sentidoConversao: 'MULTIPLICAR',
+          quantidadeEsperada: '',
+          conversaoAberta: false
+        }
+      : c));
+  };
+
+  const adicionarProdutosNaoSolicitados = (lista) => {
+    if (bloqueadoConferente) return;
+    const agora = Date.now();
+    const novos = (lista || []).map((dados, indice) => ({
+      id: `extra_${agora}_${indice}`,
       nomeProduto: dados.nomeProduto,
       quantidadePedida: 0,
       quantidadeJaRecebida: 0,
-      valorUnitarioReal: dados.valorUnitario,
+      valorUnitarioReal: isConferente ? '' : (dados.valorUnitario || ''),
       valorUnitarioPedido: 0,
       statusRecebimento: 'OK',
       conferido: true,
@@ -306,9 +363,13 @@ export default function PedidoConferencia() {
       observacaoIncorreto: dados.observacao || '',
       foiCobrado: false,
       isNaoSolicitado: true,
-      classificacaoNaoSolicitado: dados.classificacao
-    };
-    setConferencia(prev => [...prev, novoItem]);
+      classificacaoNaoSolicitado: dados.classificacao,
+      fatorConversao: '',
+      sentidoConversao: 'MULTIPLICAR',
+      quantidadeEsperada: dados.quantidade,
+      conversaoAberta: false
+    }));
+    setConferencia(prev => [...prev, ...novos]);
   };
 
   const requestSort = (key) => {
@@ -362,6 +423,7 @@ export default function PedidoConferencia() {
   );
 
   const conferirTodos = () => {
+    if (bloqueadoConferente) return;
     let confirmados = 0;
     let pendentes = 0;
     setConferencia(prev => prev.map(item => {
@@ -424,7 +486,24 @@ export default function PedidoConferencia() {
     return c.nomeProduto || 'Produto Desconhecido';
   };
 
+  const montarItensNaoSolicitadosPayload = () => conferencia
+    .filter(c => c.isNaoSolicitado && c.conferido)
+    .map(c => ({
+      nomeProduto: c.nomeProduto,
+      quantidade: Number(c.quantidadeRecebidaAgora || 0),
+      // O Conferente nunca envia valor financeiro; o backend também ignora.
+      valorUnitarioReal: isConferente ? undefined : Number(c.valorUnitarioReal || 0),
+      codigoBarrasRecebido: c.codigoBarrasRecebido || '',
+      codigoDnaRecebido: c.codigoDnaRecebido || '',
+      nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
+      observacaoDevolucao: montarObservacaoNaoSolicitado(c)
+    }));
+
   const salvarConferenciaParcial = async () => {
+    if (bloqueadoConferente) {
+      alert('A conferência física deste pedido já foi finalizada. Aguarde o ADM liberar a edição.');
+      return;
+    }
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
       return;
@@ -437,36 +516,27 @@ export default function PedidoConferencia() {
     }
     setSalvando(true);
     try {
+      // Itens físicos e produtos não solicitados são gravados na mesma
+      // requisição/transação: ou tudo é salvo, ou nada é salvo.
       await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
         numeroNota: numeroNota.trim(),
         itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item =>
-          // Persiste o valor unitário informado (ex.: fracionamento) para que
-          // a conferência física não perca essa informação.
           montarItemRecebido(item,
             item.statusRecebimento === 'INCORRETO'
               ? montarObservacaoIncorreto(item)
               : (item.statusRecebimento !== 'OK'
                   ? (item.observacaoIncorreto || item.statusRecebimento)
-                  : ''))
-        )
+                  : ''),
+            { incluirValorFinanceiro: !isConferente })
+        ),
+        itensNaoSolicitados: montarItensNaoSolicitadosPayload()
       });
 
-      const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
-      if (itensNaoSolicitados.length > 0) {
-        await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, itensNaoSolicitados.map(c => ({
-          nomeProduto: c.nomeProduto,
-          quantidade: c.quantidadeRecebidaAgora || 0,
-          valorUnitarioReal: 0,
-          codigoBarrasRecebido: c.codigoBarrasRecebido || '',
-          nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
-          observacaoDevolucao: montarObservacaoNaoSolicitado(c)
-        })));
-      }
       limparCacheConferencia(id);
-      alert('Conferência física salva. O ADM deverá continuar a conferência para finalizar.');
+      alert('Conferência física salva. O pedido voltou para a conferência financeira do ADM.');
       navigate(`/pedidos/${id}`);
     } catch (error) {
-      alert(error.response?.data?.message || 'Não foi possível salvar a conferência física.');
+      alert(error.response?.data?.message || 'Não foi possível salvar a conferência física. Nenhum item foi gravado.');
     } finally {
       setSalvando(false);
     }
@@ -503,6 +573,7 @@ export default function PedidoConferencia() {
     const payload = {
       numeroNota: numeroNota.trim(),
       acaoItensFaltantes: acao || null,
+      itensNaoSolicitados: montarItensNaoSolicitadosPayload(),
       itens: itensParaEnviar.map(item => {
         const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
           ? 0
@@ -532,32 +603,15 @@ export default function PedidoConferencia() {
                     : (acao === 'AGUARDAR'
                         ? 'Aguardando entrega - Entrega Parcial'
                         : 'Divergência marcada na conferência cega')))
-            : ''
+            : '',
+          ...conversaoParaEnvio(item)
         };
 
       })
     };
 
     try {
-      const response = await api.put(`/api/pedidos/${id}/receber`, payload);
-      const novoStatus = response.data?.status;
-
-      const itensNaoSolicitados = conferencia.filter(c => c.isNaoSolicitado && c.conferido);
-      if (itensNaoSolicitados.length > 0) {
-        try {
-          const payloadNS = itensNaoSolicitados.map(c => ({
-            nomeProduto: c.nomeProduto,
-            quantidade: c.quantidadeRecebidaAgora || 0,
-            valorUnitarioReal: c.valorUnitarioReal || 0,
-            codigoBarrasRecebido: c.codigoBarrasRecebido || '',
-            nomeProdutoRecebido: c.produtoRecebido || c.nomeProduto || '',
-            observacaoDevolucao: montarObservacaoNaoSolicitado(c)
-          }));
-          await api.post(`/api/pedidos/${id}/itens-nao-solicitados`, payloadNS);
-        } catch (eNS) {
-          console.error('Erro ao salvar itens não solicitados:', eNS);
-        }
-      }
+      await api.put(`/api/pedidos/${id}/receber`, payload);
 
       // Conferência gravada: descarta o cache de preenchimento
       limparCacheConferencia(id);
@@ -591,6 +645,10 @@ export default function PedidoConferencia() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (bloqueadoConferente) {
+      alert('A conferência física deste pedido já foi finalizada. Aguarde o ADM liberar a edição.');
+      return;
+    }
     if (isConferente) {
       salvarConferenciaParcial();
       return;
@@ -642,6 +700,12 @@ export default function PedidoConferencia() {
     if (valor == null) return '-';
     return Number(valor).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
   };
+
+  const fDataHora = (dataIso) => !dataIso
+    ? '-'
+    : new Date(dataIso).toLocaleString('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit'
+      });
 
   if (loading) return <div className="layout"><Sidebar /><main className="main-content"><p>Carregando...</p></main></div>;
   if (!pedido) return <div className="layout"><Sidebar /><main className="main-content"><p>Pedido não encontrado.</p></main></div>;
@@ -802,6 +866,36 @@ export default function PedidoConferencia() {
           </div>
         )}
 
+        {pedido.conferenciaFisicaFinalizada && !pedido.conferenciaEdicaoLiberada && (
+          <div style={{ backgroundColor: isConferente ? 'var(--warning-soft)' : 'var(--info-soft)', border: `1px solid ${isConferente ? 'var(--warning-border)' : 'var(--info-border)'}`, color: isConferente ? 'var(--warning-text)' : 'var(--info-text)', padding: '14px 18px', borderRadius: '8px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <strong>
+              Conferência física finalizada
+              {pedido.conferenciaFisicaFinalizadaPor ? ` por ${pedido.conferenciaFisicaFinalizadaPor}` : ''}
+              {pedido.dataFinalizacaoConferenciaFisica ? ` em ${fDataHora(pedido.dataFinalizacaoConferenciaFisica)}` : ''}.
+            </strong>
+            <span style={{ fontSize: '13px' }}>
+              {isConferente
+                ? 'Aguardando a conferência financeira do ADM. A edição está bloqueada até o ADM liberar.'
+                : 'Finalize a conferência financeira para concluir o recebimento. Se precisar que o Conferente corrija quantidades, use "Liberar edição" nos detalhes do pedido.'}
+            </span>
+          </div>
+        )}
+
+        {pedido.conferenciaEdicaoLiberada && (
+          <div style={{ backgroundColor: 'var(--success-soft)', border: '1px solid var(--success-border)', color: 'var(--success-text)', padding: '14px 18px', borderRadius: '8px', marginBottom: '18px', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+            <strong>
+              Edição liberada pelo ADM
+              {pedido.conferenciaEdicaoLiberadaPor ? ` (${pedido.conferenciaEdicaoLiberadaPor})` : ''}
+              {pedido.conferenciaEdicaoLiberadaEm ? ` em ${fDataHora(pedido.conferenciaEdicaoLiberadaEm)}` : ''}.
+            </strong>
+            <span style={{ fontSize: '13px' }}>
+              {isConferente
+                ? 'Corrija as quantidades necessárias e salve novamente. Após salvar, o pedido volta a aguardar a conferência financeira do ADM.'
+                : 'O Conferente pode corrigir as quantidades. Finalize a conferência financeira quando estiver tudo certo.'}
+            </span>
+          </div>
+        )}
+
         <div className="conferencia-card" style={styles.card}>
           {isEntregaParcial && (
             <div style={{ backgroundColor: 'var(--warning-soft)', borderLeft: '4px solid var(--warning)', padding: '12px 16px', marginBottom: '20px', borderRadius: '4px', display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
@@ -838,6 +932,7 @@ export default function PedidoConferencia() {
                     placeholder="Ex: 895886"
                     value={numeroNota}
                     onChange={e => setNumeroNota(e.target.value)}
+                    disabled={bloqueadoConferente}
                     style={styles.inputTexto}
                   />
                 </div>
@@ -955,21 +1050,23 @@ export default function PedidoConferencia() {
                                 <Package size={10} /> Totalmente recebido
                               </div>
                             )}
-                            {confState.fracionado && (
+                            {Number(confState.fatorConversao) > 1 && (
                               <div style={{ fontSize: '10px', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--purple-border)' }}>
-                                <Package size={10} /> Fracionado: {confState.quantidadeRecebidaAgora || '-'} un × {fMoney(confState.valorUnitarioReal)}
+                                <Package size={10} /> Conversão: {item.quantidadePedida} un pedidas
+                                {' '}{confState.sentidoConversao === 'DIVIDIR' ? '÷' : '×'} {confState.fatorConversao}
+                                {' '}= {quantidadeEsperadaItem(confState)} un físicas
                               </div>
                             )}
                             {!isExtra && !totalmenteRecebido && !isConferido && !confState.quantidadeRecebidaPersistida
-                              && (Number(item.valorUnitarioPedido) > 0 || Number(confState.valorUnitarioReal) > 0) && (
+                              && !bloqueadoConferente && Number(item.quantidadePedida) > 0 && (
                               <div>
                                 <button
                                   type="button"
-                                  onClick={() => abrirFracionamento(item.id)}
+                                  onClick={() => abrirConversao(item.id)}
                                   style={{ marginTop: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 'bold', color: 'var(--purple-text)', backgroundColor: 'var(--purple-soft)', border: '1px solid var(--purple-border)', borderRadius: '4px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
-                                  title="Dividir o valor unitário em partes e multiplicar a quantidade recebida"
+                                  title="Converter a unidade pedida (pacote/caixa) em unidades físicas"
                                 >
-                                  <ArrowUpDown size={10} /> Fracionar
+                                  <ArrowUpDown size={10} /> Converter unidades
                                 </button>
                               </div>
                             )}
@@ -977,10 +1074,15 @@ export default function PedidoConferencia() {
 
                           <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--text-secondary)', fontWeight: '600' }}>
                             {item.quantidadePedida} un
+                            {Number(confState.fatorConversao) > 1 && (
+                              <div style={{ fontSize: '10px', color: 'var(--purple-text)', fontWeight: 'bold', marginTop: '2px' }}>
+                                → {quantidadeEsperadaItem(confState)} un físicas
+                              </div>
+                            )}
                           </td>
 
                           <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', backgroundColor: 'var(--info-soft)', color: 'var(--info-text)', fontWeight: 'bold' }}>
-                            {qtdJaRecebida > 0 ? `${qtdJaRecebida} de ${item.quantidadePedida}` : '-'}
+                            {qtdJaRecebida > 0 ? `${qtdJaRecebida} de ${quantidadeEsperadaItem(confState)}` : '-'}
                           </td>
 
                           <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>
@@ -1031,7 +1133,11 @@ export default function PedidoConferencia() {
                           </td>
 
                           <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
-                            {totalmenteRecebido && confState.statusRecebimento === 'OK'
+                            {bloqueadoConferente ? (
+                              <span style={{ padding: '6px 10px', backgroundColor: 'var(--surface-muted)', color: 'var(--text-muted)', border: '1px solid var(--border)', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
+                                Somente leitura
+                              </span>
+                            ) : totalmenteRecebido && confState.statusRecebimento === 'OK'
                               && (isConferente || confState.valorUnitarioReal !== '' && confState.valorUnitarioReal != null) ? (
                               <span style={{ padding: '6px 10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-border)', borderRadius: '6px', display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                                 <Check size={14} /> OK
@@ -1055,72 +1161,98 @@ export default function PedidoConferencia() {
                             )}
                           </td>
                         </tr>
-                        {confState.fracionarAberto && (
-                          <tr key={`${item.id}-fracionar`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--purple-soft)' }}>
+                        {confState.conversaoAberta && !bloqueadoConferente && (
+                          <tr key={`${item.id}-conversao`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--purple-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '12px 14px' }}>
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', color: 'var(--purple-text)', fontSize: '13px' }}>
                                 <strong style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                  <Package size={14} /> Fracionar — dividir o valor unitário em partes e multiplicar a quantidade
+                                  <Package size={14} /> Converter unidades — unidade pedida (pacote/caixa) ↔ unidade física
                                 </strong>
                                 <div style={{ display: 'flex', gap: '16px', flexWrap: 'wrap' }}>
                                   <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
-                                    Dividir o valor unitário em (partes)
-                                    <input
-                                      type="number"
-                                      min="1"
-                                      step="1"
-                                      inputMode="numeric"
-                                      enterkeyHint="next"
-                                      value={confState.fracaoPartes ?? ''}
-                                      onChange={(e) => handleInputChange(item.id, 'fracaoPartes', e.target.value)}
-                                      style={{ ...styles.inputField, width: '100px', backgroundColor: 'var(--surface)', borderColor: 'var(--purple-border)', color: 'var(--purple-text)' }}
-                                    />
+                                    Sentido da conversão
+                                    <select
+                                      value={confState.sentidoConversao || 'MULTIPLICAR'}
+                                      onChange={(e) => handleInputChange(item.id, 'sentidoConversao', e.target.value)}
+                                      style={{ ...styles.inputField, width: '240px', backgroundColor: 'var(--surface)', borderColor: 'var(--purple-border)', color: 'var(--purple-text)', textAlign: 'left' }}
+                                    >
+                                      <option value="MULTIPLICAR">Multiplicar (1 pedida = N físicas)</option>
+                                      <option value="DIVIDIR">Dividir (N pedidas = 1 física)</option>
+                                    </select>
                                   </label>
                                   <label style={{ display: 'flex', flexDirection: 'column', gap: '4px', fontWeight: 600 }}>
-                                    Multiplicar a quantidade por (fator)
+                                    Fator de conversão
                                     <input
                                       type="number"
-                                      min="1"
+                                      min="2"
                                       step="1"
                                       inputMode="numeric"
                                       enterkeyHint="next"
-                                      value={confState.fracaoFator ?? ''}
-                                      onChange={(e) => handleInputChange(item.id, 'fracaoFator', e.target.value)}
+                                      value={confState.fatorConversao ?? ''}
+                                      onChange={(e) => handleInputChange(item.id, 'fatorConversao', e.target.value)}
                                       style={{ ...styles.inputField, width: '100px', backgroundColor: 'var(--surface)', borderColor: 'var(--purple-border)', color: 'var(--purple-text)' }}
                                     />
                                   </label>
                                 </div>
                                 {(() => {
-                                  const { qtdBase, vlrBase } = baseFracionamento(confState);
-                                  const calc = calcularFracionamento(qtdBase, vlrBase, confState.fracaoPartes, confState.fracaoFator);
-                                  if (!calc.valido) return null;
+                                  const calc = calcularConversao(
+                                    confState.quantidadePedida,
+                                    confState.fatorConversao,
+                                    confState.sentidoConversao
+                                  );
+                                  if (!calc.valido) {
+                                    return (
+                                      <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--warning-border)', borderRadius: '8px', padding: '10px 12px', color: 'var(--warning-text)' }}>
+                                        {calc.erro}
+                                      </div>
+                                    );
+                                  }
+                                  const valorFisico = valorUnitarioFisico({
+                                    ...confState,
+                                    fatorConversao: calc.fator,
+                                    sentidoConversao: calc.sentido
+                                  });
                                   return (
                                     <div style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--purple-border)', borderRadius: '8px', padding: '10px 12px', lineHeight: 1.7 }}>
-                                      <div><strong>Quantidade:</strong> {qtdBase} un → <strong>{calc.novaQuantidade} un</strong> (× {calc.fator})</div>
-                                      <div><strong>Valor unitário:</strong> {fMoney(vlrBase)} → <strong>{fMoney(calc.novoVlrUnitario)}</strong> (÷ {calc.partes})</div>
                                       <div>
-                                        <strong>Valor total:</strong> {fMoney(calc.totalOriginal)} → <strong>{fMoney(calc.totalFracionado)}</strong>
-                                        {calc.diferenca > 0.005
-                                          ? <span style={{ color: 'var(--warning-text)' }}> (diferença de arredondamento: {fMoney(calc.diferenca)})</span>
-                                          : <span style={{ color: 'var(--success-text)' }}> (total preservado)</span>}
+                                        <strong>Quantidade:</strong> {calc.quantidadePedida} un pedidas
+                                        {' '}{calc.sentido === 'MULTIPLICAR' ? '×' : '÷'} {calc.fator}
+                                        {' '}= <strong>{calc.quantidadeEsperada} un físicas</strong>
                                       </div>
+                                      {!isConferente && (
+                                        <>
+                                          <div><strong>Valor por unidade pedida (fornecedor):</strong> {fMoney(confState.valorUnitarioPedido)}</div>
+                                          <div><strong>Valor por unidade física:</strong> <strong>{fMoney(valorFisico)}</strong></div>
+                                        </>
+                                      )}
                                     </div>
                                   );
                                 })()}
                                 <p style={{ margin: 0, fontSize: '11px', color: 'var(--purple-text)' }}>
-                                  A operação altera a quantidade recebida e o valor unitário deste item. Confira os valores acima antes de aplicar.
+                                  {isConferente
+                                    ? 'A conversão altera apenas a quantidade esperada em unidades físicas. Os valores financeiros são conferidos pelo ADM.'
+                                    : 'A conversão preenche a quantidade e o valor por unidade física. Confira os valores acima e ajuste o valor real da NF se necessário.'}
                                 </p>
                                 <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                                   <button
                                     type="button"
-                                    onClick={() => aplicarFracionamento(item.id)}
+                                    onClick={() => aplicarConversaoItem(item.id)}
                                     style={{ padding: '8px 14px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                                   >
-                                    <Check size={14} /> Aplicar fracionamento
+                                    <Check size={14} /> Aplicar conversão
                                   </button>
+                                  {Number(confState.fatorConversao) > 1 && (
+                                    <button
+                                      type="button"
+                                      onClick={() => removerConversao(item.id)}
+                                      style={{ padding: '8px 14px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
+                                    >
+                                      Remover conversão
+                                    </button>
+                                  )}
                                   <button
                                     type="button"
-                                    onClick={() => abrirFracionamento(item.id)}
+                                    onClick={() => abrirConversao(item.id)}
                                     style={{ padding: '8px 14px', backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', borderRadius: '6px', fontWeight: 'bold', fontSize: '12px', cursor: 'pointer' }}
                                   >
                                     Cancelar
@@ -1229,41 +1361,47 @@ export default function PedidoConferencia() {
                 </table>
             </div>
 
-            <div style={{ marginBottom: '20px' }}>
-              <button
-                type="button"
-                onClick={() => { setItemCameraAberta(null); setShowProdutoNaoSolicitadoModal(true); }}
-                style={{
-                  padding: '10px 16px',
-                  backgroundColor: 'var(--purple)',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '8px',
-                  fontWeight: '600',
-                  fontSize: '13px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-              >
-                <Package size={16} /> Produto Não Solicitado (veio mas não era do pedido)
-              </button>
-            </div>
+            {!bloqueadoConferente && (
+              <div style={{ marginBottom: '20px' }}>
+                <button
+                  type="button"
+                  onClick={() => { setItemCameraAberta(null); setShowProdutoNaoSolicitadoModal(true); }}
+                  style={{
+                    padding: '10px 16px',
+                    backgroundColor: 'var(--purple)',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '8px',
+                    fontWeight: '600',
+                    fontSize: '13px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px'
+                  }}
+                >
+                  <Package size={16} /> Produto Não Solicitado (veio mas não era do pedido)
+                </button>
+              </div>
+            )}
 
             <ModalProdutoNaoSolicitado
               isOpen={showProdutoNaoSolicitadoModal}
               onClose={() => setShowProdutoNaoSolicitadoModal(false)}
-              onConfirm={adicionarProdutoNaoSolicitado}
+              onConfirm={adicionarProdutosNaoSolicitados}
               ocultarValor={isConferente}
+              itensExistentes={conferencia.filter(c => c.isNaoSolicitado
+                || (Number(c.quantidadePedida) === 0 && !c.itemCotacao))}
             />
 
             <div className="conferencia-botoes" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '12px', marginTop: '30px', padding: '20px 0', borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
               <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>
-                {itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.
+                {bloqueadoConferente
+                  ? 'Conferência física finalizada — somente leitura até o ADM liberar a edição.'
+                  : `${itensHabilitados.length} item(ns) ainda pendente(s) de recebimento.`}
               </div>
               <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
-                {itensNaoConferidos.length > 0 && (
+                {!bloqueadoConferente && itensNaoConferidos.length > 0 && (
                   <button
                     type="button"
                     onClick={conferirTodos}
@@ -1279,16 +1417,18 @@ export default function PedidoConferencia() {
                     style={styles.btnCancelar}
                     disabled={salvando}
                   >
-                    Cancelar
+                    {bloqueadoConferente ? 'Voltar aos detalhes' : 'Cancelar'}
                   </button>
-                  <button
-                    type="submit"
-                    style={{...styles.btnSalvar, opacity: salvando ? 0.7 : 1}}
-                    disabled={salvando}
-                  >
-                    <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
-                    {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência física' : 'Finalizar e Gravar Conferência')}
-                  </button>
+                  {!bloqueadoConferente && (
+                    <button
+                      type="submit"
+                      style={{...styles.btnSalvar, opacity: salvando ? 0.7 : 1}}
+                      disabled={salvando}
+                    >
+                      <CheckCircle size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                      {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência física' : 'Finalizar e Gravar Conferência')}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -1311,19 +1451,21 @@ export default function PedidoConferencia() {
           type="button"
           onClick={() => navigate(`/pedidos/${id}`)}
           disabled={salvando}
-          style={{ ...styles.btnCancelar, flex: '0 0 38%', padding: '12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
+          style={{ ...styles.btnCancelar, flex: bloqueadoConferente ? 1 : '0 0 38%', padding: '12px 8px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px' }}
         >
           <ArrowLeft size={17} /> Voltar
         </button>
-        <button
-          type="button"
-          onClick={() => document.querySelector('.conferencia-page form')?.requestSubmit()}
-          disabled={salvando}
-          style={{ ...styles.btnSalvar, flex: 1, justifyContent: 'center', padding: '12px 8px', opacity: salvando ? 0.7 : 1 }}
-        >
-          <CheckCircle size={17} />
-          {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência' : 'Finalizar conferência')}
-        </button>
+        {!bloqueadoConferente && (
+          <button
+            type="button"
+            onClick={() => document.querySelector('.conferencia-page form')?.requestSubmit()}
+            disabled={salvando}
+            style={{ ...styles.btnSalvar, flex: 1, justifyContent: 'center', padding: '12px 8px', opacity: salvando ? 0.7 : 1 }}
+          >
+            <CheckCircle size={17} />
+            {salvando ? 'Salvando...' : (isConferente ? 'Salvar conferência' : 'Finalizar conferência')}
+          </button>
+        )}
       </div>
       {showModalDestinoFaltantes && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 9999, padding: '16px' }}>

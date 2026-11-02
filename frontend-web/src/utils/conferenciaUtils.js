@@ -94,25 +94,160 @@ export const calcularFracionamento = (qtdBase, vlrBase, partes, fator) => {
   };
 };
 
+// --- Conversão entre unidade pedida (pacote/caixa) e unidade física ----------
+// MULTIPLICAR: 1 unidade pedida contém N unidades físicas.
+// DIVIDIR: N unidades pedidas formam 1 unidade física (divisão exata).
+// O backend valida e recalcula tudo; estas funções servem para pré-visualização
+// e para montar o payload sem duplicar regra de negócio.
+
+export const SENTIDOS_CONVERSAO = ['MULTIPLICAR', 'DIVIDIR'];
+
+export const calcularConversao = (quantidadePedida, fator, sentido) => {
+  const q = Number(quantidadePedida);
+  const f = Number(fator);
+  const s = String(sentido || '').toUpperCase();
+
+  if (!Number.isInteger(f) || f <= 1) {
+    return { valido: false, erro: 'Informe um fator de conversão inteiro maior que 1.' };
+  }
+  if (!SENTIDOS_CONVERSAO.includes(s)) {
+    return { valido: false, erro: 'Escolha o sentido da conversão: multiplicar ou dividir.' };
+  }
+  if (!Number.isFinite(q) || q <= 0) {
+    return { valido: false, erro: 'A quantidade pedida precisa ser maior que zero para converter.' };
+  }
+  if (s === 'DIVIDIR' && q % f !== 0) {
+    return {
+      valido: false,
+      erro: `A quantidade pedida (${q}) não é divisível pelo fator (${f}). Ajuste o fator para uma divisão exata.`
+    };
+  }
+
+  const quantidadeEsperada = s === 'MULTIPLICAR' ? q * f : q / f;
+  return {
+    valido: true,
+    sentido: s,
+    fator: f,
+    quantidadePedida: q,
+    quantidadeEsperada
+  };
+};
+
 /**
- * Monta o item enviado na conferência parcial. Persiste o valor unitário
- * informado (ex.: fracionamento) para que a conferência física não perca
- * essa informação.
+ * Quantidade esperada em unidades físicas, considerando a conversão persistida.
+ * Sem conversão, a quantidade pedida já é a referência física.
  */
-export const montarItemRecebido = (item, observacaoDevolucao) => ({
-  id: item.id,
-  quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
-    ? 0 : Number(item.quantidadeRecebidaAgora),
-  quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
-    ? Number(item.quantidadeAvariadaAgora || 0) : 0,
-  valorUnitarioReal: Number.isFinite(Number(item.valorUnitarioReal)) && Number(item.valorUnitarioReal) > 0
-    ? Number(item.valorUnitarioReal)
-    : undefined,
-  statusRecebimento: item.statusRecebimento,
-  codigoBarrasRecebido: item.codigoBarrasRecebido || '',
-  nomeProdutoRecebido: item.produtoRecebido || '',
-  observacaoDevolucao
-});
+export const quantidadeEsperadaItem = (item) => {
+  const informada = Number(item?.quantidadeEsperada);
+  if (Number.isFinite(informada) && informada > 0) return informada;
+
+  const calc = calcularConversao(item?.quantidadePedida, item?.fatorConversao, item?.sentidoConversao);
+  if (calc.valido) return calc.quantidadeEsperada;
+
+  const pedida = Number(item?.quantidadePedida);
+  return Number.isFinite(pedida) && pedida > 0 ? pedida : 0;
+};
+
+/**
+ * Valor unitário previsto por unidade física. O valor gravado no pedido é por
+ * unidade pedida (pacote/caixa); a conversão deriva o valor físico.
+ */
+export const valorUnitarioFisico = (item) => {
+  const base = Number(item?.valorUnitarioPedido);
+  if (!Number.isFinite(base) || base <= 0) return 0;
+
+  const fator = Number(item?.fatorConversao);
+  const sentido = String(item?.sentidoConversao || '').toUpperCase();
+  if (!Number.isInteger(fator) || fator <= 1) return base;
+
+  if (sentido === 'MULTIPLICAR') return Math.round((base / fator) * 100) / 100;
+  if (sentido === 'DIVIDIR') return Math.round((base * fator) * 100) / 100;
+  return base;
+};
+
+/** Campos de conversão que devem ser enviados ao backend (ou undefined). */
+export const conversaoParaEnvio = (item) => {
+  const fator = Number(item?.fatorConversao);
+  const sentido = String(item?.sentidoConversao || '').toUpperCase();
+  if (!Number.isInteger(fator) || fator < 1) {
+    return { fatorConversao: undefined, sentidoConversao: undefined };
+  }
+  if (fator === 1) {
+    // Fator 1 é o contrato usado para remover uma conversão persistida.
+    return { fatorConversao: 1, sentidoConversao: 'MULTIPLICAR' };
+  }
+  if (!SENTIDOS_CONVERSAO.includes(sentido)) {
+    return { fatorConversao: undefined, sentidoConversao: undefined };
+  }
+  return { fatorConversao: fator, sentidoConversao: sentido };
+};
+
+/**
+ * Monta o item enviado na conferência parcial.
+ * `incluirValorFinanceiro: false` garante que o Conferente nunca persista
+ * valores financeiros, mesmo que o estado local contenha algum resquício.
+ */
+export const montarItemRecebido = (item, observacaoDevolucao, opcoes = {}) => {
+  const incluirValorFinanceiro = opcoes.incluirValorFinanceiro !== false;
+  const valor = Number(item?.valorUnitarioReal);
+  const payload = {
+    id: item.id,
+    quantidadeRecebidaAgora: item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
+      ? 0 : Number(item.quantidadeRecebidaAgora),
+    quantidadeAvariadaAgora: item.statusRecebimento === 'AVARIADO'
+      ? Number(item.quantidadeAvariadaAgora || 0) : 0,
+    statusRecebimento: item.statusRecebimento,
+    codigoBarrasRecebido: item.codigoBarrasRecebido || '',
+    nomeProdutoRecebido: item.produtoRecebido || '',
+    observacaoDevolucao,
+    ...conversaoParaEnvio(item)
+  };
+
+  if (incluirValorFinanceiro) {
+    payload.valorUnitarioReal = Number.isFinite(valor) && valor > 0 ? valor : undefined;
+  }
+  return payload;
+};
+
+/** Normaliza nome de produto para comparação de duplicidade. */
+export const normalizarNomeProduto = (nome) => String(nome || '')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '')
+  .toLowerCase()
+  .trim()
+  .replace(/\s+/g, ' ');
+
+/** Chaves usadas para detectar produto repetido (EAN e nome). */
+export const chavesProdutoNaoSolicitado = (item) => {
+  const chaves = [];
+  const digitos = String(item?.codigoBarrasRecebido || '').replace(/\D/g, '');
+  if (digitos) chaves.push(`EAN:${digitos}`);
+  const nome = normalizarNomeProduto(item?.nomeProduto || item?.nomeProdutoRecebido);
+  if (nome) chaves.push(`NOME:${nome}`);
+  return chaves;
+};
+
+/**
+ * Retorna os nomes dos produtos repetidos no lote ou já existentes na
+ * conferência. A mesma regra é aplicada no backend antes de gravar.
+ */
+export const encontrarDuplicadosNaoSolicitados = (novos = [], existentes = []) => {
+  const vistos = new Set();
+  (existentes || []).forEach(item => {
+    chavesProdutoNaoSolicitado(item).forEach(chave => vistos.add(chave));
+  });
+
+  const duplicados = [];
+  (novos || []).forEach((item, indice) => {
+    const chaves = chavesProdutoNaoSolicitado(item);
+    const repetido = chaves.some(chave => vistos.has(chave));
+    if (repetido) {
+      duplicados.push(item?.nomeProduto || `Item ${indice + 1}`);
+    }
+    chaves.forEach(chave => vistos.add(chave));
+  });
+  return duplicados;
+};
 
 /**
  * Restaura o preenchimento da conferência a partir do cache local (após
@@ -153,6 +288,10 @@ export const mesclarCacheNaConferencia = (base, cache, isConferente) => {
       fracionado: !!c.fracionado,
       fracaoPartes: c.fracaoPartes ?? '',
       fracaoFator: c.fracaoFator ?? '',
+      fatorConversao: c.fatorConversao ?? item.fatorConversao ?? '',
+      sentidoConversao: c.sentidoConversao ?? item.sentidoConversao ?? 'MULTIPLICAR',
+      quantidadeEsperada: c.quantidadeEsperada ?? item.quantidadeEsperada ?? '',
+      conversaoAberta: false,
       fracionarAberto: false
     };
   });

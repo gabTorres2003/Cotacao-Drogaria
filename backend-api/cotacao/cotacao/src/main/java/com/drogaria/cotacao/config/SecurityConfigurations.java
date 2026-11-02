@@ -50,6 +50,8 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.DELETE, "/api/cotacao/**").permitAll()
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/conferencia/parcial",
                                 "/api/pedidos/*/itens-nao-solicitados").hasAnyRole("ADMIN", "CONFERENTE")
+                        .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/conferencia/liberar-edicao")
+                                .hasRole("ADMIN")
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/*/itens-nao-solicitados")
                                 .hasAnyRole("ADMIN", "CONFERENTE")
                         .requestMatchers(HttpMethod.POST, "/api/pedidos/*/conferencia/fotos")

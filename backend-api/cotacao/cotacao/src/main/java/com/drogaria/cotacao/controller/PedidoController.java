@@ -201,6 +201,9 @@ public class PedidoController {
         try {
             Pedido pedidoAtualizado = pedidoService.processarRecebimento(id, requestDTO);
             pedidoAtualizado.setConferenciaFinalizadaPor(getUsuarioLogado());
+            if (pedidoAtualizado.getConferenciaFisicaFinalizadaPor() == null) {
+                pedidoAtualizado.setConferenciaFisicaFinalizadaPor(getUsuarioLogado());
+            }
             pedidoAtualizado = pedidoService.salvarPedido(pedidoAtualizado);
 
             logAuditoriaService.registrarLog(
@@ -228,14 +231,38 @@ public class PedidoController {
         if (!permitido) return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         try {
             return ResponseEntity.ok(pedidoService.salvarConferenciaParcial(
-                    id, requestDTO, getUsuarioLogado(), authentication.getName()));
+                    id, requestDTO, getUsuarioLogado(), authentication.getName(), isAdmin(authentication)));
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage() != null
+                            ? e.getMessage()
+                            : "Não foi possível salvar a conferência física."));
+        }
+    }
+
+    @PatchMapping("/{id}/conferencia/liberar-edicao")
+    public ResponseEntity<?> liberarEdicaoConferencia(@PathVariable Long id,
+                                                       Authentication authentication) {
+        if (!isAdmin(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        try {
+            Pedido pedidoAtualizado = pedidoService.liberarEdicaoConferencia(
+                    id, getUsuarioLogado(), authentication.getName());
+            logAuditoriaService.registrarLog(
+                    getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
+                    "Liberou a edição da conferência física para o Conferente.");
+            return ResponseEntity.ok(pedidoAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                    "message", e.getMessage() != null
+                            ? e.getMessage()
+                            : "Não foi possível liberar a edição da conferência."));
         }
     }
 
     @PostMapping("/{id}/itens-nao-solicitados")
-    public ResponseEntity<Pedido> adicionarItensNaoSolicitados(
+    public ResponseEntity<?> adicionarItensNaoSolicitados(
             @PathVariable Long id,
             @RequestBody List<ItemNaoSolicitadoDTO> itens,
             Authentication authentication) {
@@ -245,14 +272,22 @@ public class PedidoController {
         }
         boolean conferente = authentication.getAuthorities().stream()
                 .anyMatch(a -> "ROLE_CONFERENTE".equals(a.getAuthority()));
-        Pedido pedidoAtualizado = pedidoService.adicionarItensNaoSolicitados(id, itens, conferente);
+        try {
+            Pedido pedidoAtualizado = pedidoService.adicionarItensNaoSolicitados(id, itens, conferente);
 
-        logAuditoriaService.registrarLog(
-            getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
-            "Adicionou " + itens.size() + " item(ns) não solicitado(s) na conferência."
-        );
+            logAuditoriaService.registrarLog(
+                getUsuarioLogado(), "INTERNO", TipoAcao.ATUALIZACAO, "Pedido", id,
+                "Adicionou " + itens.size() + " item(ns) não solicitado(s) na conferência."
+            );
 
-        return ResponseEntity.ok(pedidoAtualizado);
+            return ResponseEntity.ok(pedidoAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", e.getMessage() != null
+                    ? e.getMessage()
+                    : "Não foi possível adicionar os produtos não solicitados."
+            ));
+        }
     }
 
     @PatchMapping("/{id}/reabrir-conferencia")

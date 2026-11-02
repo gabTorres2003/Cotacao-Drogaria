@@ -64,6 +64,34 @@ public class Pedido {
     @Column(name = "conferencia_finalizada_por")
     private String conferenciaFinalizadaPor;
 
+    // Etapa física: registrada quando o Conferente (ou o ADM) conclui a conferência
+    // física. O pedido continua em CONFERENCIA_INICIADA aguardando a etapa financeira.
+    @Column(name = "conferencia_fisica_finalizada")
+    private Boolean conferenciaFisicaFinalizada = false;
+
+    @Column(name = "data_finalizacao_conferencia_fisica")
+    private LocalDateTime dataFinalizacaoConferenciaFisica;
+
+    @Column(name = "conferencia_fisica_finalizada_por")
+    private String conferenciaFisicaFinalizadaPor;
+
+    @Column(name = "conferencia_fisica_finalizada_username")
+    private String conferenciaFisicaFinalizadaUsername;
+
+    // Liberação expressa do ADM para que o Conferente possa corrigir/refazer a
+    // conferência física já finalizada. Persistida para validação no backend.
+    @Column(name = "conferencia_edicao_liberada")
+    private Boolean conferenciaEdicaoLiberada = false;
+
+    @Column(name = "conferencia_edicao_liberada_por")
+    private String conferenciaEdicaoLiberadaPor;
+
+    @Column(name = "conferencia_edicao_liberada_username")
+    private String conferenciaEdicaoLiberadaUsername;
+
+    @Column(name = "conferencia_edicao_liberada_em")
+    private LocalDateTime conferenciaEdicaoLiberadaEm;
+
     @OneToMany(mappedBy = "pedido", cascade = CascadeType.ALL)
     @JsonIgnoreProperties("pedido") 
     private List<ItemPedido> itens;

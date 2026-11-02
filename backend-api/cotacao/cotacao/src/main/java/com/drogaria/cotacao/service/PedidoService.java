@@ -37,9 +37,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Service
 @RequiredArgsConstructor
@@ -232,6 +235,15 @@ public class PedidoService {
                 continue;
             }
 
+            // O ADM pode aplicar a conversão diretamente na finalização, sem uma
+            // conferência física anterior. A validação continua sendo do backend.
+            if (itemConferido.getFatorConversao() != null
+                    || (itemConferido.getSentidoConversao() != null
+                        && !itemConferido.getSentidoConversao().isBlank())) {
+                aplicarConversao(itemBanco, itemConferido.getFatorConversao(),
+                        itemConferido.getSentidoConversao());
+            }
+
             Integer jaRecebido = itemBanco.getQuantidadeReal() != null ? itemBanco.getQuantidadeReal() : 0;
             Integer incremento = itemConferido.getQuantidadeRecebidaAgora() != null
                     ? itemConferido.getQuantidadeRecebidaAgora()
@@ -256,7 +268,7 @@ public class PedidoService {
 
             StatusItemRecebimento statusItem = itemConferido.getStatusRecebimento();
 
-            boolean incompleto = itemBanco.getQuantidadeReal() < itemBanco.getQuantidadePedida();
+            boolean incompleto = itemBanco.getQuantidadeReal() < quantidadeEsperada(itemBanco);
             if (incompleto && (statusItem == null || statusItem == StatusItemRecebimento.OK)) {
                 statusItem = StatusItemRecebimento.FALTANTE;
             }
@@ -293,16 +305,20 @@ public class PedidoService {
             }
         }
 
+        // Produtos não solicitados enviados junto da finalização são gravados na
+        // mesma transação da conferência (sem risco de salvar só parte).
+        valorTotalReal += aplicarItensNaoSolicitados(pedido, dto.getItensNaoSolicitados(), false);
         pedido.setValorTotalReal(valorTotalReal);
 
         // Pendência calculada somente sobre os itens que permaneceram no pedido e que
         // não retornaram à cotação, para que itens devolvidos não gerem entrega parcial
-        // indevida.
+        // indevida. A referência é a quantidade esperada em unidades físicas
+        // (quantidadeEsperada), que considera a conversão aplicada na conferência.
         boolean temItemPendente = pedido.getItens().stream()
                 .filter(i -> !Boolean.TRUE.equals(i.getRetornadoCotacao()))
                 .anyMatch(i ->
-                        i.getQuantidadeReal() == null || i.getQuantidadePedida() == null
-                                || i.getQuantidadeReal() < i.getQuantidadePedida());
+                        i.getQuantidadeReal() == null
+                                || i.getQuantidadeReal() < quantidadeEsperada(i));
         boolean todosItensRetornados = !pedido.getItens().isEmpty()
                 && pedido.getItens().stream().allMatch(i -> Boolean.TRUE.equals(i.getRetornadoCotacao()));
 
@@ -318,6 +334,14 @@ public class PedidoService {
         } else {
             pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         }
+
+        // A finalização financeira do ADM também encerra formalmente a etapa
+        // física e consome qualquer liberação de edição pendente.
+        if (!Boolean.TRUE.equals(pedido.getConferenciaFisicaFinalizada())) {
+            pedido.setConferenciaFisicaFinalizada(true);
+            pedido.setDataFinalizacaoConferenciaFisica(LocalDateTime.now());
+        }
+        pedido.setConferenciaEdicaoLiberada(false);
 
         Pedido pedidoSalvo = pedidoRepository.save(pedido);
 
@@ -335,11 +359,29 @@ public class PedidoService {
     @Transactional
     public Pedido salvarConferenciaParcial(Long pedidoId, ReceberPedidoRequestDTO dto,
                                             String nomeConferente, String username) {
+        // Compatibilidade: chamadas antigas (e testes) são tratadas como Conferente.
+        return salvarConferenciaParcial(pedidoId, dto, nomeConferente, username, false);
+    }
+
+    @Transactional
+    public Pedido salvarConferenciaParcial(Long pedidoId, ReceberPedidoRequestDTO dto,
+                                            String nomeConferente, String username,
+                                            boolean administrador) {
         Pedido pedido = buscarPorId(pedidoId);
         if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA
                 && pedido.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR
                 && pedido.getStatus() != StatusPedido.CONFERENCIA_INICIADA) {
             throw new RuntimeException("Este pedido não está disponível para conferência física.");
+        }
+
+        // Trava persistida: depois que o Conferente finaliza a etapa física, a
+        // edição só volta a ser permitida quando o ADM liberar expressamente.
+        // O ADM continua podendo atuar (inclusive para liberar/corrigir).
+        if (!administrador
+                && Boolean.TRUE.equals(pedido.getConferenciaFisicaFinalizada())
+                && !Boolean.TRUE.equals(pedido.getConferenciaEdicaoLiberada())) {
+            throw new RuntimeException("A conferência física deste pedido já foi finalizada. "
+                    + "Aguarde o ADM liberar a edição para corrigir as quantidades.");
         }
 
         if (dto.getNumeroNota() != null && !dto.getNumeroNota().trim().isEmpty()) {
@@ -352,6 +394,11 @@ public class PedidoService {
         }
 
         if (dto.getItens() != null) {
+            // Quando o ADM liberou a edição, o Conferente está corrigindo o que
+            // já foi persistido: a quantidade enviada substitui a anterior em
+            // vez de somar outro volume.
+            boolean corrigindoAposLiberacao = !administrador
+                    && Boolean.TRUE.equals(pedido.getConferenciaEdicaoLiberada());
             for (ItemRecebidoDTO itemDTO : dto.getItens()) {
                 if (itemDTO.getId() == null) continue;
                 ItemPedido item = itemPedidoRepository.findById(itemDTO.getId())
@@ -363,10 +410,18 @@ public class PedidoService {
                 if (Boolean.TRUE.equals(item.getRetornadoCotacao())) {
                     continue;
                 }
+
+                // A conversão é validada e calculada no backend. O frontend nunca
+                // define a quantidade esperada por conta própria.
+                if (itemDTO.getFatorConversao() != null
+                        || (itemDTO.getSentidoConversao() != null
+                            && !itemDTO.getSentidoConversao().isBlank())) {
+                    aplicarConversao(item, itemDTO.getFatorConversao(), itemDTO.getSentidoConversao());
+                }
+
                 int atual = item.getQuantidadeReal() == null ? 0 : item.getQuantidadeReal();
                 int incremento = itemDTO.getQuantidadeRecebidaAgora() == null
                         ? 0 : itemDTO.getQuantidadeRecebidaAgora();
-                item.setQuantidadeReal(atual + incremento);
                 int avariadaAgora = itemDTO.getQuantidadeAvariadaAgora() != null
                         ? itemDTO.getQuantidadeAvariadaAgora() : 0;
                 if (avariadaAgora < 0 || avariadaAgora > incremento) {
@@ -374,28 +429,80 @@ public class PedidoService {
                 }
                 int avariadaAnterior = item.getQuantidadeAvariada() != null
                         ? item.getQuantidadeAvariada() : 0;
-                item.setQuantidadeAvariada(avariadaAnterior + avariadaAgora);
+                if (corrigindoAposLiberacao) {
+                    item.setQuantidadeReal(incremento);
+                    item.setQuantidadeAvariada(avariadaAgora);
+                } else {
+                    item.setQuantidadeReal(atual + incremento);
+                    item.setQuantidadeAvariada(avariadaAnterior + avariadaAgora);
+                }
                 StatusItemRecebimento status = itemDTO.getStatusRecebimento() != null
                         ? itemDTO.getStatusRecebimento()
                         : item.getStatusRecebimento();
-                if (status == null
-                        && item.getQuantidadePedida() != null
-                        && item.getQuantidadeReal() < item.getQuantidadePedida()) {
+                if (status == null && item.getQuantidadeReal() < quantidadeEsperada(item)) {
                     status = StatusItemRecebimento.FALTANTE;
                 }
                 item.setStatusRecebimento(status);
                 item.setObservacaoDevolucao(itemDTO.getObservacaoDevolucao());
                 item.setCodigoBarrasRecebido(itemDTO.getCodigoBarrasRecebido());
                 item.setNomeProdutoRecebido(itemDTO.getNomeProdutoRecebido());
-                if (itemDTO.getValorUnitarioReal() != null && itemDTO.getValorUnitarioReal() > 0) {
-                    // Persiste o valor unitário informado (ex.: fracionamento) já na etapa física.
+
+                // Valores financeiros são responsabilidade exclusiva do ADM.
+                // O Conferente nunca grava valor unitário real, mesmo que envie
+                // o campo por engano em uma chamada direta à API.
+                if (administrador && itemDTO.getValorUnitarioReal() != null
+                        && itemDTO.getValorUnitarioReal() > 0) {
                     item.setValorUnitarioReal(itemDTO.getValorUnitarioReal());
                 }
                 itemPedidoRepository.save(item);
             }
         }
+
+        // Extras entram na mesma transação da conferência física.
+        aplicarItensNaoSolicitados(pedido, dto.getItensNaoSolicitados(), !administrador);
+
+        if (!administrador) {
+            // O clique do Conferente encerra a etapa física e devolve o pedido
+            // para a fila financeira do ADM. Uma eventual liberação anterior é
+            // consumida para que o estado volte a "Aguardando conferência financeira".
+            marcarConferenciaFisicaFinalizada(pedido, nomeConferente, username);
+        }
+
         pedido.setStatus(StatusPedido.CONFERENCIA_INICIADA);
         return pedidoRepository.save(pedido);
+    }
+
+    /**
+     * Libera expressamente a edição da conferência física pelo ADM. A liberação
+     * fica persistida e é exigida pelo backend antes de aceitar nova conferência
+     * física do Conferente.
+     */
+    @Transactional
+    public Pedido liberarEdicaoConferencia(Long pedidoId, String nomeAdmin, String username) {
+        Pedido pedido = buscarPorId(pedidoId);
+        if (pedido.getStatus() != StatusPedido.CONFERENCIA_INICIADA) {
+            throw new RuntimeException("Só é possível liberar a edição de um pedido em conferência.");
+        }
+        if (!Boolean.TRUE.equals(pedido.getConferenciaFisicaFinalizada())) {
+            throw new RuntimeException("A conferência física deste pedido ainda não foi finalizada.");
+        }
+        pedido.setConferenciaEdicaoLiberada(true);
+        pedido.setConferenciaEdicaoLiberadaPor(nomeAdmin);
+        pedido.setConferenciaEdicaoLiberadaUsername(username);
+        pedido.setConferenciaEdicaoLiberadaEm(LocalDateTime.now());
+        return pedidoRepository.save(pedido);
+    }
+
+    private void marcarConferenciaFisicaFinalizada(Pedido pedido, String nome, String username) {
+        pedido.setConferenciaFisicaFinalizada(true);
+        pedido.setDataFinalizacaoConferenciaFisica(LocalDateTime.now());
+        pedido.setConferenciaFisicaFinalizadaPor(nome);
+        pedido.setConferenciaFisicaFinalizadaUsername(username);
+        // Consome a liberação: o pedido volta a aguardar a conferência financeira.
+        pedido.setConferenciaEdicaoLiberada(false);
+        pedido.setConferenciaEdicaoLiberadaPor(null);
+        pedido.setConferenciaEdicaoLiberadaUsername(null);
+        pedido.setConferenciaEdicaoLiberadaEm(null);
     }
 
     public boolean ehConferente(String perfil) {
@@ -414,24 +521,227 @@ public class PedidoService {
     }
 
     /**
-     * Considera os valores do item compatíveis quando o valor unitário confere com o
-     * previsto ou quando o total do item se mantém equivalente ao previsto (tolerância
-     * de R$ 0,01 para arredondamento). A segunda condição permite o fracionamento
-     * (valor unitário dividido e quantidade multiplicada) sem gerar divergência artificial.
+     * Considera os valores do item compatíveis quando o valor unitário real
+     * (por unidade física) confere com o previsto ou quando o total do item se
+     * mantém equivalente ao previsto (tolerância de R$ 0,01 para
+     * arredondamento). A segunda condição cobre produtos fracionados/conversão
+     * sem gerar divergência artificial.
      */
     private boolean valoresEquivalentes(ItemPedido item) {
         Double vlrReal = item.getValorUnitarioReal();
-        Double vlrPrevisto = item.getValorUnitarioPedido();
-        if (vlrReal == null || vlrPrevisto == null) return true;
-        if (vlrReal.equals(vlrPrevisto)) return true;
+        double vlrPrevisto = valorUnitarioFisicoPedido(item);
+        if (vlrReal == null) return true;
+        if (Double.compare(vlrReal, vlrPrevisto) == 0) return true;
 
         Integer qtdReal = item.getQuantidadeReal();
-        Integer qtdPedida = item.getQuantidadePedida();
-        if (qtdReal == null || qtdPedida == null || qtdPedida <= 0) return false;
+        int qtdEsperada = quantidadeEsperada(item);
+        if (qtdReal == null || qtdEsperada <= 0) return false;
 
         double totalReal = qtdReal * vlrReal;
-        double totalPrevisto = qtdPedida * vlrPrevisto;
+        double totalPrevisto = qtdEsperada * vlrPrevisto;
         return Math.abs(totalReal - totalPrevisto) <= 0.01;
+    }
+
+    /** Quantidade de referência em unidades físicas (conversão aplicada ou pedida). */
+    private int quantidadeEsperada(ItemPedido item) {
+        if (item.getQuantidadeEsperada() != null && item.getQuantidadeEsperada() > 0) {
+            return item.getQuantidadeEsperada();
+        }
+        return item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
+    }
+
+    /**
+     * Valor unitário previsto por unidade física. O valor gravado no pedido é
+     * por unidade pedida (pacote/caixa); a conversão deriva o valor físico.
+     */
+    private double valorUnitarioFisicoPedido(ItemPedido item) {
+        double base = item.getValorUnitarioPedido() != null ? item.getValorUnitarioPedido() : 0.0;
+        Integer fator = item.getFatorConversao();
+        String sentido = item.getSentidoConversao();
+        if (fator == null || fator <= 1 || sentido == null || sentido.isBlank()) return base;
+        if ("MULTIPLICAR".equalsIgnoreCase(sentido)) return base / fator;
+        if ("DIVIDIR".equalsIgnoreCase(sentido)) return base * fator;
+        return base;
+    }
+
+    /**
+     * Aplica e valida a conversão entre unidade pedida e unidade física.
+     * MULTIPLICAR: 1 unidade pedida contém N unidades físicas.
+     * DIVIDIR: N unidades pedidas formam 1 unidade física (divisão exata).
+     */
+    private void aplicarConversao(ItemPedido item, Integer fator, String sentido) {
+        String sentidoNormalizado = sentido == null ? null : sentido.trim().toUpperCase();
+        if (fator == null || fator <= 1) {
+            item.setFatorConversao(null);
+            item.setSentidoConversao(null);
+            item.setQuantidadeEsperada(item.getQuantidadePedida());
+            return;
+        }
+        if (sentidoNormalizado == null || sentidoNormalizado.isBlank()) {
+            throw new RuntimeException("Informe o sentido da conversão (MULTIPLICAR ou DIVIDIR).");
+        }
+        if (!"MULTIPLICAR".equals(sentidoNormalizado) && !"DIVIDIR".equals(sentidoNormalizado)) {
+            throw new RuntimeException("Sentido de conversão inválido. Use MULTIPLICAR ou DIVIDIR.");
+        }
+
+        int pedida = item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
+        int esperada;
+        if ("MULTIPLICAR".equals(sentidoNormalizado)) {
+            esperada = pedida * fator;
+        } else {
+            if (pedida % fator != 0) {
+                throw new RuntimeException("A quantidade pedida (" + pedida
+                        + ") não é divisível pelo fator de conversão (" + fator + "). "
+                        + "Ajuste o fator para uma divisão exata.");
+            }
+            esperada = pedida / fator;
+        }
+
+        item.setFatorConversao(fator);
+        item.setSentidoConversao(sentidoNormalizado);
+        item.setQuantidadeEsperada(esperada);
+    }
+
+    private boolean isItemNaoSolicitado(ItemPedido item) {
+        Integer pedida = item.getQuantidadePedida();
+        return (pedida == null || pedida == 0) && item.getItemCotacao() == null;
+    }
+
+    private List<String> chavesProduto(String nome, String codigoBarras) {
+        List<String> chaves = new ArrayList<>();
+        if (codigoBarras != null && !codigoBarras.isBlank()) {
+            String digitos = codigoBarras.replaceAll("\\D", "");
+            if (!digitos.isBlank()) chaves.add("EAN:" + digitos);
+        }
+        String nomeNormalizado = normalizarNome(nome);
+        if (!nomeNormalizado.isBlank()) chaves.add("NOME:" + nomeNormalizado);
+        return chaves;
+    }
+
+    private String normalizarNome(String nome) {
+        if (nome == null) return "";
+        return java.text.Normalizer.normalize(nome, java.text.Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "")
+                .toLowerCase()
+                .trim()
+                .replaceAll("\\s+", " ");
+    }
+
+    /**
+     * Valida a inclusão em lote de produtos não solicitados antes de gravar
+     * qualquer item, para que a falha seja clara e nada fique pela metade.
+     */
+    private void validarItensNaoSolicitados(Pedido pedido, List<ItemNaoSolicitadoDTO> itens) {
+        List<String> erros = new ArrayList<>();
+        Set<String> chaves = new HashSet<>();
+        Set<String> chavesExistentes = new HashSet<>();
+
+        if (pedido.getItens() != null) {
+            for (ItemPedido existente : pedido.getItens()) {
+                if (!isItemNaoSolicitado(existente)) continue;
+                chavesExistentes.addAll(chavesProduto(
+                        existente.getNomeProduto(), existente.getCodigoBarrasRecebido()));
+            }
+        }
+
+        Set<String> duplicados = new LinkedHashSet<>();
+        int indice = 0;
+        for (ItemNaoSolicitadoDTO dto : itens) {
+            indice++;
+            if (dto == null) {
+                erros.add("Item " + indice + ": dados não informados.");
+                continue;
+            }
+            if (dto.getNomeProduto() == null || dto.getNomeProduto().isBlank()) {
+                erros.add("Item " + indice + ": informe o nome do produto.");
+            }
+            if (dto.getQuantidade() == null || dto.getQuantidade() <= 0) {
+                erros.add("Item " + indice + ": a quantidade deve ser maior que zero.");
+            }
+
+            List<String> chavesItem = chavesProduto(dto.getNomeProduto(), dto.getCodigoBarrasRecebido());
+            boolean repetido = chavesItem.stream()
+                    .anyMatch(chave -> chaves.contains(chave) || chavesExistentes.contains(chave));
+            if (repetido) {
+                duplicados.add(dto.getNomeProduto() != null && !dto.getNomeProduto().isBlank()
+                        ? dto.getNomeProduto()
+                        : "Item " + indice);
+            }
+            chaves.addAll(chavesItem);
+        }
+
+        if (!erros.isEmpty()) {
+            throw new RuntimeException("Não foi possível incluir os produtos não solicitados: "
+                    + String.join(" ", erros));
+        }
+        if (!duplicados.isEmpty()) {
+            throw new RuntimeException("Produtos não solicitados duplicados: "
+                    + String.join(", ", duplicados)
+                    + ". Remova os repetidos e finalize a inclusão novamente.");
+        }
+    }
+
+    /**
+     * Cria os itens não solicitados no pedido. Retorna a soma dos valores reais
+     * informados (o Conferente não informa valores, então a soma é zero).
+     */
+    private double aplicarItensNaoSolicitados(Pedido pedido, List<ItemNaoSolicitadoDTO> itens,
+                                              boolean conferente) {
+        if (itens == null || itens.isEmpty()) return 0.0;
+        validarItensNaoSolicitados(pedido, itens);
+
+        double total = 0.0;
+        for (ItemNaoSolicitadoDTO dto : itens) {
+            ItemPedido novoItem = new ItemPedido();
+            novoItem.setPedido(pedido);
+            novoItem.setNomeProduto(dto.getNomeProduto());
+            novoItem.setQuantidadePedida(0);
+            novoItem.setValorUnitarioPedido(0.0);
+            novoItem.setQuantidadeReal(dto.getQuantidade());
+            novoItem.setQuantidadeEsperada(dto.getQuantidade());
+            novoItem.setFatorConversao(null);
+            novoItem.setSentidoConversao(null);
+            // Conferente não grava valor financeiro; o ADM informa depois.
+            Double valorReal = conferente ? null : dto.getValorUnitarioReal();
+            novoItem.setValorUnitarioReal(valorReal);
+            novoItem.setStatusRecebimento(StatusItemRecebimento.OK);
+
+            String observacao = dto.getObservacaoDevolucao() != null && !dto.getObservacaoDevolucao().isBlank()
+                    ? dto.getObservacaoDevolucao()
+                    : "Produto Não Solicitado";
+            if (dto.getCodigoDnaRecebido() != null && !dto.getCodigoDnaRecebido().isBlank()
+                    && !observacao.contains("Código DNA")) {
+                observacao = observacao + " | Código DNA: " + dto.getCodigoDnaRecebido().trim();
+            }
+            novoItem.setObservacaoDevolucao(observacao);
+            novoItem.setCodigoBarrasRecebido(dto.getCodigoBarrasRecebido());
+            novoItem.setNomeProdutoRecebido(dto.getNomeProdutoRecebido() != null
+                    && !dto.getNomeProdutoRecebido().isBlank()
+                    ? dto.getNomeProdutoRecebido()
+                    : dto.getNomeProduto());
+            novoItem.setCondicaoAplicada(false);
+            novoItem.setValorAlteradoAposPedido(false);
+
+            pedido.getItens().add(novoItem);
+            itemPedidoRepository.save(novoItem);
+
+            if (valorReal != null && dto.getQuantidade() != null) {
+                total += dto.getQuantidade() * valorReal;
+            }
+        }
+        return total;
+    }
+
+    private void recalcularValorTotalReal(Pedido pedido) {
+        double total = 0.0;
+        if (pedido.getItens() != null) {
+            for (ItemPedido item : pedido.getItens()) {
+                if (item.getQuantidadeReal() != null && item.getValorUnitarioReal() != null) {
+                    total += item.getQuantidadeReal() * item.getValorUnitarioReal();
+                }
+            }
+        }
+        pedido.setValorTotalReal(total);
     }
 
     /**
@@ -495,34 +805,17 @@ public class PedidoService {
     public Pedido adicionarItensNaoSolicitados(Long pedidoId, List<ItemNaoSolicitadoDTO> itens, boolean conferente) {
         Pedido pedido = buscarPorId(pedidoId);
 
-        for (ItemNaoSolicitadoDTO dto : itens) {
-            ItemPedido novoItem = new ItemPedido();
-            novoItem.setPedido(pedido);
-            novoItem.setNomeProduto(dto.getNomeProduto());
-            novoItem.setQuantidadePedida(0);
-            novoItem.setValorUnitarioPedido(0.0);
-            novoItem.setQuantidadeReal(dto.getQuantidade() != null ? dto.getQuantidade() : 0);
-            novoItem.setValorUnitarioReal(conferente ? 0.0
-                    : (dto.getValorUnitarioReal() != null ? dto.getValorUnitarioReal() : 0.0));
-            novoItem.setStatusRecebimento(StatusItemRecebimento.OK);
-            novoItem.setObservacaoDevolucao(dto.getObservacaoDevolucao() != null ? dto.getObservacaoDevolucao() : "Produto Não Solicitado");
-            novoItem.setCodigoBarrasRecebido(dto.getCodigoBarrasRecebido());
-            novoItem.setNomeProdutoRecebido(dto.getNomeProdutoRecebido());
-            novoItem.setCondicaoAplicada(false);
-            novoItem.setValorAlteradoAposPedido(false);
-
-            pedido.getItens().add(novoItem);
-            itemPedidoRepository.save(novoItem);
+        // A mesma trava da conferência física vale para a inclusão avulsa de
+        // extras feita pelo Conferente.
+        if (conferente
+                && Boolean.TRUE.equals(pedido.getConferenciaFisicaFinalizada())
+                && !Boolean.TRUE.equals(pedido.getConferenciaEdicaoLiberada())) {
+            throw new RuntimeException("A conferência física deste pedido já foi finalizada. "
+                    + "Aguarde o ADM liberar a edição.");
         }
 
-        double valorTotalReal = 0.0;
-        for (ItemPedido item : pedido.getItens()) {
-            if (item.getQuantidadeReal() != null && item.getValorUnitarioReal() != null) {
-                valorTotalReal += (item.getQuantidadeReal() * item.getValorUnitarioReal());
-            }
-        }
-        pedido.setValorTotalReal(valorTotalReal);
-
+        aplicarItensNaoSolicitados(pedido, itens, conferente);
+        recalcularValorTotalReal(pedido);
         return pedidoRepository.save(pedido);
     }
 
@@ -572,6 +865,14 @@ public class PedidoService {
         pedido.setConferenciaIniciadaUsername(null);
         pedido.setDataInicioConferencia(null);
         pedido.setConferenciaFinalizadaPor(null);
+        pedido.setConferenciaFisicaFinalizada(false);
+        pedido.setDataFinalizacaoConferenciaFisica(null);
+        pedido.setConferenciaFisicaFinalizadaPor(null);
+        pedido.setConferenciaFisicaFinalizadaUsername(null);
+        pedido.setConferenciaEdicaoLiberada(false);
+        pedido.setConferenciaEdicaoLiberadaPor(null);
+        pedido.setConferenciaEdicaoLiberadaUsername(null);
+        pedido.setConferenciaEdicaoLiberadaEm(null);
 
         for (ItemPedido item : pedido.getItens()) {
             item.setQuantidadeReal(null);
@@ -580,6 +881,9 @@ public class PedidoService {
             item.setStatusRecebimento(null);
             item.setObservacaoDevolucao(null);
             item.setRetornadoCotacao(false);
+            item.setFatorConversao(null);
+            item.setSentidoConversao(null);
+            item.setQuantidadeEsperada(null);
         }
 
         return pedidoRepository.save(pedido);
@@ -1166,18 +1470,23 @@ public class PedidoService {
         double totalReal = 0.0;
 
         for (ItemPedido item : pedido.getItens()) {
-            item.setQuantidadeReal(item.getQuantidadePedida());
-            item.setValorUnitarioReal(item.getValorUnitarioPedido());
-            // Se o Enum na sua classe chamar diferente, adapte para "OK" ou "RECEBIDO"
-            item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.OK); 
-            
-            totalReal += (item.getQuantidadePedida() * item.getValorUnitarioPedido());
+            if (Boolean.TRUE.equals(item.getRetornadoCotacao())) continue;
+            int qtdEsperada = quantidadeEsperada(item);
+            double valorFisico = valorUnitarioFisicoPedido(item);
+            item.setQuantidadeReal(qtdEsperada);
+            item.setValorUnitarioReal(valorFisico);
+            item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.OK);
+            totalReal += (qtdEsperada * valorFisico);
         }
 
         pedido.setValorTotalReal(totalReal);
         pedido.setStatus(StatusPedido.ENTREGUE_SUCESSO);
         pedido.setDataConfirmacao(java.time.LocalDateTime.now());
-        
+        // Recebimento rápido do ADM também encerra a etapa física.
+        pedido.setConferenciaFisicaFinalizada(true);
+        pedido.setDataFinalizacaoConferenciaFisica(java.time.LocalDateTime.now());
+        pedido.setConferenciaEdicaoLiberada(false);
+
         return pedidoRepository.save(pedido);
     }
 
@@ -1194,7 +1503,7 @@ public class PedidoService {
                     item.setQuantidadeReal(dto.getQuantidadeReal());
                     item.setValorUnitarioReal(dto.getValorUnitarioReal());
 
-                    if (item.getQuantidadeReal() < item.getQuantidadePedida()) {
+                    if (item.getQuantidadeReal() < quantidadeEsperada(item)) {
                         item.setStatusRecebimento(com.drogaria.cotacao.model.enums.StatusItemRecebimento.FALTANTE);
                         temFalta = true;
                     } else {

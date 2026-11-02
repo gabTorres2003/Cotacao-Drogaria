@@ -10,4 +10,5 @@ public class ItemNaoSolicitadoDTO {
     private String observacaoDevolucao;
     private String codigoBarrasRecebido;
     private String nomeProdutoRecebido;
+    private String codigoDnaRecebido;
 }

@@ -13,4 +13,11 @@ public class ReceberPedidoRequestDTO {
      * AGUARDAR - mantém os itens no pedido gerando entrega parcial.
      */
     private String acaoItensFaltantes;
+
+    /**
+     * Produtos que vieram na entrega mas não fazem parte do pedido. Enviados
+     * junto da conferência física para que itens e extras sejam gravados na
+     * mesma transação (evita conferência salva pela metade).
+     */
+    private List<ItemNaoSolicitadoDTO> itensNaoSolicitados;
 }
