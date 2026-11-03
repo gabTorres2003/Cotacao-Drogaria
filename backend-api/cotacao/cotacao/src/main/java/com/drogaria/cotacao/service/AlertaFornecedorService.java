@@ -34,8 +34,13 @@ public class AlertaFornecedorService {
 
     @Transactional(readOnly = true)
     public List<AlertaFornecedorDTO> listarAlertas(String tipo) {
-        LocalDate hoje = LocalDate.now();
-        LocalDateTime inicio = hoje.atStartOfDay();
+        return listarAlertas(tipo, LocalDate.now());
+    }
+
+    @Transactional(readOnly = true)
+    public List<AlertaFornecedorDTO> listarAlertas(String tipo, LocalDate data) {
+        LocalDate diaSelecionado = data != null ? data : LocalDate.now();
+        LocalDateTime inicio = diaSelecionado.atStartOfDay();
         LocalDateTime fim = inicio.plusDays(1);
 
         List<AlertaFornecedorDTO> alertas = new ArrayList<>();
@@ -48,7 +53,7 @@ public class AlertaFornecedorService {
             alertas.addAll(alertasDePedidosConfirmados(inicio, fim, tipo));
         }
         if (deveIncluir(tipo, AlertaFornecedorDTO.TIPO_PRAZO_ESTOURADO)) {
-            alertas.addAll(alertasDePrazoEstourado());
+            alertas.addAll(alertasDePrazoEstourado(diaSelecionado));
         }
 
         alertas.sort(Comparator.comparing(
@@ -153,22 +158,26 @@ public class AlertaFornecedorService {
         return alertas;
     }
 
-    private List<AlertaFornecedorDTO> alertasDePrazoEstourado() {
+    private List<AlertaFornecedorDTO> alertasDePrazoEstourado(LocalDate diaSelecionado) {
         LocalDateTime limite = LocalDateTime.now().minusHours(24);
         List<Pedido> pendentes = pedidoRepository.buscarPendentesComPrazoEstourado(
                 StatusPedido.PENDENTE_ENTREGA, limite);
 
         List<AlertaFornecedorDTO> alertas = new ArrayList<>();
         for (Pedido pedido : pendentes) {
+            LocalDateTime dataAlerta = pedido.getDataCriacao() != null
+                    ? pedido.getDataCriacao().plusHours(24)
+                    : null;
+            if (dataAlerta == null || !dataAlerta.toLocalDate().equals(diaSelecionado)) {
+                continue;
+            }
             String nome = nomeFornecedor(pedido.getFornecedor());
             AlertaFornecedorDTO alerta = new AlertaFornecedorDTO();
             alerta.setId("PRAZO_ESTOURADO-" + pedido.getId());
             alerta.setTipo(AlertaFornecedorDTO.TIPO_PRAZO_ESTOURADO);
             alerta.setFornecedorNome(nome);
             alerta.setMensagem("Prazo de Confirmação Estourado - " + nome);
-            alerta.setData(pedido.getDataCriacao() != null
-                    ? pedido.getDataCriacao().plusHours(24)
-                    : null);
+            alerta.setData(dataAlerta);
             alerta.setPedidoId(pedido.getId());
             alertas.add(alerta);
         }

@@ -1844,6 +1844,166 @@ tbody tr:last-child td {
   text-align: center;
 }
 
+.alertas-fornecedores-painel {
+  margin-top: 30px;
+}
+
+.alertas-fornecedores-painel-compacto {
+  padding-top: 24px;
+  border-top: 1px solid var(--border);
+}
+
+.alertas-fornecedores-cabecalho {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.alertas-fornecedores-subtitulo {
+  margin: -8px 0 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.alertas-fornecedores-filtros {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.alertas-fornecedores-data,
+.alertas-fornecedores-busca {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 34px;
+  padding: 0 9px;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--text-muted);
+  font-size: 12px;
+}
+
+.alertas-fornecedores-data input,
+.alertas-fornecedores-busca input {
+  border: 0;
+  outline: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+}
+
+.alertas-fornecedores-busca {
+  flex: 1;
+  min-width: 180px;
+}
+
+.alertas-fornecedores-busca input {
+  width: 100%;
+}
+
+.alerta-tipo-filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 34px;
+  padding: 0 10px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.alerta-tipo-filtro.ativo {
+  border-color: var(--primary);
+  background: var(--primary-soft);
+  color: var(--primary);
+}
+
+.alerta-tipo-filtro span {
+  min-width: 18px;
+  padding: 1px 5px;
+  border-radius: 999px;
+  background: var(--surface-muted);
+  text-align: center;
+  font-size: 10px;
+}
+
+.alertas-fornecedores-lista {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.alerta-fornecedor-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  text-align: left;
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+}
+
+.alerta-fornecedor-item:disabled {
+  cursor: default;
+}
+
+.alerta-fornecedor-icone {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border: 1px solid;
+  border-radius: 8px;
+}
+
+.alerta-fornecedor-conteudo {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.alerta-fornecedor-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.alerta-fornecedor-meta small {
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: none;
+}
+
+.alerta-fornecedor-conteudo strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .mensagens-admin-lista {
   display: flex;
   flex-direction: column;
@@ -2428,7 +2588,7 @@ input.fracao-input[type='number'] {
   }
 }
 
-/* ---------- Balão flutuante de avisos ---------- */
+/* ---------- Balï¿½o flutuante de avisos ---------- */
 .aviso-flutuante-wrap {
   position: fixed;
   left: 50%;

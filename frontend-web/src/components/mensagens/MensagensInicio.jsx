@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { CalendarDays, Info, Megaphone, Star } from 'lucide-react'
 import api from '../../services/api'
+import AlertasFornecedoresPainel from '../fornecedor/AlertasFornecedoresPainel'
 
 const ROTULOS_CATEGORIA = {
   COMUNICADO: 'Comunicado',
@@ -106,6 +107,7 @@ export default function MensagensInicio() {
           </span>
         </div>
       )}
+      {localStorage.getItem('tipoUsuario') === 'ADMIN' && <AlertasFornecedoresPainel compacto />}
     </section>
   )
 }

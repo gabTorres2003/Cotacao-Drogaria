@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.time.LocalDate;
 
 @RestController
 @RequestMapping("/api/alertas-fornecedores")
@@ -22,7 +23,8 @@ public class AlertaFornecedorController {
 
     @GetMapping
     public ResponseEntity<List<AlertaFornecedorDTO>> listar(
-            @RequestParam(value = "tipo", required = false) String tipo) {
-        return ResponseEntity.ok(alertaFornecedorService.listarAlertas(tipo));
+            @RequestParam(value = "tipo", required = false) String tipo,
+            @RequestParam(value = "data", required = false) LocalDate data) {
+        return ResponseEntity.ok(alertaFornecedorService.listarAlertas(tipo, data));
     }
 }
