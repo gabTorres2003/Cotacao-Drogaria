@@ -173,7 +173,7 @@ export default function ModalImportarEncomendas({ isOpen, onClose, cotacaoId, on
             <button 
                 onClick={handleImportar} 
                 disabled={salvando || selecionados.length === 0} 
-                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--purple-text)', color: 'white', fontWeight: 'bold', cursor: (salvando || selecionados.length === 0) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (salvando || selecionados.length === 0) ? 0.6 : 1 }}
+                style={{ padding: '10px 20px', borderRadius: '8px', border: 'none', backgroundColor: 'var(--primary)', color: '#ffffff', fontWeight: 'bold', cursor: (salvando || selecionados.length === 0) ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '8px', opacity: (salvando || selecionados.length === 0) ? 0.6 : 1 }}
             >
               {salvando ? <><Loader2 size={18} className="animate-spin" /> Importando...</> : <><CheckSquare size={18} /> Importar Encomendas</>}
             </button>

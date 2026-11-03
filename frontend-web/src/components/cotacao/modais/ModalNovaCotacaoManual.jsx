@@ -195,7 +195,7 @@ export default function ModalNovaCotacaoManual({ isOpen, onClose }) {
                             <input type="number" min="1" value={itemAtual.quantidade} onChange={e => setItemAtual({...itemAtual, quantidade: e.target.value})} style={{ width: '120px', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', boxSizing: 'border-box' }} />
                         </div>
                         
-                        <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--text)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
+                        <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
                             Inserir na Lista
                         </button>
                     </div>

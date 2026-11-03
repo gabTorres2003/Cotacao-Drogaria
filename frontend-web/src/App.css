@@ -2640,3 +2640,36 @@ input.fracao-input[type='number'] {
     animation: none !important;
   }
 }
+
+/* ---------- Menu flutuante de ferramentas ---------- */
+.tools-menu-btn {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 14px;
+  text-align: left;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+  background: var(--surface-muted);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.tools-menu-btn svg {
+  flex-shrink: 0;
+  color: var(--accent, var(--text-secondary));
+}
+
+.tools-menu-btn:hover:not(:disabled) {
+  background: var(--surface-hover);
+  border-color: var(--accent, var(--primary));
+}
+
+.tools-menu-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

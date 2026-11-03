@@ -187,7 +187,7 @@ export default function ModalPedidoManual({ isOpen, onClose }) {
                             <input type="number" step="0.01" value={itemAtual.valorUnitario} onChange={e => setItemAtual({...itemAtual, valorUnitario: e.target.value})} style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', boxSizing: 'border-box', outline: 'none' }} />
                         </div>
                     </div>
-                    <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--text)', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
+                    <button onClick={adicionarALista} style={{ width: '100%', padding: '10px', backgroundColor: 'var(--primary)', color: '#ffffff', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer', marginTop: '4px' }}>
                         Inserir na Lista do Pedido
                     </button>
                 </div>
