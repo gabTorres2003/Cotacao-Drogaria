@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, PlusCircle, Trash2, Tag, TrendingUp, Tags, ChevronDown, ChevronUp, Home } from 'lucide-react'
 import api from '../services/api'
 import ThemeToggle from '../components/layout/ThemeToggle'
 import { confirmar } from '../context/FeedbackContext'
+import { limparSessao } from '../services/session'
 
 export default function FornecedorDashboard() {
   const [cotacoes, setCotacoes] = useState([])
@@ -91,9 +92,7 @@ export default function FornecedorDashboard() {
 
   const handleLogout = async () => {
     // Mantém a preferência de tema entre sessões.
-    ;['token', 'tipoUsuario', 'primeiroAcesso', 'nomeUsuario', 'usuarioId'].forEach(
-      (chave) => localStorage.removeItem(chave),
-    )
+    limparSessao()
     navigate('/')
   }
 
@@ -382,14 +381,13 @@ export default function FornecedorDashboard() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '24px', flexWrap: 'wrap' }}>
           <span style={{ fontSize: '14px', color: 'var(--text-muted)', fontWeight: '500' }}>Olá, <strong style={{ color: 'var(--text)' }}>{nomeUsuario}</strong></span>
-          <button
-            type="button"
-            onClick={() => navigate('/inicio')}
+          <Link
+            to="/inicio"
             style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: 'var(--text-muted)', fontWeight: '600', cursor: 'pointer' }}
             title="Ir para a página inicial"
           >
             <Home size={18} /> Início
-          </button>
+          </Link>
           <ThemeToggle compact />
           <button onClick={handleLogout} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'none', border: 'none', color: 'var(--danger)', fontWeight: '600', cursor: 'pointer' }}><LogOut size={18} /> Sair</button>
         </div>
@@ -463,10 +461,10 @@ export default function FornecedorDashboard() {
                               </span>
                             </td>
                             <td className="col-produto col-center" data-label="Ação" style={{ padding: '14px 16px', textAlign: 'center' }}>
-                              <button className="cotacao-responder-btn" onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? 'var(--primary)' : 'var(--success)', color: 'white', padding: '10px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center', fontSize: '13px', whiteSpace: 'nowrap', minHeight: '40px' }}>
+                              <Link className="cotacao-responder-btn" to={`/responder-cotacao/${idCotacao}`} style={{ backgroundColor: isRespondida ? 'var(--primary)' : 'var(--success)', color: 'white', padding: '10px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center', fontSize: '13px', whiteSpace: 'nowrap', minHeight: '40px', textDecoration: 'none' }}>
                                 {isRespondida ? <Edit2 size={15}/> : <FileText size={15}/>}
                                 {isRespondida ? 'Ver/Editar' : 'Responder'}
-                              </button>
+                              </Link>
                             </td>
                           </tr>
                         )
@@ -527,9 +525,9 @@ export default function FornecedorDashboard() {
                           
                           <div className="action-buttons-container" style={{ padding: '12px 20px', backgroundColor: 'var(--surface)', display: 'flex', gap: '10px', flexWrap: 'wrap', borderBottom: '1px solid var(--border)' }}>
                             {idCotacaoOrigem && (
-                               <button onClick={() => navigate(`/responder-cotacao/${idCotacaoOrigem}`)} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--surface)', color: 'var(--purple-text)', padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--purple-border)', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap' }}>
+                               <Link to={`/responder-cotacao/${idCotacaoOrigem}`} style={{ display: 'flex', alignItems: 'center', gap: '6px', backgroundColor: 'var(--surface)', color: 'var(--purple-text)', padding: '8px 16px', borderRadius: '6px', border: '1px solid var(--purple-border)', fontWeight: '600', cursor: 'pointer', fontSize: '13px', boxShadow: '0 1px 2px rgba(0,0,0,0.05)', whiteSpace: 'nowrap', textDecoration: 'none' }}>
                                  <Edit2 size={16} /> Editar Cotação Origem
-                               </button>
+                               </Link>
                             )}
 
                             {pedido.status === 'PENDENTE_ENTREGA' && (

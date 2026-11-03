@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { supabase } from '../services/supabase';
+import { limparSessao } from '../services/session';
 
 export default function SessionTimeout() {
   const [mostrarAviso, setMostrarAviso] = useState(false);
@@ -14,11 +14,7 @@ export default function SessionTimeout() {
   const TEMPO_LOGOUT = 30 * 60 * 1000; // 30 minutos para deslogar a força
   
   const realizarLogout = async () => {
-    // Limpa o token do localStorage
-    localStorage.removeItem('token');
-    // Encerra a sessão ativa no Supabase
-    await supabase.auth.signOut();
-    
+    limparSessao();
     setMostrarAviso(false);
     navigate('/');
   };

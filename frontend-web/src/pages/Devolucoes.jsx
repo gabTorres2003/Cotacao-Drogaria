@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
@@ -304,12 +304,12 @@ export default function Devolucoes() {
                     
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       {dev.pedido?.id ? (
-                        <button 
-                          onClick={() => navigate(`/pedidos/${dev.pedido.id}`)}
+                        <Link
+                          to={`/pedidos/${dev.pedido.id}`}
                           style={{ backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer' }}
                         >
                           Pedido #{dev.pedido.id}
-                        </button>
+                        </Link>
                       ) : (
                         <span style={{ backgroundColor: 'var(--bg)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', padding: '4px 8px', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
                           Manual

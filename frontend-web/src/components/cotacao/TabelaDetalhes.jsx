@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
 import { Eye, Trash2, ArrowUpDown, ChevronUp, ChevronDown, Check, Copy, RefreshCcw, ShoppingCart, Filter, AlertTriangle, Tags, Pin, GripHorizontal, X, Pencil, MessageSquare, DollarSign, Tag, Search, Settings2 } from 'lucide-react';
 import BadgeOrigem from './BadgeOrigem';
 import api from '../../services/api';
@@ -582,7 +583,7 @@ export default function TabelaDetalhes({
                   {item.classificacaoInteligencia === 'HISTORICO_INSUFICIENTE' && <span style={{ fontSize: '10px', backgroundColor: 'var(--bg)', color: 'var(--text-muted)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-strong)', fontWeight: 'bold' }} title="Sem dados suficientes para estimativa confiável: incluir manualmente se necessário">Histórico insuficiente</span>}
                   {isBloqueado && (
                     <>
-                      <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); navigate(`/pedidos/${itensJaComprados[item.idItem].id}`); }} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</button>
+                      <Link to={`/pedidos/${itensJaComprados[item.idItem].id}`} onClick={(e) => e.stopPropagation()} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--success-soft)', color: 'var(--success-text)', border: '1px solid var(--success-border)', padding: '2px 8px', borderRadius: '10px', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none' }}>✓ Ver Pedido #{itensJaComprados[item.idItem].id}</Link>
                       {!isEncerrada && (<button type="button" onClick={() => reatribuirItem(item.idItem)} style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '10px', backgroundColor: 'var(--info)', color: 'white', border: 'none', borderRadius: '4px', padding: '2px 6px', cursor: 'pointer' }}><RefreshCcw size={10} /> Reatribuir</button>)}
                     </>
                   )}
@@ -953,7 +954,7 @@ export default function TabelaDetalhes({
           {isItens && (
             <td style={{ ...tdStyle, textAlign: 'center', position: 'sticky', right: 0, zIndex: 20, backgroundColor: isPinnedRow ? 'var(--info-soft)' : (isBaixoGiro ? 'var(--danger-soft)' : 'var(--surface)'), boxShadow: '-2px 0 5px -2px rgba(0,0,0,0.1)' }}>
               {subAbaItens === 'comprados' ? (
-                <button onClick={() => navigate(`/pedidos/${itensJaComprados[item.idItem].id}`)} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</button>
+                <Link to={`/pedidos/${itensJaComprados[item.idItem].id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', padding: '6px 12px', backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', borderRadius: '6px', fontSize: '11px', fontWeight: 'bold', cursor: 'pointer', textDecoration: 'none' }}><Eye size={14}/> Pedido #{itensJaComprados[item.idItem].id}</Link>
               ) : (
                 <div style={{ display: 'flex', gap: '5px', justifyContent: 'center' }}>
                   <button type="button" onClick={() => !item.excluido && deletarItem(item.idItem)} style={{ background: 'none', border: 'none', cursor: isBloqueado || isEncerrada || item.excluido ? 'not-allowed' : 'pointer', padding: '4px', color: 'var(--danger)' }} disabled={isBloqueado || isEncerrada || item.excluido} title="Remover Produto da Cotação">

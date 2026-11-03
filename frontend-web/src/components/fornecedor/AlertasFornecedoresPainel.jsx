@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react'
 import { Bell, CalendarDays, CheckCircle2, ChevronRight, Clock, MessageSquare, RefreshCw, Scissors, Search } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import api from '../../services/api'
 
 const TIPOS = [
@@ -45,7 +45,6 @@ export default function AlertasFornecedoresPainel({ compacto = false }) {
   const [tipoSelecionado, setTipoSelecionado] = useState('TODOS')
   const [busca, setBusca] = useState('')
   const [dataSelecionada, setDataSelecionada] = useState(dataLocalHoje)
-  const navigate = useNavigate()
 
   const carregarAlertas = async () => {
     setCarregando(true)
@@ -80,11 +79,6 @@ export default function AlertasFornecedoresPainel({ compacto = false }) {
         .filter(Boolean).some((valor) => String(valor).toLowerCase().includes(termo))
     })
   }, [alertas, tipoSelecionado, busca])
-
-  const abrirAlerta = (alerta) => {
-    if (alerta.cotacaoId) navigate(`/cotacao/${alerta.cotacaoId}`)
-    else if (alerta.pedidoId) navigate(`/pedidos/${alerta.pedidoId}`)
-  }
 
   return (
     <section className={compacto ? 'alertas-fornecedores-painel alertas-fornecedores-painel-compacto' : 'alertas-fornecedores-painel'}>
@@ -129,16 +123,30 @@ export default function AlertasFornecedoresPainel({ compacto = false }) {
           {alertasFiltrados.map((alerta) => {
             const estilo = ESTILO_TIPO[alerta.tipo] || ESTILO_TIPO.RESPOSTA_COTACAO
             const Icone = estilo.icon
-            const destino = alerta.cotacaoId || alerta.pedidoId
+            const destino = alerta.cotacaoId
+              ? `/cotacao/${alerta.cotacaoId}`
+              : alerta.pedidoId
+                ? `/pedidos/${alerta.pedidoId}`
+                : null
             return (
-              <button key={alerta.id || `${alerta.tipo}-${alerta.data}-${alerta.mensagem}`} type="button" onClick={() => abrirAlerta(alerta)} disabled={!destino} className="alerta-fornecedor-item">
+              destino ? (
+                <Link key={alerta.id || `${alerta.tipo}-${alerta.data}-${alerta.mensagem}`} to={destino} className="alerta-fornecedor-item" style={{ textDecoration: 'none' }}>
                 <span className="alerta-fornecedor-icone" style={{ backgroundColor: estilo.bg, color: estilo.color, borderColor: estilo.border }}><Icone size={17} /></span>
                 <span className="alerta-fornecedor-conteudo">
                   <span className="alerta-fornecedor-meta" style={{ color: estilo.color }}>{estilo.label} {alerta.data && <small>{formatarDataHora(alerta.data)}</small>}</span>
                   <strong>{alerta.mensagem}</strong>
                 </span>
-                {destino && <ChevronRight size={17} color="var(--text-subtle)" />}
-              </button>
+                <ChevronRight size={17} color="var(--text-subtle)" />
+              </Link>
+              ) : (
+                <button key={alerta.id || `${alerta.tipo}-${alerta.data}-${alerta.mensagem}`} type="button" disabled className="alerta-fornecedor-item">
+                  <span className="alerta-fornecedor-icone" style={{ backgroundColor: estilo.bg, color: estilo.color, borderColor: estilo.border }}><Icone size={17} /></span>
+                  <span className="alerta-fornecedor-conteudo">
+                    <span className="alerta-fornecedor-meta" style={{ color: estilo.color }}>{estilo.label} {alerta.data && <small>{formatarDataHora(alerta.data)}</small>}</span>
+                    <strong>{alerta.mensagem}</strong>
+                  </span>
+                </button>
+              )
             )
           })}
         </div>

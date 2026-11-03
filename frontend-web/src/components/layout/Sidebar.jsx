@@ -22,6 +22,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import ThemeToggle from './ThemeToggle'
 import AvisoFlutuante from '../mensagens/AvisoFlutuante'
+import { limparSessao } from '../../services/session'
 
 const MENU_ADMIN = [
   { to: '/inicio', label: 'Início', icon: Home, exact: true },
@@ -115,10 +116,7 @@ export default function Sidebar() {
   }
 
   const handleLogout = () => {
-    // Mantém a preferência de tema entre sessões.
-    ;['token', 'tipoUsuario', 'primeiroAcesso', 'nomeUsuario', 'usuarioId'].forEach(
-      (chave) => localStorage.removeItem(chave),
-    )
+    limparSessao()
     navigate('/')
   }
 

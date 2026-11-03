@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
@@ -764,13 +764,13 @@ export default function PedidoDetalhes() {
                         <h1 style={{ fontSize: '24px', marginBottom: '5px', display: 'flex', alignItems: 'center', gap: '12px' }}>
                             Pedido #{pedido.id}
                             {idCotacaoOrigem ? (
-                                <button 
-                                    onClick={() => navigate(`/cotacao/${idCotacaoOrigem}`)}
+                                <Link
+                                    to={`/cotacao/${idCotacaoOrigem}`}
                                     style={{ backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                                     title="Abrir Cotação vinculada"
                                 >
                                     Ver Cotação #{idCotacaoOrigem}
-                                </button>
+                                </Link>
                             ) : (
                                 <span style={{ backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', border: '1px solid var(--border-strong)', padding: '4px 10px', borderRadius: '6px', fontSize: '13px', fontWeight: 'bold' }}>
                                     Pedido Avulso

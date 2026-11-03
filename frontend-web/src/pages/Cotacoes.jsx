@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
@@ -381,9 +381,9 @@ export default function Cotacoes() {
                     <td style={{ padding: '16px' }}>{getBadge(cotacao.status)}</td>
                     <td style={{ padding: '16px', textAlign: 'center' }}>
                       <div style={{ display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        <button onClick={() => navigate(`/cotacao/${cotacao.id}`)} title="Abrir Cotação" style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px' }}>
+                        <Link to={`/cotacao/${cotacao.id}`} title="Abrir Cotação" style={{ background: 'var(--bg)', color: 'var(--text-secondary)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 'bold', fontSize: '12px', textDecoration: 'none' }}>
                           <Eye size={16} /> Abrir
-                        </button>
+                        </Link>
                         
                         <button 
                           onClick={() => deletarCotacao(cotacao.id)} 

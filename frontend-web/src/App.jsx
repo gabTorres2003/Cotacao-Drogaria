@@ -1,5 +1,5 @@
-import React from 'react'
-import { BrowserRouter, Routes, Route, Navigate, useLocation } from 'react-router-dom'
+import React, { useEffect } from 'react'
+import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import Login from './pages/Login'
 import Cotacoes from './pages/Cotacoes'
 import ResponderCotacao from './pages/ResponderCotacao'
@@ -17,6 +17,7 @@ import InteligenciaCompras from './pages/InteligenciaCompras'
 import MensagensMenu from './pages/MensagensMenu'
 import Inicio from './pages/Inicio'
 import SessionTimeout from './components/SessionTimeout'
+import { escutarSessao } from './services/session'
 import './App.css'
 
 const RotaPrivada = ({ children }) => {
@@ -30,9 +31,27 @@ const RotaPerfil = ({ children, permitidos }) => {
   return permitidos.includes(perfil) ? children : <Navigate to="/inicio" replace />
 }
 
+function SincronizacaoSessao() {
+  const location = useLocation()
+  const navigate = useNavigate()
+
+  useEffect(() => escutarSessao((tipo) => {
+    if (tipo === 'logout' && location.pathname !== '/') {
+      navigate('/', { replace: true })
+      return
+    }
+    if (tipo === 'login' && location.pathname === '/' && localStorage.getItem('token')) {
+      navigate('/inicio', { replace: true })
+    }
+  }), [location.pathname, navigate])
+
+  return null
+}
+
 function App() {
   return (
     <BrowserRouter>
+      <SincronizacaoSessao />
       <SessionTimeout />
       <Routes>
         <Route path="/" element={<Login />} />

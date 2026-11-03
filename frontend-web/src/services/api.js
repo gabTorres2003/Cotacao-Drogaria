@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { limparSessao } from './session';
 
 const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8080'
@@ -29,8 +30,8 @@ api.interceptors.response.use(
       
       if (!urlRequisicao.includes('/auth/login')) {
         console.warn("Sessão expirada. Redirecionando...");
-        localStorage.removeItem('token');
-        window.location.href = '/'; 
+        limparSessao();
+        if (window.location.pathname !== '/') window.location.replace('/');
       }
     }
     return Promise.reject(error);

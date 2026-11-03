@@ -21,6 +21,7 @@ import ThemeToggle from '../components/layout/ThemeToggle'
 import MensagensInicio from '../components/mensagens/MensagensInicio'
 import AvisoFlutuante from '../components/mensagens/AvisoFlutuante'
 import AlertaNovosProdutos from '../components/fornecedor/AlertaNovosProdutos'
+import { limparSessao } from '../services/session'
 
 const ACOES_ADMIN = [
   {
@@ -198,9 +199,7 @@ export default function Inicio() {
 
   const sair = () => {
     // Mantém a preferência de tema entre sessões.
-    ;['token', 'tipoUsuario', 'primeiroAcesso', 'nomeUsuario', 'usuarioId'].forEach(
-      (chave) => localStorage.removeItem(chave),
-    )
+    limparSessao()
     navigate('/')
   }
 

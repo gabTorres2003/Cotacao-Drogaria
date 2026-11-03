@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
@@ -586,12 +586,12 @@ export default function Pedidos() {
                       <span>{p.itens?.length || 0} produto(s)</span>
                       <span>NF: {p.numeroNota || 'Não informada'}</span>
                     </div>
-                    <button
+                    <Link
+                      to={`/pedidos/${p.id}`}
                       className="conferente-btn-abrir"
-                      onClick={() => navigate(`/pedidos/${p.id}`)}
                     >
                       Ver produtos e conferir
-                    </button>
+                    </Link>
                   </article>
                 );
               })}
@@ -976,13 +976,13 @@ export default function Pedidos() {
                       
                       <td>
                         {idCotacao !== '-' ? (
-                          <button 
-                            onClick={() => navigate(`/cotacao/${idCotacao}`)}
+                          <Link
+                            to={`/cotacao/${idCotacao}`}
                             style={{ backgroundColor: 'var(--purple-soft)', color: 'var(--purple-text)', border: '1px solid var(--purple-border)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold', cursor: 'pointer', display: 'inline-flex', alignItems: 'center' }}
                             title="Ir para a Cotação"
                           >
                             Ver Cot. #{idCotacao}
-                          </button>
+                          </Link>
                         ) : (
                           <span style={{ backgroundColor: 'var(--surface-muted)', color: 'var(--text-secondary)', padding: '4px 8px', borderRadius: '4px', fontSize: '12px', fontWeight: 'bold' }}>
                             Avulso
@@ -1025,9 +1025,9 @@ export default function Pedidos() {
 
                       <td>
                         <div className="pedidos-acoes" style={{ display: 'flex', gap: '8px' }}>
-                          <button className="btn-icon" title="Ver Detalhes" onClick={() => navigate(`/pedidos/${p.id}`)}>
+                          <Link className="btn-icon" title="Ver Detalhes" to={`/pedidos/${p.id}`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                             <Eye size={18} />
-                          </button>
+                          </Link>
                           
                           {!isConferente && p.status === 'PENDENTE_ENTREGA' && (
                              <button className="btn-icon" title="Avisar Fornecedor (WhatsApp)" onClick={() => handleAvisarIndividual(p)}>
@@ -1036,9 +1036,9 @@ export default function Pedidos() {
                           )}
 
                           {isAguardando && (
-                            <button className="btn-icon" title="Conferir Recebimento" onClick={() => navigate(`/pedidos/${p.id}/conferir`)}>
+                            <Link className="btn-icon" title="Conferir Recebimento" to={`/pedidos/${p.id}/conferir`} style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
                               <CheckCircle size={18} color="var(--success)" />
-                            </button>
+                            </Link>
                           )}
 
                           {!isConferente && isAguardando && (

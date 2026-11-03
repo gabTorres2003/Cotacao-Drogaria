@@ -13,6 +13,7 @@ import {
 } from 'lucide-react'
 import api from '../services/api'
 import ThemeToggle from '../components/layout/ThemeToggle'
+import { salvarSessao } from '../services/session'
 
 export default function Login() {
   const [username, setUsername] = useState('')
@@ -26,13 +27,10 @@ export default function Login() {
   const from = location.state?.from || null
 
   useEffect(() => {
-    localStorage.removeItem('token')
-    localStorage.removeItem('tipoUsuario')
-    localStorage.removeItem('primeiroAcesso')
-    localStorage.removeItem('nomeUsuario')
-    localStorage.removeItem('usuarioId')
-  }, [])
-  // -------------------------------
+    if (localStorage.getItem('token')) {
+      navigate(from || '/inicio', { replace: true })
+    }
+  }, [from, navigate])
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -44,11 +42,7 @@ export default function Login() {
       const response = await api.post('/auth/login', { username, pin })
       const { token, primeiroAcesso, tipoUsuario, nome, id } = response.data
 
-      localStorage.setItem('token', token)
-      localStorage.setItem('tipoUsuario', tipoUsuario)
-      localStorage.setItem('primeiroAcesso', primeiroAcesso)
-      localStorage.setItem('nomeUsuario', nome)
-      localStorage.setItem('usuarioId', id)
+      salvarSessao({ token, tipoUsuario, primeiroAcesso, nome, id })
 
       if (from) {
         navigate(from)
