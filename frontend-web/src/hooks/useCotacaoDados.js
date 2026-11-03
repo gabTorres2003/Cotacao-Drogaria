@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import api from '../services/api';
+import { confirmar } from '../context/FeedbackContext';
 
 export function useCotacaoDados(id) {
   const [statusCotacao, setStatusCotacao] = useState('ABERTA');
@@ -54,7 +55,11 @@ export function useCotacaoDados(id) {
   };
 
   const removerVinculo = async (idVinculo) => {
-    if (window.confirm("Remover o acesso deste fornecedor a esta cotação? Ele não poderá mais visualizar ou responder.")) {
+    if (await confirmar("Remover o acesso deste fornecedor a esta cotação? Ele não poderá mais visualizar ou responder.", {
+      titulo: 'Remover acesso do fornecedor',
+      confirmarTexto: 'Remover',
+      tipo: 'danger',
+    })) {
       try {
         await api.delete(`/api/cotacao-fornecedor/${idVinculo}`);
         carregarVinculos();

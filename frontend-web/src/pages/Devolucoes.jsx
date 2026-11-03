@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
+import { confirmar, useFeedback } from '../context/FeedbackContext';
 import {
   Search,
   Filter,
@@ -14,12 +15,15 @@ import {
   CheckCircle,
   Plus,
   Eye,
-  ArrowUpDown
+  ArrowUpDown,
+  Loader2
 } from 'lucide-react';
 
 export default function Devolucoes() {
+  const { sucesso, erro } = useFeedback();
   const [devolucoes, setDevolucoes] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [deletandoId, setDeletandoId] = useState(null);
   
   const [modalAberto, setModalAberto] = useState(false);
   const [devolucaoParaEditar, setDevolucaoParaEditar] = useState(null);
@@ -65,13 +69,22 @@ export default function Devolucoes() {
   };
 
   const deletarDevolucao = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta devolução permanentemente?')) {
-      try {
-        await api.delete(`/api/devolucoes/${id}`);
-        carregarDevolucoes();
-      } catch (error) {
-        alert('Erro ao excluir devolução.');
-      }
+    const confirmado = await confirmar('Tem certeza que deseja excluir esta devolução permanentemente?', {
+      titulo: 'Excluir devolução',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    });
+    if (!confirmado) return;
+
+    setDeletandoId(id);
+    try {
+      await api.delete(`/api/devolucoes/${id}`);
+      await carregarDevolucoes();
+      sucesso('Devolução excluída com sucesso.');
+    } catch (error) {
+      erro('Erro ao excluir devolução.');
+    } finally {
+      setDeletandoId(null);
     }
   };
 
@@ -343,8 +356,8 @@ export default function Devolucoes() {
                         <button onClick={() => abrirModalEdicao(dev.id)} title="Editar" style={{ background: 'var(--primary-soft)', color: 'var(--info)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
                           <Edit2 size={18} />
                         </button>
-                        <button onClick={() => deletarDevolucao(dev.id)} title="Excluir" style={{ background: 'var(--danger-soft)', color: 'var(--danger)', border: 'none', padding: '8px', borderRadius: '6px', cursor: 'pointer' }}>
-                          <Trash2 size={18} />
+                        <button onClick={() => deletarDevolucao(dev.id)} disabled={deletandoId === dev.id} title="Excluir" style={{ background: 'var(--danger-soft)', color: 'var(--danger)', border: 'none', padding: '8px', borderRadius: '6px', cursor: deletandoId === dev.id ? 'wait' : 'pointer', opacity: deletandoId === dev.id ? 0.7 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {deletandoId === dev.id ? <Loader2 size={18} className="animate-spin" /> : <Trash2 size={18} />}
                         </button>
                       </div>
                     </td>

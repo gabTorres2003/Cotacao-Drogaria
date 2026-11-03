@@ -21,6 +21,7 @@ import {
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
 import ThemeToggle from './ThemeToggle'
+import AvisoFlutuante from '../mensagens/AvisoFlutuante'
 
 const MENU_ADMIN = [
   { to: '/inicio', label: 'Início', icon: Home, exact: true },
@@ -261,6 +262,8 @@ export default function Sidebar() {
           </button>
         </div>
       </aside>
+
+      <AvisoFlutuante />
 
       {showFirstAccessModal && (
         <div className="modal-overlay">

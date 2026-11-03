@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
+import { confirmar, solicitar } from '../context/FeedbackContext'
 import {
   UserPlus,
   Phone,
@@ -80,8 +81,15 @@ export default function Fornecedores() {
   }
 
   const handleResetSenha = async (id, nome) => {
-    const novoPin = window.prompt(
+    const novoPin = await solicitar(
       `Defina um novo PIN (4 a 6 dígitos) de primeiro acesso para o fornecedor: ${nome}`,
+      {
+        titulo: 'Redefinir PIN do fornecedor',
+        confirmarTexto: 'Redefinir',
+        placeholder: '4 a 6 dígitos',
+        inputMode: 'numeric',
+        maxLength: 6,
+      },
     )
 
     if (novoPin === null) return
@@ -104,7 +112,11 @@ export default function Fornecedores() {
 
   const handleExcluir = async (id, nome) => {
     if (
-      window.confirm(`Tem certeza que deseja excluir o fornecedor ${nome}?`)
+      await confirmar(`Tem certeza que deseja excluir o fornecedor ${nome}?`, {
+        titulo: 'Excluir fornecedor',
+        confirmarTexto: 'Excluir',
+        tipo: 'danger',
+      })
     ) {
       try {
         await api.delete(`/api/fornecedor/${id}`)
@@ -121,7 +133,11 @@ export default function Fornecedores() {
 
   const handleToggleStatus = async (id, nome, ativoAtual) => {
     const acao = ativoAtual ? 'inativar' : 'reativar'
-    if (window.confirm(`Tem certeza que deseja ${acao} o fornecedor ${nome}?`)) {
+    if (await confirmar(`Tem certeza que deseja ${acao} o fornecedor ${nome}?`, {
+      titulo: `${acao === 'inativar' ? 'Inativar' : 'Reativar'} fornecedor`,
+      confirmarTexto: acao === 'inativar' ? 'Inativar' : 'Reativar',
+      tipo: acao === 'inativar' ? 'danger' : 'primary',
+    })) {
       try {
         await api.put(`/api/fornecedor/${id}/status`)
         carregarFornecedores()

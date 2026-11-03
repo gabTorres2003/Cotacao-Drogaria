@@ -29,9 +29,10 @@ export default function FloatingToolsMenu({
 
   const btnStyle = (color = 'var(--text-muted)') => ({
     display: 'flex', alignItems: 'center', gap: '8px', padding: '10px 14px',
-    backgroundColor: color, color: 'white', border: 'none', borderRadius: '8px',
-    cursor: 'pointer', fontWeight: '600', fontSize: '13px', width: '100%',
-    textAlign: 'left', transition: 'all 0.15s ease'
+    backgroundColor: `color-mix(in srgb, ${color} 16%, var(--surface))`,
+    color: 'var(--text)', border: `1px solid color-mix(in srgb, ${color} 45%, var(--border))`,
+    borderRadius: '8px', cursor: 'pointer', fontWeight: '600', fontSize: '13px',
+    width: '100%', textAlign: 'left', transition: 'all 0.15s ease'
   });
 
   const topNBtn = (ativo) => ({
@@ -69,7 +70,7 @@ export default function FloatingToolsMenu({
           display: 'flex', flexDirection: 'column'
         }}>
           <div style={{
-            padding: '14px 16px', backgroundColor: 'var(--text)', color: 'white',
+            padding: '14px 16px', backgroundColor: 'var(--navy)', color: '#ffffff',
             display: 'flex', alignItems: 'center', justifyContent: 'space-between'
           }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: '700', fontSize: '14px' }}>
@@ -149,7 +150,7 @@ export default function FloatingToolsMenu({
                   <RefreshCcw size={16} /> Atualizar Importação DNA
                 </button>
                 <div style={{ height: '6px' }} />
-                <button style={btnStyle('var(--purple-text)')} onClick={() => { setIsEncomendasModalOpen(true); setIsOpen(false); }}>
+                <button style={btnStyle('var(--purple)')} onClick={() => { setIsEncomendasModalOpen(true); setIsOpen(false); }}>
                   <PackageOpen size={16} /> Importar Encomendas do Balcão
                 </button>
                 <div style={{ height: '6px' }} />
@@ -199,8 +200,8 @@ export default function FloatingToolsMenu({
         onClick={() => setIsOpen(!isOpen)}
         style={{
           width: '56px', height: '56px', borderRadius: '50%',
-          backgroundColor: isOpen ? 'var(--danger)' : 'var(--text)',
-          color: 'white', border: 'none', cursor: 'pointer',
+          backgroundColor: isOpen ? 'var(--danger)' : 'var(--primary)',
+          color: '#ffffff', border: 'none', cursor: 'pointer',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 10px 15px -3px rgba(0,0,0,0.2), 0 4px 6px -2px rgba(0,0,0,0.1)',
           transition: 'all 0.2s ease', transform: isOpen ? 'rotate(45deg)' : 'rotate(0deg)'

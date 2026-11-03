@@ -5,6 +5,7 @@ import Sidebar from '../components/layout/Sidebar'
 import UploadModal from '../components/layout/UploadModal'
 import ModalNovaCotacaoManual from '../components/cotacao/modais/ModalNovaCotacaoManual';
 import ModalGerarListaInteligenca from '../components/cotacao/modais/ModalGerarListaInteligenca';
+import { confirmar } from '../context/FeedbackContext';
 import { FileText, Search, Plus, Filter, ArrowUpDown, Loader2, Trash2, Eye, ListPlus, Tag, Brain } from 'lucide-react';
 
 export default function Cotacoes() {
@@ -53,7 +54,12 @@ export default function Cotacoes() {
   }
 
   const deletarCotacao = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir esta cotação permanentemente?')) {
+    const confirmado = await confirmar('Tem certeza que deseja excluir esta cotação permanentemente?', {
+      titulo: 'Excluir cotação',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })
+    if (confirmado) {
       setDeletandoId(id)
       try {
         await api.delete(`/api/cotacao/${id}`)
@@ -122,7 +128,11 @@ export default function Cotacoes() {
   const excluirSelecionadas = async () => {
     const ids = Object.keys(selecionadas).map(Number);
     if (ids.length === 0) return;
-    if (!window.confirm(`Tem certeza que deseja excluir ${ids.length} cotação(ões) permanentemente?`)) return;
+    if (!await confirmar(`Tem certeza que deseja excluir ${ids.length} cotação(ões) permanentemente?`, {
+      titulo: 'Excluir cotações',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })) return;
     setExcluindoEmMassa(true);
     try {
       await api.delete('/api/cotacao/lote', { data: { ids } });

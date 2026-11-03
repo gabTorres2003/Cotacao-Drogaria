@@ -2,6 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import api from '../services/api'
 import { gerarEspelhoRespostaFornecedor, gerarMensagemEspelhoWhatsApp } from '../utils/pdfExport'
+import { confirmar } from '../context/FeedbackContext'
 import {
   ArrowLeft, CheckCircle, Plus, Trash2, RefreshCw, Loader2, AlertTriangle, Search, SortAsc, ArrowUp, ArrowDown, Tags, MessageSquare, FileText, MessageCircle
 } from 'lucide-react'
@@ -44,8 +45,8 @@ export default function ResponderCotacao() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [busca, setBusca] = useState('')
-  const [ordemAlfabetica, setOrdemAlfabetica] = useState(false)
-  const [filtroNovos, setFiltroNovos] = useState(false)
+  const [ordemAlfabetica, setOrdemAlfabetica] = useState(true)
+  const [filtroNovos, setFiltroNovos] = useState(() => new URLSearchParams(window.location.search).get('novos') === '1')
   const [mostrarAlertaNovos, setMostrarAlertaNovos] = useState(false)
 
   const [dicionarioDiversos, setDicionarioDiversos] = useState({})
@@ -363,8 +364,12 @@ export default function ResponderCotacao() {
     }
   }
 
-  const limparRascunho = () => {
-    if(window.confirm('Isso apagará todas as respostas. Tem certeza?')) {
+  const limparRascunho = async () => {
+    if(await confirmar('Isso apagará todas as respostas. Tem certeza?', {
+      titulo: 'Apagar rascunho',
+      confirmarTexto: 'Apagar',
+      tipo: 'danger',
+    })) {
       localStorage.removeItem(draftKey)
       window.location.reload()
     }
@@ -432,7 +437,7 @@ export default function ResponderCotacao() {
 
   return (
     <div style={mobileStyles.container}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: 'var(--bg)', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px', position: 'sticky', top: 0, backgroundColor: 'var(--bg)', zIndex: 100, padding: '12px 0', marginTop: '-12px', borderBottom: '1px solid var(--border)', gap: '8px', flexWrap: 'wrap' }}>
         <button onClick={() => navigate('/portal-fornecedor')} style={mobileStyles.btnVoltar}><ArrowLeft size={18} /> Voltar</button>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <img src="/assets/logo-torres.png" alt="Torres Farma" style={{ height: '24px' }} />
@@ -471,8 +476,8 @@ export default function ResponderCotacao() {
         <div style={{ fontSize: '12px', fontWeight: '600', color: 'var(--primary-text)', marginBottom: '8px', textAlign: 'center' }}>
           {percentualRespondido}% — {respondidos} de {totalResponder} respondidos — {totalResponder - respondidos} faltando
         </div>
-        <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-          <div style={{ flex: 1, position: 'relative' }}>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <div style={{ flex: '1 1 220px', minWidth: '180px', position: 'relative' }}>
             <Search size={16} color="var(--text-subtle)" style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)' }} />
             <input type="text" placeholder="Pesquisar produto..." value={busca} onChange={(e) => setBusca(e.target.value)} style={{ ...mobileStyles.inputFieldItem, paddingLeft: '36px' }} />
           </div>
@@ -482,6 +487,9 @@ export default function ResponderCotacao() {
             aria-pressed={ordemAlfabetica}
             style={{
               ...mobileStyles.btnVoltar,
+              minHeight: '44px',
+              padding: '10px 14px',
+              fontSize: '13px',
               backgroundColor: ordemAlfabetica ? 'var(--info-soft)' : 'var(--surface)',
               color: ordemAlfabetica ? 'var(--primary-text)' : 'var(--text-secondary)',
               border: ordemAlfabetica ? '1px solid var(--primary)' : '1px solid var(--border-strong)',
@@ -496,6 +504,9 @@ export default function ResponderCotacao() {
             aria-pressed={filtroNovos}
             style={{
               ...mobileStyles.btnVoltar,
+              minHeight: '44px',
+              padding: '10px 14px',
+              fontSize: '13px',
               backgroundColor: filtroNovos ? 'var(--warning-soft)' : 'var(--surface)',
               color: filtroNovos ? 'var(--warning-text)' : 'var(--text-secondary)',
               border: filtroNovos ? '1px solid var(--warning)' : '1px solid var(--border-strong)',
@@ -503,7 +514,7 @@ export default function ResponderCotacao() {
               whiteSpace: 'nowrap',
             }}
           >
-            <Tags size={16} /> {filtroNovos ? 'Novos' : 'Novos'}
+            <Tags size={16} /> {filtroNovos ? 'Novos (ativo)' : 'Novos'}
           </button>
         </div>
       </div>
@@ -515,6 +526,7 @@ export default function ResponderCotacao() {
         </div>
       ) : (
         <div>
+          <div className="itens-resposta-grid">
           {itensProcessados.map((item) => {
               const isFalta = !!emFalta[item.idItem]
               const qtdNaTela = quantidades[item.idItem] !== undefined ? quantidades[item.idItem] : item.quantidade
@@ -525,12 +537,12 @@ export default function ResponderCotacao() {
               return (
                 <div key={item.idItem} style={mobileStyles.card}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: '15px', fontWeight: '600', color: 'var(--text)' }}>{getNomeReal(item.nomeProduto)}</span>
+                    <span style={{ fontSize: '16px', fontWeight: '700', color: 'var(--text)' }}>{getNomeReal(item.nomeProduto)}</span>
                     {isItemNovo(item) && (
                       <span style={{ fontSize: '10px', fontWeight: '700', color: 'var(--warning-text)', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning)', borderRadius: '4px', padding: '2px 6px', whiteSpace: 'nowrap' }}>NOVO</span>
                     )}
                   </div>
-                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
+                  <div style={{ fontSize: '14px', color: 'var(--text-muted)' }}>Solicitado: <strong>{item.quantidade} un</strong></div>
                   
                   {item.observacaoComprador && (
                     <div style={{ marginTop: '6px', padding: '8px 10px', backgroundColor: 'var(--warning-soft)', border: '1px solid var(--warning)', borderRadius: '6px', display: 'flex', alignItems: 'flex-start', gap: '6px' }}>
@@ -558,10 +570,7 @@ export default function ResponderCotacao() {
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
-                            const itensFiltrados = itens.filter(item => {
-                              const nomeReal = getNomeReal(item.nomeProduto).toLowerCase();
-                              return nomeReal.includes(busca.toLowerCase());
-                            });
+                            const itensFiltrados = itensProcessados;
                             const idx = itensFiltrados.findIndex(i => i.idItem === item.idItem);
                             const proximo = itensFiltrados[idx + 1];
                             if (proximo && priceRefs.current[proximo.idItem]) {
@@ -647,6 +656,15 @@ export default function ResponderCotacao() {
                 </div>
               )
           })}
+          </div>
+
+          {itensProcessados.length === 0 && (
+            <div style={{ marginTop: '12px', padding: '24px 16px', textAlign: 'center', borderRadius: '10px', border: '1px solid var(--border)', backgroundColor: 'var(--surface)', color: 'var(--text-muted)', fontSize: '14px' }}>
+              {filtroNovos
+                ? 'Nenhum produto novo encontrado. Toque em “Novos” para ver todos os itens.'
+                : 'Nenhum produto encontrado para a busca informada.'}
+            </div>
+          )}
 
           <div style={{ marginTop: '24px', backgroundColor: 'var(--surface)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
@@ -722,13 +740,28 @@ export default function ResponderCotacao() {
       <style>{`
         @keyframes spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
         .animate-spin { animation: spin 1s linear infinite; }
+        .itens-resposta-grid {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 10px;
+        }
+        .itens-resposta-grid > div {
+          margin-bottom: 0 !important;
+        }
+        @media (min-width: 900px) {
+          .itens-resposta-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            align-items: start;
+          }
+        }
       `}</style>
     </div>
   )
 }
 
 const mobileStyles = {
-  container: { maxWidth: '800px', margin: '0 auto', padding: '12px', fontFamily: "'Segoe UI', sans-serif", backgroundColor: 'var(--bg)', minHeight: '100vh', boxSizing: 'border-box' },
+  container: { maxWidth: '1100px', margin: '0 auto', padding: '12px', fontFamily: "'Segoe UI', sans-serif", backgroundColor: 'var(--bg)', minHeight: '100vh', boxSizing: 'border-box' },
   card: { backgroundColor: 'var(--surface)', padding: '14px', marginBottom: '10px', borderRadius: '8px', border: '1px solid var(--border)', display: 'flex', flexDirection: 'column', gap: '8px' },
   labelMini: { fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' },
   inputFieldItem: { width: '100%', padding: '8px', borderRadius: '6px', border: '1px solid var(--border-strong)', fontSize: '15px', boxSizing: 'border-box' },

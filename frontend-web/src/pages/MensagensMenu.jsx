@@ -14,6 +14,7 @@ import {
 } from 'lucide-react'
 import Sidebar from '../components/layout/Sidebar'
 import api from '../services/api'
+import { confirmar } from '../context/FeedbackContext'
 
 const CATEGORIAS = [
   { value: 'COMUNICADO', label: 'Comunicado' },
@@ -220,7 +221,11 @@ export default function MensagensMenu() {
   }
 
   const excluirMensagem = async (mensagem) => {
-    if (!window.confirm(`Excluir a mensagem "${mensagem.titulo}"? Esta ação não pode ser desfeita.`)) {
+    if (!await confirmar(`Excluir a mensagem "${mensagem.titulo}"? Esta ação não pode ser desfeita.`, {
+      titulo: 'Excluir mensagem',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })) {
       return
     }
 

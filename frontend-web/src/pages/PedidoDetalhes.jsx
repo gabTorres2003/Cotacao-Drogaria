@@ -6,6 +6,7 @@ import DevolucaoModal from '../components/DevolucaoModal';
 import PesquisaProdutoDna from '../components/PesquisaProdutoDna';
 import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck, FileText } from 'lucide-react';
 import { nomeExibicaoProduto, calcularResumoDivergencias, quantidadeEsperadaItem, valorUnitarioFisico } from '../utils/conferenciaUtils';
+import { confirmar } from '../context/FeedbackContext';
 
 // Produtos aceitos por sugestão de troca são identificados pela diferença entre
 // o nome gravado no pedido e o nome do ItemCotacao original: "Substituto (Original)".
@@ -89,7 +90,11 @@ export default function PedidoDetalhes() {
     }, [id]);
 
     const handleExcluirPedido = async () => {
-        if (window.confirm('Tem certeza que deseja excluir este pedido permanentemente? Esta ação não pode ser desfeita.')) {
+        if (await confirmar('Tem certeza que deseja excluir este pedido permanentemente? Esta ação não pode ser desfeita.', {
+            titulo: 'Excluir pedido',
+            confirmarTexto: 'Excluir',
+            tipo: 'danger',
+        })) {
             try {
                 await api.delete(`/api/pedidos/${id}`);
                 alert('Pedido excluído com sucesso!');
@@ -101,7 +106,11 @@ export default function PedidoDetalhes() {
     };
 
     const handleCancelarConfirmacao = async () => {
-        if (window.confirm('Tem certeza que deseja cancelar a confirmação deste pedido?\n\nEle voltará para o status "Aguardando Fornecedor" e você poderá adicionar ou editar produtos novamente.')) {
+        if (await confirmar('Tem certeza que deseja cancelar a confirmação deste pedido?\n\nEle voltará para o status "Aguardando Fornecedor" e você poderá adicionar ou editar produtos novamente.', {
+            titulo: 'Cancelar confirmação',
+            confirmarTexto: 'Cancelar confirmação',
+            tipo: 'danger',
+        })) {
             try {
                 await api.patch(`/api/pedidos/${id}/cancelar-confirmacao`);
                 alert('Confirmação cancelada com sucesso! O pedido foi reaberto.');
@@ -113,7 +122,11 @@ export default function PedidoDetalhes() {
     };
 
     const handleRefazerConferencia = async () => {
-        if (window.confirm('Tem certeza que deseja APAGAR os valores recebidos e REFAZER a conferência cega deste pedido?')) {
+        if (await confirmar('Tem certeza que deseja APAGAR os valores recebidos e REFAZER a conferência cega deste pedido?', {
+            titulo: 'Refazer conferência',
+            confirmarTexto: 'Apagar e refazer',
+            tipo: 'danger',
+        })) {
             try {
                 await api.patch(`/api/pedidos/${id}/refazer-conferencia`);
                 localStorage.removeItem(`conferencia_pedido_${id}`);
@@ -126,7 +139,10 @@ export default function PedidoDetalhes() {
     };
 
     const handleConferenciaRapida = async () => {
-        if (window.confirm('Tem certeza que deseja fazer o recebimento rápido?\n\nIsso confirmará que TODOS os itens chegaram exatamente com as quantidades e valores previstos no pedido.')) {
+        if (await confirmar('Tem certeza que deseja fazer o recebimento rápido?\n\nIsso confirmará que TODOS os itens chegaram exatamente com as quantidades e valores previstos no pedido.', {
+            titulo: 'Recebimento rápido',
+            confirmarTexto: 'Confirmar recebimento',
+        })) {
             try {
                 await api.patch(`/api/pedidos/${id}/recebimento-rapido`);
                 alert('Recebimento rápido realizado com sucesso!');
@@ -138,7 +154,10 @@ export default function PedidoDetalhes() {
     };
 
     const handleContinuarConferencia = async () => {
-        if (window.confirm('Deseja reabrir a conferência deste pedido para continuar lançando o próximo volume?')) {
+        if (await confirmar('Deseja reabrir a conferência deste pedido para continuar lançando o próximo volume?', {
+            titulo: 'Reabrir conferência',
+            confirmarTexto: 'Reabrir',
+        })) {
             try {
                 await api.patch(`/api/pedidos/${id}/reabrir-conferencia`);
                 navigate(`/pedidos/${id}/conferir`);
@@ -149,9 +168,10 @@ export default function PedidoDetalhes() {
     };
 
     const handleLiberarEdicaoConferencia = async () => {
-        if (window.confirm(
+        if (await confirmar(
             'Liberar a edição da conferência física para o Conferente?\n\n'
-            + 'Ele poderá corrigir as quantidades. Ao salvar novamente, o pedido volta a aguardar a conferência financeira do ADM.'
+            + 'Ele poderá corrigir as quantidades. Ao salvar novamente, o pedido volta a aguardar a conferência financeira do ADM.',
+            { titulo: 'Liberar edição', confirmarTexto: 'Liberar edição' },
         )) {
             try {
                 await api.patch(`/api/pedidos/${id}/conferencia/liberar-edicao`);
@@ -164,7 +184,11 @@ export default function PedidoDetalhes() {
     };
 
     const handleRemoverItemDoPedido = async (idItem) => {
-        if (window.confirm('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.')) {
+        if (await confirmar('Deseja remover este produto do pedido? Ele voltará para a cotação como pendente.', {
+            titulo: 'Remover produto',
+            confirmarTexto: 'Remover',
+            tipo: 'danger',
+        })) {
             try {
                 await api.delete(`/api/pedidos/item/${idItem}`);
                 carregarPedido(); 
@@ -311,14 +335,21 @@ export default function PedidoDetalhes() {
     };
 
     const handleRecusarSugestao = async (idSugestao) => {
-        if(window.confirm('Tem certeza que deseja recusar e excluir esta sugestão?')) {
+        if(await confirmar('Tem certeza que deseja recusar e excluir esta sugestão?', {
+            titulo: 'Recusar sugestão',
+            confirmarTexto: 'Recusar',
+            tipo: 'danger',
+        })) {
             try { await api.delete(`/api/pedidos/${id}/sugestoes/${idSugestao}`); carregarPedido(); if (pedido.sugestoes.length === 1) setIsModalSugestoesAberto(false); } 
             catch (error) { alert('Erro ao recusar a sugestão.'); }
         }
     };
 
     const aceitarDivergenciaValor = async () => {
-        if (window.confirm('Confirmar o recebimento ignorando as diferenças de valores/impostos? O pedido será marcado como Concluído.')) {
+        if (await confirmar('Confirmar o recebimento ignorando as diferenças de valores/impostos? O pedido será marcado como Concluído.', {
+            titulo: 'Aceitar divergência',
+            confirmarTexto: 'Aceitar e concluir',
+        })) {
             try { await api.patch(`/api/pedidos/${id}/status`, { status: 'ENTREGUE_SUCESSO' }); alert('Divergência aceita. Pedido concluído!'); carregarPedido(); } 
             catch (error) { alert('Erro ao atualizar o pedido.'); }
         }

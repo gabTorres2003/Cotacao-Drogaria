@@ -6,6 +6,7 @@ import api from '../services/api';
 import { useCotacaoDados } from '../hooks/useCotacaoDados';
 import { useCotacaoFiltros } from '../hooks/useCotacaoFiltros';
 import { baixarRelatorioGeral } from '../utils/pdfExport';
+import { confirmar } from '../context/FeedbackContext';
 
 // Componentes Visuais
 import CotacaoHeader from '../components/cotacao/CotacaoHeader';
@@ -269,7 +270,11 @@ export default function CotacaoDetalhes() {
 
   const alterarStatusCotacao = async (novoStatus) => {
     const acao = novoStatus === 'FINALIZADA' ? 'encerrar' : 'reabrir';
-    if(window.confirm(`Deseja realmente ${acao} esta cotação?`)) {
+    if(await confirmar(`Deseja realmente ${acao} esta cotação?`, {
+      titulo: `${acao === 'encerrar' ? 'Encerrar' : 'Reabrir'} cotação`,
+      confirmarTexto: acao === 'encerrar' ? 'Encerrar' : 'Reabrir',
+      tipo: acao === 'encerrar' ? 'danger' : 'primary',
+    })) {
       try {
         await api.put(`/api/cotacao/${id}/status`, { status: novoStatus });
         setStatusCotacao(novoStatus);
@@ -326,10 +331,11 @@ export default function CotacaoDetalhes() {
       return true;
     }
 
-    const confirmacao = window.confirm(
+    const confirmacao = await confirmar(
       `Esta ação irá alterar permanentemente ${itens.length} resposta(s) de fornecedor(es).\n\n` +
       itens.map(i => `• ${i.nomeFornecedor}: ${fMoney(i.precoAtual)} → ${fMoney(i.novoPreco)} (fração ${i.fracao})`).join('\n') +
-      `\n\nDeseja continuar?`
+      `\n\nDeseja continuar?`,
+      { titulo: 'Confirmar alteração de frações', confirmarTexto: 'Continuar' },
     );
 
     if (!confirmacao) return false;
@@ -427,7 +433,11 @@ export default function CotacaoDetalhes() {
   };
 
   const deletarItem = async (idItem) => {
-    if (window.confirm('Tem certeza que deseja remover este produto da cotação?')) {
+    if (await confirmar('Tem certeza que deseja remover este produto da cotação?', {
+      titulo: 'Remover produto',
+      confirmarTexto: 'Remover',
+      tipo: 'danger',
+    })) {
       try {
         await api.delete(`/api/cotacao/item/${idItem}`);
         setRelatorio(prev => {
@@ -441,7 +451,11 @@ export default function CotacaoDetalhes() {
 
   const deletarVariosItens = async (ids) => {
     if (!ids || ids.length === 0) return;
-    if (!window.confirm(`Tem certeza que deseja remover ${ids.length} produto(s) da cotação?`)) return;
+    if (!await confirmar(`Tem certeza que deseja remover ${ids.length} produto(s) da cotação?`, {
+      titulo: 'Remover produtos',
+      confirmarTexto: 'Remover',
+      tipo: 'danger',
+    })) return;
     let houveErro = false;
     for (const idRaw of ids) {
       const idItem = Number(idRaw);
@@ -459,7 +473,11 @@ export default function CotacaoDetalhes() {
 
   const confirmarListaExcluidos = async () => {
     if (!itensExcluidosLocal || itensExcluidosLocal.length === 0) return;
-    if (!window.confirm(`Confirmar exclusão de ${itensExcluidosLocal.length} item(ns)? A lista será limpa e os itens não voltarão a aparecer.`)) return;
+    if (!await confirmar(`Confirmar exclusão de ${itensExcluidosLocal.length} item(ns)? A lista será limpa e os itens não voltarão a aparecer.`, {
+      titulo: 'Confirmar exclusão',
+      confirmarTexto: 'Confirmar',
+      tipo: 'danger',
+    })) return;
     try {
       for (const item of itensExcluidosLocal) {
         if (item.idItem && item.excluido) {
@@ -549,9 +567,12 @@ export default function CotacaoDetalhes() {
     } catch (error) { alert('Erro ao atualizar resposta do fornecedor.'); }
   };
 
-  const reatribuirItem = (idItem) => {
+  const reatribuirItem = async (idItem) => {
     if (isEncerrada) return;
-    if (window.confirm("Deseja reatribuir este item para comprar novamente? (O pedido existente NÃO será apagado do sistema)")) {
+    if (await confirmar("Deseja reatribuir este item para comprar novamente? (O pedido existente NÃO será apagado do sistema)", {
+      titulo: 'Reatribuir item',
+      confirmarTexto: 'Reatribuir',
+    })) {
       setItensReatribuidos(prev => ({ ...prev, [idItem]: true }));
       setItensJaComprados(prev => { const newMap = { ...prev }; delete newMap[idItem]; return newMap; });
       setChecklist(prev => { const newChecklist = { ...prev }; if (newChecklist[idItem]) { newChecklist[idItem].bloqueado = false; newChecklist[idItem].comprado = false; } return newChecklist; });
@@ -1073,7 +1094,10 @@ export default function CotacaoDetalhes() {
     const msgConfirm = acao === 'AGUARDANDO'
       ? `Enviar ${totalItens} produto(s) para o pedido ${listaPids} (Aguardando Confirmação)?`
       : `Retornar ${totalItens} produto(s) para o(s) pedido(s) original(is) ${listaPids}?\n\nO(s) pedido(s) voltará(ram) para "Aguardando Confirmação" e os produtos ficarão pendentes de entrega novamente.`;
-    if (!window.confirm(msgConfirm)) return false;
+    if (!await confirmar(msgConfirm, {
+      titulo: acao === 'AGUARDANDO' ? 'Enviar produtos para pedido' : 'Retornar produtos ao pedido',
+      confirmarTexto: 'Confirmar',
+    })) return false;
 
     const montarPayload = (item, fornecedorNome) => {
       let preco = null;

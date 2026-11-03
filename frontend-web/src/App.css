@@ -341,6 +341,17 @@ input[type='time'] {
   }
 }
 
+@keyframes feedback-toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(18px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+}
+
 .animate-spin {
   animation: spin 1s linear infinite;
 }
@@ -2414,5 +2425,218 @@ input.fracao-input[type='number'] {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
     scroll-behavior: auto !important;
+  }
+}
+
+/* ---------- Balão flutuante de avisos ---------- */
+.aviso-flutuante-wrap {
+  position: fixed;
+  left: 50%;
+  bottom: 22px;
+  transform: translateX(-50%);
+  z-index: 1100;
+  width: max-content;
+  max-width: calc(100vw - 24px);
+  padding: 0 12px;
+  pointer-events: none;
+}
+
+.aviso-flutuante {
+  pointer-events: auto;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 16px;
+  border: 1px solid color-mix(in srgb, var(--primary) 60%, var(--border));
+  border-radius: 999px;
+  background: var(--navy);
+  color: #ffffff;
+  cursor: pointer;
+  box-shadow: 0 14px 30px rgba(2, 6, 23, 0.28);
+  animation: aviso-pulo 1.7s ease-in-out infinite;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.aviso-flutuante:hover {
+  background: var(--primary);
+  box-shadow: 0 18px 34px rgba(2, 6, 23, 0.34);
+}
+
+.aviso-flutuante-icone {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.aviso-flutuante-badge {
+  position: absolute;
+  top: -9px;
+  right: -11px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: var(--danger);
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--navy);
+}
+
+.aviso-flutuante-texto {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  line-height: 1.15;
+  text-align: left;
+}
+
+.aviso-flutuante-texto strong {
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.2px;
+}
+
+.aviso-flutuante-texto small {
+  font-size: 11px;
+  opacity: 0.82;
+}
+
+.aviso-flutuante-seta {
+  display: flex;
+  animation: aviso-seta 1s ease-in-out infinite;
+}
+
+@keyframes aviso-pulo {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+@keyframes aviso-seta {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(4px); }
+}
+
+@media (max-width: 600px) {
+  .aviso-flutuante-wrap {
+    width: 100%;
+  }
+
+  .aviso-flutuante {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .aviso-flutuante-texto small {
+    display: none;
+  }
+}
+
+/* ---------- Alerta de novos produtos (portal do fornecedor) ---------- */
+.novos-produtos-alerta {
+  margin: 0 0 22px;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: var(--warning-soft);
+  border: 1px solid var(--warning-border);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.novos-produtos-alerta-topo {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.novos-produtos-alerta-icone {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--warning);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.novos-produtos-alerta-topo strong {
+  display: block;
+  font-size: 15px;
+  color: var(--warning-text);
+}
+
+.novos-produtos-alerta-topo p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--warning-text);
+  opacity: 0.92;
+}
+
+.novos-produtos-alerta-lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.novos-produtos-alerta-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: var(--surface);
+  border: 1px solid var(--warning-border);
+  color: var(--text);
+  text-decoration: none;
+  font-weight: 700;
+  font-size: 13px;
+  transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.novos-produtos-alerta-link:hover {
+  transform: translateY(-1px);
+  border-color: var(--warning);
+}
+
+.novos-produtos-alerta-link span {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.2;
+}
+
+.novos-produtos-alerta-link small {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--warning-text);
+}
+
+@media (max-width: 600px) {
+  .novos-produtos-alerta {
+    padding: 14px;
+  }
+
+  .novos-produtos-alerta-lista {
+    flex-direction: column;
+  }
+
+  .novos-produtos-alerta-link {
+    width: 100%;
+    justify-content: space-between;
+    min-height: 48px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .aviso-flutuante,
+  .aviso-flutuante-seta {
+    animation: none !important;
   }
 }

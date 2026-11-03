@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import React, { useEffect, useMemo } from 'react'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import {
   LayoutDashboard,
   ShoppingCart,
@@ -19,6 +19,8 @@ import {
 import Sidebar from '../components/layout/Sidebar'
 import ThemeToggle from '../components/layout/ThemeToggle'
 import MensagensInicio from '../components/mensagens/MensagensInicio'
+import AvisoFlutuante from '../components/mensagens/AvisoFlutuante'
+import AlertaNovosProdutos from '../components/fornecedor/AlertaNovosProdutos'
 
 const ACOES_ADMIN = [
   {
@@ -164,6 +166,7 @@ function CabecalhoFornecedor({ nome, aoSair }) {
 
 export default function Inicio() {
   const navigate = useNavigate()
+  const location = useLocation()
 
   const perfil = localStorage.getItem('tipoUsuario')
   const nome = localStorage.getItem('nomeUsuario') || ''
@@ -185,6 +188,14 @@ export default function Inicio() {
 
   const primeiroNome = nome.trim().split(/\s+/)[0] || ''
 
+  useEffect(() => {
+    if (new URLSearchParams(location.search).get('scroll') !== 'mensagens') return undefined
+    const timer = window.setTimeout(() => {
+      document.getElementById('mensagens-menu')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 250)
+    return () => window.clearTimeout(timer)
+  }, [location.search])
+
   const sair = () => {
     // Mantém a preferência de tema entre sessões.
     ;['token', 'tipoUsuario', 'primeiroAcesso', 'nomeUsuario', 'usuarioId'].forEach(
@@ -197,6 +208,7 @@ export default function Inicio() {
     return (
       <div className="supplier-home">
         <CabecalhoFornecedor nome={nome} aoSair={sair} />
+        <AvisoFlutuante />
 
         <main className="supplier-main">
           <section className="supplier-hero">
@@ -212,6 +224,8 @@ export default function Inicio() {
               <CalendarDays size={14} /> {dataAtual()}
             </span>
           </section>
+
+          <AlertaNovosProdutos />
 
           <h2 className="home-section-title">
             <Sparkles size={15} /> O que você precisa fazer?

@@ -3,6 +3,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { LogOut, PackageSearch, FileText, CheckCircle, AlertTriangle, X, Edit2, PlusCircle, Trash2, Tag, TrendingUp, Tags, ChevronDown, ChevronUp, Home } from 'lucide-react'
 import api from '../services/api'
 import ThemeToggle from '../components/layout/ThemeToggle'
+import { confirmar } from '../context/FeedbackContext'
 
 export default function FornecedorDashboard() {
   const [cotacoes, setCotacoes] = useState([])
@@ -191,7 +192,11 @@ export default function FornecedorDashboard() {
   };
 
   const handleRemoverSugestao = async (pedidoId, sugestaoId) => {
-    if (window.confirm('Excluir esta sugestão?')) {
+    if (await confirmar('Excluir esta sugestão?', {
+      titulo: 'Excluir sugestão',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })) {
       try {
         await api.delete(`/api/pedidos/${pedidoId}/sugestoes/${sugestaoId}`);
         fetchDados();
@@ -276,11 +281,62 @@ export default function FornecedorDashboard() {
           .mobile-table-wrapper { overflow: hidden !important; border-radius: 8px; width: 100%; }
           .responsive-table { width: 100% !important; table-layout: auto !important; }
           
-          .responsive-table th, .responsive-table td { padding: 10px 6px !important; font-size: 11px !important; }
+          .responsive-table th, .responsive-table td { padding: 10px 7px !important; font-size: 12px !important; }
           .col-produto { white-space: normal !important; word-break: break-word !important; width: 100% !important; }
           .col-nowrap { white-space: nowrap !important; word-break: normal !important; width: 1% !important; }
           .col-center { text-align: center !important; }
           .col-right { text-align: right !important; }
+
+          /* Cotações: tabela vira cartões legíveis no celular */
+          .cotacoes-wrapper {
+            background: transparent !important;
+            border: none !important;
+            border-radius: 0 !important;
+            overflow: visible !important;
+          }
+          .cotacoes-fornecedor-table thead { display: none; }
+          .cotacoes-fornecedor-table,
+          .cotacoes-fornecedor-table tbody,
+          .cotacoes-fornecedor-table tr,
+          .cotacoes-fornecedor-table td {
+            display: block;
+            width: 100%;
+            box-sizing: border-box;
+          }
+          .cotacoes-fornecedor-table tr {
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            margin: 0 0 12px;
+            padding: 12px;
+            background: var(--surface);
+          }
+          .cotacoes-fornecedor-table tr:last-child { margin-bottom: 0; }
+          .cotacoes-fornecedor-table td {
+            padding: 5px 0 !important;
+            text-align: left !important;
+            font-size: 14px !important;
+          }
+          .cotacoes-fornecedor-table td[data-label]::before {
+            content: attr(data-label);
+            display: block;
+            font-size: 10px;
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.4px;
+            margin-bottom: 2px;
+          }
+          .cotacoes-fornecedor-table td[data-label="Ação"] {
+            margin-top: 8px;
+          }
+          .cotacoes-fornecedor-table td[data-label="Ação"]::before {
+            display: none;
+          }
+          .cotacoes-fornecedor-table .cotacao-responder-btn {
+            width: 100%;
+            min-height: 48px;
+            font-size: 15px !important;
+          }
         }
       `}</style>
 
@@ -379,14 +435,14 @@ export default function FornecedorDashboard() {
                 <p style={{ margin: 0, fontSize: '16px' }}>Nenhuma cotação ativa enviada para você no momento.</p>
               </div>
             ) : (
-              <div className="mobile-table-wrapper" style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
-                  <table className="responsive-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
+              <div className="mobile-table-wrapper cotacoes-wrapper" style={{ backgroundColor: 'var(--surface)', borderRadius: '12px', border: '1px solid var(--border)' }}>
+                  <table className="responsive-table cotacoes-fornecedor-table" style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
                     <thead style={{ backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
                       <tr>
-                        <th className="col-nowrap" style={{ padding: '12px 10px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px' }}>ID</th>
-                        <th className="col-nowrap col-center" style={{ padding: '12px 10px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Data</th>
-                        <th className="col-nowrap col-center" style={{ padding: '12px 10px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Status</th>
-                        <th className="col-produto col-center" style={{ padding: '12px 10px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Ação</th>
+                        <th className="col-nowrap" style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px' }}>ID</th>
+                        <th className="col-nowrap col-center" style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Data</th>
+                        <th className="col-nowrap col-center" style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Status</th>
+                        <th className="col-produto col-center" style={{ padding: '14px 16px', color: 'var(--text-muted)', fontWeight: '600', fontSize: '12px', textAlign: 'center' }}>Ação</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -398,16 +454,16 @@ export default function FornecedorDashboard() {
 
                         return (
                           <tr key={vinculo.id} style={{ borderBottom: '1px solid var(--border)' }}>
-                            <td className="col-nowrap" style={{ padding: '12px 10px', fontWeight: '600', color: 'var(--text-secondary)' }}>#{idCotacao}</td>
-                            <td className="col-nowrap col-center" style={{ padding: '12px 10px', color: 'var(--text-muted)', textAlign: 'center' }}>{formatarDataCurta(dataEnvio)}</td>
-                            <td className="col-nowrap col-center" style={{ padding: '12px 10px', textAlign: 'center' }}>
-                              <span style={{ padding: '3px 6px', borderRadius: '4px', fontSize: '10px', fontWeight: '700', backgroundColor: isRespondida ? 'var(--success-soft)' : 'var(--warning-soft)', color: isRespondida ? 'var(--success)' : 'var(--warning-text)', display: 'inline-block', textAlign: 'center', lineHeight: '1.2' }}>
+                            <td className="col-nowrap" data-label="Cotação" style={{ padding: '14px 16px', fontWeight: '700', color: 'var(--text-secondary)', fontSize: '14px' }}>#{idCotacao}</td>
+                            <td className="col-nowrap col-center" data-label="Data" style={{ padding: '14px 16px', color: 'var(--text-muted)', textAlign: 'center', fontSize: '14px' }}>{formatarDataCurta(dataEnvio)}</td>
+                            <td className="col-nowrap col-center" data-label="Status" style={{ padding: '14px 16px', textAlign: 'center' }}>
+                              <span style={{ padding: '5px 9px', borderRadius: '6px', fontSize: '11px', fontWeight: '700', backgroundColor: isRespondida ? 'var(--success-soft)' : 'var(--warning-soft)', color: isRespondida ? 'var(--success)' : 'var(--warning-text)', display: 'inline-block', textAlign: 'center', lineHeight: '1.2' }}>
                                 {isRespondida ? 'Respondida' : 'Pendente'}
                               </span>
                             </td>
-                            <td className="col-produto col-center" style={{ padding: '12px 10px', textAlign: 'center' }}>
-                              <button onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? 'var(--primary)' : 'var(--success)', color: 'white', padding: '6px 8px', borderRadius: '4px', border: 'none', fontWeight: '600', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px', width: '100%', justifyContent: 'center', fontSize: '11px', whiteSpace: 'nowrap' }}>
-                                {isRespondida ? <Edit2 size={12}/> : <FileText size={12}/>}
+                            <td className="col-produto col-center" data-label="Ação" style={{ padding: '14px 16px', textAlign: 'center' }}>
+                              <button className="cotacao-responder-btn" onClick={() => navigate(`/responder-cotacao/${idCotacao}`)} style={{ backgroundColor: isRespondida ? 'var(--primary)' : 'var(--success)', color: 'white', padding: '10px 16px', borderRadius: '7px', border: 'none', fontWeight: '700', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '6px', justifyContent: 'center', fontSize: '13px', whiteSpace: 'nowrap', minHeight: '40px' }}>
+                                {isRespondida ? <Edit2 size={15}/> : <FileText size={15}/>}
                                 {isRespondida ? 'Ver/Editar' : 'Responder'}
                               </button>
                             </td>

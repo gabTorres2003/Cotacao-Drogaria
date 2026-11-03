@@ -58,8 +58,8 @@ export default function CotacaoHeader({ id, setorCotacao = 'AMBOS', isEncerrada,
             boxShadow: '0 1px 3px rgba(0,0,0,0.08)', whiteSpace: 'nowrap',
             transition: 'all 0.15s ease'
           }}
-          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--text)'; e.currentTarget.style.color = 'white'; e.currentTarget.style.borderColor = 'var(--text)'; }}
-          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'white'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
+          onMouseEnter={e => { e.currentTarget.style.backgroundColor = 'var(--primary)'; e.currentTarget.style.color = '#ffffff'; e.currentTarget.style.borderColor = 'var(--primary)'; }}
+          onMouseLeave={e => { e.currentTarget.style.backgroundColor = 'var(--surface)'; e.currentTarget.style.color = 'var(--text-secondary)'; e.currentTarget.style.borderColor = 'var(--border-strong)'; }}
         >
           <ArrowLeft size={16} /> Voltar
         </button>

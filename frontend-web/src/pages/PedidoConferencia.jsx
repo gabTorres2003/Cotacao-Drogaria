@@ -6,6 +6,7 @@ import DevolucaoModal from '../components/DevolucaoModal';
 import ModalProdutoNaoSolicitado from '../components/ModalProdutoNaoSolicitado';
 import IdentificacaoProdutoRecebido from '../components/IdentificacaoProdutoRecebido';
 import FotosConferencia from '../components/FotosConferencia';
+import { confirmar } from '../context/FeedbackContext';
 import { ArrowLeft, CheckCircle, ArrowUpDown, Edit2, Check, FileText, Tag, AlertTriangle, Package, Truck, Search } from 'lucide-react';
 import {
   nomeExibicaoProduto,
@@ -283,7 +284,7 @@ export default function PedidoConferencia() {
       : item));
   };
 
-  const aplicarConversaoItem = (idItem) => {
+  const aplicarConversaoItem = async (idItem) => {
     if (bloqueadoConferente) return;
     const item = conferencia.find(c => c.id === idItem);
     if (!item) return;
@@ -309,8 +310,11 @@ export default function PedidoConferencia() {
       linhas.push(`Valor por unidade pedida: ${fMoney(item.valorUnitarioPedido)}`);
       linhas.push(`Valor por unidade física: ${fMoney(valorFisico)}`);
     }
-    const confirmar = window.confirm(linhas.join('\n'));
-    if (!confirmar) return;
+    const confirmado = await confirmar(linhas.join('\n'), {
+      titulo: 'Confirmar conversão',
+      confirmarTexto: 'Confirmar',
+    });
+    if (!confirmado) return;
 
     setConferencia(prev => prev.map(c => c.id === idItem
       ? {
@@ -621,7 +625,10 @@ export default function PedidoConferencia() {
           if (acao === 'AGUARDAR') detalhes.push(`${qtdSemDestino} produto(s) faltante(s) ficaram em aguardo (Entrega Parcial).`);
           if (acao === 'RETORNAR_COTACAO' && qtdSemDestino > 0) detalhes.push(`${qtdSemDestino} produto(s) faltante(s) retornaram para a cotação de origem.`);
           const msgDetalhes = detalhes.length > 0 ? `\n\n${detalhes.join('\n')}` : '';
-          if (window.confirm(`Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.${msgDetalhes}\n\nDeseja registrar a devolução / abatimento agora?`)) {
+          if (await confirmar(`Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.${msgDetalhes}\n\nDeseja registrar a devolução / abatimento agora?`, {
+            titulo: 'Registrar devolução',
+            confirmarTexto: 'Registrar devolução',
+          })) {
               setShowDevolucaoModal(true);
               return;
           }

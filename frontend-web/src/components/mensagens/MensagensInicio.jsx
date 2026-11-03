@@ -83,7 +83,7 @@ export default function MensagensInicio() {
   }, [])
 
   return (
-    <section className="mensagens-section" aria-labelledby="mensagens-inicio-titulo">
+    <section id="mensagens-menu" className="mensagens-section" aria-labelledby="mensagens-inicio-titulo">
       <h2 className="home-section-title" id="mensagens-inicio-titulo">
         <Megaphone size={15} /> Mensagens de Menu
       </h2>

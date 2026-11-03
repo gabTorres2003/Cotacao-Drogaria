@@ -4,6 +4,7 @@ import api from '../services/api'
 import Sidebar from '../components/layout/Sidebar'
 import DevolucaoModal from '../components/DevolucaoModal'
 import ModalPedidoManual from '../components/pedidos/modais/ModalPedidoManual' 
+import { confirmar } from '../context/FeedbackContext'
 import { Eye, Search, Filter, CheckCircle, RotateCcw, Trash2, Loader2, ArrowUpDown, Calendar, MessageCircle, PackagePlus, AlertTriangle, XCircle, X, Tag, ClipboardCheck } from 'lucide-react'
 
 export default function Pedidos() {
@@ -175,7 +176,11 @@ export default function Pedidos() {
   };
 
   const deletarPedido = async (id) => {
-    if (window.confirm('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.')) {
+    if (await confirmar('Tem certeza que deseja excluir este pedido? Esta ação não pode ser desfeita.', {
+      titulo: 'Excluir pedido',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })) {
       setIsDeleting(true);
       try {
         await api.delete(`/api/pedidos/${id}`);
@@ -192,7 +197,11 @@ export default function Pedidos() {
   };
 
   const handleExcluirEmMassa = async () => {
-    if (window.confirm(`Tem certeza que deseja excluir permanentemente ${pedidosSelecionados.length} pedido(s)? Esta ação não pode ser desfeita.`)) {
+    if (await confirmar(`Tem certeza que deseja excluir permanentemente ${pedidosSelecionados.length} pedido(s)? Esta ação não pode ser desfeita.`, {
+      titulo: 'Excluir pedidos',
+      confirmarTexto: 'Excluir',
+      tipo: 'danger',
+    })) {
       setIsDeleting(true);
       try {
         await Promise.all(pedidosSelecionados.map(id => api.delete(`/api/pedidos/${id}`)));
@@ -431,7 +440,7 @@ export default function Pedidos() {
             align-items: start;
           }
           .conferente-pedido-card {
-            background: white;
+            background: var(--surface);
             border: 1px solid var(--border);
             border-radius: 12px;
             padding: 16px 18px;
@@ -766,7 +775,7 @@ export default function Pedidos() {
 
           <button 
               onClick={() => setIsModalManualOpen(true)}
-              style={{ padding: '10px 16px', backgroundColor: 'var(--text)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
+              style={{ padding: '10px 16px', backgroundColor: 'var(--primary)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: 'bold', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '6px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }}
             >
               <PackagePlus size={18} /> Criar Pedido Manual
           </button>
@@ -848,7 +857,7 @@ export default function Pedidos() {
             </span>
             <div style={{ display: 'flex', gap: '10px' }}>
                 <button 
-                  onClick={() => {
+                  onClick={async () => {
                     if (pedidosSelecionados.length === 1) {
                       navigate(`/conferencia/${pedidosSelecionados[0]}`);
                     } else {
@@ -857,7 +866,10 @@ export default function Pedidos() {
                         alert('Nenhum dos pedidos selecionados está pendente de conferência.\n\nStatus elegíveis: Confirmado no Fornecedor, Entrega Parcial.');
                         return;
                       }
-                      if (window.confirm(`Abrir conferência para ${pendentes.length} pedido(s)? Será aberta uma aba para cada conferência.`)) {
+                      if (await confirmar(`Abrir conferência para ${pendentes.length} pedido(s)? Será aberta uma aba para cada conferência.`, {
+                        titulo: 'Abrir conferências',
+                        confirmarTexto: 'Abrir',
+                      })) {
                         pendentes.forEach(p => window.open(`/conferencia/${p.id}`, '_blank'));
                       }
                     }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
+import { confirmar } from '../context/FeedbackContext';
 import {
   Brain,
   Search,
@@ -178,7 +179,10 @@ export default function InteligenciaCompras() {
       alert('Este grupo ainda não tem configuração de compra. Configure-o antes de gerar a análise.');
       return;
     }
-    if (!window.confirm(`Gerar nova análise de compra para "${grupo?.nome}"? A consulta ao DNA pode demorar alguns segundos.`)) return;
+    if (!await confirmar(`Gerar nova análise de compra para "${grupo?.nome}"? A consulta ao DNA pode demorar alguns segundos.`, {
+      titulo: 'Gerar nova análise',
+      confirmarTexto: 'Gerar análise',
+    })) return;
 
     setGerando(true);
     try {
@@ -249,7 +253,10 @@ export default function InteligenciaCompras() {
 
   const gerarCotacao = async () => {
     if (!sugestaoAtiva) return;
-    if (!window.confirm('Gerar cotação com todos os itens aprovados desta sugestão?')) return;
+    if (!await confirmar('Gerar cotação com todos os itens aprovados desta sugestão?', {
+      titulo: 'Gerar cotação',
+      confirmarTexto: 'Gerar cotação',
+    })) return;
     setGerandoCotacao(true);
     try {
       const { data } = await api.post(`/api/inteligencia/sugestoes/${sugestaoAtiva.sugestao.id}/gerar-cotacao`, {

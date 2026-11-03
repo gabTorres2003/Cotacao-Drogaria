@@ -4,6 +4,7 @@ import { Camera, CheckCircle2, MessageSquare, Package, PackageSearch, PencilLine
 import LeitorCodigoBarras from './LeitorCodigoBarras';
 import { validarCodigoLido } from '../utils/codigoBarras';
 import { encontrarDuplicadosNaoSolicitados } from '../utils/conferenciaUtils';
+import { confirmar } from '../context/FeedbackContext';
 
 const estiloBotaoModo = (ativo) => ({
   padding: '10px',
@@ -336,12 +337,13 @@ export default function ModalProdutoNaoSolicitado({
     onClose();
   };
 
-  const handleFechar = () => {
+  const handleFechar = async () => {
     if (itens.length > 0) {
-      const confirmar = window.confirm(
-        `${itens.length} produto(s) adicionado(s) ainda não foram incluídos na conferência. Deseja fechar e descartar?`
+      const confirmado = await confirmar(
+        `${itens.length} produto(s) adicionado(s) ainda não foram incluídos na conferência. Deseja fechar e descartar?`,
+        { titulo: 'Descartar produtos adicionados', confirmarTexto: 'Descartar', tipo: 'danger' },
       );
-      if (!confirmar) return;
+      if (!confirmado) return;
     }
     onClose();
   };
