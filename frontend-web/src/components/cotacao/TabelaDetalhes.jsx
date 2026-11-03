@@ -557,7 +557,17 @@ export default function TabelaDetalhes({
                 )}
                 
                 <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', alignItems: 'center' }}>
-                  <BadgeOrigem origem={item.origemItem} />
+                  <BadgeOrigem
+                    origem={item.origemItem}
+                    onClick={(() => {
+                      const pedidoCorte = String(item.origemItem || '').match(
+                        /CORTE NO PEDIDO\s*#?\s*(\d+)/i,
+                      )
+                      return pedidoCorte
+                        ? () => navigate(`/pedidos/${pedidoCorte[1]}`)
+                        : undefined
+                    })()}
+                  />
                   {item.classificacaoInteligencia === 'BAIXO_GIRO' && <span style={{ fontSize: '10px', backgroundColor: 'var(--warning-soft)', color: 'var(--warning-text)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--warning-border)', fontWeight: 'bold' }} title="Poucas vendas na janela e compra antiga em relação à última venda: incluir manualmente se necessário">⚠ Baixo giro — análise manual</span>}
                   {item.classificacaoInteligencia === 'HISTORICO_INSUFICIENTE' && <span style={{ fontSize: '10px', backgroundColor: 'var(--bg)', color: 'var(--text-muted)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-strong)', fontWeight: 'bold' }} title="Sem dados suficientes para estimativa confiável: incluir manualmente se necessário">Histórico insuficiente</span>}
                   {isBloqueado && (

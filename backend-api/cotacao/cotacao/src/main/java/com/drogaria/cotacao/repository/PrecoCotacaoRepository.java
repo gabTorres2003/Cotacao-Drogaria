@@ -10,6 +10,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long> {
@@ -43,6 +44,15 @@ public interface PrecoCotacaoRepository extends JpaRepository<PrecoCotacao, Long
 
     List<PrecoCotacao> findByItem_Cotacao_IdAndFornecedorId(Long cotacaoId, Long fornecedorId);
     List<PrecoCotacao> findByItemIdAndFornecedorId(Long itemId, Long fornecedorId);
+
+    @Query("SELECT p FROM PrecoCotacao p " +
+           "JOIN FETCH p.fornecedor f " +
+           "JOIN FETCH p.item i " +
+           "JOIN FETCH i.cotacao c " +
+           "WHERE p.dataResposta >= :inicio AND p.dataResposta < :fim " +
+           "ORDER BY p.dataResposta DESC")
+    List<PrecoCotacao> buscarRespostasNoPeriodo(@Param("inicio") LocalDateTime inicio,
+                                                @Param("fim") LocalDateTime fim);
 
     @Query("SELECT COUNT(p) > 0 FROM PrecoCotacao p " +
            "WHERE p.fornecedor.id = :fornecedorId AND p.item.id = :itemId")

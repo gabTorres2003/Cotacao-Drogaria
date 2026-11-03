@@ -302,7 +302,7 @@ public class PedidoController {
 
     @PatchMapping("/{id}/status")
     public ResponseEntity<Pedido> atualizarStatus(
-            @PathVariable Long id, 
+            @PathVariable Long id,
             @RequestBody Map<String, String> body,
             Authentication authentication) {
         
@@ -321,6 +321,45 @@ public class PedidoController {
         );
 
         return ResponseEntity.ok(pedidoAtualizado);
+    }
+
+    @PostMapping("/{id}/confirmar")
+    public ResponseEntity<?> confirmarPedidoComCortes(
+            @PathVariable Long id,
+            @RequestBody(required = false) Map<String, Object> body,
+            Authentication authentication) {
+        if (!isAdmin(authentication) && !isFornecedor(authentication)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<Long> itensCortados = new java.util.ArrayList<>();
+        Object brutos = body != null ? body.get("itensCortados") : null;
+        if (brutos instanceof Iterable<?> lista) {
+            for (Object valor : lista) {
+                if (valor != null) {
+                    try {
+                        itensCortados.add(Long.valueOf(valor.toString()));
+                    } catch (NumberFormatException ignorado) {
+                        // Ignora identificadores inválidos; o restante do pedido é confirmado.
+                    }
+                }
+            }
+        }
+
+        try {
+            Pedido pedidoAtualizado = pedidoService.confirmarPedidoComCortes(id, itensCortados);
+            logAuditoriaService.registrarLog(
+                getUsuarioLogado(), "FORNECEDOR", TipoAcao.STATUS_PEDIDO, "Pedido", id,
+                "Confirmou o pedido registrando " + itensCortados.size() + " corte(s)."
+            );
+            return ResponseEntity.ok(pedidoAtualizado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "message", e.getMessage() != null
+                    ? e.getMessage()
+                    : "Não foi possível confirmar o pedido."
+            ));
+        }
     }
 
     @PatchMapping("/{id}/cancelar-confirmacao")

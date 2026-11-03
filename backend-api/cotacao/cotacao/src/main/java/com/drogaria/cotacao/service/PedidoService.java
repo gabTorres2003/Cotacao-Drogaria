@@ -931,6 +931,95 @@ public class PedidoService {
         return pedidoRepository.save(pedido);
     }
 
+    /**
+     * Confirma o pedido mantendo os produtos em falta no pedido do fornecedor.
+     * Os itens informados como cortados são marcados como "Corte no Pedido #N"
+     * e o produto correspondente retorna à cotação de origem com a mesma
+     * etiqueta, em vez de ser excluído do pedido.
+     */
+    @Transactional
+    public Pedido confirmarPedidoComCortes(Long pedidoId, List<Long> itensCortados) {
+        Pedido pedido = buscarPorId(pedidoId);
+
+        if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA) {
+            throw new RuntimeException("Apenas pedidos aguardando confirmação podem ser confirmados.");
+        }
+
+        Set<Long> idsCortados = itensCortados == null
+                ? new HashSet<>()
+                : new HashSet<>(itensCortados);
+
+        double totalPedido = pedido.getValorTotalPedido() != null ? pedido.getValorTotalPedido() : 0.0;
+        boolean temItens = pedido.getItens() != null && !pedido.getItens().isEmpty();
+        boolean todosCortados = temItens;
+
+        for (ItemPedido item : pedido.getItens()) {
+            boolean cortado = idsCortados.contains(item.getId())
+                    || Boolean.TRUE.equals(item.getRetornadoCotacao());
+
+            if (!cortado) {
+                todosCortados = false;
+                continue;
+            }
+
+            if (!Boolean.TRUE.equals(item.getRetornadoCotacao())) {
+                int pedida = item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
+                double valorUnitario = item.getValorUnitarioPedido() != null
+                        ? item.getValorUnitarioPedido() : 0.0;
+                totalPedido -= (pedida * valorUnitario);
+                registrarCorteItem(item, pedido);
+            }
+        }
+
+        pedido.setValorTotalPedido(totalPedido);
+        pedido.setDataConfirmacao(LocalDateTime.now());
+
+        if (todosCortados) {
+            pedido.setStatus(StatusPedido.CANCELADO);
+            pedido.setMotivoCancelamento("Todos os itens foram cortados pelo fornecedor.");
+        } else {
+            pedido.setStatus(StatusPedido.CONFIRMADO_FORNECEDOR);
+            pedido.setMotivoCancelamento(null);
+        }
+
+        return pedidoRepository.save(pedido);
+    }
+
+    /**
+     * Marca o item como cortado pelo fornecedor e devolve o produto à cotação
+     * de origem. O item continua vinculado ao pedido para manter o histórico.
+     */
+    private void registrarCorteItem(ItemPedido item, Pedido pedido) {
+        int quantidade = item.getQuantidadePedida() != null ? item.getQuantidadePedida() : 0;
+        String etiqueta = "Corte no Pedido #" + pedido.getId();
+        String motivo = etiqueta + " - fornecedor registrou falta na separação";
+
+        ItemCotacao itemCotacaoOrigem = item.getItemCotacao();
+        Cotacao cotacaoOrigem = itemCotacaoOrigem != null
+                ? itemCotacaoOrigem.getCotacao() : pedido.getCotacao();
+
+        if (cotacaoOrigem != null) {
+            ItemCotacao ic = itemCotacaoOrigem;
+            if (ic == null) {
+                ic = new ItemCotacao();
+                ic.setCotacao(cotacaoOrigem);
+                ic.setNomeProduto(item.getNomeProduto());
+                ic.setEditadoManual(true);
+            }
+            ic.setExcluido(false);
+            ic.setMotivoRetorno(motivo);
+            ic.setOrigemItem(etiqueta);
+            ic.setPedidoOrigemId(pedido.getId());
+            ic.setQuantidade(quantidade > 0 ? quantidade : 1);
+            itemCotacaoRepository.save(ic);
+        }
+
+        item.setRetornadoCotacao(true);
+        item.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        item.setObservacaoDevolucao(motivo);
+        itemPedidoRepository.save(item);
+    }
+
     @Transactional
     public Pedido gerarPedidoEmLote(GerarPedidoRequestDTO dto) {
         Cotacao cotacao = null;

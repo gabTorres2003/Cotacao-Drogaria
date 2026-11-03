@@ -17,6 +17,7 @@ import {
   Brain,
   Home,
   Megaphone,
+  Bell,
 } from 'lucide-react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import api from '../../services/api'
@@ -34,6 +35,7 @@ const MENU_ADMIN = [
   { to: '/inteligencia', label: 'Inteligência', icon: Brain },
   { to: '/auditoria', label: 'Auditoria', icon: ShieldAlert },
   { to: '/mensagens', label: 'Mensagens de Menu', icon: Megaphone },
+  { to: '/alertas-fornecedores', label: 'Alertas de Fornecedores', icon: Bell },
 ]
 
 const MENU_CONFERENTE = [

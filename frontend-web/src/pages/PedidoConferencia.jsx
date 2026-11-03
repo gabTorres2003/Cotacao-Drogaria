@@ -1007,7 +1007,9 @@ export default function PedidoConferencia() {
                             <td data-label="Produto" style={styles.td}>
                               <strong style={{ color: 'var(--danger-text)', display: 'block' }}>{nomeExibicaoProduto(item)}</strong>
                               <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
-                                <AlertTriangle size={10} /> Não entregue — retornou à cotação de origem
+                                {item.cortadoPeloFornecedor
+                                  ? <>✂️ Corte no Pedido #{item.pedidoCorteId || pedido.id}</>
+                                  : <><AlertTriangle size={10} /> Não entregue — retornou à cotação de origem</>}
                               </div>
                             </td>
                             <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: '600' }}>
@@ -1016,10 +1018,10 @@ export default function PedidoConferencia() {
                             <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)' }}>-</td>
                             <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>
                             {!isConferente && <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>}
-                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: 'bold' }}>Não Veio</td>
+                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: 'bold' }}>{item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não Veio'}</td>
                             <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
                               <span style={{ padding: '6px 10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-                                Não entregue
+                                {item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não entregue'}
                               </span>
                             </td>
                           </tr>

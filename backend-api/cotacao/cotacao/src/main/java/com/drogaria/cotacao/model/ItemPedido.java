@@ -97,4 +97,34 @@ public class ItemPedido {
 
     @Transient
     private Boolean reatribuicaoExplicita = false;
+
+    /**
+     * Indica que o fornecedor registrou corte deste item na confirmação do
+     * pedido. O item permanece no pedido para preservar o histórico, mas o
+     * produto retorna à cotação de origem com a etiqueta "Corte no Pedido #N".
+     */
+    public boolean isCortadoPeloFornecedor() {
+        return Boolean.TRUE.equals(retornadoCotacao)
+                && statusRecebimento == StatusItemRecebimento.FALTANTE
+                && observacaoDevolucao != null
+                && observacaoDevolucao.startsWith("Corte no Pedido #");
+    }
+
+    /** Número do pedido em que o corte foi registrado (quando aplicável). */
+    public Long getPedidoCorteId() {
+        if (observacaoDevolucao == null || !observacaoDevolucao.startsWith("Corte no Pedido #")) {
+            return null;
+        }
+        String resto = observacaoDevolucao.substring("Corte no Pedido #".length()).trim();
+        int fim = 0;
+        while (fim < resto.length() && Character.isDigit(resto.charAt(fim))) {
+            fim++;
+        }
+        if (fim == 0) return null;
+        try {
+            return Long.parseLong(resto.substring(0, fim));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

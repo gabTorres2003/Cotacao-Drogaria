@@ -1,10 +1,11 @@
 import React from 'react';
 
-export default function BadgeOrigem({ origem }) {
+export default function BadgeOrigem({ origem, onClick }) {
   const getCorOrigem = (orig) => {
     if (!orig) return { bg: 'var(--bg)', color: 'var(--text-secondary)', border: 'var(--border-strong)', label: 'Geral' };
     const str = String(orig).toUpperCase();
     
+    if (str.includes('CORTE NO PEDIDO')) return { bg: 'var(--danger-soft)', color: 'var(--danger-text)', border: 'var(--danger-border)', label: `✂️ ${orig}` };
     if (str.includes('ENCOMENDA')) return { bg: 'var(--purple-soft)', color: 'var(--purple-text)', border: 'var(--purple-border)', label: '📦 Encomenda Balcão' };
     if (str.includes('EXTRA MANUAL')) return { bg: '#fce7f3', color: '#be185d', border: '#fbcfe8', label: '➕ Inserido Manualmente' };
     if (str.includes('NOVA IMPORTAÇÃO') || str.includes('ATUALIZAÇÃO')) return { bg: 'var(--purple-soft)', color: 'var(--purple-text)', border: 'var(--purple-border)', label: '🔄 Atualização DNA' };
@@ -15,18 +16,29 @@ export default function BadgeOrigem({ origem }) {
   };
 
   const cores = getCorOrigem(origem);
+  const estilos = {
+    fontSize: '10px',
+    padding: '2px 8px',
+    borderRadius: '10px',
+    fontWeight: 'bold',
+    backgroundColor: cores.bg,
+    color: cores.color,
+    border: `1px solid ${cores.border}`,
+    whiteSpace: 'nowrap',
+    fontFamily: 'inherit',
+    cursor: onClick ? 'pointer' : 'default',
+  };
+
+  if (onClick) {
+    return (
+      <button type="button" onClick={onClick} style={estilos} title="Abrir o pedido do corte">
+        {cores.label}
+      </button>
+    );
+  }
 
   return (
-    <span style={{ 
-      fontSize: '10px', 
-      padding: '2px 8px', 
-      borderRadius: '10px', 
-      fontWeight: 'bold', 
-      backgroundColor: cores.bg, 
-      color: cores.color, 
-      border: `1px solid ${cores.border}`, 
-      whiteSpace: 'nowrap' 
-    }}>
+    <span style={estilos}>
       {cores.label}
     </span>
   );

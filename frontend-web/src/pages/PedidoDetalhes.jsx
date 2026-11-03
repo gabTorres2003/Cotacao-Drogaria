@@ -527,6 +527,7 @@ export default function PedidoDetalhes() {
         );
 
         const statusItem = (item) => {
+            if (item.cortadoPeloFornecedor) return 'Corte no Pedido';
             if (item.retornadoCotacao) return 'Não entregue';
             if (item.statusRecebimento === 'AVARIADO') return 'Avariado';
             if (item.statusRecebimento === 'INCORRETO') return 'Produto incorreto';
@@ -705,7 +706,9 @@ export default function PedidoDetalhes() {
                                             )}
                                             {naoEntregue && (
                                                 <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
-                                                    <AlertTriangle size={10} /> Não entregue — retornou à cotação
+                                                    {item.cortadoPeloFornecedor
+                                                        ? <>✂️ Corte no Pedido #{item.pedidoCorteId || pedido.id}</>
+                                                        : <><AlertTriangle size={10} /> Não entregue — retornou à cotação</>}
                                                 </div>
                                             )}
                                             {!naoEntregue && item.statusRecebimento && item.statusRecebimento !== 'OK' && item.observacaoDevolucao && (
@@ -1089,7 +1092,9 @@ export default function PedidoDetalhes() {
                                                 )}
                                                 {item.retornadoCotacao && (
                                                   <div style={{ fontSize: '11px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
-                                                    <AlertTriangle size={12} /> Não entregue — retornou à cotação
+                                                    {item.cortadoPeloFornecedor
+                                                      ? <>✂️ Corte no Pedido #{item.pedidoCorteId || pedido.id}</>
+                                                      : <><AlertTriangle size={12} /> Não entregue — retornou à cotação</>}
                                                   </div>
                                                 )}
                                                 {item.condicaoAplicada && (
@@ -1166,7 +1171,7 @@ export default function PedidoDetalhes() {
 
                                             <td style={{ ...styles.td, textAlign: 'center' }}>
                                                 {item.retornadoCotacao ? (
-                                                    <span style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', padding: '4px 9px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, border: '1px solid var(--danger-border)' }}>NÃO ENTREGUE</span>
+                                                    <span style={{ backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', padding: '4px 9px', borderRadius: '999px', fontSize: '12px', fontWeight: 700, border: '1px solid var(--danger-border)' }}>{item.cortadoPeloFornecedor ? 'CORTE NO PEDIDO' : 'NÃO ENTREGUE'}</span>
                                                 ) : (
                                                 <span style={styles.itemStatus(item.statusRecebimento, qtdReal, qtdPedida, pedido.status)}>
                                                     {pedido.status === 'CANCELADO' ? 'CANCELADO' : (

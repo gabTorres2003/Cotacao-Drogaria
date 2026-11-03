@@ -7,7 +7,8 @@ export default function TabelaRegistroManual({
   getNomeExibicao, isDiversos, mostrarNomeReal, setMostrarNomeReal, termoBusca, setTermoBusca,
   copiarParaAreaTransferencia,
   copiadoId, copiarFornecedorParaBaixo, reatribuirItem, fMoney, fData, requestSort, sortConfig,
-  deletarItem, colunasVisiveis, setColunasVisiveis, showColunasDropdown, setShowColunasDropdown
+  deletarItem, colunasVisiveis, setColunasVisiveis, showColunasDropdown, setShowColunasDropdown,
+  navigate
 }) {
   const thStyle = { textAlign: 'left', padding: '12px', borderBottom: '2px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px', whiteSpace: 'nowrap', position: 'sticky', top: 0, backgroundColor: 'var(--surface)', zIndex: 10 };
   const tdStyle = { padding: '12px', borderBottom: '1px solid var(--border)', color: 'var(--text-secondary)', fontSize: '13px', wordBreak: 'break-word', whiteSpace: 'normal' };
@@ -96,7 +97,19 @@ export default function TabelaRegistroManual({
 
             return (
               <tr key={item.idItem} style={rowStyle}>
-                <td style={tdStyle}><BadgeOrigem origem={item.origemItem} /></td>
+                <td style={tdStyle}>
+                  <BadgeOrigem
+                    origem={item.origemItem}
+                    onClick={(() => {
+                      const pedidoCorte = String(item.origemItem || '').match(
+                        /CORTE NO PEDIDO\s*#?\s*(\d+)/i,
+                      )
+                      return pedidoCorte
+                        ? () => navigate(`/pedidos/${pedidoCorte[1]}`)
+                        : undefined
+                    })()}
+                  />
+                </td>
                 <td style={tdStyle}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <span style={{ ...textStyle, fontSize: '13px' }}>{getNomeExibicao(item.nomeProduto)}</span>

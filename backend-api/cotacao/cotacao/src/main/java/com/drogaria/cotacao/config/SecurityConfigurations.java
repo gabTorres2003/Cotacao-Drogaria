@@ -62,6 +62,8 @@ public class SecurityConfigurations {
                         .requestMatchers(HttpMethod.PUT, "/api/pedidos/*/valores-reais",
                                 "/api/pedidos/*/valores-previstos").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/status").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/pedidos/*/confirmar")
+                                .hasAnyRole("ADMIN", "FORNECEDOR")
                         .requestMatchers(HttpMethod.PATCH, "/api/pedidos/*/reabrir-conferencia",
                                 "/api/pedidos/*/refazer-conferencia",
                                 "/api/pedidos/*/cancelar-confirmacao", "/api/pedidos/*/falha-entrega",
@@ -77,6 +79,10 @@ public class SecurityConfigurations {
                         .requestMatchers("/api/mensagens-menu/admin").hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/mensagens-menu").authenticated()
                         .requestMatchers("/api/mensagens-menu", "/api/mensagens-menu/**").hasRole("ADMIN")
+
+                        // ALERTAS DE FORNECEDORES: painel exclusivo do ADM
+                        .requestMatchers("/api/alertas-fornecedores", "/api/alertas-fornecedores/**")
+                                .hasRole("ADMIN")
 
                         .anyRequest().authenticated())
                 .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(jwtAuthenticationConverter)))

@@ -20,6 +20,18 @@ public interface PedidoRepository extends JpaRepository<Pedido, Long> {
 
     List<Pedido> findByDataCriacaoBefore(LocalDateTime dataLimite);
 
+    @EntityGraph(attributePaths = {"fornecedor", "itens"})
+    @Query("SELECT p FROM Pedido p WHERE p.dataConfirmacao >= :inicio AND p.dataConfirmacao < :fim " +
+           "ORDER BY p.dataConfirmacao DESC")
+    List<Pedido> buscarConfirmadosNoPeriodo(@Param("inicio") LocalDateTime inicio,
+                                            @Param("fim") LocalDateTime fim);
+
+    @EntityGraph(attributePaths = {"fornecedor"})
+    @Query("SELECT p FROM Pedido p WHERE p.status = :status AND p.dataCriacao <= :limite " +
+           "ORDER BY p.dataCriacao ASC")
+    List<Pedido> buscarPendentesComPrazoEstourado(@Param("status") StatusPedido status,
+                                                  @Param("limite") LocalDateTime limite);
+
     @Modifying
     @Query("UPDATE Pedido p SET p.cotacao = null WHERE p.cotacao IS NOT NULL AND p.cotacao.dataCriacao < :limite")
     int desvincularCotacoesAntigas(@Param("limite") LocalDateTime limite);

@@ -1366,6 +1366,7 @@ export default function CotacaoDetalhes() {
             deletarItem={deletarItem}
             colunasVisiveis={colunasVisiveis} setColunasVisiveis={setColunasVisiveis}
             showColunasDropdown={showColunasDropdown} setShowColunasDropdown={setShowColunasDropdown}
+            navigate={navigate}
           />
 
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '20px' }}>

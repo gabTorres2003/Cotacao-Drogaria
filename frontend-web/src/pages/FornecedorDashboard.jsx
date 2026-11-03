@@ -124,24 +124,25 @@ export default function FornecedorDashboard() {
   const processarConfirmacaoPedido = async () => {
     setSalvandoConfirmacao(true)
     const itensEmFalta = pedidoConfirmacao.itens.filter(item => !checklistEstoque[item.id]);
+    const idsCortados = itensEmFalta.map(item => item.id);
     const todosEmFalta = itensEmFalta.length === pedidoConfirmacao.itens.length;
 
     try {
-      for (const item of itensEmFalta) {
-        try { await api.delete(`/api/pedidos/item/${item.id}`); } catch (e) {}
-      }
+      const resposta = await api.post(`/api/pedidos/${pedidoConfirmacao.id}/confirmar`, {
+        itensCortados: idsCortados,
+      });
 
-      if (todosEmFalta) {
-        await api.patch(`/api/pedidos/${pedidoConfirmacao.id}/status`, { status: "CANCELADO" });
-        alert("Como todos os produtos estavam em falta, o pedido foi CANCELADO.");
+      if (resposta.data?.status === 'CANCELADO' || todosEmFalta) {
+        alert("Como todos os produtos estavam em falta, o pedido foi CANCELADO e os itens retornaram à cotação como corte.");
+      } else if (idsCortados.length > 0) {
+        alert("Pedido confirmado! Os itens em falta foram registrados como corte e retornaram à cotação.");
       } else {
-        await api.patch(`/api/pedidos/${pedidoConfirmacao.id}/status`, { status: "CONFIRMADO_FORNECEDOR" })
         alert("Pedido confirmado com sucesso!")
       }
       setPedidoConfirmacao(null)
       fetchDados()
     } catch(error) {
-      alert("Erro ao processar o pedido.")
+      alert(error.response?.data?.message || "Erro ao processar o pedido.")
     } finally {
       setSalvandoConfirmacao(false)
     }
@@ -626,6 +627,11 @@ export default function FornecedorDashboard() {
                                   <tr key={item.id} style={{ borderBottom: '1px solid var(--surface-muted)' }}>
                                     <td className="col-produto" style={{ padding: '10px 12px', color: 'var(--text-secondary)', fontWeight: '600', fontSize: '12px' }}>
                                       <span style={{display: 'block'}}>{item.nomeProduto}</span>
+                                      {item.cortadoPeloFornecedor && (
+                                        <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
+                                          <X size={10} style={{flexShrink: 0}} /> Corte no Pedido #{item.pedidoCorteId || pedido.id}
+                                        </div>
+                                      )}
                                       {item.condicaoAplicada && (
                                         <div style={{ fontSize: '10px', color: 'var(--success-text)', backgroundColor: 'var(--success-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--success-border)' }}>
                                           <Tags size={10} style={{flexShrink: 0}} /> Escalonamento ({item.qtdCondicao} un por {fMoney(item.precoCondicao)})
@@ -711,7 +717,7 @@ export default function FornecedorDashboard() {
             
             <div style={{ padding: '16px 24px', backgroundColor: 'var(--surface-muted)', borderBottom: '1px solid var(--border)' }}>
               <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: 0 }}>
-                Desmarque os itens que estiverem <strong style={{ color: 'var(--danger)' }}>em falta</strong> no seu estoque. Os itens desmarcados serão removidos do pedido.
+                Desmarque os itens que estiverem <strong style={{ color: 'var(--danger)' }}>em falta</strong> no seu estoque. Os itens desmarcados serão registrados como <strong style={{ color: 'var(--danger)' }}>corte no pedido</strong> e retornarão à cotação de origem, permanecendo no histórico do pedido.
               </p>
             </div>
 
