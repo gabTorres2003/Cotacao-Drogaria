@@ -357,6 +357,14 @@ export default function TabelaDetalhes({
       const ultCompraQtde = Number(item.ultCompraQtde) || 0;
       const vendidoAposUltCompra = Number(item.vendidoAposUltCompra) || 0;
       const qtdPedida = Number(item.quantidade) || 0;
+      const mediasHistoricas = [
+          Number(item.vmd) || 0,
+          (Number(item.vendas30d) || 0) / 30,
+          (Number(item.vendas60d) || 0) / 60,
+          (Number(item.vendas90d) || 0) / 90,
+          vendidoNoMes / 30,
+      ];
+      const mediaHistorica = Math.max(...mediasHistoricas);
 
       let motivosExcesso = [];
 
@@ -428,8 +436,10 @@ export default function TabelaDetalhes({
                   motivosExcesso.push(msgSuper);
               }
           }
-      } else if (vendaDiaria <= 0.01 && qtdPedida > 0 && estoque === 0) {
-          // Usar ultVendaData quando disponível para mensagem mais precisa
+      } else if (mediaHistorica <= 0.01 && qtdPedida > 0 && estoque === 0
+          && (diasDesdeUltimaVenda === null || diasDesdeUltimaVenda > 30)) {
+          // Com estoque zerado, uma pausa recente pode ser causada pela ruptura,
+          // portanto o alerta depende também do histórico de demanda.
           const infoVenda = diasDesdeUltimaVenda !== null ? ` (última venda há ${diasDesdeUltimaVenda} dias)` : ' nos últimos 30 dias';
           motivosExcesso.push(`Você está pedindo ${qtdPedida} un de um produto com vendas muito baixas ou sem venda${infoVenda}.`);
       }
