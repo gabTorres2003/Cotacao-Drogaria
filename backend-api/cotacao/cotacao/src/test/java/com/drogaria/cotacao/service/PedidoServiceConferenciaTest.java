@@ -4,9 +4,11 @@ import com.drogaria.cotacao.dto.request.ItemNaoSolicitadoDTO;
 import com.drogaria.cotacao.dto.request.ItemRecebidoDTO;
 import com.drogaria.cotacao.dto.request.ReceberPedidoRequestDTO;
 import com.drogaria.cotacao.model.Cotacao;
+import com.drogaria.cotacao.model.Fornecedor;
 import com.drogaria.cotacao.model.ItemCotacao;
 import com.drogaria.cotacao.model.ItemPedido;
 import com.drogaria.cotacao.model.Pedido;
+import com.drogaria.cotacao.model.PrecoCotacao;
 import com.drogaria.cotacao.model.enums.StatusItemRecebimento;
 import com.drogaria.cotacao.model.enums.StatusPedido;
 import com.drogaria.cotacao.repository.CotacaoFornecedorRepository;
@@ -35,6 +37,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.mock;
 
 /**
  * Testes da conferência:
@@ -311,6 +314,28 @@ class PedidoServiceConferenciaTest {
         assertThat(retornado.getStatusRecebimento()).isNull();
     }
 
+    @Test
+    void administradorPodeSalvarParcialEmPedidoComEntregaParcial() {
+        ItemPedido item = novoItem(10L, 10, 10.0);
+        item.setQuantidadeReal(4);
+        Pedido pedido = novoPedido(StatusPedido.ENTREGA_PARCIAL, item);
+        pedido.setConferenciaFisicaFinalizada(true);
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        mockarSalvamento();
+
+        // Novo volume chegou: soma 3 unidades ao que já havia sido recebido.
+        ItemRecebidoDTO dtoItem = itemDto(10L, 3, 10.0);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.OK);
+        Pedido salvo = service.salvarConferenciaParcial(
+                1L, recebimentoDto(dtoItem), "ADM Teste", "admin", true);
+
+        assertThat(item.getQuantidadeReal()).isEqualTo(7);
+        assertThat(salvo.getStatus()).isEqualTo(StatusPedido.CONFERENCIA_INICIADA);
+        // O ADM pode complementar o recebimento mesmo após a etapa física finalizada.
+        assertThat(salvo.getConferenciaFisicaFinalizada()).isTrue();
+    }
+
     // ------------------------------------- Trava da conferência física / liberação
 
     @Test
@@ -551,6 +576,195 @@ class PedidoServiceConferenciaTest {
                 .hasMessageContaining("liberar");
     }
 
+    // ------------------------------------------- Encaminhamento para outro pedido
+
+    @Test
+    void encaminharFaltanteParaOutroPedidoUsaValorRespondidoPeloFornecedor() {
+        ItemCotacao itemCotacao = mock(ItemCotacao.class);
+        when(itemCotacao.getId()).thenReturn(99L);
+        Fornecedor fornecedor = new Fornecedor();
+        fornecedor.setId(5L);
+
+        ItemPedido item = novoItem(10L, 10, 4.0);
+        item.setItemCotacao(itemCotacao);
+        Pedido origem = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+        origem.setFornecedor(fornecedor);
+
+        ItemPedido itemDestino = novoItem(30L, 2, 6.0);
+        Pedido destino = novoPedido(StatusPedido.PENDENTE_ENTREGA, itemDestino);
+        destino.setId(2L);
+
+        PrecoCotacao preco = new PrecoCotacao();
+        preco.setPrecoOfertado(7.5);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(origem));
+        when(pedidoRepository.findById(2L)).thenReturn(Optional.of(destino));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        when(precoRepository.findByItemIdAndFornecedorId(99L, 5L)).thenReturn(List.of(preco));
+        mockarSalvamento();
+
+        ItemRecebidoDTO dtoItem = itemDto(10L, 0, null);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        ReceberPedidoRequestDTO dto = recebimentoDto(dtoItem);
+        dto.setAcaoItensFaltantes("ENCAMINHAR_PEDIDO");
+        dto.setPedidoDestinoId(2L);
+
+        service.processarRecebimento(1L, dto);
+
+        // Origem mantém o item apenas como histórico e zera o valor encaminhado.
+        assertThat(item.getRetornadoCotacao()).isTrue();
+        assertThat(item.getObservacaoDevolucao()).isEqualTo("Encaminhado para o Pedido #2");
+        assertThat(item.isEncaminhadoOutroPedido()).isTrue();
+        assertThat(item.getPedidoDestinoId()).isEqualTo(2L);
+        assertThat(origem.getValorTotalPedido()).isZero();
+        assertThat(origem.getStatus()).isEqualTo(StatusPedido.ENTREGUE_COM_FALTA);
+
+        // Destino recebe o produto pelo valor respondido pelo fornecedor da origem.
+        assertThat(destino.getItens()).hasSize(2);
+        ItemPedido novo = destino.getItens().get(1);
+        assertThat(novo.getPedido()).isSameAs(destino);
+        assertThat(novo.getNomeProduto()).isEqualTo(item.getNomeProduto());
+        assertThat(novo.getQuantidadePedida()).isEqualTo(10);
+        assertThat(novo.getQuantidadeEsperada()).isEqualTo(10);
+        assertThat(novo.getValorUnitarioPedido()).isEqualTo(7.5);
+        assertThat(destino.getValorTotalPedido()).isEqualTo((2 * 6.0) + (10 * 7.5));
+    }
+
+    @Test
+    void encaminharSomentePendenciaDeEntregaParcialMantemRecebidoNaOrigem() {
+        ItemPedido item = novoItem(10L, 10, 4.0);
+        Pedido origem = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+
+        Pedido destino = novoPedido(StatusPedido.CONFIRMADO_FORNECEDOR, novoItem(30L, 1, 6.0));
+        destino.setId(2L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(origem));
+        when(pedidoRepository.findById(2L)).thenReturn(Optional.of(destino));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        mockarSalvamento();
+
+        ItemRecebidoDTO dtoItem = itemDto(10L, 4, 4.0);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        ReceberPedidoRequestDTO dto = recebimentoDto(dtoItem);
+        dto.setAcaoItensFaltantes("ENCAMINHAR_PEDIDO");
+        dto.setPedidoDestinoId(2L);
+
+        service.processarRecebimento(1L, dto);
+
+        // A origem mantém apenas as 4 unidades recebidas; as 6 pendentes vão para o destino.
+        assertThat(item.getRetornadoCotacao()).isFalse();
+        assertThat(item.getQuantidadePedida()).isEqualTo(4);
+        assertThat(item.getQuantidadeEsperada()).isEqualTo(4);
+        assertThat(item.getQuantidadeReal()).isEqualTo(4);
+        assertThat(item.getStatusRecebimento()).isEqualTo(StatusItemRecebimento.OK);
+        assertThat(item.getObservacaoDevolucao()).contains("Encaminhado 6 un para o Pedido #2");
+        assertThat(origem.getValorTotalPedido()).isEqualTo(16.0);
+        assertThat(origem.getStatus()).isEqualTo(StatusPedido.ENTREGUE_SUCESSO);
+
+        ItemPedido novo = destino.getItens().get(1);
+        assertThat(novo.getQuantidadePedida()).isEqualTo(6);
+        assertThat(novo.getQuantidadeEsperada()).isEqualTo(6);
+        // Sem resposta de fornecedor registrada, usa o valor do item de origem.
+        assertThat(novo.getValorUnitarioPedido()).isEqualTo(4.0);
+        assertThat(destino.getValorTotalPedido()).isEqualTo(6.0 + (6 * 4.0));
+    }
+
+    @Test
+    void encaminhamentoPreservaConversaoParaUnidadeFisica() {
+        ItemPedido item = novoItem(10L, 2, 50.0);
+        item.setFatorConversao(10);
+        item.setSentidoConversao("MULTIPLICAR");
+        item.setQuantidadeEsperada(20);
+        Pedido origem = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+
+        Pedido destino = novoPedido(StatusPedido.PENDENTE_ENTREGA, novoItem(30L, 1, 6.0));
+        destino.setId(2L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(origem));
+        when(pedidoRepository.findById(2L)).thenReturn(Optional.of(destino));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        mockarSalvamento();
+
+        ItemRecebidoDTO dtoItem = itemDto(10L, 0, null);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        ReceberPedidoRequestDTO dto = recebimentoDto(dtoItem);
+        dto.setAcaoItensFaltantes("ENCAMINHAR_PEDIDO");
+        dto.setPedidoDestinoId(2L);
+
+        service.processarRecebimento(1L, dto);
+
+        ItemPedido novo = destino.getItens().get(1);
+        assertThat(novo.getQuantidadePedida()).isEqualTo(2);
+        assertThat(novo.getQuantidadeEsperada()).isEqualTo(20);
+        assertThat(novo.getFatorConversao()).isEqualTo(10);
+        assertThat(novo.getSentidoConversao()).isEqualTo("MULTIPLICAR");
+        assertThat(novo.getValorUnitarioPedido()).isEqualTo(50.0);
+        assertThat(destino.getValorTotalPedido()).isEqualTo(6.0 + (2 * 50.0));
+    }
+
+    @Test
+    void encaminhamentoParcialComConversaoUsaUnidadeFisicaQuandoNaoFormaPacoteInteiro() {
+        // 2 pacotes de 10 un = 20 un físicas; chegaram 5 un e 15 serão encaminhadas.
+        ItemPedido item = novoItem(10L, 2, 50.0);
+        item.setFatorConversao(10);
+        item.setSentidoConversao("MULTIPLICAR");
+        item.setQuantidadeEsperada(20);
+        Pedido origem = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+
+        Pedido destino = novoPedido(StatusPedido.PENDENTE_ENTREGA, novoItem(30L, 1, 6.0));
+        destino.setId(2L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(origem));
+        when(pedidoRepository.findById(2L)).thenReturn(Optional.of(destino));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        mockarSalvamento();
+
+        ItemRecebidoDTO dtoItem = itemDto(10L, 5, 5.0);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        ReceberPedidoRequestDTO dto = recebimentoDto(dtoItem);
+        dto.setAcaoItensFaltantes("ENCAMINHAR_PEDIDO");
+        dto.setPedidoDestinoId(2L);
+
+        service.processarRecebimento(1L, dto);
+
+        // Origem fica com 5 unidades físicas por R$ 5,00.
+        assertThat(item.getQuantidadePedida()).isEqualTo(5);
+        assertThat(item.getQuantidadeEsperada()).isEqualTo(5);
+        assertThat(item.getFatorConversao()).isNull();
+        assertThat(item.getValorUnitarioPedido()).isEqualTo(5.0);
+        assertThat(origem.getValorTotalPedido()).isEqualTo(25.0);
+
+        // Destino recebe 15 unidades físicas por R$ 5,00 (sem conversão).
+        ItemPedido novo = destino.getItens().get(1);
+        assertThat(novo.getQuantidadePedida()).isEqualTo(15);
+        assertThat(novo.getQuantidadeEsperada()).isEqualTo(15);
+        assertThat(novo.getFatorConversao()).isNull();
+        assertThat(novo.getSentidoConversao()).isNull();
+        assertThat(novo.getValorUnitarioPedido()).isEqualTo(5.0);
+    }
+
+    @Test
+    void encaminhamentoExigePedidoDeDestinoAguardandoEntrega() {
+        ItemPedido item = novoItem(10L, 10, 4.0);
+        Pedido origem = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+
+        Pedido destino = novoPedido(StatusPedido.ENTREGUE_SUCESSO, novoItem(30L, 1, 6.0));
+        destino.setId(2L);
+
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(origem));
+        when(pedidoRepository.findById(2L)).thenReturn(Optional.of(destino));
+
+        ItemRecebidoDTO dtoItem = itemDto(10L, 0, null);
+        dtoItem.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+        ReceberPedidoRequestDTO dto = recebimentoDto(dtoItem);
+        dto.setAcaoItensFaltantes("ENCAMINHAR_PEDIDO");
+        dto.setPedidoDestinoId(2L);
+
+        assertThatThrownBy(() -> service.processarRecebimento(1L, dto))
+                .isInstanceOf(RuntimeException.class)
+                .hasMessageContaining("aguardando entrega");
+    }
+
     // ------------------------------------------------------- Ajuste 1: número da NF
 
     @Test
@@ -564,6 +778,34 @@ class PedidoServiceConferenciaTest {
         assertThatThrownBy(() -> service.processarRecebimento(1L, dto))
                 .isInstanceOf(RuntimeException.class)
                 .hasMessageContaining("NF");
+    }
+
+    @Test
+    void conferenciaParcialAcumulaNotasDeVolumesDiferentesSemDuplicar() {
+        ItemPedido item = novoItem(10L, 10, 10.0);
+        Pedido pedido = novoPedido(StatusPedido.CONFERENCIA_INICIADA, item);
+        when(pedidoRepository.findById(1L)).thenReturn(Optional.of(pedido));
+        when(itemPedidoRepository.findById(10L)).thenReturn(Optional.of(item));
+        mockarSalvamento();
+
+        ReceberPedidoRequestDTO primeiro = recebimentoDto(itemDto(10L, 4, 10.0));
+        primeiro.setNumeroNota("NF-1");
+        service.salvarConferenciaParcial(1L, primeiro, "ADM Teste", "admin", true);
+        assertThat(pedido.getNumeroNota()).isEqualTo("NF-1");
+
+        // Segundo volume chega em outro dia/carregamento, com outra NF.
+        ReceberPedidoRequestDTO segundo = recebimentoDto(itemDto(10L, 3, 10.0));
+        segundo.setNumeroNota("NF-2");
+        service.salvarConferenciaParcial(1L, segundo, "ADM Teste", "admin", true);
+        assertThat(pedido.getNumeroNota()).isEqualTo("NF-1 / NF-2");
+        assertThat(item.getQuantidadeReal()).isEqualTo(7);
+
+        // Salvar novamente a mesma nota não a repete.
+        ReceberPedidoRequestDTO reenvio = recebimentoDto(itemDto(10L, 0, 10.0));
+        reenvio.setNumeroNota("NF-2");
+        service.salvarConferenciaParcial(1L, reenvio, "ADM Teste", "admin", true);
+        assertThat(pedido.getNumeroNota()).isEqualTo("NF-1 / NF-2");
+        assertThat(item.getQuantidadeReal()).isEqualTo(7);
     }
 
     @Test

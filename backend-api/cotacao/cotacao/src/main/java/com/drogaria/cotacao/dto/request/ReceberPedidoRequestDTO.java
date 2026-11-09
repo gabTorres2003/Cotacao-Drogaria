@@ -10,9 +10,14 @@ public class ReceberPedidoRequestDTO {
     /**
      * Destino dos itens não recebidos e não cobrados ao finalizar a conferência:
      * RETORNAR_COTACAO - devolve os itens para a cotação de origem (padrão);
-     * AGUARDAR - mantém os itens no pedido gerando entrega parcial.
+     * AGUARDAR - mantém os itens no pedido gerando entrega parcial;
+     * ENCAMINHAR_PEDIDO - envia os itens para outro pedido ativo
+     * (pedidoDestinoId).
      */
     private String acaoItensFaltantes;
+
+    /** Pedido que receberá os itens faltantes quando a ação for ENCAMINHAR_PEDIDO. */
+    private Long pedidoDestinoId;
 
     /**
      * Produtos que vieram na entrega mas não fazem parte do pedido. Enviados

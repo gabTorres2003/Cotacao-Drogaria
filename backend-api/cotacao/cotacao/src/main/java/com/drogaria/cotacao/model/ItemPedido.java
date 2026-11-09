@@ -127,4 +127,33 @@ public class ItemPedido {
             return null;
         }
     }
+
+    /**
+     * Indica que o item "Não Veio" foi encaminhado para outro pedido em vez de
+     * retornar à cotação. O item de origem permanece no pedido apenas para
+     * histórico, destacado como "Encaminhado para o Pedido #N".
+     */
+    public boolean isEncaminhadoOutroPedido() {
+        return Boolean.TRUE.equals(retornadoCotacao)
+                && observacaoDevolucao != null
+                && observacaoDevolucao.startsWith("Encaminhado para o Pedido #");
+    }
+
+    /** Número do pedido que recebeu o item encaminhado (quando aplicável). */
+    public Long getPedidoDestinoId() {
+        if (observacaoDevolucao == null || !observacaoDevolucao.startsWith("Encaminhado para o Pedido #")) {
+            return null;
+        }
+        String resto = observacaoDevolucao.substring("Encaminhado para o Pedido #".length()).trim();
+        int fim = 0;
+        while (fim < resto.length() && Character.isDigit(resto.charAt(fim))) {
+            fim++;
+        }
+        if (fim == 0) return null;
+        try {
+            return Long.parseLong(resto.substring(0, fim));
+        } catch (NumberFormatException e) {
+            return null;
+        }
+    }
 }

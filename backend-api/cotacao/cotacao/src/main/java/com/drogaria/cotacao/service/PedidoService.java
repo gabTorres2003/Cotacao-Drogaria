@@ -219,8 +219,25 @@ public class PedidoService {
         }
 
         // AGUARDAR mantém os itens faltantes no pedido (entrega parcial);
+        // ENCAMINHAR_PEDIDO transfere os itens para outro pedido ativo;
         // RETORNAR_COTACAO (ou ausente) devolve os itens não recebidos para a cotação de origem.
         boolean aguardarFaltantes = "AGUARDAR".equalsIgnoreCase(dto.getAcaoItensFaltantes());
+        boolean encaminharPedido = "ENCAMINHAR_PEDIDO".equalsIgnoreCase(dto.getAcaoItensFaltantes());
+
+        Pedido pedidoDestino = null;
+        if (encaminharPedido) {
+            if (dto.getPedidoDestinoId() == null) {
+                throw new RuntimeException("Selecione o pedido que receberá os produtos faltantes.");
+            }
+            if (dto.getPedidoDestinoId().equals(pedidoId)) {
+                throw new RuntimeException("O pedido de destino deve ser diferente do pedido em conferência.");
+            }
+            pedidoDestino = buscarPorId(dto.getPedidoDestinoId());
+            if (pedidoDestino.getStatus() != StatusPedido.PENDENTE_ENTREGA
+                    && pedidoDestino.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR) {
+                throw new RuntimeException("Só é possível encaminhar produtos para pedidos aguardando entrega.");
+            }
+        }
 
         boolean temDevolucao = false;
         boolean temIncompatibilidadeValor = false;
@@ -283,6 +300,11 @@ public class PedidoService {
                     && statusItem != StatusItemRecebimento.AVARIADO
                     && statusItem != StatusItemRecebimento.INCORRETO
                     && statusItem != StatusItemRecebimento.PROXIMO_VENCIMENTO;
+
+            if (semDestino && encaminharPedido) {
+                encaminharItemParaOutroPedido(itemBanco, pedido, pedidoDestino);
+                continue;
+            }
 
             if (semDestino && !aguardarFaltantes) {
                 retornarItemParaCotacaoOrigem(itemBanco, pedido);
@@ -370,6 +392,7 @@ public class PedidoService {
         Pedido pedido = buscarPorId(pedidoId);
         if (pedido.getStatus() != StatusPedido.PENDENTE_ENTREGA
                 && pedido.getStatus() != StatusPedido.CONFIRMADO_FORNECEDOR
+                && pedido.getStatus() != StatusPedido.ENTREGA_PARCIAL
                 && pedido.getStatus() != StatusPedido.CONFERENCIA_INICIADA) {
             throw new RuntimeException("Este pedido não está disponível para conferência física.");
         }
@@ -385,7 +408,14 @@ public class PedidoService {
         }
 
         if (dto.getNumeroNota() != null && !dto.getNumeroNota().trim().isEmpty()) {
-            pedido.setNumeroNota(dto.getNumeroNota().trim());
+            String novaNota = dto.getNumeroNota().trim();
+            if (pedido.getNumeroNota() == null || pedido.getNumeroNota().trim().isEmpty()) {
+                pedido.setNumeroNota(novaNota);
+            } else if (!pedido.getNumeroNota().contains(novaNota)) {
+                // Volumes recebidos em dias/carregamentos diferentes podem ter NFs
+                // distintas; acumula sem repetir a mesma nota em salvamentos parciais.
+                pedido.setNumeroNota(pedido.getNumeroNota() + " / " + novaNota);
+            }
         }
         if (pedido.getConferenciaIniciadaPor() == null) {
             pedido.setConferenciaIniciadaPor(nomeConferente);
@@ -794,6 +824,118 @@ public class PedidoService {
             item.setObservacaoDevolucao("Retorno parcial: " + pendente + " un pendente(s) retornaram para a cotação de origem");
             itemPedidoRepository.save(item);
         }
+    }
+
+    /**
+     * Encaminha a quantidade pendente de um item "Não Veio" para outro pedido
+     * ativo. O item de origem permanece no pedido apenas como histórico
+     * ("Encaminhado para o Pedido #N") e o pedido de destino recebe o produto
+     * avaliado pelo valor respondido pelo fornecedor do pedido de origem.
+     */
+    private void encaminharItemParaOutroPedido(ItemPedido item, Pedido pedidoOrigem, Pedido pedidoDestino) {
+        int esperada = quantidadeEsperada(item);
+        int recebida = item.getQuantidadeReal() != null ? item.getQuantidadeReal() : 0;
+        int pendenteFisica = Math.max(esperada - recebida, 0);
+        if (pendenteFisica <= 0) return;
+
+        Integer fator = item.getFatorConversao();
+        String sentido = item.getSentidoConversao();
+        boolean temConversao = fator != null && fator > 1 && sentido != null && !sentido.isBlank()
+                && ("MULTIPLICAR".equalsIgnoreCase(sentido) || "DIVIDIR".equalsIgnoreCase(sentido));
+        boolean sentidoMultiplicar = temConversao && "MULTIPLICAR".equalsIgnoreCase(sentido);
+        // MULTIPLICAR só mantém a conversão quando a pendência forma pacotes
+        // inteiros; caso contrário, o destino passa a controlar em unidades físicas.
+        boolean preservarConversao = temConversao
+                && (!sentidoMultiplicar || pendenteFisica % fator == 0);
+
+        double valorFisicoOrigem = valorUnitarioFisicoPedido(item);
+        double valorRespondido = valorRespondidoFornecedor(item, pedidoOrigem);
+
+        int quantidadeDestino = pendenteFisica;
+        Integer fatorDestino = null;
+        String sentidoDestino = null;
+        double valorDestino = valorRespondido;
+        if (preservarConversao) {
+            quantidadeDestino = sentidoMultiplicar ? pendenteFisica / fator : pendenteFisica * fator;
+            fatorDestino = fator;
+            sentidoDestino = sentido;
+        } else if (temConversao) {
+            valorDestino = sentidoMultiplicar ? valorRespondido / fator : valorRespondido * fator;
+        }
+        if (quantidadeDestino <= 0) return;
+
+        ItemPedido novoItem = new ItemPedido();
+        novoItem.setPedido(pedidoDestino);
+        novoItem.setItemCotacao(item.getItemCotacao());
+        novoItem.setNomeProduto(item.getNomeProduto());
+        novoItem.setQuantidadePedida(quantidadeDestino);
+        novoItem.setQuantidadeEsperada(pendenteFisica);
+        novoItem.setFatorConversao(fatorDestino);
+        novoItem.setSentidoConversao(sentidoDestino);
+        novoItem.setValorUnitarioPedido(valorDestino);
+        novoItem.setQuantidadeReal(0);
+        novoItem.setQuantidadeAvariada(0);
+        novoItem.setValorUnitarioReal(0.0);
+        novoItem.setValorAlteradoAposPedido(false);
+        novoItem.setCondicaoAplicada(false);
+        novoItem.setReatribuicaoExplicita(true);
+        novoItem.setObservacaoDevolucao("Encaminhado do Pedido #" + pedidoOrigem.getId());
+        itemPedidoRepository.save(novoItem);
+
+        if (pedidoDestino.getItens() == null) {
+            pedidoDestino.setItens(new ArrayList<>());
+        }
+        pedidoDestino.getItens().add(novoItem);
+        double totalDestino = pedidoDestino.getItens().stream()
+                .filter(i -> !Boolean.TRUE.equals(i.getRetornadoCotacao()))
+                .mapToDouble(i -> (i.getQuantidadePedida() != null ? i.getQuantidadePedida() : 0)
+                        * (i.getValorUnitarioPedido() != null ? i.getValorUnitarioPedido() : 0.0))
+                .sum();
+        pedidoDestino.setValorTotalPedido(totalDestino);
+        pedidoRepository.save(pedidoDestino);
+
+        // A baixa no pedido de origem usa a quantidade e o valor por unidade
+        // física, mantendo o total coerente com o que foi retirado dele.
+        double totalOrigem = pedidoOrigem.getValorTotalPedido() != null
+                ? pedidoOrigem.getValorTotalPedido() : 0.0;
+        pedidoOrigem.setValorTotalPedido(Math.max(totalOrigem - (pendenteFisica * valorFisicoOrigem), 0.0));
+
+        if (recebida <= 0) {
+            item.setRetornadoCotacao(true);
+            item.setStatusRecebimento(StatusItemRecebimento.FALTANTE);
+            item.setObservacaoDevolucao("Encaminhado para o Pedido #" + pedidoDestino.getId());
+            itemPedidoRepository.save(item);
+        } else {
+            // Entrega parcial: a origem fica somente com o que já chegou,
+            // passando a ser controlada em unidades físicas.
+            item.setQuantidadePedida(recebida);
+            item.setQuantidadeEsperada(recebida);
+            item.setFatorConversao(null);
+            item.setSentidoConversao(null);
+            item.setValorUnitarioPedido(valorFisicoOrigem);
+            item.setStatusRecebimento(StatusItemRecebimento.OK);
+            item.setObservacaoDevolucao("Encaminhado " + pendenteFisica
+                    + " un para o Pedido #" + pedidoDestino.getId());
+            itemPedidoRepository.save(item);
+        }
+    }
+
+    /**
+     * Valor unitário respondido pelo fornecedor do pedido para o item da
+     * cotação. Quando não há resposta registrada, usa o valor do próprio item.
+     */
+    private double valorRespondidoFornecedor(ItemPedido item, Pedido pedido) {
+        if (item.getItemCotacao() != null && item.getItemCotacao().getId() != null
+                && pedido.getFornecedor() != null && pedido.getFornecedor().getId() != null) {
+            List<PrecoCotacao> precos = precoRepository.findByItemIdAndFornecedorId(
+                    item.getItemCotacao().getId(), pedido.getFornecedor().getId());
+            for (PrecoCotacao preco : precos) {
+                if (preco.getPrecoOfertado() != null && preco.getPrecoOfertado() > 0) {
+                    return preco.getPrecoOfertado();
+                }
+            }
+        }
+        return item.getValorUnitarioPedido() != null ? item.getValorUnitarioPedido() : 0.0;
     }
 
     @Transactional

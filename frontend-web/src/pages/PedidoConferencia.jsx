@@ -71,6 +71,9 @@ export default function PedidoConferencia() {
   const [buscaProduto, setBuscaProduto] = useState('');
   const [numeroNota, setNumeroNota] = useState('');
   const [showModalDestinoFaltantes, setShowModalDestinoFaltantes] = useState(false);
+  const [pedidosDestino, setPedidosDestino] = useState([]);
+  const [pedidoDestinoId, setPedidoDestinoId] = useState('');
+  const [carregandoPedidosDestino, setCarregandoPedidosDestino] = useState(false);
   const [showDevolucaoModal, setShowDevolucaoModal] = useState(false);
   const [showProdutoNaoSolicitadoModal, setShowProdutoNaoSolicitadoModal] = useState(false);
   const [itemCameraAberta, setItemCameraAberta] = useState(null);
@@ -86,6 +89,28 @@ export default function PedidoConferencia() {
     carregarPedido();
   }, [id]);
 
+  // Carrega os pedidos ativos que podem receber os produtos marcados como
+  // "Não Veio" quando o usuário abre o modal de destino dos faltantes.
+  useEffect(() => {
+    if (!showModalDestinoFaltantes) return undefined;
+    let ativo = true;
+    setPedidoDestinoId('');
+    setCarregandoPedidosDestino(true);
+    api.get('/api/pedidos/filtrar?statuses=PENDENTE_ENTREGA&statuses=CONFIRMADO_FORNECEDOR&resumo=true')
+      .then(resposta => {
+        if (!ativo) return;
+        setPedidosDestino((resposta.data || []).filter(p => String(p.id) !== String(id)));
+      })
+      .catch(error => {
+        console.error('Erro ao carregar pedidos de destino:', error);
+        if (ativo) setPedidosDestino([]);
+      })
+      .finally(() => {
+        if (ativo) setCarregandoPedidosDestino(false);
+      });
+    return () => { ativo = false; };
+  }, [showModalDestinoFaltantes, id]);
+
   // Salva o preenchimento automaticamente em cache a cada alteração,
   // para não perder o progresso em caso de falha ou atualização da página.
   // O status do pedido é gravado junto para descartar cache de uma etapa anterior
@@ -100,8 +125,6 @@ export default function PedidoConferencia() {
       const response = await api.get(`/api/pedidos/${id}`);
       setPedido(response.data);
       if (response.data.itens) {
-        const continuidadeAdministrativa = !isConferente
-          && response.data.status === 'CONFERENCIA_INICIADA';
         const bloqueado = isConferente
           && !!response.data.conferenciaFisicaFinalizada
           && !response.data.conferenciaEdicaoLiberada;
@@ -115,10 +138,11 @@ export default function PedidoConferencia() {
             const esperada = quantidadeEsperadaItem(item);
             const totalmenteRecebido = qtdJaRecebida >= esperada;
             const valorInformado = item.valorUnitarioReal != null && Number(item.valorUnitarioReal) > 0;
-            // Na continuidade administrativa ou na trava do Conferente, só trava
-            // o que realmente já foi persistido.
-            const quantidadeJaPersistida = (continuidadeAdministrativa || bloqueado) && qtdJaRecebida > 0;
-            const avariadaJaPersistida = (continuidadeAdministrativa || bloqueado)
+            // O ADM sempre lança o volume novo em "Qtd. nesta NF"; o que já foi
+            // recebido aparece separado na coluna "Já recebido". A trava de
+            // quantidade persistida vale apenas para o Conferente bloqueado.
+            const quantidadeJaPersistida = bloqueado && qtdJaRecebida > 0;
+            const avariadaJaPersistida = bloqueado
               && (item.quantidadeAvariada || 0) > 0;
             return {
               id: item.id,
@@ -524,20 +548,27 @@ export default function PedidoConferencia() {
       // requisição/transação: ou tudo é salvo, ou nada é salvo.
       await api.patch(`/api/pedidos/${id}/conferencia/parcial`, {
         numeroNota: numeroNota.trim(),
-        itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item =>
-          montarItemRecebido(item,
+        itens: conferencia.filter(item => item.conferido && !item.isNaoSolicitado).map(item => {
+          const itemPayload = montarItemRecebido(item,
             item.statusRecebimento === 'INCORRETO'
               ? montarObservacaoIncorreto(item)
               : (item.statusRecebimento !== 'OK'
                   ? (item.observacaoIncorreto || item.statusRecebimento)
                   : ''),
-            { incluirValorFinanceiro: !isConferente })
-        ),
+            { incluirValorFinanceiro: !isConferente });
+          // Quantidades já persistidas em volumes anteriores não podem ser
+          // somadas novamente no salvamento parcial.
+          if (item.quantidadeRecebidaPersistida) itemPayload.quantidadeRecebidaAgora = 0;
+          if (item.quantidadeAvariadaPersistida) itemPayload.quantidadeAvariadaAgora = 0;
+          return itemPayload;
+        }),
         itensNaoSolicitados: montarItensNaoSolicitadosPayload()
       });
 
       limparCacheConferencia(id);
-      alert('Conferência física salva. O pedido voltou para a conferência financeira do ADM.');
+      alert(isConferente
+        ? 'Conferência física salva. O pedido voltou para a conferência financeira do ADM.'
+        : 'Conferência parcial salva. O pedido ficou disponível na aba "Conferência Parcial" para continuar o recebimento depois.');
       navigate(`/pedidos/${id}`);
     } catch (error) {
       alert(error.response?.data?.message || 'Não foi possível salvar a conferência física. Nenhum item foi gravado.');
@@ -549,6 +580,11 @@ export default function PedidoConferencia() {
   const enviarRecebimento = async (acao) => {
     if (!numeroNota.trim()) {
       alert('Por favor, preencha o Número da NF antes de salvar.');
+      return;
+    }
+
+    if (acao === 'ENCAMINHAR_PEDIDO' && !pedidoDestinoId) {
+      alert('Selecione o pedido que receberá os produtos faltantes.');
       return;
     }
 
@@ -577,6 +613,7 @@ export default function PedidoConferencia() {
     const payload = {
       numeroNota: numeroNota.trim(),
       acaoItensFaltantes: acao || null,
+      pedidoDestinoId: acao === 'ENCAMINHAR_PEDIDO' ? Number(pedidoDestinoId) : null,
       itensNaoSolicitados: montarItensNaoSolicitadosPayload(),
       itens: itensParaEnviar.map(item => {
         const qtdNova = item.quantidadeRecebidaAgora === '' || item.quantidadeRecebidaAgora === undefined
@@ -624,6 +661,7 @@ export default function PedidoConferencia() {
           const detalhes = [];
           if (acao === 'AGUARDAR') detalhes.push(`${qtdSemDestino} produto(s) faltante(s) ficaram em aguardo (Entrega Parcial).`);
           if (acao === 'RETORNAR_COTACAO' && qtdSemDestino > 0) detalhes.push(`${qtdSemDestino} produto(s) faltante(s) retornaram para a cotação de origem.`);
+          if (acao === 'ENCAMINHAR_PEDIDO' && qtdSemDestino > 0) detalhes.push(`${qtdSemDestino} produto(s) faltante(s) foram encaminhados para o Pedido #${pedidoDestinoId}.`);
           const msgDetalhes = detalhes.length > 0 ? `\n\n${detalhes.join('\n')}` : '';
           if (await confirmar(`Conferência salva com sucesso! O sistema identificou que você marcou faltas, avarias ou itens incorretos.${msgDetalhes}\n\nDeseja registrar a devolução / abatimento agora?`, {
             titulo: 'Registrar devolução',
@@ -634,6 +672,8 @@ export default function PedidoConferencia() {
           }
       } else if (acao === 'AGUARDAR') {
           alert(`Entrega parcial registrada com sucesso!\n\n${qtdSemDestino} produto(s) ficaram em aguardo e o pedido permanece em "Entrega Parcial".\n\nQuando o volume chegar, finalize a conferência normalmente; se não chegar, confirme a falta para retornar os produtos à cotação de origem automaticamente.`);
+      } else if (acao === 'ENCAMINHAR_PEDIDO') {
+          alert(`Conferência finalizada com sucesso!\n\n${qtdSemDestino} produto(s) foram encaminhados para o Pedido #${pedidoDestinoId}, com o valor ajustado para o valor respondido pelo fornecedor deste pedido.\n\nO pedido de destino já pode ser conferido normalmente.`);
       } else if (acao === 'RETORNAR_COTACAO') {
           alert(`Conferência finalizada com sucesso!\n\n${qtdSemDestino} produto(s) retornaram automaticamente para a cotação de origem (ela poderá estar encerrada ou não).`);
       } else {
@@ -1007,9 +1047,11 @@ export default function PedidoConferencia() {
                             <td data-label="Produto" style={styles.td}>
                               <strong style={{ color: 'var(--danger-text)', display: 'block' }}>{nomeExibicaoProduto(item)}</strong>
                               <div style={{ fontSize: '10px', color: 'var(--danger-text)', backgroundColor: 'var(--danger-soft)', padding: '2px 6px', borderRadius: '4px', marginTop: '4px', fontWeight: 'bold', display: 'inline-flex', alignItems: 'center', gap: '4px', border: '1px solid var(--danger-border)' }}>
-                                {item.cortadoPeloFornecedor
-                                  ? <>✂️ Corte no Pedido #{item.pedidoCorteId || pedido.id}</>
-                                  : <><AlertTriangle size={10} /> Não entregue — retornou à cotação de origem</>}
+                                {item.encaminhadoOutroPedido
+                                  ? <><Package size={10} /> Encaminhado para o Pedido #{item.pedidoDestinoId}</>
+                                  : (item.cortadoPeloFornecedor
+                                    ? <>✂️ Corte no Pedido #{item.pedidoCorteId || pedido.id}</>
+                                    : <><AlertTriangle size={10} /> Não entregue — retornou à cotação de origem</>)}
                               </div>
                             </td>
                             <td data-label="Qtd. pedida" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: '600' }}>
@@ -1018,10 +1060,12 @@ export default function PedidoConferencia() {
                             <td data-label="Já recebido" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)' }}>-</td>
                             <td data-label="Qtd. nesta NF" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>
                             {!isConferente && <td data-label="Valor unitário" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px' }}>-</td>}
-                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: 'bold' }}>{item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não Veio'}</td>
+                            <td data-label="Condição" style={{ ...styles.td, textAlign: 'center', padding: '10px 6px', color: 'var(--danger-text)', fontWeight: 'bold' }}>{item.encaminhadoOutroPedido ? 'Encaminhado' : (item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não Veio')}</td>
                             <td data-label="Ação" style={{ ...styles.td, textAlign: 'center' }}>
                               <span style={{ padding: '6px 10px', backgroundColor: 'var(--danger-soft)', color: 'var(--danger-text)', border: '1px solid var(--danger-border)', borderRadius: '6px', fontSize: '12px', fontWeight: 'bold' }}>
-                                {item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não entregue'}
+                                {item.encaminhadoOutroPedido
+                                  ? `Pedido #${item.pedidoDestinoId}`
+                                  : (item.cortadoPeloFornecedor ? 'Corte no Pedido' : 'Não entregue')}
                               </span>
                             </td>
                           </tr>
@@ -1326,20 +1370,6 @@ export default function PedidoConferencia() {
                             </td>
                           </tr>
                         )}
-                        {confState.statusRecebimento === 'AVARIADO' && (
-                          <tr key={`${item.id}-avariado`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--warning-soft)' }}>
-                            <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
-                              <FotosConferencia
-                                pedidoId={id}
-                                itemPedidoId={item.id}
-                                ocorrencia="AVARIA"
-                                fotos={fotos}
-                                somenteLeitura={totalmenteRecebido || isConferido}
-                                onUploaded={adicionarFoto}
-                              />
-                            </td>
-                          </tr>
-                        )}
                         {confState.isNaoSolicitado && (
                           <tr key={`${item.id}-fotos`} style={{ borderBottom: '1px solid var(--surface-muted)', backgroundColor: 'var(--purple-soft)' }}>
                             <td colSpan={isConferente ? 6 : 7} style={{ padding: '8px 14px' }}>
@@ -1428,6 +1458,18 @@ export default function PedidoConferencia() {
                   >
                     {bloqueadoConferente ? 'Voltar aos detalhes' : 'Cancelar'}
                   </button>
+                  {!bloqueadoConferente && !isConferente && (
+                    <button
+                      type="button"
+                      onClick={() => salvarConferenciaParcial()}
+                      style={{ ...styles.btnCancelar, borderColor: 'var(--primary)', color: 'var(--primary)', backgroundColor: 'var(--info-soft)' }}
+                      disabled={salvando}
+                      title="Salva o que já chegou e mantém o pedido na aba Conferência Parcial"
+                    >
+                      <FileText size={18} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                      {salvando ? 'Salvando...' : 'Salvar parcial'}
+                    </button>
+                  )}
                   {!bloqueadoConferente && (
                     <button
                       type="submit"
@@ -1464,6 +1506,18 @@ export default function PedidoConferencia() {
         >
           <ArrowLeft size={17} /> Voltar
         </button>
+        {!bloqueadoConferente && !isConferente && (
+          <button
+            type="button"
+            onClick={() => salvarConferenciaParcial()}
+            disabled={salvando}
+            style={{ ...styles.btnCancelar, flex: '0 0 32%', padding: '12px 6px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '4px', color: 'var(--primary)', borderColor: 'var(--primary)' }}
+            title="Salva o que já chegou e mantém o pedido na Conferência Parcial"
+          >
+            <FileText size={16} />
+            Parcial
+          </button>
+        )}
         {!bloqueadoConferente && (
           <button
             type="button"
@@ -1521,6 +1575,44 @@ export default function PedidoConferencia() {
                   O pedido fica em "Entrega Parcial"; depois você recebe o volume restante ou confirma a falta.
                 </div>
               </button>
+
+              <div style={{ padding: '12px', border: '1px solid var(--border-strong)', borderRadius: '8px', backgroundColor: 'var(--surface-muted)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <strong style={{ fontSize: '14px', color: 'var(--text)' }}>Encaminhar para outro pedido</strong>
+                <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                  O valor será ajustado automaticamente para o valor respondido pelo fornecedor do Pedido #{pedido.id}.
+                </span>
+                {carregandoPedidosDestino ? (
+                  <span style={{ fontSize: '13px', color: 'var(--text-muted)' }}>Carregando pedidos...</span>
+                ) : (
+                  <select
+                    value={pedidoDestinoId}
+                    onChange={e => setPedidoDestinoId(e.target.value)}
+                    style={{ width: '100%', padding: '10px', borderRadius: '6px', border: '1px solid var(--border-strong)', outline: 'none', fontSize: '13px' }}
+                  >
+                    <option value="">-- Selecione o pedido de destino --</option>
+                    {pedidosDestino.map(p => (
+                      <option key={p.id} value={p.id}>
+                        #{p.id} - {p.fornecedor?.empresa || p.fornecedor?.nome || 'Fornecedor'}
+                        {p.numeroNota ? ` - NF ${p.numeroNota}` : ''}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                <button
+                  type="button"
+                  onClick={() => confirmarDestinoFaltantes('ENCAMINHAR_PEDIDO')}
+                  disabled={salvando || !pedidoDestinoId}
+                  style={{ padding: '10px 16px', backgroundColor: 'var(--purple)', color: 'white', border: 'none', borderRadius: '8px', fontWeight: '700', fontSize: '13px', cursor: (salvando || !pedidoDestinoId) ? 'not-allowed' : 'pointer', opacity: (salvando || !pedidoDestinoId) ? 0.6 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                >
+                  <Truck size={16} /> Encaminhar {getItensSemDestino().length} produto(s)
+                </button>
+                {!carregandoPedidosDestino && pedidosDestino.length === 0 && (
+                  <span style={{ fontSize: '11px', color: 'var(--warning-text)' }}>
+                    Nenhum pedido aguardando entrega disponível para receber os produtos.
+                  </span>
+                )}
+              </div>
+
               <button
                 type="button"
                 onClick={() => !salvando && setShowModalDestinoFaltantes(false)}

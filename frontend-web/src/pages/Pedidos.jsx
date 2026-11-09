@@ -32,7 +32,7 @@ export default function Pedidos() {
   const [setorAtivo, setSetorAtivo] = useState('TODOS')
   const [periodoConferente, setPeriodoConferente] = useState('TODOS')
 
-  const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0, historico: 0 })
+  const [resumo, setResumo] = useState({ total: 0, emTratamento: 0, conferenciaParcial: 0, aguardandoEntrega: 0, aguardandoConfirmacao: 0, entregues: 0, devolucoes: 0, historico: 0 })
   const navigate = useNavigate()
 
   const [isModalManualOpen, setIsModalManualOpen] = useState(false)
@@ -46,11 +46,12 @@ export default function Pedidos() {
 
   const [agora, setAgora] = useState(new Date().getTime());
 
-  const STATUS_TRATAMENTO = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO', 'ENTREGA_PARCIAL', 'CONFERENCIA_INICIADA'];
+  const STATUS_TRATAMENTO = ['DIVERGENCIA', 'VALORES_INCOMPATIVEIS', 'PENDENTE_DEVOLUCAO'];
+  const STATUS_CONFERENCIA_PARCIAL = ['ENTREGA_PARCIAL', 'CONFERENCIA_INICIADA'];
   const STATUS_AGUARDANDO_ENTREGA = ['CONFIRMADO_FORNECEDOR'];
   const STATUS_AGUARDANDO_CONFIRMACAO = ['PENDENTE_ENTREGA'];
   const STATUS_HISTORICO = ['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA', 'CANCELADO'];
-  const STATUS_ATIVOS = [...STATUS_TRATAMENTO, ...STATUS_AGUARDANDO_ENTREGA, ...STATUS_AGUARDANDO_CONFIRMACAO];
+  const STATUS_ATIVOS = [...STATUS_TRATAMENTO, ...STATUS_CONFERENCIA_PARCIAL, ...STATUS_AGUARDANDO_ENTREGA, ...STATUS_AGUARDANDO_CONFIRMACAO];
 
   const normalizarTexto = (valor) => String(valor ?? '').toLowerCase().trim();
 
@@ -86,6 +87,7 @@ export default function Pedidos() {
     return {
       total: Object.values(contagens).reduce((total, quantidade) => total + quantidade, 0),
       emTratamento: somar(STATUS_TRATAMENTO),
+      conferenciaParcial: somar(STATUS_CONFERENCIA_PARCIAL),
       aguardandoEntrega: somar(STATUS_AGUARDANDO_ENTREGA),
       aguardandoConfirmacao: somar(STATUS_AGUARDANDO_CONFIRMACAO),
       entregues: somar(['ENTREGUE_SUCESSO', 'ENTREGUE_COM_FALTA']),
@@ -115,6 +117,7 @@ export default function Pedidos() {
     if (isConferente) return ['PENDENTE_ENTREGA', 'CONFIRMADO_FORNECEDOR', 'CONFERENCIA_INICIADA'];
     switch (aba) {
       case 'TRATAMENTO': return STATUS_TRATAMENTO;
+      case 'CONFERENCIA_PARCIAL': return STATUS_CONFERENCIA_PARCIAL;
       case 'AGUARDANDO_ENTREGA': return STATUS_AGUARDANDO_ENTREGA;
       case 'AGUARDANDO_CONFIRMACAO': return STATUS_AGUARDANDO_CONFIRMACAO;
       case 'HISTORICO': return STATUS_HISTORICO;
@@ -690,6 +693,10 @@ export default function Pedidos() {
             <div className="stat-label">Em Tratamento</div>
           </div>
           <div className="stat-card">
+            <div className="stat-value" style={{ color: 'var(--purple)' }}>{resumo.conferenciaParcial}</div>
+            <div className="stat-label">Conferência Parcial</div>
+          </div>
+          <div className="stat-card">
             <div className="stat-value" style={{ color: 'var(--warning)' }}>{resumo.aguardandoEntrega}</div>
             <div className="stat-label">Aguardando Entrega</div>
           </div>
@@ -706,6 +713,7 @@ export default function Pedidos() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(190px, 1fr))', gap: '12px', marginBottom: '20px' }}>
           {[
             { chave: 'TRATAMENTO', titulo: 'Em Tratamento', descricao: 'Divergências e pendências', cor: 'var(--danger)', fundo: 'var(--danger-soft)', icone: <AlertTriangle size={20} />, quantidade: resumo.emTratamento },
+            { chave: 'CONFERENCIA_PARCIAL', titulo: 'Conferência Parcial', descricao: 'Recebimentos parciais em andamento', cor: 'var(--purple)', fundo: 'var(--purple-soft)', icone: <ClipboardCheck size={20} />, quantidade: resumo.conferenciaParcial },
             { chave: 'AGUARDANDO_ENTREGA', titulo: 'Aguardando Entrega', descricao: 'Confirmados pelo fornecedor', cor: 'var(--warning)', fundo: 'var(--warning-soft)', icone: <PackagePlus size={20} />, quantidade: resumo.aguardandoEntrega },
             { chave: 'AGUARDANDO_CONFIRMACAO', titulo: 'Aguardando Confirmação', descricao: 'Aguardando fornecedor', cor: 'var(--warning)', fundo: 'var(--warning-soft)', icone: <Calendar size={20} />, quantidade: resumo.aguardandoConfirmacao },
             { chave: 'HISTORICO', titulo: 'Histórico', descricao: 'Entregues e cancelados', cor: 'var(--success)', fundo: 'var(--success-soft)', icone: <CheckCircle size={20} />, quantidade: resumo.historico },
@@ -810,6 +818,10 @@ export default function Pedidos() {
                   <option value="DIVERGENCIA">Divergência de Quantidade</option>
                   <option value="VALORES_INCOMPATIVEIS">Valores Incompatíveis</option>
                   <option value="PENDENTE_DEVOLUCAO">Devolução Pendente</option>
+                </>
+              )}
+              {abaAtiva === 'CONFERENCIA_PARCIAL' && (
+                <>
                   <option value="ENTREGA_PARCIAL">Entrega Parcial</option>
                   <option value="CONFERENCIA_INICIADA">Conferência em andamento</option>
                 </>
