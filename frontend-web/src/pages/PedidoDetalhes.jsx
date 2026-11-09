@@ -4,7 +4,7 @@ import api from '../services/api';
 import Sidebar from '../components/layout/Sidebar';
 import DevolucaoModal from '../components/DevolucaoModal';
 import PesquisaProdutoDna from '../components/PesquisaProdutoDna';
-import { ArrowLeft, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck, FileText, Package } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, CheckCircle, RotateCcw, Trash2, CheckSquare, Plus, X, Save, AlertTriangle, Edit2, MessageCircle, TrendingUp, Tag, Eye, Check, Search, Tags, XCircle, Zap, Truck, FileText, Package } from 'lucide-react';
 import { nomeExibicaoProduto, calcularResumoDivergencias, quantidadeEsperadaItem, valorUnitarioFisico } from '../utils/conferenciaUtils';
 import { confirmar } from '../context/FeedbackContext';
 
