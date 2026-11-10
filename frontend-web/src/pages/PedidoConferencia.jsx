@@ -131,6 +131,18 @@ export default function PedidoConferencia() {
         // Após a liberação do ADM, o Conferente corrige a quantidade já
         // persistida (o backend substitui, não soma outro volume).
         const editandoAposLiberacao = isConferente && !!response.data.conferenciaEdicaoLiberada;
+        // Continuação de conferência parcial: o novo volume chega com outra NF,
+        // então o campo começa limpo para o usuário digitar a nota atual.
+        const saldoPendente = (response.data.itens || []).some(item => {
+          if (item?.retornadoCotacao) return false;
+          const recebida = Number(item?.quantidadeReal || 0);
+          return recebida < quantidadeEsperadaItem(item);
+        });
+        const continuacaoParcial = !bloqueado
+          && !response.data.conferenciaEdicaoLiberada
+          && (response.data.status === 'ENTREGA_PARCIAL'
+            || (response.data.status === 'CONFERENCIA_INICIADA' && saldoPendente));
+        const numeroNotaInicial = continuacaoParcial ? '' : (response.data.numeroNota || '');
         // Itens "Não Veio" que retornaram à cotação não participam mais da conferência;
         // eles aparecem na tabela apenas em modo de leitura, destacados.
         const base = separarItensConferencia(response.data.itens).editaveis.map(item => {
@@ -195,12 +207,20 @@ export default function PedidoConferencia() {
           && cache.conferencia.length > 0
           && cache.pedidoStatus === response.data.status;
         if (cacheValido) {
-          setNumeroNota(cache.numeroNota || response.data.numeroNota || '');
+          const numeroCache = cache.numeroNota ?? '';
+          // Cache antigo pode conter a NF do volume anterior: na continuação
+          // parcial ele não deve voltar para o campo.
+          const numeroNotaCache = continuacaoParcial
+            && response.data.numeroNota
+            && numeroCache === response.data.numeroNota
+            ? ''
+            : numeroCache;
+          setNumeroNota(numeroNotaCache || numeroNotaInicial);
           // Restaura o preenchimento salvo (inclusive marcações de conversão).
           setConferencia(mesclarCacheNaConferencia(base, cache, isConferente));
         } else {
           if (cache) limparCacheConferencia(id);
-          setNumeroNota(response.data.numeroNota || '');
+          setNumeroNota(numeroNotaInicial);
           setConferencia(base);
         }
         try {
